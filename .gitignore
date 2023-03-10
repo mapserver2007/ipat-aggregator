@@ -1,0 +1,8 @@
+.DS_Store
+secret
+.vscode
+.air.toml
+csv/*.csv
+cache/*.json
+.idea
+tmp

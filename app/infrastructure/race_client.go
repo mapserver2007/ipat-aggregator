@@ -58,8 +58,9 @@ func (r *RaceClient) GetRacingNumber(ctx context.Context, entity *betting_ticket
 	return racingNumbers, nil
 }
 
-func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, organizer race_vo.Organizer) *race_entity.Race {
+func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, entity *betting_ticket_entity.CsvEntity) *race_entity.Race {
 	var url string
+	organizer := entity.RaceCourse.Organizer()
 	switch organizer {
 	case race_vo.JRA:
 		url = fmt.Sprintf(raceResultUrlForJRA, raceId, organizer)
@@ -97,14 +98,14 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, o
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 
-				raceResults = append(raceResults, &race_entity.RaceResult{
-					OrderNo:       i + 1,
-					HorseName:     ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
-					BracketNumber: numbers[0],
-					HorseNumber:   numbers[1],
-					Odds:          oddsList[1],
-					PopularNumber: popularNumber,
-				})
+				raceResults = append(raceResults, race_entity.NewRaceResult(
+					i+1,
+					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
+					numbers[0],
+					numbers[1],
+					oddsList[1],
+					popularNumber,
+				))
 			} else if currentOrganizer == race_vo.OverseaOrganizer {
 				ce.ForEach(".Num > div", func(j int, ce2 *colly.HTMLElement) {
 					num, _ := strconv.Atoi(ce2.DOM.Text())
@@ -116,14 +117,14 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, o
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 
-				raceResults = append(raceResults, &race_entity.RaceResult{
-					OrderNo:       i + 1,
-					HorseName:     ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
-					BracketNumber: numbers[0],
-					HorseNumber:   numbers[1],
-					Odds:          oddsList[1],
-					PopularNumber: popularNumber,
-				})
+				raceResults = append(raceResults, race_entity.NewRaceResult(
+					i+1,
+					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
+					numbers[0],
+					numbers[1],
+					oddsList[1],
+					popularNumber,
+				))
 			}
 		})
 		e.ForEach("#All_Result_Table > tbody > tr", func(i int, ce *colly.HTMLElement) {
@@ -144,14 +145,14 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, o
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 
-				raceResults = append(raceResults, &race_entity.RaceResult{
-					OrderNo:       i + 1,
-					HorseName:     ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
-					BracketNumber: numbers[0],
-					HorseNumber:   numbers[1],
-					Odds:          oddsList[1],
-					PopularNumber: popularNumber,
-				})
+				raceResults = append(raceResults, race_entity.NewRaceResult(
+					i+1,
+					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
+					numbers[0],
+					numbers[1],
+					oddsList[1],
+					popularNumber,
+				))
 			}
 		})
 	})
@@ -349,27 +350,30 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, o
 				return
 			}
 
-			payoutResult = append(payoutResult, &race_entity.PayoutResult{
-				TicketType: ticketType.Value(),
-				Numbers:    numbers,
-				Odds:       odds,
-			})
+			payoutResult = append(payoutResult, race_entity.NewPayoutResult(
+				ticketType.Value(),
+				numbers,
+				odds,
+			))
 		})
 	})
 
 	r.client.Visit(url)
 
-	return &race_entity.Race{
-		RaceId:         string(raceId),
-		RaceName:       raceName,
-		Url:            url,
-		Time:           raceTimes[0],
-		CourseCategory: int(courseCategory),
-		Distance:       distance,
-		Entries:        entries,
-		Class:          int(gradeClass),
-		TrackCondition: trackCondition,
-		RaceResults:    raceResults,
-		PayoutResults:  payoutResult,
-	}
+	return race_entity.NewRace(
+		string(raceId),
+		int(entity.RaceDate),
+		entity.RaceNo,
+		entity.RaceCourse.Value(),
+		raceName,
+		url,
+		raceTimes[0],
+		entries,
+		distance,
+		int(gradeClass),
+		int(courseCategory),
+		trackCondition,
+		raceResults,
+		payoutResult,
+	)
 }

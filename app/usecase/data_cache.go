@@ -5,6 +5,7 @@ import (
 	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
 	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
+	race_raw_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
 	"github.com/mapserver2007/tools/baken/app/repository"
 	"github.com/mapserver2007/tools/baken/app/service"
 	"log"
@@ -89,15 +90,18 @@ func (d *DataCache) readCsv(ctx context.Context) ([]*betting_ticket_entity.CsvEn
 }
 
 func (d *DataCache) readCache(ctx context.Context) (*race_entity.RacingNumberInfo, *race_entity.RaceInfo, error) {
-	racingNumberInfo, err := d.raceDB.ReadRacingNumber(ctx, racingNumberFileName)
+	rawRacingNumberInfo, err := d.raceDB.ReadRacingNumber(ctx, racingNumberFileName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	raceInfo, err := d.raceDB.ReadRaceResult(ctx, raceResultFileName)
+	rawRaceInfo, err := d.raceDB.ReadRaceResult(ctx, raceResultFileName)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	racingNumberInfo := convertToRaceNumberInfo(rawRacingNumberInfo)
+	raceInfo := convertToRaceInfo(rawRaceInfo)
 
 	return racingNumberInfo, raceInfo, nil
 }
@@ -111,14 +115,92 @@ func (d *DataCache) updateCache(ctx context.Context, entities []*betting_ticket_
 	log.Println(ctx, "update racing_number.json done!")
 
 	log.Println(ctx, "update race_result.json ...")
-	racingNumberInfo, err := d.raceDB.ReadRacingNumber(ctx, racingNumberFileName)
-	racingNumbers := racingNumberInfo.RacingNumbers
+	rawRaceInfo, _ := d.raceDB.ReadRaceResult(ctx, raceResultFileName)
 
-	err = d.raceDB.UpdateRaceResult(ctx, raceResultFileName, racingNumbers, entities)
+	rawRacingNumberInfo, err := d.raceDB.ReadRacingNumber(ctx, racingNumberFileName)
+	racingNumberInfo := convertToRaceNumberInfo(rawRacingNumberInfo)
+	racingNumbers := racingNumberInfo.RacingNumbers()
+
+	err = d.raceDB.UpdateRaceResult(ctx, rawRaceInfo, racingNumbers, entities)
 	if err != nil {
 		return fmt.Errorf("update race_result.json failed: %w", err)
 	}
 	log.Println(ctx, "update race_result.json done!")
 
 	return nil
+}
+
+func convertToRaceInfo(rawRaceInfo *race_raw_entity.RaceInfo) *race_entity.RaceInfo {
+	var races []*race_entity.Race
+	for _, rawRace := range rawRaceInfo.Races {
+		race := race_entity.NewRace(
+			rawRace.RaceId,
+			rawRace.RaceDate,
+			rawRace.RaceNumber,
+			rawRace.RaceCourseId,
+			rawRace.RaceName,
+			rawRace.Url,
+			rawRace.Time,
+			rawRace.Entries,
+			rawRace.Distance,
+			rawRace.Class,
+			rawRace.CourseCategory,
+			rawRace.TrackCondition,
+			convertToRaceResults(rawRace.RaceResults),
+			convertToPayoutResults(rawRace.PayoutResults),
+		)
+		races = append(races, race)
+	}
+
+	return race_entity.NewRaceInfo(races)
+}
+
+func convertToRaceResults(rawRaceResults []*race_raw_entity.RaceResult) []*race_entity.RaceResult {
+	var raceResults []*race_entity.RaceResult
+	for _, rawRaceResult := range rawRaceResults {
+		raceResult := race_entity.NewRaceResult(
+			rawRaceResult.OrderNo,
+			rawRaceResult.HorseName,
+			rawRaceResult.BracketNumber,
+			rawRaceResult.HorseNumber,
+			rawRaceResult.Odds,
+			rawRaceResult.PopularNumber,
+		)
+		raceResults = append(raceResults, raceResult)
+	}
+
+	return raceResults
+}
+
+func convertToPayoutResults(rawPayoutResults []*race_raw_entity.PayoutResult) []*race_entity.PayoutResult {
+	var payoutResults []*race_entity.PayoutResult
+	for _, rawPayoutResult := range rawPayoutResults {
+		payoutResult := race_entity.NewPayoutResult(
+			rawPayoutResult.TicketType,
+			rawPayoutResult.Numbers,
+			rawPayoutResult.Odds,
+		)
+		payoutResults = append(payoutResults, payoutResult)
+	}
+
+	return payoutResults
+}
+
+func convertToRaceNumberInfo(rawRacingNumberInfo *race_raw_entity.RacingNumberInfo) *race_entity.RacingNumberInfo {
+	var racingNumbers []*race_entity.RacingNumber
+	for _, rawRacingNumber := range rawRacingNumberInfo.RacingNumbers {
+		racingNumber := race_entity.NewRacingNumber(
+			rawRacingNumber.Date,
+			rawRacingNumber.Round,
+			rawRacingNumber.Day,
+			rawRacingNumber.RaceCourseId,
+		)
+		racingNumbers = append(racingNumbers, racingNumber)
+	}
+
+	return race_entity.NewRacingNumberInfo(racingNumbers)
+}
+
+func convertToRawRaceInfo() {
+
 }

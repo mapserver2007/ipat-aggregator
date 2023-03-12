@@ -6,6 +6,7 @@ import (
 	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
 	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
+	raw_race_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
 	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
 	"github.com/mapserver2007/tools/baken/app/repository"
 	"log"
@@ -26,13 +27,13 @@ func NewRaceDB(
 	}
 }
 
-func (r *RaceDB) ReadRaceResult(ctx context.Context, fileName string) (*race_entity.RaceInfo, error) {
+func (r *RaceDB) ReadRaceResult(ctx context.Context, fileName string) (*raw_race_entity.RaceInfo, error) {
 	bytes, err := r.readFile(fileName)
 	if err != nil {
 		return nil, err
 	}
 
-	var raceInfo *race_entity.RaceInfo
+	var raceInfo *raw_race_entity.RaceInfo
 	if err := json.Unmarshal(bytes, &raceInfo); err != nil {
 		return nil, err
 	}
@@ -54,7 +55,7 @@ func (r *RaceDB) ReadRacingNumber(ctx context.Context, fileName string) (*race_e
 	return racingNumberInfo, nil
 }
 
-// JRAの場合はDateからIDが特定できないので開催場所、日のデータをキャッシュしておいて
+// UpdateRacingNumber JRAの場合はDateからIDが特定できないので開催場所、日のデータをキャッシュしておいて
 // 変換処理をする必要がある。NAR、海外はDateから特定可能
 func (r *RaceDB) UpdateRacingNumber(ctx context.Context, fileName string, entities []*betting_ticket_entity.CsvEntity) error {
 	// エラーだった場合はracing_number.jsonが空だった場合なので無視
@@ -114,24 +115,24 @@ func (r *RaceDB) UpdateRacingNumber(ctx context.Context, fileName string, entiti
 	return nil
 }
 
-func (r *RaceDB) UpdateRaceResult(ctx context.Context, fileName string, racingNumbers []*race_entity.RacingNumber, entities []*betting_ticket_entity.CsvEntity) error {
+func (r *RaceDB) UpdateRaceResult(ctx context.Context, rawRaceInfo *raw_race_entity.RaceInfo, racingNumbers []*race_entity.RacingNumber, entities []*betting_ticket_entity.CsvEntity) error {
 	raceNumberMap := map[string]*race_entity.RacingNumber{}
 	for _, racingNumber := range racingNumbers {
-		key := fmt.Sprintf("%d_%d", racingNumber.Date, racingNumber.RaceCourseId)
+		key := fmt.Sprintf("%d_%d", racingNumber.Date(), racingNumber.RaceCourseId())
 		raceNumberMap[key] = racingNumber
 	}
 
 	// エラーだった場合はracing_number.jsonが空だった場合なので無視
-	raceInfo, _ := r.ReadRaceResult(ctx, fileName)
+	//raceInfo, _ := r.ReadRaceResult(ctx, fileName)
 
-	cache := map[race_vo.RaceId]*race_entity.Race{}
-	if raceInfo != nil {
-		for _, race := range raceInfo.Races {
-			cache[race_vo.RaceId(race.RaceId)] = race
+	cache := map[string]*raw_race_entity.Race{}
+	if rawRaceInfo != nil {
+		for _, race := range rawRaceInfo.Races {
+			cache[race.RaceId] = race
 		}
 	}
 	for _, entity := range entities {
-		var raceId race_vo.RaceId
+		var rawRaceId string
 		organizer := entity.RaceCourse.Organizer()
 
 		switch organizer {
@@ -141,40 +142,36 @@ func (r *RaceDB) UpdateRaceResult(ctx context.Context, fileName string, racingNu
 			if !ok {
 				return fmt.Errorf("undefined key: %s", key)
 			}
-			rawRaceId := fmt.Sprintf("%d%02d%02d%02d%02d", entity.RaceDate.Year(), racingNumber.RaceCourseId, racingNumber.Round, racingNumber.Day, entity.RaceNo)
-			raceId = race_vo.RaceId(rawRaceId)
+			rawRaceId = fmt.Sprintf("%d%02d%02d%02d%02d", entity.RaceDate.Year(), racingNumber.RaceCourseId, racingNumber.Round, racingNumber.Day, entity.RaceNo)
 		case race_vo.NAR:
-			rawRaceId := fmt.Sprintf("%d%02d%02d%02d%02d", entity.RaceDate.Year(), entity.RaceCourse.Value(), entity.RaceDate.Month(), entity.RaceDate.Day(), entity.RaceNo)
-			raceId = race_vo.RaceId(rawRaceId)
+			rawRaceId = fmt.Sprintf("%d%02d%02d%02d%02d", entity.RaceDate.Year(), entity.RaceCourse.Value(), entity.RaceDate.Month(), entity.RaceDate.Day(), entity.RaceNo)
 		case race_vo.OverseaOrganizer:
 			raceCourseIdForOversea := race_vo.ConvertToOverseaRaceCourseId(entity.RaceCourse)
-			rawRaceId := fmt.Sprintf("%d%s%02d%02d%02d", entity.RaceDate.Year(), raceCourseIdForOversea, entity.RaceDate.Month(), entity.RaceDate.Day(), entity.RaceNo)
-			raceId = race_vo.RaceId(rawRaceId)
+			rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", entity.RaceDate.Year(), raceCourseIdForOversea, entity.RaceDate.Month(), entity.RaceDate.Day(), entity.RaceNo)
 		}
 
-		if _, ok := cache[raceId]; ok {
+		if _, ok := cache[rawRaceId]; ok {
 			continue
 		}
 
 		time.Sleep(time.Second * 1)
-		race := r.raceClient.GetRaceResult(ctx, raceId, organizer)
-		race.RaceNumber = entity.RaceNo
-		race.RaceDate = int(entity.RaceDate)
-		race.RaceCourseId = entity.RaceCourse.Value()
+		race := r.raceClient.GetRaceResult(ctx, race_vo.RaceId(rawRaceId), entity)
 
-		log.Printf("updating key: %s ...", raceId)
+		log.Printf("updating key: %s ...", rawRaceId)
 
-		cache[raceId] = race
+		cache[rawRaceId] = race
 	}
 
-	var races []*race_entity.Race
+	var races []*raw_race_entity.Race
 	for _, race := range cache {
 		races = append(races, race)
 	}
 
-	newRaceInfo := race_entity.RaceInfo{Races: races}
+	raceInfo := race_entity.NewRaceInfo(races)
 
-	bytes, err := json.Marshal(newRaceInfo)
+	//newRaceInfo := race_entity.RaceInfo{Races: races}
+
+	bytes, err := json.Marshal(raceInfo)
 	if err != nil {
 		return err
 	}

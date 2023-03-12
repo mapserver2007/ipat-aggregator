@@ -29,8 +29,8 @@ func NewPredictor(
 	raceConverter RaceConverter,
 	records []*betting_ticket_entity.CsvEntity,
 	races []*race_entity.Race,
-) Predictor {
-	return Predictor{
+) *Predictor {
+	return &Predictor{
 		raceConverter: raceConverter,
 		records:       records,
 		races:         races,

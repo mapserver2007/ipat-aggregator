@@ -9,5 +9,5 @@ import (
 
 type RaceClient interface {
 	GetRacingNumber(ctx context.Context, entity *betting_ticket_entity.CsvEntity) ([]*race_entity.RacingNumber, error)
-	GetRaceResult(ctx context.Context, raceId race_vo.RaceId, organizer race_vo.Organizer) *race_entity.Race
+	GetRaceResult(ctx context.Context, raceId race_vo.RaceId, entity *betting_ticket_entity.CsvEntity) *race_entity.Race
 }

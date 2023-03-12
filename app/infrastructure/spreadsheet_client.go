@@ -1229,10 +1229,10 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 	var rivalHorseName, rivalPopularNumber, rivalOdds string
 
 	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Race.RaceNumber > records[j].Race.RaceNumber
+		return records[i].Race().RaceNumber() > records[j].Race().RaceNumber()
 	})
 	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Race.RaceDate > records[j].Race.RaceDate
+		return records[i].Race().RaceDate() > records[j].Race().RaceDate()
 	})
 
 	styleMap := map[race_vo.RaceId]*spreadsheet_entity.ResultStyle{}
@@ -1242,21 +1242,25 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			gradeClassColor           spreadsheet_vo.GradeClassColor
 			repaymentComment          string
 		)
-		if record.FavoriteHorse.HorseName == record.Race.RaceResults[0].HorseName {
+		raceResults := record.Race().RaceResults()
+		raceResultOfFirst := raceResults[0]
+		raceResultOfSecond := raceResults[1]
+
+		if record.FavoriteHorse().HorseName() == raceResultOfFirst.HorseName() {
 			favoriteColor = spreadsheet_vo.FirstPlace
-		} else if record.FavoriteHorse.HorseName == record.Race.RaceResults[1].HorseName {
+		} else if record.FavoriteHorse().HorseName() == record.Race().RaceResults()[1].HorseName() {
 			favoriteColor = spreadsheet_vo.SecondPlace
 		}
 
-		if record.RivalHorse != nil {
-			if record.RivalHorse.HorseName == record.Race.RaceResults[0].HorseName {
+		if record.RivalHorse() != nil {
+			if record.RivalHorse().HorseName() == record.Race().RaceResults[0].HorseName {
 				rivalColor = spreadsheet_vo.FirstPlace
-			} else if record.RivalHorse.HorseName == record.Race.RaceResults[1].HorseName {
+			} else if record.RivalHorse().HorseName() == record.Race().RaceResults[1].HorseName {
 				rivalColor = spreadsheet_vo.SecondPlace
 			}
 		}
 
-		switch record.Race.Class {
+		switch record.Race().Class {
 		case race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1:
 			gradeClassColor = spreadsheet_vo.Grade1
 		case race_vo.Grade2, race_vo.Jpn2, race_vo.JumpGrade2:
@@ -1265,23 +1269,23 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			gradeClassColor = spreadsheet_vo.Grade3
 		}
 
-		if record.WinningTickets != nil {
+		if record.WinningTickets() != nil {
 			var comments []string
-			for _, winningTicket := range record.WinningTickets {
+			for _, winningTicket := range record.WinningTickets() {
 				comment := fmt.Sprintf("%s %s %s倍 %d円", winningTicket.BettingTicket.Name(), winningTicket.BetNumber.String(), winningTicket.Odds, winningTicket.Repayment)
 				comments = append(comments, comment)
 			}
 			repaymentComment = strings.Join(comments, "\n")
 		}
 
-		styleMap[record.Race.RaceId] = spreadsheet_entity.NewResultStyle(
+		styleMap[record.Race().RaceId] = spreadsheet_entity.NewResultStyle(
 			idx+1, favoriteColor, rivalColor, gradeClassColor, repaymentComment,
 		)
 
-		if record.RivalHorse != nil {
-			rivalHorseName = record.RivalHorse.HorseName
-			rivalPopularNumber = strconv.Itoa(record.RivalHorse.PopularNumber)
-			rivalOdds = record.RivalHorse.Odds
+		if record.RivalHorse() != nil {
+			rivalHorseName = record.RivalHorse().HorseName()
+			rivalPopularNumber = strconv.Itoa(record.RivalHorse().PopularNumber())
+			rivalOdds = record.RivalHorse().Odds()
 		} else {
 			rivalHorseName = "-"
 			rivalPopularNumber = "-"
@@ -1289,27 +1293,27 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 		}
 
 		values = append(values, []interface{}{
-			record.Race.RaceDate.DateFormat(),
-			record.Race.Class.String(),
-			record.Race.CourseCategory.String(),
-			fmt.Sprintf("%d%s", record.Race.Distance, "m"),
-			record.Race.TrackCondition,
-			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", record.Race.Url, record.Race.RaceName),
-			record.Payment,
-			record.Repayment,
-			fmt.Sprintf("%.0f%s", float64(record.Repayment)*float64(100)/float64(record.Payment), "%"),
-			record.FavoriteHorse.HorseName,
-			record.FavoriteHorse.PopularNumber,
-			record.FavoriteHorse.Odds,
+			record.Race().RaceDate.DateFormat(),
+			record.Race().Class.String(),
+			record.Race().CourseCategory.String(),
+			fmt.Sprintf("%d%s", record.Race().Distance, "m"),
+			record.Race().TrackCondition,
+			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", record.Race().Url, record.Race().RaceName),
+			record.Payment(),
+			record.Repayment(),
+			fmt.Sprintf("%.0f%s", float64(record.Repayment())*float64(100)/float64(record.Payment()), "%"),
+			record.FavoriteHorse().HorseName(),
+			record.FavoriteHorse().PopularNumber(),
+			record.FavoriteHorse().Odds(),
 			rivalHorseName,
 			rivalPopularNumber,
 			rivalOdds,
-			record.Race.RaceResults[0].HorseName,
-			record.Race.RaceResults[0].PopularNumber,
-			record.Race.RaceResults[0].Odds,
-			record.Race.RaceResults[1].HorseName,
-			record.Race.RaceResults[1].PopularNumber,
-			record.Race.RaceResults[1].Odds,
+			record.Race().RaceResults[0].HorseName,
+			record.Race().RaceResults[0].PopularNumber,
+			record.Race().RaceResults[0].Odds,
+			record.Race().RaceResults[1].HorseName,
+			record.Race().RaceResults[1].PopularNumber,
+			record.Race().RaceResults[1].Odds,
 		})
 	}
 
@@ -1597,7 +1601,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 
 	var requests []*sheets.Request
 	for _, record := range records {
-		if style, ok := styleMap[record.Race.RaceId]; ok {
+		if style, ok := styleMap[record.Race().RaceId]; ok {
 			if style.GradeClassColor != spreadsheet_vo.NonGrade {
 				color := &sheets.Color{
 					Red:   1.0,

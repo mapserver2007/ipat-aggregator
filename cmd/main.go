@@ -37,6 +37,9 @@ func main() {
 		panic(err)
 	}
 
+	analyser := service.NewAnalyser(entities)
+	analyser.Analyse()
+
 	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient)
 	err = spreadSheetUseCase.WriteSummary(ctx, summary)
 	if err != nil {

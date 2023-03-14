@@ -1043,7 +1043,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      37,
+						EndRowIndex:      38,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1083,7 +1083,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      37,
+						EndRowIndex:      38,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{

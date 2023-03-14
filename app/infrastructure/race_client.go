@@ -6,7 +6,7 @@ import (
 	"github.com/gocolly/colly"
 	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
 	betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
-	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
+	"github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
 	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
 	"github.com/mapserver2007/tools/baken/app/repository"
 	"regexp"
@@ -14,12 +14,12 @@ import (
 	"strings"
 )
 
-const (
-	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%d"
-	raceResultUrlForJRA     = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-)
+//const (
+//	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%d"
+//	raceResultUrlForJRA     = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
+//	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
+//	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
+//)
 
 type RaceClient struct {
 	client *colly.Collector
@@ -31,9 +31,8 @@ func NewRaceClient(client *colly.Collector) repository.RaceClient {
 	}
 }
 
-func (r *RaceClient) GetRacingNumber(ctx context.Context, entity *betting_ticket_entity.CsvEntity) ([]*race_entity.RacingNumber, error) {
-	var racingNumbers []*race_entity.RacingNumber
-	url := fmt.Sprintf(raceListUrlForJRA, int(entity.RaceDate))
+func (r *RaceClient) GetRacingNumbers(ctx context.Context, url string, entity *betting_ticket_entity.CsvEntity) ([]*raw_entity.RawRacingNumberNetkeiba, error) {
+	var racingNumbers []*raw_entity.RawRacingNumberNetkeiba
 	r.client.OnHTML(".RaceList_DataList", func(e *colly.HTMLElement) {
 		e.ForEach(".RaceList_DataTitle", func(i int, ce *colly.HTMLElement) {
 			regex := regexp.MustCompile(`(\d+)回\s+(.+)\s+(\d+)日目`)
@@ -42,12 +41,12 @@ func (r *RaceClient) GetRacingNumber(ctx context.Context, entity *betting_ticket
 			day, _ := strconv.Atoi(matches[0][3])
 			raceCourse := race_vo.ConvertToRaceCourse(matches[0][2])
 
-			racingNumbers = append(racingNumbers, &race_entity.RacingNumber{
-				Date:         int(entity.RaceDate),
-				Round:        round,
-				Day:          day,
-				RaceCourseId: raceCourse.Value(),
-			})
+			racingNumbers = append(racingNumbers, raw_entity.NewRawRacingNumberNetkeiba(
+				int(entity.RaceDate),
+				round,
+				day,
+				raceCourse.Value(),
+			))
 		})
 	})
 	err := r.client.Visit(url)
@@ -58,21 +57,10 @@ func (r *RaceClient) GetRacingNumber(ctx context.Context, entity *betting_ticket
 	return racingNumbers, nil
 }
 
-func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, entity *betting_ticket_entity.CsvEntity) *race_entity.Race {
-	var url string
-	organizer := entity.RaceCourse.Organizer()
-	switch organizer {
-	case race_vo.JRA:
-		url = fmt.Sprintf(raceResultUrlForJRA, raceId, organizer)
-	case race_vo.NAR:
-		url = fmt.Sprintf(raceResultUrlForNAR, raceId, organizer)
-	case race_vo.OverseaOrganizer:
-		url = fmt.Sprintf(raceResultUrlForOversea, raceId, organizer)
-	}
-
+func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity.RawRaceNetkeiba, error) {
 	var (
-		raceResults              []*race_entity.RaceResult
-		payoutResult             []*race_entity.PayoutResult
+		raceResults              []*raw_entity.RawRaceResultNetkeiba
+		payoutResults            []*raw_entity.RawPayoutResultNetkeiba
 		raceName, trackCondition string
 		raceTimes                []string
 		courseCategory           race_vo.CourseCategory
@@ -98,7 +86,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, e
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 
-				raceResults = append(raceResults, race_entity.NewRaceResult(
+				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
@@ -117,7 +105,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, e
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 
-				raceResults = append(raceResults, race_entity.NewRaceResult(
+				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
@@ -145,7 +133,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, e
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 
-				raceResults = append(raceResults, race_entity.NewRaceResult(
+				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
@@ -350,7 +338,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, e
 				return
 			}
 
-			payoutResult = append(payoutResult, race_entity.NewPayoutResult(
+			payoutResults = append(payoutResults, raw_entity.NewRawPayoutResultNetkeiba(
 				ticketType.Value(),
 				numbers,
 				odds,
@@ -358,13 +346,12 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, e
 		})
 	})
 
-	r.client.Visit(url)
+	err := r.client.Visit(url)
+	if err != nil {
+		return nil, err
+	}
 
-	return race_entity.NewRace(
-		string(raceId),
-		int(entity.RaceDate),
-		entity.RaceNo,
-		entity.RaceCourse.Value(),
+	return raw_entity.NewRawRaceNetkeiba(
 		raceName,
 		url,
 		raceTimes[0],
@@ -374,6 +361,6 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, raceId race_vo.RaceId, e
 		int(courseCategory),
 		trackCondition,
 		raceResults,
-		payoutResult,
-	)
+		payoutResults,
+	), nil
 }

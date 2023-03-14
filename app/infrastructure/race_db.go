@@ -81,6 +81,7 @@ func (r *RaceDB) UpdateRacingNumber(ctx context.Context, fileName string, entiti
 		key := cacheKeyFunc(int(entity.RaceDate), entity.RaceCourse.Value())
 		if _, ok := cache[key]; !ok {
 			time.Sleep(time.Second * 1)
+			url := fmt.Sprintf(raceListUrlForJRA, int(entity.RaceDate))
 			newRacingNumbers, err := r.raceClient.GetRacingNumber(ctx, entity)
 			if err != nil {
 				return err

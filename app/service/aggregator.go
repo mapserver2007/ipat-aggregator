@@ -12,14 +12,14 @@ import (
 )
 
 type Aggregator struct {
-	raceConverter    RaceConverter
+	raceConverter    *RaceConverter
 	entities         []*betting_ticket_entity.CsvEntity
 	racingNumberInfo *race_entity.RacingNumberInfo
 	raceInfo         *race_entity.RaceInfo
 }
 
 func NewAggregator(
-	raceConverter RaceConverter,
+	raceConverter *RaceConverter,
 	entities []*betting_ticket_entity.CsvEntity,
 	racingNumberInfo *race_entity.RacingNumberInfo,
 	raceInfo *race_entity.RaceInfo,

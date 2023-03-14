@@ -14,6 +14,8 @@ func main() {
 	csvReader := service.NewCsvReader()
 	collector := colly.NewCollector()
 	raceClient := infrastructure.NewRaceClient(collector)
+	raceFetcher := service.NewRaceFetcher(raceClient)
+	raceConverter := service.NewRaceConverter()
 
 	raceDB := infrastructure.NewRaceDB(raceClient)
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx, "secret.json", "spreadsheet_calc.json")
@@ -21,13 +23,14 @@ func main() {
 
 	log.Println(ctx, "start")
 
-	dataCacheUseCase := usecase.NewDataCache(csvReader, raceDB)
+	dataCacheUseCase := usecase.NewDataCache(csvReader, raceDB, raceFetcher, raceConverter)
+	//raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadCache(ctx)
+
 	entities, raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	raceConverter := service.NewRaceConverter(raceNumberInfo.RacingNumbers)
 	aggregator := service.NewAggregator(raceConverter, entities, raceNumberInfo, raceInfo)
 	summary := aggregator.GetSummary()
 

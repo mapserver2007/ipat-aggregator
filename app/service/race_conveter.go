@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
-	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
+	raw_race_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
 	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
 )
 
@@ -26,9 +26,23 @@ func NewRaceConverter() RaceConverter {
 	return RaceConverter{}
 }
 
-func (r *RaceConverter) GetRaceUrls(
-	races []*race_entity.Race,
-	racingNumbers []*race_entity.RacingNumber,
+func (r *RaceConverter) GetRacingNumberRequestParams(
+	records []*betting_ticket_entity.CsvEntity,
+) error {
+	for _, record := range records {
+		// JRA以外は日付からレース番号の特定が可能のため処理しない
+		if record.RaceCourse.Organizer() != race_vo.JRA {
+			continue
+		}
+
+	}
+
+	return nil
+}
+
+func (r *RaceConverter) GetRaceRequestParams(
+	races []*raw_race_entity.Race,
+	racingNumbers []*raw_race_entity.RacingNumber,
 	records []*betting_ticket_entity.CsvEntity,
 ) ([]*RaceRequestParam, error) {
 	raceMap := convertToRaceMap(races)
@@ -38,7 +52,7 @@ func (r *RaceConverter) GetRaceUrls(
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := raceMap[*raceId]; ok {
+		if _, ok := raceMap[string(*raceId)]; ok {
 			continue
 		}
 		raceRequestParams = append(raceRequestParams, createRaceRequestParam(
@@ -53,7 +67,7 @@ func (r *RaceConverter) GetRaceUrls(
 
 func (r *RaceConverter) GetRaceId(
 	record *betting_ticket_entity.CsvEntity,
-	racingNumbers []*race_entity.RacingNumber,
+	racingNumbers []*raw_race_entity.RacingNumber,
 ) (*race_vo.RaceId, error) {
 	racingNumberMap := convertToRacingNumberMap(racingNumbers)
 	var raceId race_vo.RaceId
@@ -118,16 +132,16 @@ func convertToUrl(raceId race_vo.RaceId, organizer race_vo.Organizer) string {
 	return url
 }
 
-func convertToRaceMap(races []*race_entity.Race) map[race_vo.RaceId]*race_entity.Race {
-	raceMap := map[race_vo.RaceId]*race_entity.Race{}
+func convertToRaceMap(races []*raw_race_entity.Race) map[string]*raw_race_entity.Race {
+	raceMap := map[string]*raw_race_entity.Race{}
 	for _, race := range races {
-		raceMap[race.RaceId()] = race
+		raceMap[race.RaceId] = race
 	}
 	return raceMap
 }
 
-func convertToRacingNumberMap(racingNumbers []*race_entity.RacingNumber) map[string]*race_entity.RacingNumber {
-	raceNumberMap := map[string]*race_entity.RacingNumber{}
+func convertToRacingNumberMap(racingNumbers []*raw_race_entity.RacingNumber) map[string]*raw_race_entity.RacingNumber {
+	raceNumberMap := map[string]*raw_race_entity.RacingNumber{}
 	for _, racingNumber := range racingNumbers {
 		key := fmt.Sprintf("%d_%d", racingNumber.Date, racingNumber.RaceCourseId)
 		raceNumberMap[key] = racingNumber

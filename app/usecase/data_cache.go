@@ -64,37 +64,42 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 		return nil, nil, nil, err
 	}
 
-	raceNumberInfo, raceInfo, err := d.readCache(ctx)
+	rawRacingNumberInfo, rawRaceInfo, err := d.readCache(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	params, err := d.raceConverter.GetRaceUrls(raceInfo.Races(), raceNumberInfo.RacingNumbers(), records)
+	//racingNumberInfo := convertFromCsvToRaceNumberInfo(rawRacingNumberInfo)
+	//raceInfo := convertToRaceInfo(rawRaceInfo)
+
+	params, err := d.raceConverter.GetRaceRequestParams(rawRaceInfo.Races, rawRacingNumberInfo.RacingNumbers, records)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	var newRawRaces []*raw_race_entity.Race
 	for _, param := range params {
 		rawRace, err := d.raceFetcher.FetchRaceInfo(ctx, param.Url())
 		if err != nil {
 			return nil, nil, nil, err
 		}
-
-		race := convertToRace(rawRace, param.RaceId(), param.Record())
-
+		newRawRaces = append(newRawRaces, convertToRawRaceCsv(rawRace, param.RaceId(), param.Record()))
 	}
+
+	races := append(rawRaceInfo.Races, newRawRaces...)
+	newRawRaceInfo := raw_race_entity.RaceInfo{Races: races}
 
 	err = d.updateCache(ctx, records)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	raceNumberInfo, raceInfo, err := d.readCache(ctx)
+	rawRaceNumberInfo, rawRaceInfo, err := d.readCache(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return entities, raceNumberInfo, raceInfo, nil
+	return entities, rawRaceNumberInfo, rawRaceInfo, nil
 }
 
 func (d *DataCache) readCsv(ctx context.Context) ([]*betting_ticket_entity.CsvEntity, error) {
@@ -129,7 +134,7 @@ func (d *DataCache) readCsv(ctx context.Context) ([]*betting_ticket_entity.CsvEn
 	return results, nil
 }
 
-func (d *DataCache) readCache(ctx context.Context) (*race_entity.RacingNumberInfo, *race_entity.RaceInfo, error) {
+func (d *DataCache) readCache(ctx context.Context) (*raw_race_entity.RacingNumberInfo, *raw_race_entity.RaceInfo, error) {
 	rawRacingNumberInfo, err := d.raceDB.ReadRacingNumber(ctx, racingNumberFileName)
 	if err != nil {
 		return nil, nil, err
@@ -140,12 +145,19 @@ func (d *DataCache) readCache(ctx context.Context) (*race_entity.RacingNumberInf
 		return nil, nil, err
 	}
 
-	racingNumberInfo := convertFromCsvToRaceNumberInfo(rawRacingNumberInfo)
-	raceInfo := convertToRaceInfo(rawRaceInfo)
+	//racingNumberInfo := convertFromCsvToRaceNumberInfo(rawRacingNumberInfo)
+	//raceInfo := convertToRaceInfo(rawRaceInfo)
 
-	return racingNumberInfo, raceInfo, nil
+	return rawRacingNumberInfo, rawRaceInfo, nil
 }
 
+func (d *DataCache) updateCache2(ctx context.Context) error {
+	log.Println(ctx, "update racing_number.json ...")
+
+	return nil
+}
+
+// deprecated
 func (d *DataCache) updateCache(ctx context.Context, entities []*betting_ticket_entity.CsvEntity) error {
 	log.Println(ctx, "update racing_number.json ...")
 	err := d.raceDB.UpdateRacingNumber(ctx, racingNumberFileName, entities)
@@ -170,23 +182,23 @@ func (d *DataCache) updateCache(ctx context.Context, entities []*betting_ticket_
 	return nil
 }
 
-func convertToRace(rawRace *raw_race_entity.RawRaceNetkeiba, raceId *race_vo.RaceId, record *betting_ticket_entity.CsvEntity) *race_entity.Race {
-	return race_entity.NewRace(
-		string(*raceId),
-		int(record.RaceDate),
-		record.RaceNo,
-		record.RaceCourse.Value(),
-		rawRace.RaceName(),
-		rawRace.Url(),
-		rawRace.Time(),
-		rawRace.Entries(),
-		rawRace.Class(),
-		rawRace.Distance(),
-		rawRace.CourseCategory(),
-		rawRace.TrackCondition(),
-		convertFromNetkeibaToRaceResults(rawRace.RaceResults()),
-		convertFromNetkeibaToPayoutResults(rawRace.PayoutResults()),
-	)
+func convertToRawRaceCsv(rawRace *raw_race_entity.RawRaceNetkeiba, raceId *race_vo.RaceId, record *betting_ticket_entity.CsvEntity) *raw_race_entity.Race {
+	return &raw_race_entity.Race{
+		RaceId:         string(*raceId),
+		RaceDate:       int(record.RaceDate),
+		RaceNumber:     record.RaceNo,
+		RaceCourseId:   record.RaceCourse.Value(),
+		RaceName:       rawRace.RaceName(),
+		Url:            rawRace.Url(),
+		Time:           rawRace.Time(),
+		Entries:        rawRace.Entries(),
+		Distance:       rawRace.Distance(),
+		Class:          rawRace.Class(),
+		CourseCategory: rawRace.CourseCategory(),
+		TrackCondition: rawRace.TrackCondition(),
+		RaceResults:    convertRaceResultsFromRawNetkeibaToRawCsv(rawRace.RaceResults()),
+		PayoutResults:  convertPayoutResultsFromRawNetkeibaToRawCsv(rawRace.PayoutResults()),
+	}
 }
 
 func convertToRaceInfo(rawRaceInfo *raw_race_entity.RaceInfo) *race_entity.RaceInfo {
@@ -260,31 +272,31 @@ func convertFromCsvToRaceNumberInfo(rawRacingNumberInfo *raw_race_entity.RacingN
 	return race_entity.NewRacingNumberInfo(racingNumbers)
 }
 
-func convertFromNetkeibaToRaceResults(rawRaceResults []*raw_race_entity.RawRaceResultNetkeiba) []*race_entity.RaceResult {
-	var raceResults []*race_entity.RaceResult
+func convertRaceResultsFromRawNetkeibaToRawCsv(rawRaceResults []*raw_race_entity.RawRaceResultNetkeiba) []*raw_race_entity.RaceResult {
+	var raceResults []*raw_race_entity.RaceResult
 	for _, rawRaceResult := range rawRaceResults {
-		raceResult := race_entity.NewRaceResult(
-			rawRaceResult.OrderNo(),
-			rawRaceResult.HorseName(),
-			rawRaceResult.BracketNumber(),
-			rawRaceResult.HorseNumber(),
-			rawRaceResult.Odds(),
-			rawRaceResult.PopularNumber(),
-		)
+		raceResult := raw_race_entity.RaceResult{
+			OrderNo:       rawRaceResult.OrderNo(),
+			HorseName:     rawRaceResult.HorseName(),
+			BracketNumber: rawRaceResult.BracketNumber(),
+			HorseNumber:   rawRaceResult.HorseNumber(),
+			Odds:          rawRaceResult.Odds(),
+			PopularNumber: rawRaceResult.PopularNumber(),
+		}
 		raceResults = append(raceResults, raceResult)
 	}
 
 	return raceResults
 }
 
-func convertFromNetkeibaToPayoutResults(rawPayoutResults []*raw_race_entity.RawPayoutResultNetkeiba) []*race_entity.PayoutResult {
-	var payoutResults []*race_entity.PayoutResult
+func convertPayoutResultsFromRawNetkeibaToRawCsv(rawPayoutResults []*raw_race_entity.RawPayoutResultNetkeiba) []*raw_race_entity.PayoutResult {
+	var payoutResults []*raw_race_entity.PayoutResult
 	for _, rawPayoutResult := range rawPayoutResults {
-		payoutResult := race_entity.NewPayoutResult(
-			rawPayoutResult.TicketType(),
-			rawPayoutResult.Numbers(),
-			rawPayoutResult.Odds(),
-		)
+		payoutResult := raw_race_entity.PayoutResult{
+			TicketType: rawPayoutResult.TicketType(),
+			Numbers:    rawPayoutResult.Numbers(),
+			Odds:       rawPayoutResult.Odds(),
+		}
 		payoutResults = append(payoutResults, payoutResult)
 	}
 

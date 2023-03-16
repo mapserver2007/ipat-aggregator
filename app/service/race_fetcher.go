@@ -18,7 +18,16 @@ func NewRaceFetcher(
 	}
 }
 
-func (f *RaceFetcher) FetchRaceInfo(ctx context.Context, url string) (*raw_entity.RawRaceNetkeiba, error) {
+func (f *RaceFetcher) FetchRacingNumbers(ctx context.Context, url string) ([]*raw_entity.RawRacingNumberNetkeiba, error) {
+	// TODO entity要求してくる
+	rawRacingNumbers, err := f.raceClient.GetRacingNumbers(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	return rawRacingNumbers, nil
+}
+
+func (f *RaceFetcher) FetchRace(ctx context.Context, url string) (*raw_entity.RawRaceNetkeiba, error) {
 	rawRace, err := f.raceClient.GetRaceResult(ctx, url)
 	if err != nil {
 		return nil, err

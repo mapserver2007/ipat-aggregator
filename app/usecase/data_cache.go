@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -79,7 +80,8 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 
 	var newRawRaces []*raw_race_entity.Race
 	for _, param := range params {
-		rawRace, err := d.raceFetcher.FetchRaceInfo(ctx, param.Url())
+		time.Sleep(time.Second * 1)
+		rawRace, err := d.raceFetcher.FetchRace(ctx, param.Url())
 		if err != nil {
 			return nil, nil, nil, err
 		}

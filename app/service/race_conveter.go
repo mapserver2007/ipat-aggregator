@@ -16,6 +16,10 @@ const (
 
 type RaceConverter struct{}
 
+type RacingNumberRequestParam struct {
+	url string
+}
+
 type RaceRequestParam struct {
 	url    string
 	raceId *race_vo.RaceId
@@ -27,13 +31,32 @@ func NewRaceConverter() RaceConverter {
 }
 
 func (r *RaceConverter) GetRacingNumberRequestParams(
+	racingNumbers []*raw_race_entity.RacingNumber,
 	records []*betting_ticket_entity.CsvEntity,
 ) error {
+	racingNumberMap := convertToRacingNumberMap(racingNumbers)
+	racingNumberRequestParam := make([]*RacingNumberRequestParam, 0)
+
 	for _, record := range records {
 		// JRA以外は日付からレース番号の特定が可能のため処理しない
 		if record.RaceCourse.Organizer() != race_vo.JRA {
 			continue
 		}
+
+		racingNumberId := race_vo.NewRacingNumberId(
+			record.RaceDate,
+			record.RaceCourse,
+		)
+
+		if _, ok := racingNumberMap[racingNumberId]; ok {
+			continue
+		}
+
+		racingNumberRequestParam = append(racingNumberRequestParam, createRacingNumberRequestParam(
+			convertToRaceListUrl(racingNumberId.Date()),
+		))
+
+		//url := fmt.Sprintf(raceListUrlForJRA, int(entity.RaceDate))
 
 	}
 
@@ -46,9 +69,21 @@ func (r *RaceConverter) GetRaceRequestParams(
 	records []*betting_ticket_entity.CsvEntity,
 ) ([]*RaceRequestParam, error) {
 	raceMap := convertToRaceMap(races)
+	racingNumberMap := convertToRacingNumberMap(racingNumbers)
 	raceRequestParams := make([]*RaceRequestParam, 0)
+
 	for _, record := range records {
-		raceId, err := r.GetRaceId(record, racingNumbers)
+		racingNumberId := race_vo.NewRacingNumberId(
+			record.RaceDate,
+			record.RaceCourse,
+		)
+
+		racingNumber, ok := racingNumberMap[racingNumberId]
+		if !ok {
+			return nil, fmt.Errorf("unknown racingNumberId: %s", string(racingNumberId))
+		}
+
+		raceId, err := r.GetRaceId(record, racingNumber)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +91,7 @@ func (r *RaceConverter) GetRaceRequestParams(
 			continue
 		}
 		raceRequestParams = append(raceRequestParams, createRaceRequestParam(
-			convertToUrl(*raceId, record.RaceCourse.Organizer()),
+			convertToRaceResultUrl(*raceId, record.RaceCourse.Organizer()),
 			raceId,
 			record,
 		))
@@ -67,19 +102,19 @@ func (r *RaceConverter) GetRaceRequestParams(
 
 func (r *RaceConverter) GetRaceId(
 	record *betting_ticket_entity.CsvEntity,
-	racingNumbers []*raw_race_entity.RacingNumber,
+	racingNumber *raw_race_entity.RacingNumber,
 ) (*race_vo.RaceId, error) {
-	racingNumberMap := convertToRacingNumberMap(racingNumbers)
+	//racingNumberMap := convertToRacingNumberMap(racingNumbers)
 	var raceId race_vo.RaceId
 	organizer := record.RaceCourse.Organizer()
 
 	switch organizer {
 	case race_vo.JRA:
-		key := fmt.Sprintf("%d_%d", record.RaceDate, record.RaceCourse.Value())
-		racingNumber, ok := racingNumberMap[key]
-		if !ok {
-			return nil, fmt.Errorf("undefined key: %s", key)
-		}
+		//key := fmt.Sprintf("%d_%d", record.RaceDate, record.RaceCourse.Value())
+		//racingNumber, ok := racingNumberMap[key]
+		//if !ok {
+		//	return nil, fmt.Errorf("undefined key: %s", key)
+		//}
 		rawRaceId := fmt.Sprintf("%d%02d%02d%02d%02d", record.RaceDate.Year(), racingNumber.RaceCourseId, racingNumber.Round, racingNumber.Day, record.RaceNo)
 		raceId = race_vo.RaceId(rawRaceId)
 	case race_vo.NAR:
@@ -92,6 +127,12 @@ func (r *RaceConverter) GetRaceId(
 	}
 
 	return &raceId, nil
+}
+
+func createRacingNumberRequestParam(
+	url string,
+) *RacingNumberRequestParam {
+	return &RacingNumberRequestParam{url: url}
 }
 
 func createRaceRequestParam(
@@ -118,7 +159,11 @@ func (r *RaceRequestParam) Record() *betting_ticket_entity.CsvEntity {
 	return r.record
 }
 
-func convertToUrl(raceId race_vo.RaceId, organizer race_vo.Organizer) string {
+func convertToRaceListUrl(raceDate race_vo.RaceDate) string {
+	return fmt.Sprintf(raceListUrlForJRA, int(raceDate))
+}
+
+func convertToRaceResultUrl(raceId race_vo.RaceId, organizer race_vo.Organizer) string {
 	var url string
 	switch organizer {
 	case race_vo.JRA:
@@ -140,11 +185,14 @@ func convertToRaceMap(races []*raw_race_entity.Race) map[string]*raw_race_entity
 	return raceMap
 }
 
-func convertToRacingNumberMap(racingNumbers []*raw_race_entity.RacingNumber) map[string]*raw_race_entity.RacingNumber {
-	raceNumberMap := map[string]*raw_race_entity.RacingNumber{}
+func convertToRacingNumberMap(racingNumbers []*raw_race_entity.RacingNumber) map[race_vo.RacingNumberId]*raw_race_entity.RacingNumber {
+	raceNumberMap := map[race_vo.RacingNumberId]*raw_race_entity.RacingNumber{}
 	for _, racingNumber := range racingNumbers {
-		key := fmt.Sprintf("%d_%d", racingNumber.Date, racingNumber.RaceCourseId)
-		raceNumberMap[key] = racingNumber
+		racingNumberId := race_vo.NewRacingNumberId(
+			race_vo.RaceDate(racingNumber.Date),
+			race_vo.RaceCourse(racingNumber.RaceCourseId),
+		)
+		raceNumberMap[racingNumberId] = racingNumber
 	}
 	return raceNumberMap
 }

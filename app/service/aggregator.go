@@ -155,7 +155,7 @@ func (a *Aggregator) getCourseCategoryRates() map[race_vo.CourseCategory]spreads
 	for _, entity := range a.entities {
 		racingNumberId := race_vo.NewRacingNumberId(entity.RaceDate(), entity.RaceCourse())
 		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok {
+		if !ok && entity.RaceCourse().Organizer() == race_vo.JRA {
 			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
 		}
 		raceId := a.raceConverter.GetRaceId(entity, racingNumber)
@@ -179,7 +179,7 @@ func (a *Aggregator) getDistanceCategoryRates() map[race_vo.DistanceCategory]spr
 	for _, entity := range a.entities {
 		racingNumberId := race_vo.NewRacingNumberId(entity.RaceDate(), entity.RaceCourse())
 		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok {
+		if !ok && entity.RaceCourse().Organizer() == race_vo.JRA {
 			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
 		}
 		raceId := a.raceConverter.GetRaceId(entity, racingNumber)
@@ -204,7 +204,7 @@ func (a *Aggregator) getRaceCourseRates() map[race_vo.RaceCourse]spreadsheet_ent
 	for _, entity := range a.entities {
 		racingNumberId := race_vo.NewRacingNumberId(entity.RaceDate(), entity.RaceCourse())
 		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok {
+		if !ok && entity.RaceCourse().Organizer() == race_vo.JRA {
 			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
 		}
 		raceId := a.raceConverter.GetRaceId(entity, racingNumber)

@@ -119,7 +119,7 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 
 				// 対抗が複数存在する場合、人気が高いもの本命にして残りを対抗候補にする
 				for _, raceResult := range raceInfo.RaceResults() {
-					betNumber := betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber))
+					betNumber := betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber()))
 					if containsInSlices(favorites, betNumber) {
 						for _, rivalCandidate := range favorites {
 							if rivalCandidate != betNumber {
@@ -153,7 +153,7 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 
 				// 対抗が複数存在する場合、人気が高いものを採用する
 				for _, raceResult := range raceInfo.RaceResults() {
-					betNumber := betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber))
+					betNumber := betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber()))
 					if containsInSlices(rivals, betNumber) {
 						rivals = []betting_ticket_vo.BetNumber{betNumber}
 						break
@@ -447,7 +447,7 @@ func getDetailByNumberForWin(number betting_ticket_vo.BetNumber, details []*bett
 func (p *Predictor) getRecordMapByRaceId() map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail {
 	recordMap := map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail{}
 	racingNumberMap := p.raceConverter.ConvertToRacingNumberMap(p.racingNumberInfo.RacingNumbers())
-	
+
 	for _, record := range p.records {
 		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
 		racingNumber, ok := racingNumberMap[key]

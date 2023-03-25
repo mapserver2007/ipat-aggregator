@@ -1298,7 +1298,7 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			record.Race().CourseCategory().String(),
 			fmt.Sprintf("%d%s", record.Race().Distance, "m"),
 			record.Race().TrackCondition(),
-			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", record.Race().Url, record.Race().RaceName),
+			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", record.Race().Url(), record.Race().RaceName()),
 			record.Payment(),
 			record.Repayment(),
 			fmt.Sprintf("%.0f%s", float64(record.Repayment())*float64(100)/float64(record.Payment()), "%"),

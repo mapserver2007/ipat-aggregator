@@ -77,9 +77,10 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 			newRawRacingNumbers = append(newRawRacingNumbers, d.raceConverter.ConvertFromRawRacingNumberNetkeibaToRawRacingNumberCsv(rawRacingNumber))
 		}
 	}
-	newRawRacingNumberInfo := &raw_race_entity.RacingNumberInfo{RacingNumbers: newRawRacingNumbers}
+	rawRacingNumbers = append(rawRacingNumbers, newRawRacingNumbers...)
+	rawRacingNumberInfo := &raw_race_entity.RacingNumberInfo{RacingNumbers: rawRacingNumbers}
 
-	raceParams, err := d.getRaceRequestParams(rawRaces, newRawRacingNumbers, records)
+	raceParams, err := d.getRaceRequestParams(rawRaces, rawRacingNumbers, records)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -96,18 +97,12 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	}
 
 	rawRaces = append(rawRaces, newRawRaces...)
-	newRawRaceInfo := &raw_race_entity.RaceInfo{Races: rawRaces}
+	rawRaceInfo := &raw_race_entity.RaceInfo{Races: rawRaces}
 
-	err = d.writeCache(ctx, newRawRaceInfo, newRawRacingNumberInfo)
+	err = d.writeCache(ctx, rawRaceInfo, rawRacingNumberInfo)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	rawRacingNumbers, rawRaces, err = d.readCache(ctx)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	racingNumbers := d.raceConverter.ConvertFromRawRacingNumbersCsvToRacingNumbers(rawRacingNumbers)
 	races := d.raceConverter.ConvertFromRawRacesCsvToRaces(rawRaces)
 

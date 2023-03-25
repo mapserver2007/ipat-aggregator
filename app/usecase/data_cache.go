@@ -54,12 +54,13 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 		return nil, nil, nil, err
 	}
 
-	rawRacingNumberInfo, rawRaceInfo, err := d.readCache(ctx)
+	rawRacingNumbers, rawRaces, err := d.readCache(ctx)
+	// エラーだった場合はファイルが空だった場合なので無視
 	if err != nil {
-		return nil, nil, nil, err
+		log.Println(ctx, "racing_number.json is empty")
 	}
 
-	racingNumberParams, err := d.getRacingNumberRequestParams(rawRacingNumberInfo.RacingNumbers, records)
+	racingNumberParams, err := d.getRacingNumberRequestParams(rawRacingNumbers, records)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -68,17 +69,17 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	log.Println(ctx, "update racing_number.json ...")
 	for _, param := range racingNumberParams {
 		time.Sleep(time.Second * 1)
-		rawRacingNumbers, err := d.raceFetcher.FetchRacingNumbers(ctx, param.Url())
+		rawRacingNumbersNetkeiba, err := d.raceFetcher.FetchRacingNumbers(ctx, param.Url())
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		for _, rawRacingNumber := range rawRacingNumbers {
+		for _, rawRacingNumber := range rawRacingNumbersNetkeiba {
 			newRawRacingNumbers = append(newRawRacingNumbers, d.raceConverter.ConvertFromRawRacingNumberNetkeibaToRawRacingNumberCsv(rawRacingNumber))
 		}
 	}
 	newRawRacingNumberInfo := &raw_race_entity.RacingNumberInfo{RacingNumbers: newRawRacingNumbers}
 
-	raceParams, err := d.getRaceRequestParams(rawRaceInfo.Races, rawRacingNumberInfo.RacingNumbers, records)
+	raceParams, err := d.getRaceRequestParams(rawRaces, newRawRacingNumbers, records)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -94,30 +95,39 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 		newRawRaces = append(newRawRaces, d.raceConverter.ConvertFromRawRaceNetkeibaToRawRaceCsv(rawRace, param.RaceId(), param.Record()))
 	}
 
-	races := append(rawRaceInfo.Races, newRawRaces...)
-	newRawRaceInfo := &raw_race_entity.RaceInfo{Races: races}
+	rawRaces = append(rawRaces, newRawRaces...)
+	newRawRaceInfo := &raw_race_entity.RaceInfo{Races: rawRaces}
 
 	err = d.writeCache(ctx, newRawRaceInfo, newRawRacingNumberInfo)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	rawRacingNumberInfo, rawRaceInfo, err = d.readCache(ctx)
+	rawRacingNumbers, rawRaces, err = d.readCache(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	racingNumberInfo := d.raceConverter.ConvertFromRawRacingNumberInfoCsvToRacingNumberInfo(rawRacingNumberInfo)
-	raceInfo := d.raceConverter.ConvertFromRawRaceInfoCsvToRaceInfo(rawRaceInfo)
+	racingNumbers := d.raceConverter.ConvertFromRawRacingNumbersCsvToRacingNumbers(rawRacingNumbers)
+	races := d.raceConverter.ConvertFromRawRacesCsvToRaces(rawRaces)
 
-	return records, racingNumberInfo, raceInfo, nil
+	return records, race_entity.NewRacingNumberInfo(racingNumbers), race_entity.NewRaceInfo(races), nil
 }
 
 func (d *DataCache) getRacingNumberRequestParams(
 	racingNumbers []*raw_race_entity.RacingNumber,
 	records []*betting_ticket_entity.CsvEntity,
 ) ([]*racingNumberRequestParam, error) {
-	racingNumberMap := d.raceConverter.ConvertToRawRacingNumberMap(racingNumbers)
+	racingNumberCache := map[race_vo.RacingNumberId]bool{}
+	if racingNumbers != nil {
+		for _, racingNumber := range racingNumbers {
+			racingNumberId := race_vo.NewRacingNumberId(
+				race_vo.RaceDate(racingNumber.Date),
+				race_vo.RaceCourse(racingNumber.RaceCourseId),
+			)
+			racingNumberCache[racingNumberId] = true
+		}
+	}
 	racingNumberRequestParams := make([]*racingNumberRequestParam, 0)
 
 	for _, record := range records {
@@ -131,9 +141,10 @@ func (d *DataCache) getRacingNumberRequestParams(
 			record.RaceCourse(),
 		)
 
-		if _, ok := racingNumberMap[racingNumberId]; ok {
+		if _, ok := racingNumberCache[racingNumberId]; ok {
 			continue
 		}
+		racingNumberCache[racingNumberId] = true
 
 		racingNumberRequestParams = append(racingNumberRequestParams, createRacingNumberRequestParam(
 			fmt.Sprintf(raceListUrlForJRA, int(racingNumberId.Date())),
@@ -234,7 +245,7 @@ func (d *DataCache) readCsv(ctx context.Context) ([]*betting_ticket_entity.CsvEn
 	return results, nil
 }
 
-func (d *DataCache) readCache(ctx context.Context) (*raw_race_entity.RacingNumberInfo, *raw_race_entity.RaceInfo, error) {
+func (d *DataCache) readCache(ctx context.Context) ([]*raw_race_entity.RacingNumber, []*raw_race_entity.Race, error) {
 	rawRacingNumberInfo, err := d.raceDB.ReadRacingNumberInfo(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -245,7 +256,7 @@ func (d *DataCache) readCache(ctx context.Context) (*raw_race_entity.RacingNumbe
 		return nil, nil, err
 	}
 
-	return rawRacingNumberInfo, rawRaceInfo, nil
+	return rawRacingNumberInfo.RacingNumbers, rawRaceInfo.Races, nil
 }
 
 func (d *DataCache) writeCache(ctx context.Context, raceInfo *raw_race_entity.RaceInfo, racingNumberInfo *raw_race_entity.RacingNumberInfo) error {

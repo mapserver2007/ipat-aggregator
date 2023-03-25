@@ -132,9 +132,9 @@ func (r *RaceConverter) ConvertFromRawPayoutResultsNetkeibaToRawPayoutResultsCsv
 	return payoutResults
 }
 
-func (r *RaceConverter) ConvertFromRawRaceInfoCsvToRaceInfo(rawRaceInfo *raw_race_entity.RaceInfo) *race_entity.RaceInfo {
+func (r *RaceConverter) ConvertFromRawRacesCsvToRaces(rawRaces []*raw_race_entity.Race) []*race_entity.Race {
 	var races []*race_entity.Race
-	for _, rawRace := range rawRaceInfo.Races {
+	for _, rawRace := range rawRaces {
 		race := race_entity.NewRace(
 			rawRace.RaceId,
 			rawRace.RaceDate,
@@ -154,12 +154,12 @@ func (r *RaceConverter) ConvertFromRawRaceInfoCsvToRaceInfo(rawRaceInfo *raw_rac
 		races = append(races, race)
 	}
 
-	return race_entity.NewRaceInfo(races)
+	return races
 }
 
-func (r *RaceConverter) ConvertFromRawRacingNumberInfoCsvToRacingNumberInfo(rawRacingNumberInfo *raw_race_entity.RacingNumberInfo) *race_entity.RacingNumberInfo {
+func (r *RaceConverter) ConvertFromRawRacingNumbersCsvToRacingNumbers(rawRacingNumbers []*raw_race_entity.RacingNumber) []*race_entity.RacingNumber {
 	var racingNumbers []*race_entity.RacingNumber
-	for _, rawRacingNumber := range rawRacingNumberInfo.RacingNumbers {
+	for _, rawRacingNumber := range rawRacingNumbers {
 		racingNumber := race_entity.NewRacingNumber(
 			rawRacingNumber.Date,
 			rawRacingNumber.Round,
@@ -169,7 +169,7 @@ func (r *RaceConverter) ConvertFromRawRacingNumberInfoCsvToRacingNumberInfo(rawR
 		racingNumbers = append(racingNumbers, racingNumber)
 	}
 
-	return race_entity.NewRacingNumberInfo(racingNumbers)
+	return racingNumbers
 }
 
 func (r *RaceConverter) ConvertFromRawRaceResultsCsvToRaceResults(rawRaceResults []*raw_race_entity.RaceResult) []*race_entity.RaceResult {

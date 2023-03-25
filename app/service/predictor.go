@@ -20,28 +20,34 @@ const (
 )
 
 type Predictor struct {
-	raceConverter RaceConverter
-	records       []*betting_ticket_entity.CsvEntity
-	races         []*race_entity.Race
+	raceConverter          RaceConverter
+	bettingTicketConverter BettingTicketConverter
+	records                []*betting_ticket_entity.CsvEntity
+	racingNumberInfo       *race_entity.RacingNumberInfo
+	raceInfo               *race_entity.RaceInfo
 }
 
 func NewPredictor(
 	raceConverter RaceConverter,
+	bettingTicketConverter BettingTicketConverter,
 	records []*betting_ticket_entity.CsvEntity,
-	races []*race_entity.Race,
+	racingNumberInfo *race_entity.RacingNumberInfo,
+	raceInfo *race_entity.RaceInfo,
 ) *Predictor {
 	return &Predictor{
-		raceConverter: raceConverter,
-		records:       records,
-		races:         races,
+		raceConverter:          raceConverter,
+		bettingTicketConverter: bettingTicketConverter,
+		records:                records,
+		racingNumberInfo:       racingNumberInfo,
+		raceInfo:               raceInfo,
 	}
 }
 
 func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
-	raceMap := p.getRaceMapByRaceId(p.races)
-	recordMap := p.getRecordMapByRaceId(p.records)
-
+	raceMap := p.raceConverter.ConvertToRaceMapByRaceId(p.raceInfo.Races())
+	recordMap := p.getRecordMapByRaceId()
 	var entities []*predict_entity.PredictEntity
+
 	for raceId, bettingTicketDetails := range recordMap {
 		raceInfo, ok := raceMap[raceId]
 		if !ok {
@@ -50,12 +56,12 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 
 		var payment, repayment int
 		for _, bettingTicketDetail := range bettingTicketDetails {
-			payment += bettingTicketDetail.Payment
-			repayment += bettingTicketDetail.Repayment
+			payment += bettingTicketDetail.Payment()
+			repayment += bettingTicketDetail.Repayment()
 		}
 
-		bettingTicketMap := p.getBettingTicketMap(bettingTicketDetails)
-		payoutResultMap := p.getPayoutResultMap(raceInfo.PayoutResults)
+		bettingTicketMap := p.bettingTicketConverter.ConvertToBettingTicketMap(bettingTicketDetails)
+		payoutResultMap := p.bettingTicketConverter.ConvertToPayoutResultMap(raceInfo.PayoutResults())
 
 		var (
 			favorites, rivals []betting_ticket_vo.BetNumber
@@ -107,12 +113,12 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 		if status.Matched(predict_vo.FavoriteCandidate) {
 			if len(favorites) >= 2 {
 				// 人気順ソート
-				sort.Slice(raceInfo.RaceResults, func(i, j int) bool {
-					return raceInfo.RaceResults[i].PopularNumber < raceInfo.RaceResults[j].PopularNumber
+				sort.Slice(raceInfo.RaceResults(), func(i, j int) bool {
+					return raceInfo.RaceResults()[i].PopularNumber() < raceInfo.RaceResults()[j].PopularNumber()
 				})
 
 				// 対抗が複数存在する場合、人気が高いもの本命にして残りを対抗候補にする
-				for _, raceResult := range raceInfo.RaceResults {
+				for _, raceResult := range raceInfo.RaceResults() {
 					betNumber := betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber))
 					if containsInSlices(favorites, betNumber) {
 						for _, rivalCandidate := range favorites {
@@ -141,12 +147,12 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 				status = predict_vo.FavoriteCompleted | predict_vo.RivalCompleted
 			} else if len(rivals) >= 2 {
 				// 人気順ソート
-				sort.Slice(raceInfo.RaceResults, func(i, j int) bool {
-					return raceInfo.RaceResults[i].PopularNumber < raceInfo.RaceResults[j].PopularNumber
+				sort.Slice(raceInfo.RaceResults(), func(i, j int) bool {
+					return raceInfo.RaceResults()[i].PopularNumber() < raceInfo.RaceResults()[j].PopularNumber()
 				})
 
 				// 対抗が複数存在する場合、人気が高いものを採用する
-				for _, raceResult := range raceInfo.RaceResults {
+				for _, raceResult := range raceInfo.RaceResults() {
 					betNumber := betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber))
 					if containsInSlices(rivals, betNumber) {
 						rivals = []betting_ticket_vo.BetNumber{betNumber}
@@ -172,55 +178,55 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 			}
 
 			for _, detail := range details {
-				payoutResult, ok := payoutResultMap[detail.BettingTicket.ConvertToOriginBettingTicket()]
+				payoutResult, ok := payoutResultMap[detail.BettingTicket().ConvertToOriginBettingTicket()]
 				if !ok {
-					return nil, fmt.Errorf("unknown payout result in ticketType %d", detail.BettingTicket.Value())
+					return nil, fmt.Errorf("unknown payout result in ticketType %d", detail.BettingTicket().Value())
 				}
-				if detail.Winning {
+				if detail.Winning() {
 					var odds string
-					for idx, betNumber := range payoutResult.Numbers {
-						if betNumber == detail.BetNumber.String() {
-							odds = payoutResult.Odds[idx]
+					for idx, betNumber := range payoutResult.Numbers() {
+						if betNumber == detail.BetNumber().String() {
+							odds = payoutResult.Odds()[idx]
 						}
 					}
 					winningTickets = append(winningTickets, predict_entity.NewWinningTicketEntity(
-						detail.BettingTicket,
-						detail.BetNumber,
+						detail.BettingTicket(),
+						detail.BetNumber(),
 						odds,
-						detail.Repayment,
+						detail.Repayment(),
 					))
 				}
 			}
 		}
 
 		var favoriteHorse, rivalHorse *predict_entity.HorseEntity
-		for _, raceResult := range raceInfo.RaceResults {
-			if favorite != nil && raceResult.HorseNumber == favorite.List()[0] {
-				favoriteHorse = predict_entity.NewHorseEntity(raceResult.HorseName, raceResult.Odds, raceResult.PopularNumber)
+		for _, raceResult := range raceInfo.RaceResults() {
+			if favorite != nil && raceResult.HorseNumber() == favorite.List()[0] {
+				favoriteHorse = predict_entity.NewHorseEntity(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
 			}
-			if rival != nil && raceResult.HorseNumber == rival.List()[0] {
-				rivalHorse = predict_entity.NewHorseEntity(raceResult.HorseName, raceResult.Odds, raceResult.PopularNumber)
+			if rival != nil && raceResult.HorseNumber() == rival.List()[0] {
+				rivalHorse = predict_entity.NewHorseEntity(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
 			}
 		}
 
-		sort.Slice(raceInfo.RaceResults, func(i, j int) bool {
-			return raceInfo.RaceResults[i].OrderNo < raceInfo.RaceResults[j].OrderNo
+		sort.Slice(raceInfo.RaceResults(), func(i, j int) bool {
+			return raceInfo.RaceResults()[i].OrderNo() < raceInfo.RaceResults()[j].OrderNo()
 		})
 
 		raceEntity := predict_entity.NewRaceEntity(
 			raceId,
-			raceInfo.RaceNumber,
-			raceInfo.RaceName,
-			race_vo.GradeClass(raceInfo.Class),
-			race_vo.RaceCourse(raceInfo.RaceCourseId),
-			race_vo.CourseCategory(raceInfo.CourseCategory),
-			race_vo.NewRaceDate(strconv.Itoa(raceInfo.RaceDate)),
-			raceInfo.Distance,
-			raceInfo.TrackCondition,
+			raceInfo.RaceNumber(),
+			raceInfo.RaceName(),
+			race_vo.GradeClass(raceInfo.Class()),
+			raceInfo.RaceCourseId(),
+			raceInfo.CourseCategory(),
+			raceInfo.RaceDate(),
+			raceInfo.Distance(),
+			raceInfo.TrackCondition(),
 			payment,
 			repayment,
-			raceInfo.Url,
-			raceInfo.RaceResults[0:2],
+			raceInfo.Url(),
+			raceInfo.RaceResults()[0:2],
 		)
 		entities = append(entities, predict_entity.NewPredictEntity(
 			raceEntity, favoriteHorse, rivalHorse, payment, repayment, winningTickets, status))
@@ -234,7 +240,7 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 }
 
 func (p *Predictor) getFavoritesAndRivals(
-	allDetails []*race_entity.BettingTicketDetail,
+	allDetails []*betting_ticket_entity.BettingTicketDetail,
 	currentStatus predict_vo.PredictStatus,
 	includeBetNumbers []betting_ticket_vo.BetNumber,
 	excludeBetNumbers []betting_ticket_vo.BetNumber,
@@ -250,12 +256,12 @@ func (p *Predictor) getFavoritesAndRivals(
 	)
 
 	// 候補がすでにある場合、その馬番だけに絞って検索
-	var refinedDetails []*race_entity.BettingTicketDetail
+	var refinedDetails []*betting_ticket_entity.BettingTicketDetail
 
 	if currentStatus.Included(predict_vo.FavoriteCandidate | predict_vo.RivalCandidate) {
 		// 本命・対抗候補が複数いる場合
 		for _, detail := range allDetails {
-			if containsInSlices(includeBetNumbers, detail.BetNumber) {
+			if containsInSlices(includeBetNumbers, detail.BetNumber()) {
 				refinedDetails = append(refinedDetails, detail)
 			}
 		}
@@ -275,7 +281,7 @@ func (p *Predictor) getFavoritesAndRivals(
 			// 単勝は優先度が高いので少額でも本命・対抗になってしまうことへの対応
 			detail := getDetailByNumberForWin(favoriteBetNumbers[0], refinedDetails)
 			if detail != nil {
-				n := float64(detail.Payment) / float64(totalPayments)
+				n := float64(detail.Payment()) / float64(totalPayments)
 				if n < ThresholdOfLowerLimitPayment {
 					// TODO 本来は無視ではなく本命計算割合に含めたいが、今は妥協する
 					return favoriteBetNumbers, rivalBetNumbers, predict_vo.PredictUncompleted
@@ -322,7 +328,7 @@ func (p *Predictor) getFavoritesAndRivals(
 	return nil, nil, predict_vo.PredictUncompleted
 }
 
-func getMaxBetNumbers(details []*race_entity.BettingTicketDetail, excludeBetNumbers []betting_ticket_vo.BetNumber) []betting_ticket_vo.BetNumber {
+func getMaxBetNumbers(details []*betting_ticket_entity.BettingTicketDetail, excludeBetNumbers []betting_ticket_vo.BetNumber) []betting_ticket_vo.BetNumber {
 	// 馬単の買い目計算ルール
 	// 1着付けの馬番の金額を1.0倍、2着付けの馬番の金額を0.25倍で計算
 	// それをソートして1番目、2番目...を算出
@@ -344,38 +350,38 @@ func getMaxBetNumbers(details []*race_entity.BettingTicketDetail, excludeBetNumb
 
 	betNumberPaymentMap := map[int]int{}
 	for _, detail := range details {
-		nums := detail.BetNumber.List()
-		size := len(detail.BetNumber.List())
+		nums := detail.BetNumber().List()
+		size := len(detail.BetNumber().List())
 		weight := WeightOfQuinella
 
 		if size >= 1 && !containsInSlices(excludeBetNumbers, betting_ticket_vo.NewBetNumber(strconv.Itoa(nums[0]))) {
 			// 1着付け
 			if _, ok := betNumberPaymentMap[nums[0]]; !ok {
-				betNumberPaymentMap[nums[0]] = detail.Payment
+				betNumberPaymentMap[nums[0]] = detail.Payment()
 			} else {
-				betNumberPaymentMap[nums[0]] += detail.Payment
+				betNumberPaymentMap[nums[0]] += detail.Payment()
 			}
 		}
 		if size >= 2 && !containsInSlices(excludeBetNumbers, betting_ticket_vo.NewBetNumber(strconv.Itoa(nums[1]))) {
 			// 2着付け
-			if isExacta(detail.BettingTicket) {
+			if isExacta(detail.BettingTicket()) {
 				weight = WeightOfExactaSecond
 			}
 			if _, ok := betNumberPaymentMap[nums[1]]; !ok {
-				betNumberPaymentMap[nums[1]] = int(float64(detail.Payment) * weight)
+				betNumberPaymentMap[nums[1]] = int(float64(detail.Payment()) * weight)
 			} else {
-				betNumberPaymentMap[nums[1]] += int(float64(detail.Payment) * weight)
+				betNumberPaymentMap[nums[1]] += int(float64(detail.Payment()) * weight)
 			}
 		}
 		if size >= 3 && !containsInSlices(excludeBetNumbers, betting_ticket_vo.NewBetNumber(strconv.Itoa(nums[2]))) {
 			// 3着付け
-			if isExacta(detail.BettingTicket) {
+			if isExacta(detail.BettingTicket()) {
 				weight = WeightOfExactaThird
 			}
 			if _, ok := betNumberPaymentMap[nums[2]]; !ok {
-				betNumberPaymentMap[nums[2]] = int(float64(detail.Payment) * weight)
+				betNumberPaymentMap[nums[2]] = int(float64(detail.Payment()) * weight)
 			} else {
-				betNumberPaymentMap[nums[2]] += int(float64(detail.Payment) * weight)
+				betNumberPaymentMap[nums[2]] += int(float64(detail.Payment()) * weight)
 			}
 		}
 	}
@@ -420,9 +426,9 @@ func getMaxBetNumbers(details []*race_entity.BettingTicketDetail, excludeBetNumb
 	return result
 }
 
-func getDetailByNumberForWin(number betting_ticket_vo.BetNumber, details []*race_entity.BettingTicketDetail) *race_entity.BettingTicketDetail {
+func getDetailByNumberForWin(number betting_ticket_vo.BetNumber, details []*betting_ticket_entity.BettingTicketDetail) *betting_ticket_entity.BettingTicketDetail {
 	for _, detail := range details {
-		if detail.BettingTicket == betting_ticket_vo.Win && detail.BetNumber == number {
+		if detail.BettingTicket() == betting_ticket_vo.Win && detail.BetNumber() == number {
 			return detail
 		}
 	}
@@ -430,48 +436,53 @@ func getDetailByNumberForWin(number betting_ticket_vo.BetNumber, details []*race
 	return nil
 }
 
-func (p *Predictor) getRaceMapByRaceId(races []*race_entity.Race) map[race_vo.RaceId]*race_entity.Race {
-	raceMap := map[race_vo.RaceId]*race_entity.Race{}
-	for _, race := range races {
-		raceMap[race_vo.RaceId(race.RaceId)] = race
-	}
-	return raceMap
-}
+//func (p *Predictor) getRaceMapByRaceId() map[race_vo.RaceId]*race_entity.Race {
+//	raceMap := map[race_vo.RaceId]*race_entity.Race{}
+//	for _, race := range p.raceInfo.Races() {
+//		raceMap[race.RaceId()] = race
+//	}
+//	return raceMap
+//}
 
-func (p *Predictor) getRecordMapByRaceId(records []*betting_ticket_entity.CsvEntity) map[race_vo.RaceId][]*race_entity.BettingTicketDetail {
-	recordMap := map[race_vo.RaceId][]*race_entity.BettingTicketDetail{}
-	for _, record := range records {
-		raceId, err := p.raceConverter.GetRaceId(record)
-		if err != nil {
-			panic(err)
+func (p *Predictor) getRecordMapByRaceId() map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail {
+	recordMap := map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail{}
+	racingNumberMap := p.raceConverter.ConvertToRacingNumberMap(p.racingNumberInfo.RacingNumbers())
+	
+	for _, record := range p.records {
+		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
+		racingNumber, ok := racingNumberMap[key]
+		if !ok {
+			continue
 		}
-		bettingTicketDetail := race_entity.NewBettingTicketDetail(
-			record.BettingTicket,
-			record.BetNumber,
-			record.Payment,
-			record.Repayment,
-			record.Winning,
+		raceId := p.raceConverter.GetRaceId(record, racingNumber)
+		bettingTicketDetail := betting_ticket_entity.NewBettingTicketDetail(
+			record.BettingTicket(),
+			record.BetNumber(),
+			record.Payment(),
+			record.Repayment(),
+			record.Winning(),
 		)
 		recordMap[*raceId] = append(recordMap[*raceId], bettingTicketDetail)
 	}
+
 	return recordMap
 }
 
-func (p *Predictor) getBettingTicketMap(details []*race_entity.BettingTicketDetail) map[betting_ticket_vo.BettingTicket][]*race_entity.BettingTicketDetail {
-	bettingTicketMap := map[betting_ticket_vo.BettingTicket][]*race_entity.BettingTicketDetail{}
-	for _, detail := range details {
-		bettingTicketMap[detail.BettingTicket] = append(bettingTicketMap[detail.BettingTicket], detail)
-	}
-	return bettingTicketMap
-}
+//func (p *Predictor) getBettingTicketMap(details []*race_entity.BettingTicketDetail) map[betting_ticket_vo.BettingTicket][]*race_entity.BettingTicketDetail {
+//	bettingTicketMap := map[betting_ticket_vo.BettingTicket][]*race_entity.BettingTicketDetail{}
+//	for _, detail := range details {
+//		bettingTicketMap[detail.BettingTicket] = append(bettingTicketMap[detail.BettingTicket], detail)
+//	}
+//	return bettingTicketMap
+//}
 
-func (p *Predictor) getPayoutResultMap(payoutResults []*race_entity.PayoutResult) map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult {
-	payoutResultMap := map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult{}
-	for _, payoutResult := range payoutResults {
-		payoutResultMap[betting_ticket_vo.BettingTicket(payoutResult.TicketType)] = payoutResult
-	}
-	return payoutResultMap
-}
+//func (p *Predictor) getPayoutResultMap(payoutResults []*race_entity.PayoutResult) map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult {
+//	payoutResultMap := map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult{}
+//	for _, payoutResult := range payoutResults {
+//		payoutResultMap[betting_ticket_vo.BettingTicket(payoutResult.TicketType)] = payoutResult
+//	}
+//	return payoutResultMap
+//}
 
 func getSortedBettingTickets() []betting_ticket_vo.BettingTicket {
 	// 計算の優先順

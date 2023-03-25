@@ -4,22 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/gocolly/colly"
-	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
 	betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
 	"github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
 	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
 	"github.com/mapserver2007/tools/baken/app/repository"
+	neturl "net/url"
 	"regexp"
 	"strconv"
 	"strings"
 )
-
-//const (
-//	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%d"
-//	raceResultUrlForJRA     = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-//	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-//	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-//)
 
 type RaceClient struct {
 	client *colly.Collector
@@ -31,7 +24,7 @@ func NewRaceClient(client *colly.Collector) repository.RaceClient {
 	}
 }
 
-func (r *RaceClient) GetRacingNumbers(ctx context.Context, url string, entity *betting_ticket_entity.CsvEntity) ([]*raw_entity.RawRacingNumberNetkeiba, error) {
+func (r *RaceClient) GetRacingNumbers(ctx context.Context, url string) ([]*raw_entity.RawRacingNumberNetkeiba, error) {
 	var racingNumbers []*raw_entity.RawRacingNumberNetkeiba
 	r.client.OnHTML(".RaceList_DataList", func(e *colly.HTMLElement) {
 		e.ForEach(".RaceList_DataTitle", func(i int, ce *colly.HTMLElement) {
@@ -40,9 +33,12 @@ func (r *RaceClient) GetRacingNumbers(ctx context.Context, url string, entity *b
 			round, _ := strconv.Atoi(matches[0][1])
 			day, _ := strconv.Atoi(matches[0][3])
 			raceCourse := race_vo.ConvertToRaceCourse(matches[0][2])
+			u, _ := neturl.Parse(url)
+			query := u.Query()
+			raceDate, _ := strconv.Atoi(query.Get("kaisai_date"))
 
 			racingNumbers = append(racingNumbers, raw_entity.NewRawRacingNumberNetkeiba(
-				int(entity.RaceDate),
+				raceDate,
 				round,
 				day,
 				raceCourse.Value(),

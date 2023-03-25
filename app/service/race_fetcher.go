@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
+	raw_race_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
 	"github.com/mapserver2007/tools/baken/app/repository"
 )
 
@@ -12,14 +12,13 @@ type RaceFetcher struct {
 
 func NewRaceFetcher(
 	raceClient repository.RaceClient,
-) *RaceFetcher {
-	return &RaceFetcher{
+) RaceFetcher {
+	return RaceFetcher{
 		raceClient: raceClient,
 	}
 }
 
-func (f *RaceFetcher) FetchRacingNumbers(ctx context.Context, url string) ([]*raw_entity.RawRacingNumberNetkeiba, error) {
-	// TODO entity要求してくる
+func (f *RaceFetcher) FetchRacingNumbers(ctx context.Context, url string) ([]*raw_race_entity.RawRacingNumberNetkeiba, error) {
 	rawRacingNumbers, err := f.raceClient.GetRacingNumbers(ctx, url)
 	if err != nil {
 		return nil, err
@@ -27,7 +26,7 @@ func (f *RaceFetcher) FetchRacingNumbers(ctx context.Context, url string) ([]*ra
 	return rawRacingNumbers, nil
 }
 
-func (f *RaceFetcher) FetchRace(ctx context.Context, url string) (*raw_entity.RawRaceNetkeiba, error) {
+func (f *RaceFetcher) FetchRace(ctx context.Context, url string) (*raw_race_entity.RawRaceNetkeiba, error) {
 	rawRace, err := f.raceClient.GetRaceResult(ctx, url)
 	if err != nil {
 		return nil, err

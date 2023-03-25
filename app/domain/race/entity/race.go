@@ -57,16 +57,16 @@ func (r *Race) RaceId() race_vo.RaceId {
 	return race_vo.RaceId(r.raceId)
 }
 
-func (r *Race) RaceDate() int {
-	return r.raceDate
+func (r *Race) RaceDate() race_vo.RaceDate {
+	return race_vo.RaceDate(r.raceDate)
 }
 
 func (r *Race) RaceNumber() int {
 	return r.raceNumber
 }
 
-func (r *Race) RaceCourseId() int {
-	return r.raceCourseId
+func (r *Race) RaceCourseId() race_vo.RaceCourse {
+	return race_vo.RaceCourse(r.raceCourseId)
 }
 
 func (r *Race) RaceName() string {
@@ -93,8 +93,8 @@ func (r *Race) Class() int {
 	return r.class
 }
 
-func (r *Race) CourseCategory() int {
-	return r.courseCategory
+func (r *Race) CourseCategory() race_vo.CourseCategory {
+	return race_vo.CourseCategory(r.courseCategory)
 }
 
 func (r *Race) TrackCondition() string {

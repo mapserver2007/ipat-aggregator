@@ -16,6 +16,7 @@ func main() {
 	raceClient := infrastructure.NewRaceClient(collector)
 	raceFetcher := service.NewRaceFetcher(raceClient)
 	raceConverter := service.NewRaceConverter()
+	bettingTicketConverter := service.NewBettingTicketConverter()
 
 	raceDB := infrastructure.NewRaceDB(raceClient)
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx, "secret.json", "spreadsheet_calc.json")
@@ -24,23 +25,22 @@ func main() {
 	log.Println(ctx, "start")
 
 	dataCacheUseCase := usecase.NewDataCache(csvReader, raceDB, raceFetcher, raceConverter)
-	//raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadCache(ctx)
 
-	entities, raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
+	records, raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	aggregator := service.NewAggregator(raceConverter, entities, raceNumberInfo, raceInfo)
+	aggregator := service.NewAggregator(raceConverter, bettingTicketConverter, records, raceNumberInfo, raceInfo)
 	summary := aggregator.GetSummary()
 
-	predictor := service.NewPredictor(raceConverter, entities, raceInfo.Races)
+	predictor := service.NewPredictor(raceConverter, bettingTicketConverter, records, raceNumberInfo, raceInfo)
 	predictResults, err := predictor.Predict()
 	if err != nil {
 		panic(err)
 	}
 
-	analyser := service.NewAnalyser(entities)
+	analyser := service.NewAnalyser(records)
 	analyser.Analyse()
 
 	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient)

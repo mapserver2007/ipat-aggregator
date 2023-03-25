@@ -6,16 +6,16 @@ import (
 )
 
 type CsvEntity struct {
-	RaceDate      race_vo.RaceDate
-	EntryNo       int
-	RaceCourse    race_vo.RaceCourse
-	RaceNo        int
-	BettingTicket betting_ticket_vo.BettingTicket
-	BettingResult betting_ticket_vo.BettingResult
-	Winning       bool
-	BetNumber     betting_ticket_vo.BetNumber
-	Payment       int
-	Repayment     int
+	raceDate      race_vo.RaceDate
+	entryNo       int
+	raceCourse    race_vo.RaceCourse
+	raceNo        int
+	bettingTicket betting_ticket_vo.BettingTicket
+	bettingResult betting_ticket_vo.BettingResult
+	winning       bool
+	betNumber     betting_ticket_vo.BetNumber
+	payment       int
+	repayment     int
 }
 
 func NewCsvEntity(
@@ -31,15 +31,55 @@ func NewCsvEntity(
 	repayment int,
 ) *CsvEntity {
 	return &CsvEntity{
-		RaceDate:      raceDate,
-		EntryNo:       entryNo,
-		RaceCourse:    raceCourse,
-		RaceNo:        raceNo,
-		BettingTicket: bettingTicket,
-		BettingResult: bettingResult,
-		Winning:       winning,
-		BetNumber:     betNumber,
-		Payment:       payment,
-		Repayment:     repayment,
+		raceDate:      raceDate,
+		entryNo:       entryNo,
+		raceCourse:    raceCourse,
+		raceNo:        raceNo,
+		bettingTicket: bettingTicket,
+		bettingResult: bettingResult,
+		winning:       winning,
+		betNumber:     betNumber,
+		payment:       payment,
+		repayment:     repayment,
 	}
+}
+
+func (c *CsvEntity) RaceDate() race_vo.RaceDate {
+	return c.raceDate
+}
+
+func (c *CsvEntity) EntryNo() int {
+	return c.entryNo
+}
+
+func (c *CsvEntity) RaceCourse() race_vo.RaceCourse {
+	return c.raceCourse
+}
+
+func (c *CsvEntity) RaceNo() int {
+	return c.raceNo
+}
+
+func (c *CsvEntity) BettingTicket() betting_ticket_vo.BettingTicket {
+	return c.bettingTicket
+}
+
+func (c *CsvEntity) BettingResult() betting_ticket_vo.BettingResult {
+	return c.bettingResult
+}
+
+func (c *CsvEntity) Winning() bool {
+	return c.winning
+}
+
+func (c *CsvEntity) BetNumber() betting_ticket_vo.BetNumber {
+	return c.betNumber
+}
+
+func (c *CsvEntity) Payment() int {
+	return c.payment
+}
+
+func (c *CsvEntity) Repayment() int {
+	return c.repayment
 }

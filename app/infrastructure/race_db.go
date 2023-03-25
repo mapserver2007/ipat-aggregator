@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
-	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
 	raw_race_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
 	"github.com/mapserver2007/tools/baken/app/repository"
-	"log"
 	"os"
 	"path/filepath"
-	"time"
+)
+
+const (
+	racingNumberFileName = "racing_number.json"
+	raceResultFileName   = "race_result.json"
 )
 
 type RaceDB struct {
@@ -27,8 +27,8 @@ func NewRaceDB(
 	}
 }
 
-func (r *RaceDB) ReadRaceResult(ctx context.Context, fileName string) (*raw_race_entity.RaceInfo, error) {
-	bytes, err := r.readFile(fileName)
+func (r *RaceDB) ReadRaceInfo(ctx context.Context) (*raw_race_entity.RaceInfo, error) {
+	bytes, err := r.readFile(raceResultFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +41,13 @@ func (r *RaceDB) ReadRaceResult(ctx context.Context, fileName string) (*raw_race
 	return raceInfo, nil
 }
 
-func (r *RaceDB) ReadRacingNumber(ctx context.Context, fileName string) (*race_entity.RacingNumberInfo, error) {
-	bytes, err := r.readFile(fileName)
+func (r *RaceDB) ReadRacingNumberInfo(ctx context.Context) (*raw_race_entity.RacingNumberInfo, error) {
+	bytes, err := r.readFile(racingNumberFileName)
 	if err != nil {
 		return nil, err
 	}
 
-	var racingNumberInfo *race_entity.RacingNumberInfo
+	var racingNumberInfo *raw_race_entity.RacingNumberInfo
 	if err := json.Unmarshal(bytes, &racingNumberInfo); err != nil {
 		return nil, err
 	}
@@ -55,131 +55,31 @@ func (r *RaceDB) ReadRacingNumber(ctx context.Context, fileName string) (*race_e
 	return racingNumberInfo, nil
 }
 
-// UpdateRacingNumber JRAの場合はDateからIDが特定できないので開催場所、日のデータをキャッシュしておいて
-// 変換処理をする必要がある。NAR、海外はDateから特定可能
-func (r *RaceDB) UpdateRacingNumber(ctx context.Context, fileName string, entities []*betting_ticket_entity.CsvEntity) error {
-	// エラーだった場合はracing_number.jsonが空だった場合なので無視
-	currentRacingNumber, _ := r.ReadRacingNumber(ctx, fileName)
-	cacheKeyFunc := func(date, raceCourseName int) string {
-		return fmt.Sprintf("%d_%d", date, raceCourseName)
-	}
-
-	cache := map[string]race_entity.RacingNumber{}
-	if currentRacingNumber != nil {
-		for _, racingNumber := range currentRacingNumber.RacingNumbers {
-			key := cacheKeyFunc(racingNumber.Date, racingNumber.RaceCourseId)
-			if _, ok := cache[key]; !ok {
-				cache[key] = *racingNumber
-			}
-		}
-	}
-
-	for _, entity := range entities {
-		if entity.RaceCourse.Organizer() != race_vo.JRA {
-			continue
-		}
-		key := cacheKeyFunc(int(entity.RaceDate), entity.RaceCourse.Value())
-		if _, ok := cache[key]; !ok {
-			time.Sleep(time.Second * 1)
-			url := fmt.Sprintf(raceListUrlForJRA, int(entity.RaceDate))
-			newRacingNumbers, err := r.raceClient.GetRacingNumber(ctx, entity)
-			if err != nil {
-				return err
-			}
-
-			for i := 0; i < len(newRacingNumbers); i++ {
-				newRacingNumber := newRacingNumbers[i]
-				key = cacheKeyFunc(newRacingNumber.Date, newRacingNumber.RaceCourseId)
-				cache[key] = *newRacingNumbers[i]
-				log.Printf("updating key: %s ...", key)
-			}
-		}
-	}
-
-	var racingNumbers []*race_entity.RacingNumber
-	for key := range cache {
-		racingNumber, _ := cache[key]
-		racingNumbers = append(racingNumbers, &racingNumber)
-	}
-	racingNumberInfo := race_entity.RacingNumberInfo{RacingNumbers: racingNumbers}
-
-	bytes, err := json.Marshal(racingNumberInfo)
-	if err != nil {
-		return err
-	}
-
-	err = r.writeFile(fileName, bytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *RaceDB) UpdateRaceResult(ctx context.Context, rawRaceInfo *raw_race_entity.RaceInfo, racingNumbers []*race_entity.RacingNumber, entities []*betting_ticket_entity.CsvEntity) error {
-	raceNumberMap := map[string]*race_entity.RacingNumber{}
-	for _, racingNumber := range racingNumbers {
-		key := fmt.Sprintf("%d_%d", racingNumber.Date(), racingNumber.RaceCourseId())
-		raceNumberMap[key] = racingNumber
-	}
-
-	// エラーだった場合はracing_number.jsonが空だった場合なので無視
-	//raceInfo, _ := r.ReadRaceResult(ctx, fileName)
-
-	cache := map[string]*raw_race_entity.Race{}
-	if rawRaceInfo != nil {
-		for _, race := range rawRaceInfo.Races {
-			cache[race.RaceId] = race
-		}
-	}
-	for _, entity := range entities {
-		var rawRaceId string
-		organizer := entity.RaceCourse.Organizer()
-
-		switch organizer {
-		case race_vo.JRA:
-			key := fmt.Sprintf("%d_%d", entity.RaceDate, entity.RaceCourse.Value())
-			racingNumber, ok := raceNumberMap[key]
-			if !ok {
-				return fmt.Errorf("undefined key: %s", key)
-			}
-			rawRaceId = fmt.Sprintf("%d%02d%02d%02d%02d", entity.RaceDate.Year(), racingNumber.RaceCourseId, racingNumber.Round, racingNumber.Day, entity.RaceNo)
-		case race_vo.NAR:
-			rawRaceId = fmt.Sprintf("%d%02d%02d%02d%02d", entity.RaceDate.Year(), entity.RaceCourse.Value(), entity.RaceDate.Month(), entity.RaceDate.Day(), entity.RaceNo)
-		case race_vo.OverseaOrganizer:
-			raceCourseIdForOversea := race_vo.ConvertToOverseaRaceCourseId(entity.RaceCourse)
-			rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", entity.RaceDate.Year(), raceCourseIdForOversea, entity.RaceDate.Month(), entity.RaceDate.Day(), entity.RaceNo)
-		}
-
-		if _, ok := cache[rawRaceId]; ok {
-			continue
-		}
-
-		time.Sleep(time.Second * 1)
-		race := r.raceClient.GetRaceResult(ctx, race_vo.RaceId(rawRaceId), entity)
-
-		log.Printf("updating key: %s ...", rawRaceId)
-
-		cache[rawRaceId] = race
-	}
-
-	var races []*raw_race_entity.Race
-	for _, race := range cache {
-		races = append(races, race)
-	}
-
-	raceInfo := race_entity.NewRaceInfo(races)
-
-	//newRaceInfo := race_entity.RaceInfo{Races: races}
-
+func (r *RaceDB) WriteRaceInfo(ctx context.Context, raceInfo *raw_race_entity.RaceInfo) error {
 	bytes, err := json.Marshal(raceInfo)
 	if err != nil {
 		return err
 	}
 
-	err = r.writeFile(fileName, bytes)
+	err = r.writeFile(raceResultFileName, bytes)
+	if err != nil {
+		return fmt.Errorf("update %s failed: %w", raceResultFileName, err)
+	}
+
+	return nil
+}
+
+// WriteRacingNumberInfo JRAの場合はDateからIDが特定できないので開催場所、日のデータをキャッシュしておいて
+// 変換処理をする必要がある。NAR、海外はDateから特定可能
+func (r *RaceDB) WriteRacingNumberInfo(ctx context.Context, racingNumberInfo *raw_race_entity.RacingNumberInfo) error {
+	bytes, err := json.Marshal(racingNumberInfo)
 	if err != nil {
 		return err
+	}
+
+	err = r.writeFile(racingNumberFileName, bytes)
+	if err != nil {
+		return fmt.Errorf("update %s failed: %w", racingNumberFileName, err)
 	}
 
 	return nil

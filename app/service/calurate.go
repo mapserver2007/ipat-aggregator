@@ -10,11 +10,11 @@ func CalcSumResultRate(records []*entity.CsvEntity) spreadsheet_entity.ResultRat
 	var voteCount, hitCount, repayments, payments int
 	for _, record := range records {
 		voteCount += 1
-		if record.BettingResult == betting_ticket_vo.Hit {
+		if record.BettingResult() == betting_ticket_vo.Hit {
 			hitCount += 1
-			repayments += record.Repayment
+			repayments += record.Repayment()
 		}
-		payments += record.Payment
+		payments += record.Payment()
 	}
 
 	return spreadsheet_entity.NewResultRate(voteCount, hitCount, payments, repayments)

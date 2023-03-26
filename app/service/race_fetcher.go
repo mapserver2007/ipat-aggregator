@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	raw_race_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
-	"github.com/mapserver2007/tools/baken/app/repository"
+	raw_race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/repository"
 )
 
 type RaceFetcher struct {

@@ -2,10 +2,10 @@ package usecase
 
 import (
 	"context"
-	predict_entity "github.com/mapserver2007/tools/baken/app/domain/predict/entity"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
-	spreadsheet_entity "github.com/mapserver2007/tools/baken/app/domain/spreadsheet/entity"
-	"github.com/mapserver2007/tools/baken/app/repository"
+	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
+	"github.com/mapserver2007/ipat-aggregator/app/repository"
 )
 
 type SpreadSheet struct {

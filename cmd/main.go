@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"github.com/gocolly/colly"
-	"github.com/mapserver2007/tools/baken/app/infrastructure"
-	"github.com/mapserver2007/tools/baken/app/service"
-	"github.com/mapserver2007/tools/baken/app/usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/service"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"log"
 )
 

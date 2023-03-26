@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	raw_race_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
+	raw_race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/raw_entity"
 )
 
 type RaceDB interface {

@@ -1,8 +1,8 @@
 package entity
 
 import (
-	betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 )
 
 type CsvEntity struct {

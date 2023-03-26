@@ -1,6 +1,6 @@
 package entity
 
-import betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
+import betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
 
 type RaceRecord struct {
 	recordDetails []*RecordDetail

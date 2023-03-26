@@ -2,10 +2,10 @@ package service
 
 import (
 	"fmt"
-	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
-	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
-	raw_race_entity "github.com/mapserver2007/tools/baken/app/domain/race/raw_entity"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
+	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
+	raw_race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/raw_entity"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 )
 
 type RaceConverter struct{}

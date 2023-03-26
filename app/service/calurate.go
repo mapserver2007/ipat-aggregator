@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
-	betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
-	spreadsheet_entity "github.com/mapserver2007/tools/baken/app/domain/spreadsheet/entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
+	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
 )
 
 func CalcSumResultRate(records []*entity.CsvEntity) spreadsheet_entity.ResultRate {

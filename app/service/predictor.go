@@ -2,12 +2,12 @@ package service
 
 import (
 	"fmt"
-	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
-	betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
-	predict_entity "github.com/mapserver2007/tools/baken/app/domain/predict/entity"
-	predict_vo "github.com/mapserver2007/tools/baken/app/domain/predict/value_object"
-	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
+	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
+	predict_vo "github.com/mapserver2007/ipat-aggregator/app/domain/predict/value_object"
+	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	"sort"
 	"strconv"
 )
@@ -436,14 +436,6 @@ func getDetailByNumberForWin(number betting_ticket_vo.BetNumber, details []*bett
 	return nil
 }
 
-//func (p *Predictor) getRaceMapByRaceId() map[race_vo.RaceId]*race_entity.Race {
-//	raceMap := map[race_vo.RaceId]*race_entity.Race{}
-//	for _, race := range p.raceInfo.Races() {
-//		raceMap[race.RaceId()] = race
-//	}
-//	return raceMap
-//}
-
 func (p *Predictor) getRecordMapByRaceId() map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail {
 	recordMap := map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail{}
 	racingNumberMap := p.raceConverter.ConvertToRacingNumberMap(p.racingNumberInfo.RacingNumbers())
@@ -467,22 +459,6 @@ func (p *Predictor) getRecordMapByRaceId() map[race_vo.RaceId][]*betting_ticket_
 
 	return recordMap
 }
-
-//func (p *Predictor) getBettingTicketMap(details []*race_entity.BettingTicketDetail) map[betting_ticket_vo.BettingTicket][]*race_entity.BettingTicketDetail {
-//	bettingTicketMap := map[betting_ticket_vo.BettingTicket][]*race_entity.BettingTicketDetail{}
-//	for _, detail := range details {
-//		bettingTicketMap[detail.BettingTicket] = append(bettingTicketMap[detail.BettingTicket], detail)
-//	}
-//	return bettingTicketMap
-//}
-
-//func (p *Predictor) getPayoutResultMap(payoutResults []*race_entity.PayoutResult) map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult {
-//	payoutResultMap := map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult{}
-//	for _, payoutResult := range payoutResults {
-//		payoutResultMap[betting_ticket_vo.BettingTicket(payoutResult.TicketType)] = payoutResult
-//	}
-//	return payoutResultMap
-//}
 
 func getSortedBettingTickets() []betting_ticket_vo.BettingTicket {
 	// 計算の優先順

@@ -1,7 +1,7 @@
 package service
 
 import (
-	betting_ticket_entity "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
+	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
 )
 
 type Analyser struct {

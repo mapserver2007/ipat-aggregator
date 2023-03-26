@@ -1,6 +1,6 @@
 package entity
 
-import race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+import race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 
 type Race struct {
 	raceId         string

@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"encoding/csv"
-	"github.com/mapserver2007/tools/baken/app/domain/betting_ticket/entity"
-	betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
+	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 	"io"

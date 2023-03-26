@@ -1,17 +1,17 @@
 package entity
 
 import (
-	predict_vo "github.com/mapserver2007/tools/baken/app/domain/predict/value_object"
+	predict_vo "github.com/mapserver2007/ipat-aggregator/app/domain/predict/value_object"
 )
 
 type PredictEntity struct {
-	Race           *RaceEntity
-	FavoriteHorse  *HorseEntity
-	RivalHorse     *HorseEntity
-	Payment        int
-	Repayment      int
-	WinningTickets []*WinningTicketEntity
-	Status         predict_vo.PredictStatus
+	race           *RaceEntity
+	favoriteHorse  *HorseEntity
+	rivalHorse     *HorseEntity
+	payment        int
+	repayment      int
+	winningTickets []*WinningTicketEntity
+	status         predict_vo.PredictStatus
 }
 
 func NewPredictEntity(
@@ -24,12 +24,40 @@ func NewPredictEntity(
 	status predict_vo.PredictStatus,
 ) *PredictEntity {
 	return &PredictEntity{
-		Race:           race,
-		FavoriteHorse:  favoriteHorse,
-		RivalHorse:     rivalHorse,
-		Payment:        payment,
-		Repayment:      repayment,
-		WinningTickets: winningTickets,
-		Status:         status,
+		race:           race,
+		favoriteHorse:  favoriteHorse,
+		rivalHorse:     rivalHorse,
+		payment:        payment,
+		repayment:      repayment,
+		winningTickets: winningTickets,
+		status:         status,
 	}
+}
+
+func (p *PredictEntity) Race() *RaceEntity {
+	return p.race
+}
+
+func (p *PredictEntity) FavoriteHorse() *HorseEntity {
+	return p.favoriteHorse
+}
+
+func (p *PredictEntity) RivalHorse() *HorseEntity {
+	return p.rivalHorse
+}
+
+func (p *PredictEntity) Payment() int {
+	return p.payment
+}
+
+func (p *PredictEntity) Repayment() int {
+	return p.repayment
+}
+
+func (p *PredictEntity) WinningTickets() []*WinningTicketEntity {
+	return p.winningTickets
+}
+
+func (p *PredictEntity) Status() predict_vo.PredictStatus {
+	return p.status
 }

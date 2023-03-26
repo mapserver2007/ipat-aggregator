@@ -1,4 +1,4 @@
-package entity
+package raw_entity
 
 type RaceInfo struct {
 	Races []*Race `json:"races"`

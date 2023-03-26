@@ -1,24 +1,24 @@
 package entity
 
 import (
-	race_entity "github.com/mapserver2007/tools/baken/app/domain/race/entity"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 )
 
 type RaceEntity struct {
-	RaceId         race_vo.RaceId
-	RaceNumber     int
-	RaceName       string
-	Class          race_vo.GradeClass
-	RaceCourse     race_vo.RaceCourse
-	CourseCategory race_vo.CourseCategory
-	RaceDate       race_vo.RaceDate
-	Distance       int
-	TrackCondition string
-	Payment        int
-	Repayment      int
-	Url            string
-	RaceResults    []*race_entity.RaceResult
+	raceId         race_vo.RaceId
+	raceNumber     int
+	raceName       string
+	class          race_vo.GradeClass
+	raceCourse     race_vo.RaceCourse
+	courseCategory race_vo.CourseCategory
+	raceDate       race_vo.RaceDate
+	distance       int
+	trackCondition string
+	payment        int
+	repayment      int
+	url            string
+	raceResults    []*race_entity.RaceResult
 }
 
 func NewRaceEntity(
@@ -37,18 +37,70 @@ func NewRaceEntity(
 	raceResults []*race_entity.RaceResult,
 ) *RaceEntity {
 	return &RaceEntity{
-		RaceId:         raceId,
-		RaceNumber:     raceNumber,
-		RaceName:       raceName,
-		Class:          class,
-		RaceCourse:     raceCourse,
-		CourseCategory: courseCategory,
-		RaceDate:       raceDate,
-		Distance:       distance,
-		TrackCondition: trackCondition,
-		Payment:        payment,
-		Repayment:      repayment,
-		Url:            url,
-		RaceResults:    raceResults,
+		raceId:         raceId,
+		raceNumber:     raceNumber,
+		raceName:       raceName,
+		class:          class,
+		raceCourse:     raceCourse,
+		courseCategory: courseCategory,
+		raceDate:       raceDate,
+		distance:       distance,
+		trackCondition: trackCondition,
+		payment:        payment,
+		repayment:      repayment,
+		url:            url,
+		raceResults:    raceResults,
 	}
+}
+
+func (r *RaceEntity) RaceId() race_vo.RaceId {
+	return r.raceId
+}
+
+func (r *RaceEntity) RaceNumber() int {
+	return r.raceNumber
+}
+
+func (r *RaceEntity) RaceName() string {
+	return r.raceName
+}
+
+func (r *RaceEntity) Class() race_vo.GradeClass {
+	return r.class
+}
+
+func (r *RaceEntity) RaceCourse() race_vo.RaceCourse {
+	return r.raceCourse
+}
+
+func (r *RaceEntity) RaceDate() race_vo.RaceDate {
+	return r.raceDate
+}
+
+func (r *RaceEntity) CourseCategory() race_vo.CourseCategory {
+	return r.courseCategory
+}
+
+func (r *RaceEntity) Distance() int {
+	return r.distance
+}
+
+func (r *RaceEntity) TrackCondition() string {
+	return r.trackCondition
+}
+
+func (r *RaceEntity) Payment() int {
+	return r.payment
+}
+
+func (r *RaceEntity) Repayment() int {
+	return r.repayment
+}
+
+func (r *RaceEntity) Url() string {
+	return r.url
+}
+
+func (r *RaceEntity) RaceResults() []*race_entity.RaceResult {
+	return r.raceResults
 }

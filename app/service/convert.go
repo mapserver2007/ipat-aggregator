@@ -2,12 +2,28 @@ package service
 
 import (
 	"fmt"
-	betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
-	race_vo "github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	"sort"
 	"strconv"
 	"strings"
 )
+
+func ConvertToMap[T comparable, V comparable](elms []T, fn func(T) V) map[V]T {
+	outputMap := map[V]T{}
+	for _, elm := range elms {
+		outputMap[fn(elm)] = elm
+	}
+	return outputMap
+}
+
+func ConvertToSliceMap[T comparable, V comparable](elms []T, fn func(T) V) map[V][]T {
+	outputSliceMap := map[V][]T{}
+	for _, elm := range elms {
+		outputSliceMap[fn(elm)] = append(outputSliceMap[fn(elm)], elm)
+	}
+	return outputSliceMap
+}
 
 func ConvertToRaceDate(v string) race_vo.RaceDate {
 	return race_vo.NewRaceDate(v)

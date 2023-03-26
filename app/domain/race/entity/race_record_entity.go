@@ -1,43 +1,46 @@
 package entity
 
-import betting_ticket_vo "github.com/mapserver2007/tools/baken/app/domain/betting_ticket/value_object"
+import betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
 
-type RaceRecordEntity struct {
-	Record []*RecordDetail
+type RaceRecord struct {
+	recordDetails []*RecordDetail
+}
+
+func NewRaceRecordEntity(recordDetails []*RecordDetail) *RaceRecord {
+	return &RaceRecord{recordDetails: recordDetails}
+}
+
+func (r *RaceRecord) RecordDetails() []*RecordDetail {
+	return r.recordDetails
 }
 
 // RecordDetail レース単位のレース情報、購入馬券、本命対抗
 type RecordDetail struct {
-	Race                 Race
-	BettingTicketDetails []*BettingTicketDetail
-	PredictionForHorse   PredictionForHorse
+	race                 Race
+	bettingTicketDetails []*betting_ticket_entity.BettingTicketDetail
+	predictionForHorse   betting_ticket_entity.PredictionForHorse
 }
 
-type BettingTicketDetail struct {
-	BettingTicket betting_ticket_vo.BettingTicket
-	BetNumber     betting_ticket_vo.BetNumber
-	Payment       int
-	Repayment     int
-	Winning       bool
-}
-
-type PredictionForHorse struct {
-	First  string
-	Second string
-}
-
-func NewBettingTicketDetail(
-	bettingTicket betting_ticket_vo.BettingTicket,
-	betNumber betting_ticket_vo.BetNumber,
-	payment int,
-	repayment int,
-	winning bool,
-) *BettingTicketDetail {
-	return &BettingTicketDetail{
-		BettingTicket: bettingTicket,
-		BetNumber:     betNumber,
-		Payment:       payment,
-		Repayment:     repayment,
-		Winning:       winning,
+func NewRecordDetail(
+	race Race,
+	bettingTicketDetails []*betting_ticket_entity.BettingTicketDetail,
+	predictionForHorse betting_ticket_entity.PredictionForHorse,
+) *RecordDetail {
+	return &RecordDetail{
+		race:                 race,
+		bettingTicketDetails: bettingTicketDetails,
+		predictionForHorse:   predictionForHorse,
 	}
+}
+
+func (r *RecordDetail) Race() Race {
+	return r.race
+}
+
+func (r *RecordDetail) BettingTicketDetails() []*betting_ticket_entity.BettingTicketDetail {
+	return r.bettingTicketDetails
+}
+
+func (r *RecordDetail) PredictionForHorse() betting_ticket_entity.PredictionForHorse {
+	return r.predictionForHorse
 }

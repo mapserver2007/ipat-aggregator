@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"github.com/gocolly/colly"
-	"github.com/mapserver2007/tools/baken/app/infrastructure"
-	"github.com/mapserver2007/tools/baken/app/service"
-	"github.com/mapserver2007/tools/baken/app/usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/service"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"log"
 )
 
@@ -14,6 +14,9 @@ func main() {
 	csvReader := service.NewCsvReader()
 	collector := colly.NewCollector()
 	raceClient := infrastructure.NewRaceClient(collector)
+	raceFetcher := service.NewRaceFetcher(raceClient)
+	raceConverter := service.NewRaceConverter()
+	bettingTicketConverter := service.NewBettingTicketConverter()
 
 	raceDB := infrastructure.NewRaceDB(raceClient)
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx, "secret.json", "spreadsheet_calc.json")
@@ -21,21 +24,24 @@ func main() {
 
 	log.Println(ctx, "start")
 
-	dataCacheUseCase := usecase.NewDataCache(csvReader, raceDB)
-	entities, raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
+	dataCacheUseCase := usecase.NewDataCache(csvReader, raceDB, raceFetcher, raceConverter)
+
+	records, raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	raceConverter := service.NewRaceConverter(raceNumberInfo.RacingNumbers)
-	aggregator := service.NewAggregator(raceConverter, entities, raceNumberInfo, raceInfo)
+	aggregator := service.NewAggregator(raceConverter, bettingTicketConverter, records, raceNumberInfo, raceInfo)
 	summary := aggregator.GetSummary()
 
-	predictor := service.NewPredictor(raceConverter, entities, raceInfo.Races)
+	predictor := service.NewPredictor(raceConverter, bettingTicketConverter, records, raceNumberInfo, raceInfo)
 	predictResults, err := predictor.Predict()
 	if err != nil {
 		panic(err)
 	}
+
+	analyser := service.NewAnalyser(records)
+	analyser.Analyse()
 
 	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient)
 	err = spreadSheetUseCase.WriteSummary(ctx, summary)

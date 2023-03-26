@@ -1,8 +1,8 @@
 package entity
 
 import (
-	"github.com/mapserver2007/tools/baken/app/domain/race/entity"
-	"github.com/mapserver2007/tools/baken/app/domain/race/value_object"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 )
 
 type ResultRateForRace struct {

@@ -69,6 +69,7 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	log.Println(ctx, "update racing_number.json ...")
 	for _, param := range racingNumberParams {
 		time.Sleep(time.Second * 1)
+		log.Println(ctx, "fetch from "+param.Url())
 		rawRacingNumbersNetkeiba, err := d.raceFetcher.FetchRacingNumbers(ctx, param.Url())
 		if err != nil {
 			return nil, nil, nil, err
@@ -89,6 +90,7 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	log.Println(ctx, "update race_result.json ...")
 	for _, param := range raceParams {
 		time.Sleep(time.Second * 1)
+		log.Println(ctx, "fetch from "+param.Url())
 		rawRace, err := d.raceFetcher.FetchRace(ctx, param.Url())
 		if err != nil {
 			return nil, nil, nil, err
@@ -113,38 +115,32 @@ func (d *DataCache) getRacingNumberRequestParams(
 	racingNumbers []*raw_race_entity.RacingNumber,
 	records []*betting_ticket_entity.CsvEntity,
 ) ([]*racingNumberRequestParam, error) {
-	racingNumberCache := map[race_vo.RacingNumberId]bool{}
-	if racingNumbers != nil {
-		for _, racingNumber := range racingNumbers {
-			racingNumberId := race_vo.NewRacingNumberId(
-				race_vo.RaceDate(racingNumber.Date),
-				race_vo.RaceCourse(racingNumber.RaceCourseId),
-			)
-			racingNumberCache[racingNumberId] = true
-		}
-	}
-	racingNumberRequestParams := make([]*racingNumberRequestParam, 0)
-
+	racingNumberMap := d.raceConverter.ConvertToRawRacingNumberMap(racingNumbers)
+	racingNumberDateCache := map[race_vo.RaceDate]*racingNumberRequestParam{}
 	for _, record := range records {
 		// JRA以外は日付からレース番号の特定が可能のため処理しない
 		if record.RaceCourse().Organizer() != race_vo.JRA {
 			continue
 		}
-
 		racingNumberId := race_vo.NewRacingNumberId(
 			record.RaceDate(),
 			record.RaceCourse(),
 		)
-
-		if _, ok := racingNumberCache[racingNumberId]; ok {
+		if _, ok := racingNumberMap[racingNumberId]; ok {
 			continue
 		}
-		racingNumberCache[racingNumberId] = true
-
-		racingNumberRequestParams = append(racingNumberRequestParams, createRacingNumberRequestParam(
+		if _, ok := racingNumberDateCache[racingNumberId.Date()]; ok {
+			continue
+		}
+		racingNumberDateCache[racingNumberId.Date()] = createRacingNumberRequestParam(
 			fmt.Sprintf(raceListUrlForJRA, int(racingNumberId.Date())),
 			record,
-		))
+		)
+	}
+
+	racingNumberRequestParams := make([]*racingNumberRequestParam, 0)
+	for _, param := range racingNumberDateCache {
+		racingNumberRequestParams = append(racingNumberRequestParams, param)
 	}
 
 	return racingNumberRequestParams, nil
@@ -158,6 +154,7 @@ func (d *DataCache) getRaceRequestParams(
 	raceMap := d.raceConverter.ConvertToRawRaceMap(races)
 	racingNumberMap := d.raceConverter.ConvertToRawRacingNumberMap(racingNumbers)
 	raceRequestParams := make([]*raceRequestParam, 0)
+	raceIdCache := map[race_vo.RaceId]*raceRequestParam{}
 
 	for _, record := range records {
 		var (
@@ -188,6 +185,9 @@ func (d *DataCache) getRaceRequestParams(
 		if _, ok := raceMap[string(*raceId)]; ok {
 			continue
 		}
+		if _, ok := raceIdCache[*raceId]; ok {
+			continue
+		}
 
 		switch organizer {
 		case race_vo.JRA:
@@ -198,11 +198,15 @@ func (d *DataCache) getRaceRequestParams(
 			url = fmt.Sprintf(raceResultUrlForOversea, *raceId, organizer)
 		}
 
-		raceRequestParams = append(raceRequestParams, createRaceRequestParam(
+		raceIdCache[*raceId] = createRaceRequestParam(
 			url,
 			raceId,
 			record,
-		))
+		)
+	}
+
+	for _, param := range raceIdCache {
+		raceRequestParams = append(raceRequestParams, param)
 	}
 
 	return raceRequestParams, nil

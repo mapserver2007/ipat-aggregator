@@ -58,6 +58,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 		raceResults              []*raw_entity.RawRaceResultNetkeiba
 		payoutResults            []*raw_entity.RawPayoutResultNetkeiba
 		raceName, trackCondition string
+		startTime                string
 		raceTimes                []string
 		courseCategory           race_vo.CourseCategory
 		distance, entries        int
@@ -184,11 +185,12 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 					}
 				case 1:
 					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
-					regex := regexp.MustCompile(`(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
+					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
-					courseCategory = race_vo.NewCourseCategory(matches[0][1])
-					distance, _ = strconv.Atoi(matches[0][2])
-					trackCondition = matches[0][3]
+					startTime = matches[0][1]
+					courseCategory = race_vo.NewCourseCategory(matches[0][2])
+					distance, _ = strconv.Atoi(matches[0][3])
+					trackCondition = matches[0][4]
 				case 2:
 					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 					regex := regexp.MustCompile(`(\d+)頭`)
@@ -357,6 +359,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 		raceName,
 		url,
 		raceTimes[0],
+		startTime,
 		entries,
 		distance,
 		int(gradeClass),

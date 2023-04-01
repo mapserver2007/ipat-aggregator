@@ -1234,6 +1234,9 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 	sort.SliceStable(records, func(i, j int) bool {
 		return records[i].Race().RaceDate() > records[j].Race().RaceDate()
 	})
+	sort.SliceStable(records, func(i, j int) bool {
+		return records[i].Race().StartTime() > records[j].Race().StartTime()
+	})
 
 	styleMap := map[race_vo.RaceId]*spreadsheet_entity.ResultStyle{}
 	for idx, record := range records {

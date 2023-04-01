@@ -4,6 +4,7 @@ type RawRaceNetkeiba struct {
 	raceName       string
 	url            string
 	time           string
+	startTime      string
 	entries        int
 	distance       int
 	class          int
@@ -39,6 +40,7 @@ func NewRawRaceNetkeiba(
 	raceName string,
 	url string,
 	time string,
+	startTime string,
 	entries int,
 	distance int,
 	class int,
@@ -51,6 +53,7 @@ func NewRawRaceNetkeiba(
 		raceName:       raceName,
 		url:            url,
 		time:           time,
+		startTime:      startTime,
 		entries:        entries,
 		distance:       distance,
 		class:          class,
@@ -71,6 +74,10 @@ func (r *RawRaceNetkeiba) Url() string {
 
 func (r *RawRaceNetkeiba) Time() string {
 	return r.time
+}
+
+func (r *RawRaceNetkeiba) StartTime() string {
+	return r.startTime
 }
 
 func (r *RawRaceNetkeiba) Entries() int {

@@ -9,6 +9,7 @@ type RaceEntity struct {
 	raceId         race_vo.RaceId
 	raceNumber     int
 	raceName       string
+	startTime      string
 	class          race_vo.GradeClass
 	raceCourse     race_vo.RaceCourse
 	courseCategory race_vo.CourseCategory
@@ -25,6 +26,7 @@ func NewRaceEntity(
 	raceId race_vo.RaceId,
 	raceNumber int,
 	raceName string,
+	startTime string,
 	class race_vo.GradeClass,
 	raceCourse race_vo.RaceCourse,
 	courseCategory race_vo.CourseCategory,
@@ -40,6 +42,7 @@ func NewRaceEntity(
 		raceId:         raceId,
 		raceNumber:     raceNumber,
 		raceName:       raceName,
+		startTime:      startTime,
 		class:          class,
 		raceCourse:     raceCourse,
 		courseCategory: courseCategory,
@@ -63,6 +66,10 @@ func (r *RaceEntity) RaceNumber() int {
 
 func (r *RaceEntity) RaceName() string {
 	return r.raceName
+}
+
+func (r *RaceEntity) StartTime() string {
+	return r.startTime
 }
 
 func (r *RaceEntity) Class() race_vo.GradeClass {

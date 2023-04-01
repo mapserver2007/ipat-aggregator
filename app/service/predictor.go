@@ -217,6 +217,7 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 			raceId,
 			raceInfo.RaceNumber(),
 			raceInfo.RaceName(),
+			raceInfo.StartTime(),
 			race_vo.GradeClass(raceInfo.Class()),
 			raceInfo.RaceCourseId(),
 			raceInfo.CourseCategory(),
@@ -442,10 +443,7 @@ func (p *Predictor) getRecordMapByRaceId() map[race_vo.RaceId][]*betting_ticket_
 
 	for _, record := range p.records {
 		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
-		racingNumber, ok := racingNumberMap[key]
-		if !ok {
-			continue
-		}
+		racingNumber, _ := racingNumberMap[key]
 		raceId := p.raceConverter.GetRaceId(record, racingNumber)
 		bettingTicketDetail := betting_ticket_entity.NewBettingTicketDetail(
 			record.BettingTicket(),

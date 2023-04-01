@@ -221,6 +221,12 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 							matches := regex.FindAllStringSubmatch(text, -1)
 							entries, _ = strconv.Atoi(matches[0][1])
 						case 2:
+							if text != "" { // 天気アイコンある場合はtextが空
+								regex := regexp.MustCompile(`：(.+)`)
+								matches := regex.FindAllStringSubmatch(text, -1)
+								trackCondition = matches[0][1]
+							}
+						case 3:
 							regex := regexp.MustCompile(`：(.+)`)
 							matches := regex.FindAllStringSubmatch(text, -1)
 							trackCondition = matches[0][1]

@@ -18,9 +18,9 @@ type RaceClient struct {
 	client *colly.Collector
 }
 
-func NewRaceClient(client *colly.Collector) repository.RaceClient {
+func NewRaceClient() repository.RaceClient {
 	return &RaceClient{
-		client: client,
+		client: colly.NewCollector(),
 	}
 }
 

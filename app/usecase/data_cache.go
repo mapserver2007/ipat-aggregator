@@ -34,8 +34,8 @@ func NewDataCache(
 	raceDB repository.RaceDB,
 	raceFetcher service.RaceFetcher,
 	raceConverter service.RaceConverter,
-) DataCache {
-	return DataCache{
+) *DataCache {
+	return &DataCache{
 		csvReader:     csvReader,
 		raceDB:        raceDB,
 		raceFetcher:   raceFetcher,
@@ -196,6 +196,8 @@ func (d *DataCache) getRaceRequestParams(
 			url = fmt.Sprintf(raceResultUrlForNAR, *raceId, organizer)
 		case race_vo.OverseaOrganizer:
 			url = fmt.Sprintf(raceResultUrlForOversea, *raceId, organizer)
+		default:
+			return nil, fmt.Errorf("undefined organizer: race_date %d, race_no %d", record.RaceDate(), record.RaceNo())
 		}
 
 		raceIdCache[*raceId] = createRaceRequestParam(

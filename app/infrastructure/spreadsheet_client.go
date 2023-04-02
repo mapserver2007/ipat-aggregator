@@ -19,6 +19,12 @@ import (
 	"strings"
 )
 
+const (
+	secretFileName          = "secret.json"
+	spreadSheetCalcFileName = "spreadsheet_calc.json"
+	spreadSheetListFileName = "spreadsheet_list.json"
+)
+
 type SpreadSheetClient struct {
 	client            *sheets.Service
 	spreadSheetConfig spreadsheet_entity.SpreadSheetConfig
@@ -27,11 +33,8 @@ type SpreadSheetClient struct {
 
 func NewSpreadSheetClient(
 	ctx context.Context,
-	secretFileName,
-	spreadSheetConfigFileName string,
 ) repository.SpreadSheetClient {
-	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, secretFileName, spreadSheetConfigFileName)
-
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetCalcFileName)
 	return &SpreadSheetClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
@@ -47,11 +50,8 @@ type SpreadSheetListClient struct {
 
 func NewSpreadSheetListClient(
 	ctx context.Context,
-	secretFileName,
-	spreadSheetConfigFileName string,
 ) repository.SpreadSheetListClient {
-	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, secretFileName, spreadSheetConfigFileName)
-
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetListFileName)
 	return &SpreadSheetListClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
@@ -61,7 +61,6 @@ func NewSpreadSheetListClient(
 
 func getSpreadSheetConfig(
 	ctx context.Context,
-	secretFileName,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, spreadsheet_entity.SpreadSheetConfig, int64) {
 	rootPath, err := os.Getwd()
@@ -1229,13 +1228,10 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 	var rivalHorseName, rivalPopularNumber, rivalOdds string
 
 	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Race().RaceNumber() > records[j].Race().RaceNumber()
+		return records[i].Race().StartTime() > records[j].Race().StartTime()
 	})
 	sort.SliceStable(records, func(i, j int) bool {
 		return records[i].Race().RaceDate() > records[j].Race().RaceDate()
-	})
-	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Race().StartTime() > records[j].Race().StartTime()
 	})
 
 	styleMap := map[race_vo.RaceId]*spreadsheet_entity.ResultStyle{}

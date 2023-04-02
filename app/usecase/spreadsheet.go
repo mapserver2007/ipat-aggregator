@@ -16,8 +16,8 @@ type SpreadSheet struct {
 func NewSpreadSheet(
 	spreadSheetClient repository.SpreadSheetClient,
 	spreadSheetListClient repository.SpreadSheetListClient,
-) SpreadSheet {
-	return SpreadSheet{
+) *SpreadSheet {
+	return &SpreadSheet{
 		spreadSheetClient:     spreadSheetClient,
 		spreadSheetListClient: spreadSheetListClient,
 	}

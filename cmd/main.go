@@ -2,40 +2,31 @@ package main
 
 import (
 	"context"
-	"github.com/gocolly/colly"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/service"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
+	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
 )
 
 func main() {
 	ctx := context.Background()
-	csvReader := service.NewCsvReader()
-	collector := colly.NewCollector()
-	raceClient := infrastructure.NewRaceClient(collector)
-	raceFetcher := service.NewRaceFetcher(raceClient)
-	raceConverter := service.NewRaceConverter()
-	bettingTicketConverter := service.NewBettingTicketConverter()
-
-	raceDB := infrastructure.NewRaceDB(raceClient)
-	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx, "secret.json", "spreadsheet_calc.json")
-	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx, "secret.json", "spreadsheet_list.json")
+	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx)
+	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx)
 
 	log.Println(ctx, "start")
 
-	dataCacheUseCase := usecase.NewDataCache(csvReader, raceDB, raceFetcher, raceConverter)
-
+	dataCacheUseCase := di.DataCacheInit()
 	records, raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	aggregator := service.NewAggregator(raceConverter, bettingTicketConverter, records, raceNumberInfo, raceInfo)
-	summary := aggregator.GetSummary()
+	aggregator := di.AggregatorInit()
+	summary := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
 
-	predictor := service.NewPredictor(raceConverter, bettingTicketConverter, records, raceNumberInfo, raceInfo)
-	predictResults, err := predictor.Predict()
+	predictor := di.PredictInit()
+	predictResults, err := predictor.Predict(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
 	if err != nil {
 		panic(err)
 	}
@@ -43,6 +34,7 @@ func main() {
 	analyser := service.NewAnalyser(records)
 	analyser.Analyse()
 
+	//spreadSheetUseCase := di.SpreadSheetInit()
 	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient)
 	err = spreadSheetUseCase.WriteSummary(ctx, summary)
 	if err != nil {

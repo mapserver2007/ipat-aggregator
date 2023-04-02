@@ -30,6 +30,7 @@ const (
 	Longchamp = 90 // 値はダミー
 	Deauville = 91 // 値はダミー
 	Shatin    = 92 // 値はダミー
+	Meydan    = 93 // 値はダミー
 	Overseas  = 99 // その他海外
 )
 
@@ -56,6 +57,7 @@ var raceCourseMap = map[RaceCourse]string{
 	Longchamp:    "パリロンシャン（フランス）",
 	Deauville:    "ドーヴィル（フランス）",
 	Shatin:       "シャティン（香港）",
+	Meydan:       "メイダン（ＵＡＥ）",
 	Overseas:     "海外",
 	UnknownPlace: "不明",
 }
@@ -65,6 +67,7 @@ var raceCourseOverseaIdMap = map[RaceCourse]string{
 	Longchamp: "C8",
 	Deauville: "C4",
 	Shatin:    "H1",
+	Meydan:    "J0",
 }
 
 func (r RaceCourse) Name() string {
@@ -81,7 +84,7 @@ func (r RaceCourse) Organizer() Organizer {
 		return JRA
 	case Monbetsu, Morioka, Ooi, Kawasaki, Urawa, Hunabashi, Nagoya, Kouchi, Saga:
 		return NAR
-	case Longchamp, Deauville, Shatin:
+	case Longchamp, Deauville, Shatin, Meydan:
 		return OverseaOrganizer
 	}
 

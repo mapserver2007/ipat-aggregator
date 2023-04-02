@@ -10,6 +10,7 @@ type Race struct {
 	raceName       string
 	url            string
 	time           string
+	startTime      string
 	entries        int
 	distance       int
 	class          int
@@ -27,6 +28,7 @@ func NewRace(
 	raceName string,
 	url string,
 	time string,
+	startTime string,
 	entries int,
 	distance int,
 	class int,
@@ -43,6 +45,7 @@ func NewRace(
 		raceName:       raceName,
 		url:            url,
 		time:           time,
+		startTime:      startTime,
 		entries:        entries,
 		distance:       distance,
 		class:          class,
@@ -79,6 +82,10 @@ func (r *Race) Url() string {
 
 func (r *Race) Time() string {
 	return r.time
+}
+
+func (r *Race) StartTime() string {
+	return r.startTime
 }
 
 func (r *Race) Entries() int {

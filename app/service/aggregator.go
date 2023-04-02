@@ -13,80 +13,75 @@ import (
 type Aggregator struct {
 	raceConverter          RaceConverter
 	bettingTicketConverter BettingTicketConverter
-	entities               []*betting_ticket_entity.CsvEntity
-	racingNumberInfo       *race_entity.RacingNumberInfo
-	raceInfo               *race_entity.RaceInfo
 }
 
 func NewAggregator(
 	raceConverter RaceConverter,
 	bettingTicketConverter BettingTicketConverter,
-	entities []*betting_ticket_entity.CsvEntity,
-	racingNumberInfo *race_entity.RacingNumberInfo,
-	raceInfo *race_entity.RaceInfo,
-) Aggregator {
-	return Aggregator{
+) *Aggregator {
+	return &Aggregator{
 		raceConverter:          raceConverter,
 		bettingTicketConverter: bettingTicketConverter,
-		entities:               entities,
-		racingNumberInfo:       racingNumberInfo,
-		raceInfo:               raceInfo,
 	}
 }
 
-func (a *Aggregator) GetSummary() *spreadsheet_entity.Summary {
+func (a *Aggregator) GetSummary(
+	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
+) *spreadsheet_entity.Summary {
 	return spreadsheet_entity.NewResult(
-		a.getTotalResultSummary(),
-		a.getLatestMonthlyResultSummary(),
-		a.getBettingTicketSummary(),
-		a.getRaceClassSummary(),
-		a.getMonthlySummary(),
-		a.getCourseCategorySummary(),
-		a.getDistanceCategorySummary(),
-		a.getRaceCourseSummary(),
+		a.getTotalResultSummary(records),
+		a.getLatestMonthlyResultSummary(records),
+		a.getBettingTicketSummary(records),
+		a.getRaceClassSummary(records, races),
+		a.getMonthlySummary(records),
+		a.getCourseCategorySummary(records, racingNumbers, races),
+		a.getDistanceCategorySummary(records, racingNumbers, races),
+		a.getRaceCourseSummary(records, racingNumbers, races),
 	)
 }
 
-func (a *Aggregator) getTotalResultSummary() spreadsheet_entity.ResultSummary {
-	resultRate := a.getTotalBettingTicketRate()
+func (a *Aggregator) getTotalResultSummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.ResultSummary {
+	resultRate := a.getTotalBettingTicketRate(records)
 	return spreadsheet_entity.NewResultSummary(resultRate.Payments, resultRate.Repayments)
 }
 
-func (a *Aggregator) getLatestMonthlyResultSummary() spreadsheet_entity.ResultSummary {
-	resultRate := a.getLatestMonthlyBettingTicketRate()
+func (a *Aggregator) getLatestMonthlyResultSummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.ResultSummary {
+	resultRate := a.getLatestMonthlyBettingTicketRate(records)
 	return spreadsheet_entity.NewResultSummary(resultRate.Payments, resultRate.Repayments)
 }
 
-func (a *Aggregator) getBettingTicketSummary() spreadsheet_entity.BettingTicketSummary {
-	return spreadsheet_entity.NewBettingTicketSummary(a.getBettingTicketResultRate())
+func (a *Aggregator) getBettingTicketSummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.BettingTicketSummary {
+	return spreadsheet_entity.NewBettingTicketSummary(a.getBettingTicketResultRate(records))
 }
 
-func (a *Aggregator) getRaceClassSummary() spreadsheet_entity.RaceClassSummary {
-	return spreadsheet_entity.NewRaceClassSummary(a.getRaceClassResultRate())
+func (a *Aggregator) getRaceClassSummary(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race) spreadsheet_entity.RaceClassSummary {
+	return spreadsheet_entity.NewRaceClassSummary(a.getRaceClassResultRate(records, races))
 }
 
-func (a *Aggregator) getMonthlySummary() spreadsheet_entity.MonthlySummary {
-	return spreadsheet_entity.NewMonthlySummary(a.getMonthlyResultRate())
+func (a *Aggregator) getMonthlySummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.MonthlySummary {
+	return spreadsheet_entity.NewMonthlySummary(a.getMonthlyResultRate(records))
 }
 
-func (a *Aggregator) getCourseCategorySummary() spreadsheet_entity.CourseCategorySummary {
-	return spreadsheet_entity.NewCourseCategorySummary(a.getCourseCategoryRates())
+func (a *Aggregator) getCourseCategorySummary(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) spreadsheet_entity.CourseCategorySummary {
+	return spreadsheet_entity.NewCourseCategorySummary(a.getCourseCategoryRates(records, racingNumbers, races))
 }
 
-func (a *Aggregator) getDistanceCategorySummary() spreadsheet_entity.DistanceCategorySummary {
-	return spreadsheet_entity.NewDistanceCategorySummary(a.getDistanceCategoryRates())
+func (a *Aggregator) getDistanceCategorySummary(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) spreadsheet_entity.DistanceCategorySummary {
+	return spreadsheet_entity.NewDistanceCategorySummary(a.getDistanceCategoryRates(records, racingNumbers, races))
 }
 
-func (a *Aggregator) getRaceCourseSummary() spreadsheet_entity.RaceCourseSummary {
-	return spreadsheet_entity.NewRaceCourseSummary(a.getRaceCourseRates())
+func (a *Aggregator) getRaceCourseSummary(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) spreadsheet_entity.RaceCourseSummary {
+	return spreadsheet_entity.NewRaceCourseSummary(a.getRaceCourseRates(records, racingNumbers, races))
 }
 
-func (a *Aggregator) getTotalBettingTicketRate() spreadsheet_entity.ResultRate {
-	return CalcSumResultRate(a.entities)
+func (a *Aggregator) getTotalBettingTicketRate(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.ResultRate {
+	return CalcSumResultRate(records)
 }
 
-func (a *Aggregator) getLatestMonthlyBettingTicketRate() spreadsheet_entity.ResultRate {
-	monthlyRatesMap := a.getMonthlyResultRate()
+func (a *Aggregator) getLatestMonthlyBettingTicketRate(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.ResultRate {
+	monthlyRatesMap := a.getMonthlyResultRate(records)
 
 	var dateList []int
 	for date := range monthlyRatesMap {
@@ -102,11 +97,11 @@ func (a *Aggregator) getLatestMonthlyBettingTicketRate() spreadsheet_entity.Resu
 	return resultRate
 }
 
-func (a *Aggregator) getBettingTicketResultRate() map[betting_ticket_vo.BettingTicket]spreadsheet_entity.ResultRate {
+func (a *Aggregator) getBettingTicketResultRate(records []*betting_ticket_entity.CsvEntity) map[betting_ticket_vo.BettingTicket]spreadsheet_entity.ResultRate {
 	bettingTicketRatesMap := map[betting_ticket_vo.BettingTicket]spreadsheet_entity.ResultRate{}
 
-	for bettingTicket, records := range a.bettingTicketConverter.ConvertToBettingTicketRecordsMap(a.entities) {
-		bettingTicketRatesMap[bettingTicket] = CalcSumResultRate(records)
+	for bettingTicket, recordsGroup := range a.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records) {
+		bettingTicketRatesMap[bettingTicket] = CalcSumResultRate(recordsGroup)
 	}
 
 	// 同一券種をまとめる
@@ -138,30 +133,30 @@ func (a *Aggregator) getBettingTicketResultRate() map[betting_ticket_vo.BettingT
 	return newBettingTicketRatesMap
 }
 
-func (a *Aggregator) getMonthlyResultRate() map[int]spreadsheet_entity.ResultRate {
+func (a *Aggregator) getMonthlyResultRate(records []*betting_ticket_entity.CsvEntity) map[int]spreadsheet_entity.ResultRate {
 	monthlyRatesMap := map[int]spreadsheet_entity.ResultRate{}
-	for date, records := range a.bettingTicketConverter.ConvertToMonthRecordsMap(a.entities) {
-		monthlyRatesMap[date] = CalcSumResultRate(records)
+	for date, recordsGroup := range a.bettingTicketConverter.ConvertToMonthRecordsMap(records) {
+		monthlyRatesMap[date] = CalcSumResultRate(recordsGroup)
 	}
 
 	return monthlyRatesMap
 }
 
-func (a *Aggregator) getCourseCategoryRates() map[race_vo.CourseCategory]spreadsheet_entity.ResultRate {
+func (a *Aggregator) getCourseCategoryRates(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.CourseCategory]spreadsheet_entity.ResultRate {
 	courseCategoryRatesMap := map[race_vo.CourseCategory]spreadsheet_entity.ResultRate{}
 	courseCategoryRecordsMap := map[race_vo.CourseCategory][]*betting_ticket_entity.CsvEntity{}
-	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(a.raceInfo.Races())
-	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(a.racingNumberInfo.RacingNumbers())
-	for _, entity := range a.entities {
-		racingNumberId := race_vo.NewRacingNumberId(entity.RaceDate(), entity.RaceCourse())
+	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	for _, record := range records {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
 		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok && entity.RaceCourse().Organizer() == race_vo.JRA {
+		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
 			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
 		}
-		raceId := a.raceConverter.GetRaceId(entity, racingNumber)
+		raceId := a.raceConverter.GetRaceId(record, racingNumber)
 		if race, ok := raceMap[*raceId]; ok {
 			courseCategory := race.CourseCategory()
-			courseCategoryRecordsMap[courseCategory] = append(courseCategoryRecordsMap[courseCategory], entity)
+			courseCategoryRecordsMap[courseCategory] = append(courseCategoryRecordsMap[courseCategory], record)
 		}
 	}
 	for courseCategory, records := range courseCategoryRecordsMap {
@@ -171,22 +166,22 @@ func (a *Aggregator) getCourseCategoryRates() map[race_vo.CourseCategory]spreads
 	return courseCategoryRatesMap
 }
 
-func (a *Aggregator) getDistanceCategoryRates() map[race_vo.DistanceCategory]spreadsheet_entity.ResultRate {
+func (a *Aggregator) getDistanceCategoryRates(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.DistanceCategory]spreadsheet_entity.ResultRate {
 	distanceCategoryRatesMap := map[race_vo.DistanceCategory]spreadsheet_entity.ResultRate{}
 	distanceCategoryRecordsMap := map[race_vo.DistanceCategory][]*betting_ticket_entity.CsvEntity{}
-	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(a.raceInfo.Races())
-	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(a.racingNumberInfo.RacingNumbers())
-	for _, entity := range a.entities {
-		racingNumberId := race_vo.NewRacingNumberId(entity.RaceDate(), entity.RaceCourse())
+	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	for _, record := range records {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
 		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok && entity.RaceCourse().Organizer() == race_vo.JRA {
+		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
 			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
 		}
-		raceId := a.raceConverter.GetRaceId(entity, racingNumber)
+		raceId := a.raceConverter.GetRaceId(record, racingNumber)
 		if race, ok := raceMap[*raceId]; ok {
 			courseCategory := race.CourseCategory()
 			distanceCategory := race_vo.NewDistanceCategory(race.Distance(), courseCategory)
-			distanceCategoryRecordsMap[distanceCategory] = append(distanceCategoryRecordsMap[distanceCategory], entity)
+			distanceCategoryRecordsMap[distanceCategory] = append(distanceCategoryRecordsMap[distanceCategory], record)
 		}
 	}
 	for distanceCategory, records := range distanceCategoryRecordsMap {
@@ -196,21 +191,21 @@ func (a *Aggregator) getDistanceCategoryRates() map[race_vo.DistanceCategory]spr
 	return distanceCategoryRatesMap
 }
 
-func (a *Aggregator) getRaceCourseRates() map[race_vo.RaceCourse]spreadsheet_entity.ResultRate {
+func (a *Aggregator) getRaceCourseRates(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.RaceCourse]spreadsheet_entity.ResultRate {
 	raceCourseRatesMap := map[race_vo.RaceCourse]spreadsheet_entity.ResultRate{}
 	raceCourseRecordsMap := map[race_vo.RaceCourse][]*betting_ticket_entity.CsvEntity{}
-	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(a.raceInfo.Races())
-	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(a.racingNumberInfo.RacingNumbers())
-	for _, entity := range a.entities {
-		racingNumberId := race_vo.NewRacingNumberId(entity.RaceDate(), entity.RaceCourse())
+	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	for _, record := range records {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
 		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok && entity.RaceCourse().Organizer() == race_vo.JRA {
+		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
 			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
 		}
-		raceId := a.raceConverter.GetRaceId(entity, racingNumber)
+		raceId := a.raceConverter.GetRaceId(record, racingNumber)
 		if race, ok := raceMap[*raceId]; ok {
 			raceCourse := race.RaceCourseId()
-			raceCourseRecordsMap[raceCourse] = append(raceCourseRecordsMap[raceCourse], entity)
+			raceCourseRecordsMap[raceCourse] = append(raceCourseRecordsMap[raceCourse], record)
 		}
 	}
 	for raceCourse, records := range raceCourseRecordsMap {
@@ -228,10 +223,10 @@ func (a *Aggregator) getRaceCourseRates() map[race_vo.RaceCourse]spreadsheet_ent
 	newRaceCourseRatesMap := map[race_vo.RaceCourse]spreadsheet_entity.ResultRate{}
 	for raceCourse := range raceCourseRatesMap {
 		switch raceCourse {
-		case race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin:
+		case race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan:
 			newRaceCourseRatesMap[race_vo.Overseas] = mergeFunc(newRaceCourseRatesMap[race_vo.Overseas], raceCourseRatesMap[raceCourse])
 		default:
-			if raceCourse == race_vo.Longchamp || raceCourse == race_vo.Deauville || raceCourse == race_vo.Shatin {
+			if raceCourse == race_vo.Longchamp || raceCourse == race_vo.Deauville || raceCourse == race_vo.Shatin || raceCourse == race_vo.Meydan {
 				newRaceCourseRatesMap[raceCourse] = mergeFunc(newRaceCourseRatesMap[raceCourse], raceCourseRatesMap[raceCourse])
 			} else {
 				newRaceCourseRatesMap[raceCourse] = raceCourseRatesMap[raceCourse]
@@ -242,10 +237,10 @@ func (a *Aggregator) getRaceCourseRates() map[race_vo.RaceCourse]spreadsheet_ent
 	return newRaceCourseRatesMap
 }
 
-func (a *Aggregator) getRaceClassResultRate() map[race_vo.GradeClass]spreadsheet_entity.ResultRate {
+func (a *Aggregator) getRaceClassResultRate(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race) map[race_vo.GradeClass]spreadsheet_entity.ResultRate {
 	raceClassRatesMap := map[race_vo.GradeClass]spreadsheet_entity.ResultRate{}
-	raceMap := a.raceConverter.ConvertToRaceMapByRacingNumberId(a.raceInfo.Races())
-	raceClassMap := a.bettingTicketConverter.ConvertToRaceClassRecordsMap(a.entities, raceMap)
+	raceMap := a.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	raceClassMap := a.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
 	for raceClass, records := range raceClassMap {
 		raceClassRatesMap[raceClass] = CalcSumResultRate(records)
 	}

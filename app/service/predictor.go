@@ -22,30 +22,25 @@ const (
 type Predictor struct {
 	raceConverter          RaceConverter
 	bettingTicketConverter BettingTicketConverter
-	records                []*betting_ticket_entity.CsvEntity
-	racingNumberInfo       *race_entity.RacingNumberInfo
-	raceInfo               *race_entity.RaceInfo
 }
 
 func NewPredictor(
 	raceConverter RaceConverter,
 	bettingTicketConverter BettingTicketConverter,
-	records []*betting_ticket_entity.CsvEntity,
-	racingNumberInfo *race_entity.RacingNumberInfo,
-	raceInfo *race_entity.RaceInfo,
 ) *Predictor {
 	return &Predictor{
 		raceConverter:          raceConverter,
 		bettingTicketConverter: bettingTicketConverter,
-		records:                records,
-		racingNumberInfo:       racingNumberInfo,
-		raceInfo:               raceInfo,
 	}
 }
 
-func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
-	raceMap := p.raceConverter.ConvertToRaceMapByRaceId(p.raceInfo.Races())
-	recordMap := p.getRecordMapByRaceId()
+func (p *Predictor) Predict(
+	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
+) ([]*predict_entity.PredictEntity, error) {
+	raceMap := p.raceConverter.ConvertToRaceMapByRaceId(races)
+	recordMap := p.getRecordMapByRaceId(records, racingNumbers)
 	var entities []*predict_entity.PredictEntity
 
 	for raceId, bettingTicketDetails := range recordMap {
@@ -217,6 +212,7 @@ func (p *Predictor) Predict() ([]*predict_entity.PredictEntity, error) {
 			raceId,
 			raceInfo.RaceNumber(),
 			raceInfo.RaceName(),
+			raceInfo.StartTime(),
 			race_vo.GradeClass(raceInfo.Class()),
 			raceInfo.RaceCourseId(),
 			raceInfo.CourseCategory(),
@@ -436,16 +432,13 @@ func getDetailByNumberForWin(number betting_ticket_vo.BetNumber, details []*bett
 	return nil
 }
 
-func (p *Predictor) getRecordMapByRaceId() map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail {
+func (p *Predictor) getRecordMapByRaceId(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber) map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail {
 	recordMap := map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail{}
-	racingNumberMap := p.raceConverter.ConvertToRacingNumberMap(p.racingNumberInfo.RacingNumbers())
+	racingNumberMap := p.raceConverter.ConvertToRacingNumberMap(racingNumbers)
 
-	for _, record := range p.records {
+	for _, record := range records {
 		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
-		racingNumber, ok := racingNumberMap[key]
-		if !ok {
-			continue
-		}
+		racingNumber, _ := racingNumberMap[key]
 		raceId := p.raceConverter.GetRaceId(record, racingNumber)
 		bettingTicketDetail := betting_ticket_entity.NewBettingTicketDetail(
 			record.BettingTicket(),

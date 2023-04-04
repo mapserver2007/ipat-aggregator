@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
-	"github.com/mapserver2007/ipat-aggregator/app/service"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
@@ -31,8 +30,8 @@ func main() {
 		panic(err)
 	}
 
-	analyser := service.NewAnalyser(records)
-	analyser.Analyse()
+	//analyser := service.NewAnalyser()
+	//analyser.Analyse(records)
 
 	//spreadSheetUseCase := di.SpreadSheetInit()
 	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient)

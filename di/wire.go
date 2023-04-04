@@ -39,3 +39,10 @@ func PredictInit() *service.Predictor {
 	)
 	return nil
 }
+
+func AnalyserInit() *service.Analyser {
+	wire.Build(
+		service.NewAnalyser,
+	)
+	return nil
+}

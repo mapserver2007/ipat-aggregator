@@ -66,7 +66,7 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	}
 
 	var newRawRacingNumbers []*raw_race_entity.RacingNumber
-	log.Println(ctx, "update racing_number.json ...")
+	log.Println(ctx, "updating racing_number.json")
 	for _, param := range racingNumberParams {
 		time.Sleep(time.Second * 1)
 		log.Println(ctx, "fetch from "+param.Url())
@@ -87,7 +87,7 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	}
 
 	var newRawRaces []*raw_race_entity.Race
-	log.Println(ctx, "update race_result.json ...")
+	log.Println(ctx, "updating race_result.json")
 	for _, param := range raceParams {
 		time.Sleep(time.Second * 1)
 		log.Println(ctx, "fetch from "+param.Url())

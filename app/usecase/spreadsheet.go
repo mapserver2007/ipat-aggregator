@@ -6,6 +6,7 @@ import (
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
 	"github.com/mapserver2007/ipat-aggregator/app/repository"
+	"log"
 )
 
 type SpreadSheet struct {
@@ -24,6 +25,7 @@ func NewSpreadSheet(
 }
 
 func (s *SpreadSheet) WriteSummary(ctx context.Context, summary *spreadsheet_entity.Summary) error {
+	log.Println(ctx, "writing spreadsheet for summary")
 	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary.TotalResultSummary)
 	if err != nil {
 		return err
@@ -72,6 +74,7 @@ func (s *SpreadSheet) WriteList(ctx context.Context, records []*predict_entity.P
 	if err != nil {
 		return nil, err
 	}
+	log.Println(ctx, "writing spreadsheet for list")
 	styleMap, err := s.spreadSheetListClient.WriteList(ctx, records)
 	if err != nil {
 		return nil, err

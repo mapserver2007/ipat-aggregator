@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
+	jockey_entity "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/entity"
+	raw_jockey_entity "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/raw_entity"
 	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
 	raw_race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/raw_entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
@@ -209,4 +211,14 @@ func (r *RaceConverter) ConvertFromRawPayoutResultsCsvToPayoutResults(rawPayoutR
 	}
 
 	return payoutResults
+}
+
+func (r *RaceConverter) ConvertFromRawJockeysToJockeys(rawJockeys []*raw_jockey_entity.Jockey) []*jockey_entity.Jockey {
+	var jockeys []*jockey_entity.Jockey
+	for _, rawJockey := range rawJockeys {
+		jockey := jockey_entity.NewJockey(rawJockey.JockeyId, rawJockey.JockeyName)
+		jockeys = append(jockeys, jockey)
+	}
+
+	return jockeys
 }

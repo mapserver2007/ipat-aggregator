@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
@@ -16,10 +17,12 @@ func main() {
 	log.Println(ctx, "start")
 
 	dataCacheUseCase := di.DataCacheInit()
-	records, raceNumberInfo, raceInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
+	records, raceNumberInfo, raceInfo, jockeyInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println(jockeyInfo)
 
 	aggregator := di.AggregatorInit()
 	summary := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/gocolly/colly"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	raw_jockey_entity "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/race/raw_entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/repository"
+	"log"
 	neturl "net/url"
 	"regexp"
 	"strconv"
@@ -368,4 +370,26 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 		raceResults,
 		payoutResults,
 	), nil
+}
+
+func (r *RaceClient) GetJockey(ctx context.Context, url string) (*raw_jockey_entity.RawJockeyNetkeiba, error) {
+	var name string
+	r.client.OnHTML("div.Name h1", func(e *colly.HTMLElement) {
+		list := strings.Split(e.DOM.Text(), "\n")
+		name = ConvertFromEucJPToUtf8(list[1][:len(list[1])-2])
+	})
+	r.client.OnError(func(r *colly.Response, err error) {
+		log.Printf("GetJockey error: %v", err)
+	})
+
+	regex := regexp.MustCompile(`\/jockey\/(\d+)\/`)
+	result := regex.FindStringSubmatch(url)
+	id, _ := strconv.Atoi(result[1])
+
+	err := r.client.Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return raw_jockey_entity.NewRawJockeyNetkeiba(id, name), nil
 }

@@ -19,6 +19,7 @@ type RawRaceResultNetkeiba struct {
 	horseName     string
 	bracketNumber int
 	horseNumber   int
+	jockeyId      int
 	odds          string
 	popularNumber int
 }
@@ -113,6 +114,7 @@ func NewRawRaceResultNetkeiba(
 	horseName string,
 	bracketNumber int,
 	horseNumber int,
+	jockeyId int,
 	odds string,
 	popularNumber int,
 ) *RawRaceResultNetkeiba {
@@ -121,6 +123,7 @@ func NewRawRaceResultNetkeiba(
 		horseName:     horseName,
 		bracketNumber: bracketNumber,
 		horseNumber:   horseNumber,
+		jockeyId:      jockeyId,
 		odds:          odds,
 		popularNumber: popularNumber,
 	}
@@ -140,6 +143,10 @@ func (r *RawRaceResultNetkeiba) BracketNumber() int {
 
 func (r *RawRaceResultNetkeiba) HorseNumber() int {
 	return r.horseNumber
+}
+
+func (r *RawRaceResultNetkeiba) JockeyId() int {
+	return r.jockeyId
 }
 
 func (r *RawRaceResultNetkeiba) Odds() string {

@@ -118,6 +118,7 @@ func (r *RaceConverter) ConvertFromRawRaceResultsNetkeibaToRawRaceResultsCsv(raw
 			HorseName:     rawRaceResult.HorseName(),
 			BracketNumber: rawRaceResult.BracketNumber(),
 			HorseNumber:   rawRaceResult.HorseNumber(),
+			JockeyId:      rawRaceResult.JockeyId(),
 			Odds:          rawRaceResult.Odds(),
 			PopularNumber: rawRaceResult.PopularNumber(),
 		}
@@ -190,6 +191,7 @@ func (r *RaceConverter) ConvertFromRawRaceResultsCsvToRaceResults(rawRaceResults
 			rawRaceResult.HorseName,
 			rawRaceResult.BracketNumber,
 			rawRaceResult.HorseNumber,
+			rawRaceResult.JockeyId,
 			rawRaceResult.Odds,
 			rawRaceResult.PopularNumber,
 		)

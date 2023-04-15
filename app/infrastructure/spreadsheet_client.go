@@ -1211,15 +1211,19 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			"回収額",
 			"回収率",
 			"本命",
+			"騎手",
 			"人気",
 			"オッズ",
 			"対抗",
+			"騎手",
 			"人気",
 			"オッズ",
 			"1着",
+			"騎手",
 			"人気",
 			"オッズ",
 			"2着",
+			"騎手",
 			"人気",
 			"オッズ",
 		},
@@ -1302,15 +1306,19 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			record.Repayment(),
 			fmt.Sprintf("%.0f%s", float64(record.Repayment())*float64(100)/float64(record.Payment()), "%"),
 			record.FavoriteHorse().HorseName(),
+			"",
 			record.FavoriteHorse().PopularNumber(),
 			record.FavoriteHorse().Odds(),
 			rivalHorseName,
+			"",
 			rivalPopularNumber,
 			rivalOdds,
 			raceResultOfFirst.HorseName(),
+			"",
 			raceResultOfFirst.PopularNumber(),
 			raceResultOfFirst.Odds(),
 			raceResultOfSecond.HorseName(),
+			"",
 			raceResultOfSecond.PopularNumber(),
 			raceResultOfSecond.Odds(),
 		})
@@ -1348,7 +1356,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
 						StartRowIndex:    0,
-						EndColumnIndex:   21,
+						EndColumnIndex:   25,
 						EndRowIndex:      1,
 					},
 					Cell: &sheets.CellData{
@@ -1367,7 +1375,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
 						StartRowIndex:    0,
-						EndColumnIndex:   21,
+						EndColumnIndex:   25,
 						EndRowIndex:      1,
 					},
 					Cell: &sheets.CellData{
@@ -1497,9 +1505,23 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 					Range: &sheets.DimensionRange{
 						Dimension:  "COLUMNS",
-						EndIndex:   12,
+						EndIndex:   11,
 						SheetId:    s.sheetId,
 						StartIndex: 10,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 75,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   13,
+						SheetId:    s.sheetId,
+						StartIndex: 11,
 					},
 					Properties: &sheets.DimensionProperties{
 						PixelSize: 50,
@@ -1511,9 +1533,9 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 					Range: &sheets.DimensionRange{
 						Dimension:  "COLUMNS",
-						EndIndex:   13,
+						EndIndex:   14,
 						SheetId:    s.sheetId,
-						StartIndex: 12,
+						StartIndex: 13,
 					},
 					Properties: &sheets.DimensionProperties{
 						PixelSize: 135,
@@ -1527,10 +1549,10 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						Dimension:  "COLUMNS",
 						EndIndex:   15,
 						SheetId:    s.sheetId,
-						StartIndex: 13,
+						StartIndex: 14,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 50,
+						PixelSize: 75,
 					},
 					Fields: "pixelSize",
 				},
@@ -1539,12 +1561,12 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 					Range: &sheets.DimensionRange{
 						Dimension:  "COLUMNS",
-						EndIndex:   16,
+						EndIndex:   17,
 						SheetId:    s.sheetId,
 						StartIndex: 15,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 135,
+						PixelSize: 50,
 					},
 					Fields: "pixelSize",
 				},
@@ -1555,10 +1577,10 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						Dimension:  "COLUMNS",
 						EndIndex:   18,
 						SheetId:    s.sheetId,
-						StartIndex: 16,
+						StartIndex: 17,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 50,
+						PixelSize: 135,
 					},
 					Fields: "pixelSize",
 				},
@@ -1572,7 +1594,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						StartIndex: 18,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 135,
+						PixelSize: 75,
 					},
 					Fields: "pixelSize",
 				},
@@ -1584,6 +1606,48 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						EndIndex:   21,
 						SheetId:    s.sheetId,
 						StartIndex: 19,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 50,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   22,
+						SheetId:    s.sheetId,
+						StartIndex: 21,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 135,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   23,
+						SheetId:    s.sheetId,
+						StartIndex: 22,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 75,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   26,
+						SheetId:    s.sheetId,
+						StartIndex: 23,
 					},
 					Properties: &sheets.DimensionProperties{
 						PixelSize: 50,
@@ -1709,9 +1773,9 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					Fields: "userEnteredFormat.backgroundColor",
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
-						StartColumnIndex: 12,
+						StartColumnIndex: 13,
 						StartRowIndex:    int64(style.RowIndex),
-						EndColumnIndex:   13,
+						EndColumnIndex:   14,
 						EndRowIndex:      int64(style.RowIndex) + 1,
 					},
 					Cell: &sheets.CellData{
@@ -1761,7 +1825,7 @@ func (s SpreadSheetListClient) Clear(ctx context.Context) error {
 					SheetId:          s.sheetId,
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   21,
+					EndColumnIndex:   25,
 					EndRowIndex:      9999,
 				},
 				Cell: &sheets.CellData{},

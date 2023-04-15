@@ -59,12 +59,7 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 		return nil, nil, nil, nil, err
 	}
 
-	rawRacingNumbers, rawRaces, rawJockeys, excludeRawJockeyIds, err := d.readCache(ctx)
-	// エラーだった場合はファイルが空だった場合なので無視
-	if err != nil {
-		log.Println(ctx, "racing_number.json is empty")
-	}
-
+	rawRacingNumbers, rawRaces, rawJockeys, excludeRawJockeyIds := d.readCache(ctx)
 	racingNumberParams, err := d.getRacingNumberRequestParams(rawRacingNumbers, records)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -326,23 +321,30 @@ func (d *DataCache) readCsv(ctx context.Context) ([]*betting_ticket_entity.CsvEn
 	return results, nil
 }
 
-func (d *DataCache) readCache(ctx context.Context) ([]*raw_race_entity.RacingNumber, []*raw_race_entity.Race, []*raw_jockey_entity.Jockey, []int, error) {
+func (d *DataCache) readCache(ctx context.Context) ([]*raw_race_entity.RacingNumber, []*raw_race_entity.Race, []*raw_jockey_entity.Jockey, []int) {
+	var (
+		racingNumbers    []*raw_race_entity.RacingNumber
+		races            []*raw_race_entity.Race
+		jockeys          []*raw_jockey_entity.Jockey
+		excludeJockeyIds []int
+	)
 	rawRacingNumberInfo, err := d.raceDB.ReadRacingNumberInfo(ctx)
-	if err != nil {
-		return nil, nil, nil, nil, err
+	if err == nil {
+		racingNumbers = rawRacingNumberInfo.RacingNumbers
 	}
 
 	rawRaceInfo, err := d.raceDB.ReadRaceInfo(ctx)
-	if err != nil {
-		return rawRacingNumberInfo.RacingNumbers, nil, nil, nil, err
+	if err == nil {
+		races = rawRaceInfo.Races
 	}
 
 	rawJockeyInfo, err := d.raceDB.ReadJockeyInfo(ctx)
-	if err != nil {
-		return rawRacingNumberInfo.RacingNumbers, rawRaceInfo.Races, nil, nil, err
+	if err == nil {
+		jockeys = rawJockeyInfo.Jockeys
+		excludeJockeyIds = rawJockeyInfo.ExcludeJockeyIds
 	}
 
-	return rawRacingNumberInfo.RacingNumbers, rawRaceInfo.Races, rawJockeyInfo.Jockeys, rawJockeyInfo.ExcludeJockeyIds, nil
+	return racingNumbers, races, jockeys, excludeJockeyIds
 }
 
 func (d *DataCache) writeCache(

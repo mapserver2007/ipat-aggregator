@@ -84,12 +84,21 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
+				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
+				regex := regexp.MustCompile(`(\d{5})`)
+				result := regex.FindStringSubmatch(linkUrl)
+				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
+				jockeyId := 0
+				if result != nil {
+					jockeyId, _ = strconv.Atoi(result[1])
+				}
 
 				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
 					numbers[1],
+					jockeyId,
 					oddsList[1],
 					popularNumber,
 				))
@@ -103,12 +112,21 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
+				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
+				regex := regexp.MustCompile(`(\d{5})`)
+				result := regex.FindStringSubmatch(linkUrl)
+				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
+				jockeyId := 0
+				if result != nil {
+					jockeyId, _ = strconv.Atoi(result[1])
+				}
 
 				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
 					numbers[1],
+					jockeyId,
 					oddsList[1],
 					popularNumber,
 				))
@@ -131,12 +149,21 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
+				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
+				regex := regexp.MustCompile(`(\d{5})`)
+				result := regex.FindStringSubmatch(linkUrl)
+				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
+				jockeyId := 0
+				if result != nil {
+					jockeyId, _ = strconv.Atoi(result[1])
+				}
 
 				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
 					numbers[1],
+					jockeyId,
 					oddsList[1],
 					popularNumber,
 				))

@@ -5,7 +5,7 @@ import (
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 )
 
-type RaceEntity struct {
+type Race struct {
 	raceId         race_vo.RaceId
 	raceNumber     int
 	raceName       string
@@ -22,7 +22,7 @@ type RaceEntity struct {
 	raceResults    []*race_entity.RaceResult
 }
 
-func NewRaceEntity(
+func NewRace(
 	raceId race_vo.RaceId,
 	raceNumber int,
 	raceName string,
@@ -37,8 +37,8 @@ func NewRaceEntity(
 	repayment int,
 	url string,
 	raceResults []*race_entity.RaceResult,
-) *RaceEntity {
-	return &RaceEntity{
+) *Race {
+	return &Race{
 		raceId:         raceId,
 		raceNumber:     raceNumber,
 		raceName:       raceName,
@@ -56,58 +56,58 @@ func NewRaceEntity(
 	}
 }
 
-func (r *RaceEntity) RaceId() race_vo.RaceId {
+func (r *Race) RaceId() race_vo.RaceId {
 	return r.raceId
 }
 
-func (r *RaceEntity) RaceNumber() int {
+func (r *Race) RaceNumber() int {
 	return r.raceNumber
 }
 
-func (r *RaceEntity) RaceName() string {
+func (r *Race) RaceName() string {
 	return r.raceName
 }
 
-func (r *RaceEntity) StartTime() string {
+func (r *Race) StartTime() string {
 	return r.startTime
 }
 
-func (r *RaceEntity) Class() race_vo.GradeClass {
+func (r *Race) Class() race_vo.GradeClass {
 	return r.class
 }
 
-func (r *RaceEntity) RaceCourse() race_vo.RaceCourse {
+func (r *Race) RaceCourse() race_vo.RaceCourse {
 	return r.raceCourse
 }
 
-func (r *RaceEntity) RaceDate() race_vo.RaceDate {
+func (r *Race) RaceDate() race_vo.RaceDate {
 	return r.raceDate
 }
 
-func (r *RaceEntity) CourseCategory() race_vo.CourseCategory {
+func (r *Race) CourseCategory() race_vo.CourseCategory {
 	return r.courseCategory
 }
 
-func (r *RaceEntity) Distance() int {
+func (r *Race) Distance() int {
 	return r.distance
 }
 
-func (r *RaceEntity) TrackCondition() string {
+func (r *Race) TrackCondition() string {
 	return r.trackCondition
 }
 
-func (r *RaceEntity) Payment() int {
+func (r *Race) Payment() int {
 	return r.payment
 }
 
-func (r *RaceEntity) Repayment() int {
+func (r *Race) Repayment() int {
 	return r.repayment
 }
 
-func (r *RaceEntity) Url() string {
+func (r *Race) Url() string {
 	return r.url
 }
 
-func (r *RaceEntity) RaceResults() []*race_entity.RaceResult {
+func (r *Race) RaceResults() []*race_entity.RaceResult {
 	return r.raceResults
 }

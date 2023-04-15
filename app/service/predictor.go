@@ -4,6 +4,7 @@ import (
 	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	jockey_entity "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/entity"
 	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
 	predict_vo "github.com/mapserver2007/ipat-aggregator/app/domain/predict/value_object"
 	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
@@ -38,6 +39,7 @@ func (p *Predictor) Predict(
 	records []*betting_ticket_entity.CsvEntity,
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
+	jockeys []*jockey_entity.Jockey,
 ) ([]*predict_entity.PredictEntity, error) {
 	raceMap := p.raceConverter.ConvertToRaceMapByRaceId(races)
 	recordMap := p.getRecordMapByRaceId(records, racingNumbers)
@@ -194,13 +196,18 @@ func (p *Predictor) Predict(
 			}
 		}
 
-		var favoriteHorse, rivalHorse *predict_entity.HorseEntity
+		var (
+			favoriteHorse, rivalHorse   *predict_entity.Horse
+			favoriteJockey, rivalJockey *predict_entity.Jockey
+		)
 		for _, raceResult := range raceInfo.RaceResults() {
 			if favorite != nil && raceResult.HorseNumber() == favorite.List()[0] {
-				favoriteHorse = predict_entity.NewHorseEntity(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
+				favoriteHorse = predict_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
+				favoriteJockey = predict_entity.NewJockey(raceResult.JockeyName())
 			}
 			if rival != nil && raceResult.HorseNumber() == rival.List()[0] {
-				rivalHorse = predict_entity.NewHorseEntity(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
+				rivalHorse = predict_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
+				rivalJockey = predict_entity.NewJockey(raceResult.JockeyName())
 			}
 		}
 
@@ -208,7 +215,7 @@ func (p *Predictor) Predict(
 			return raceInfo.RaceResults()[i].OrderNo() < raceInfo.RaceResults()[j].OrderNo()
 		})
 
-		raceEntity := predict_entity.NewRaceEntity(
+		race := predict_entity.NewRace(
 			raceId,
 			raceInfo.RaceNumber(),
 			raceInfo.RaceName(),
@@ -225,7 +232,7 @@ func (p *Predictor) Predict(
 			raceInfo.RaceResults()[0:2],
 		)
 		entities = append(entities, predict_entity.NewPredictEntity(
-			raceEntity, favoriteHorse, rivalHorse, payment, repayment, winningTickets, status))
+			race, favoriteHorse, rivalHorse, favoriteJockey, rivalJockey, payment, repayment, winningTickets, status))
 
 		if len(favorites) >= 2 || len(rivals) >= 2 {
 			return nil, fmt.Errorf("failed to find favorite or rival")

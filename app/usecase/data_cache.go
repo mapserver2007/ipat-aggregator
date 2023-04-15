@@ -135,8 +135,8 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 		return nil, nil, nil, nil, err
 	}
 	racingNumbers := d.raceConverter.ConvertFromRawRacingNumbersCsvToRacingNumbers(rawRacingNumbers)
-	races := d.raceConverter.ConvertFromRawRacesCsvToRaces(rawRaces)
-	jockeys := d.raceConverter.ConvertFromRawJockeysToJockeys(newRawJockeys)
+	jockeys := d.raceConverter.ConvertFromRawJockeysToJockeys(rawJockeys)
+	races := d.raceConverter.ConvertFromRawRacesCsvToRaces(rawRaces, jockeys)
 
 	return records, race_entity.NewRacingNumberInfo(racingNumbers), race_entity.NewRaceInfo(races), jockey_entity.NewJockeyInfo(jockeys), nil
 }
@@ -245,8 +245,8 @@ func (d *DataCache) getRaceRequestParams(
 }
 
 func (d *DataCache) getJockeyRequestParams(jockeys []*raw_jockey_entity.Jockey, excludeRawJockeyIds []int) []*jockeyRequestParam {
-	beginIdForJRA := 666
-	endIdForJRA := 1000
+	beginIdForJRA := 422
+	endIdForJRA := 2000
 	beginIdForNARandOversea := 5000
 	endIdForNARandOversea := 5999
 

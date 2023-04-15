@@ -1,31 +1,31 @@
 package entity
 
-type HorseEntity struct {
+type Horse struct {
 	horseName     string
 	odds          string
 	popularNumber int
 }
 
-func NewHorseEntity(
+func NewHorse(
 	horseName string,
 	odds string,
 	popularNumber int,
-) *HorseEntity {
-	return &HorseEntity{
+) *Horse {
+	return &Horse{
 		horseName:     horseName,
 		odds:          odds,
 		popularNumber: popularNumber,
 	}
 }
 
-func (h *HorseEntity) HorseName() string {
+func (h *Horse) HorseName() string {
 	return h.horseName
 }
 
-func (h *HorseEntity) Odds() string {
+func (h *Horse) Odds() string {
 	return h.odds
 }
 
-func (h *HorseEntity) PopularNumber() int {
+func (h *Horse) PopularNumber() int {
 	return h.popularNumber
 }

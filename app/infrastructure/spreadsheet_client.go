@@ -1229,7 +1229,7 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 		},
 	}
 
-	var rivalHorseName, rivalPopularNumber, rivalOdds string
+	var rivalHorseName, rivalPopularNumber, rivalOdds, rivalJockeyName string
 
 	sort.SliceStable(records, func(i, j int) bool {
 		return records[i].Race().StartTime() > records[j].Race().StartTime()
@@ -1289,10 +1289,12 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			rivalHorseName = record.RivalHorse().HorseName()
 			rivalPopularNumber = strconv.Itoa(record.RivalHorse().PopularNumber())
 			rivalOdds = record.RivalHorse().Odds()
+			rivalJockeyName = record.RivalJockey().JockeyName()
 		} else {
 			rivalHorseName = "-"
 			rivalPopularNumber = "-"
 			rivalOdds = "-"
+			rivalJockeyName = "-"
 		}
 
 		values = append(values, []interface{}{
@@ -1306,19 +1308,19 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			record.Repayment(),
 			fmt.Sprintf("%.0f%s", float64(record.Repayment())*float64(100)/float64(record.Payment()), "%"),
 			record.FavoriteHorse().HorseName(),
-			"",
+			record.FavoriteJockey().JockeyName(),
 			record.FavoriteHorse().PopularNumber(),
 			record.FavoriteHorse().Odds(),
 			rivalHorseName,
-			"",
+			rivalJockeyName,
 			rivalPopularNumber,
 			rivalOdds,
 			raceResultOfFirst.HorseName(),
-			"",
+			raceResultOfFirst.JockeyName(),
 			raceResultOfFirst.PopularNumber(),
 			raceResultOfFirst.Odds(),
 			raceResultOfSecond.HorseName(),
-			"",
+			raceResultOfSecond.JockeyName(),
 			raceResultOfSecond.PopularNumber(),
 			raceResultOfSecond.Odds(),
 		})

@@ -142,8 +142,14 @@ func (r *RaceConverter) ConvertFromRawPayoutResultsNetkeibaToRawPayoutResultsCsv
 	return payoutResults
 }
 
-func (r *RaceConverter) ConvertFromRawRacesCsvToRaces(rawRaces []*raw_race_entity.Race) []*race_entity.Race {
+func (r *RaceConverter) ConvertFromRawRacesCsvToRaces(rawRaces []*raw_race_entity.Race, jockeys []*jockey_entity.Jockey) []*race_entity.Race {
 	var races []*race_entity.Race
+	jockeyMap := map[int]*jockey_entity.Jockey{}
+
+	for _, jockey := range jockeys {
+		jockeyMap[jockey.JockeyId().Value()] = jockey
+	}
+
 	for _, rawRace := range rawRaces {
 		race := race_entity.NewRace(
 			rawRace.RaceId,
@@ -159,7 +165,7 @@ func (r *RaceConverter) ConvertFromRawRacesCsvToRaces(rawRaces []*raw_race_entit
 			rawRace.Class,
 			rawRace.CourseCategory,
 			rawRace.TrackCondition,
-			r.ConvertFromRawRaceResultsCsvToRaceResults(rawRace.RaceResults),
+			r.ConvertFromRawRaceResultsCsvToRaceResults(rawRace.RaceResults, jockeyMap),
 			r.ConvertFromRawPayoutResultsCsvToPayoutResults(rawRace.PayoutResults),
 		)
 		races = append(races, race)
@@ -183,15 +189,20 @@ func (r *RaceConverter) ConvertFromRawRacingNumbersCsvToRacingNumbers(rawRacingN
 	return racingNumbers
 }
 
-func (r *RaceConverter) ConvertFromRawRaceResultsCsvToRaceResults(rawRaceResults []*raw_race_entity.RaceResult) []*race_entity.RaceResult {
+func (r *RaceConverter) ConvertFromRawRaceResultsCsvToRaceResults(rawRaceResults []*raw_race_entity.RaceResult, jockeyMap map[int]*jockey_entity.Jockey) []*race_entity.RaceResult {
 	var raceResults []*race_entity.RaceResult
 	for _, rawRaceResult := range rawRaceResults {
+		jockeyName := "(不明)"
+		if jockey, ok := jockeyMap[rawRaceResult.JockeyId]; ok {
+			jockeyName = jockey.JockeyName()
+		}
 		raceResult := race_entity.NewRaceResult(
 			rawRaceResult.OrderNo,
 			rawRaceResult.HorseName,
 			rawRaceResult.BracketNumber,
 			rawRaceResult.HorseNumber,
 			rawRaceResult.JockeyId,
+			jockeyName,
 			rawRaceResult.Odds,
 			rawRaceResult.PopularNumber,
 		)

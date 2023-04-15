@@ -170,6 +170,37 @@ func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, sum
 	return nil
 }
 
+func (s *SpreadSheetClient) WriteForCurrentYearSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error {
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "E1")
+	values := [][]interface{}{
+		{
+			"年間累計",
+			"",
+		},
+		{
+			"投資",
+			summary.Payments,
+		},
+		{
+			"回収",
+			summary.Repayments,
+		},
+		{
+			"回収率",
+			summary.CalcReturnOnInvestment(),
+		},
+	}
+
+	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
+		Values: values,
+	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Context, summary spreadsheet_entity.BettingTicketSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A6")
 	values := [][]interface{}{
@@ -617,6 +648,86 @@ func (s *SpreadSheetClient) WriteStyleForCurrentMonthlySummary(ctx context.Conte
 						StartColumnIndex: 2,
 						StartRowIndex:    0,
 						EndColumnIndex:   4,
+						EndRowIndex:      4,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetClient) WriteStyleForCurrentYearSummary(ctx context.Context) error {
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: []*sheets.Request{
+			// 1行目のセルをマージ
+			{
+				MergeCells: &sheets.MergeCellsRequest{
+					MergeType: "MERGE_ROWS",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 4,
+						StartRowIndex:    0,
+						EndColumnIndex:   6,
+						EndRowIndex:      1,
+					},
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   3,
+						SheetId:    s.sheetId,
+						StartIndex: 2,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 90,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 4,
+						StartRowIndex:    1,
+						EndColumnIndex:   5,
+						EndRowIndex:      4,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 4,
+						StartRowIndex:    0,
+						EndColumnIndex:   6,
 						EndRowIndex:      4,
 					},
 					Cell: &sheets.CellData{

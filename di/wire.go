@@ -42,6 +42,7 @@ func PredictInit() *service.Predictor {
 
 func AnalyserInit() *service.Analyser {
 	wire.Build(
+		service.NewRaceConverter,
 		service.NewAnalyser,
 	)
 	return nil

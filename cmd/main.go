@@ -30,6 +30,9 @@ func main() {
 		panic(err)
 	}
 
+	//analyser := di.AnalyserInit()
+	//analyser.Analyse(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
+
 	//analyser := service.NewAnalyser()
 	//analyser.Analyse(records)
 

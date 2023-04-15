@@ -12,6 +12,8 @@ type SpreadSheetClient interface {
 	WriteStyleForTotalSummary(ctx context.Context) error
 	WriteForCurrentMonthSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error
 	WriteStyleForCurrentMonthlySummary(ctx context.Context) error
+	WriteForCurrentYearSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error
+	WriteStyleForCurrentYearSummary(ctx context.Context) error
 	WriteForTotalBettingTicketRateSummary(ctx context.Context, summary spreadsheet_entity.BettingTicketSummary) error
 	WriteStyleForTotalBettingTicketRateSummary(ctx context.Context) error
 	WriteForRaceClassRateSummary(ctx context.Context, summary spreadsheet_entity.RaceClassSummary) error

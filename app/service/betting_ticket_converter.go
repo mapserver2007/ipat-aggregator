@@ -28,6 +28,12 @@ func (b *BettingTicketConverter) ConvertToMonthRecordsMap(records []*betting_tic
 	})
 }
 
+func (b *BettingTicketConverter) ConvertToYearRecordsMap(records []*betting_ticket_entity.CsvEntity) map[int][]*betting_ticket_entity.CsvEntity {
+	return ConvertToSliceMap(records, func(record *betting_ticket_entity.CsvEntity) int {
+		return record.RaceDate().Year()
+	})
+}
+
 func (b *BettingTicketConverter) ConvertToRaceClassRecordsMap(records []*betting_ticket_entity.CsvEntity, raceMap map[race_vo.RacingNumberId]*race_entity.Race) map[race_vo.GradeClass][]*betting_ticket_entity.CsvEntity {
 	return ConvertToSliceMap(records, func(record *betting_ticket_entity.CsvEntity) race_vo.GradeClass {
 		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())

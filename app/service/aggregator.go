@@ -33,9 +33,11 @@ func (a *Aggregator) GetSummary(
 	return spreadsheet_entity.NewResult(
 		a.getTotalResultSummary(records),
 		a.getLatestMonthlyResultSummary(records),
+		a.getLatestYearResultSummary(records),
 		a.getBettingTicketSummary(records),
 		a.getRaceClassSummary(records, races),
 		a.getMonthlySummary(records),
+		a.getYearlySummary(records),
 		a.getCourseCategorySummary(records, racingNumbers, races),
 		a.getDistanceCategorySummary(records, racingNumbers, races),
 		a.getRaceCourseSummary(records, racingNumbers, races),
@@ -52,6 +54,11 @@ func (a *Aggregator) getLatestMonthlyResultSummary(records []*betting_ticket_ent
 	return spreadsheet_entity.NewResultSummary(resultRate.Payments, resultRate.Repayments)
 }
 
+func (a *Aggregator) getLatestYearResultSummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.ResultSummary {
+	resultRate := a.getLatestYearBettingTicketRate(records)
+	return spreadsheet_entity.NewResultSummary(resultRate.Payments, resultRate.Repayments)
+}
+
 func (a *Aggregator) getBettingTicketSummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.BettingTicketSummary {
 	return spreadsheet_entity.NewBettingTicketSummary(a.getBettingTicketResultRate(records))
 }
@@ -62,6 +69,10 @@ func (a *Aggregator) getRaceClassSummary(records []*betting_ticket_entity.CsvEnt
 
 func (a *Aggregator) getMonthlySummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.MonthlySummary {
 	return spreadsheet_entity.NewMonthlySummary(a.getMonthlyResultRate(records))
+}
+
+func (a *Aggregator) getYearlySummary(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.YearlySummary {
+	return spreadsheet_entity.NewYearlySummary(a.getYearlyResultRate(records))
 }
 
 func (a *Aggregator) getCourseCategorySummary(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) spreadsheet_entity.CourseCategorySummary {
@@ -93,6 +104,23 @@ func (a *Aggregator) getLatestMonthlyBettingTicketRate(records []*betting_ticket
 	latestDate := dateList[0]
 
 	resultRate, _ := monthlyRatesMap[latestDate]
+
+	return resultRate
+}
+
+func (a *Aggregator) getLatestYearBettingTicketRate(records []*betting_ticket_entity.CsvEntity) spreadsheet_entity.ResultRate {
+	yearlyRatesMap := a.getYearlyResultRate(records)
+
+	var dateList []int
+	for date := range yearlyRatesMap {
+		dateList = append(dateList, date)
+	}
+	sort.Slice(dateList, func(i, j int) bool {
+		return dateList[i] > dateList[j]
+	})
+	latestDate := dateList[0]
+
+	resultRate, _ := yearlyRatesMap[latestDate]
 
 	return resultRate
 }
@@ -140,6 +168,15 @@ func (a *Aggregator) getMonthlyResultRate(records []*betting_ticket_entity.CsvEn
 	}
 
 	return monthlyRatesMap
+}
+
+func (a *Aggregator) getYearlyResultRate(records []*betting_ticket_entity.CsvEntity) map[int]spreadsheet_entity.ResultRate {
+	yearlyRatesMap := map[int]spreadsheet_entity.ResultRate{}
+	for date, recordsGroup := range a.bettingTicketConverter.ConvertToYearRecordsMap(records) {
+		yearlyRatesMap[date] = CalcSumResultRate(recordsGroup)
+	}
+
+	return yearlyRatesMap
 }
 
 func (a *Aggregator) getCourseCategoryRates(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.CourseCategory]spreadsheet_entity.ResultRate {

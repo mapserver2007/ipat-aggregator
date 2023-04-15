@@ -12,9 +12,11 @@ import (
 type Summary struct {
 	TotalResultSummary       ResultSummary
 	LatestMonthResultSummary ResultSummary
+	LatestYearResultSummary  ResultSummary
 	BettingTicketSummary     BettingTicketSummary
 	RaceClassSummary         RaceClassSummary
 	MonthlySummary           MonthlySummary
+	YearlySummary            YearlySummary
 	CourseCategorySummary    CourseCategorySummary
 	RaceCourseSummary        RaceCourseSummary
 	DistanceCategorySummary  DistanceCategorySummary
@@ -42,6 +44,10 @@ type RaceClassSummary struct {
 
 type MonthlySummary struct {
 	MonthlyRates map[int]ResultRate
+}
+
+type YearlySummary struct {
+	YearlyRates map[int]ResultRate
 }
 
 type CourseCategorySummary struct {

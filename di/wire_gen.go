@@ -37,3 +37,9 @@ func PredictInit() *service.Predictor {
 	predictor := service.NewPredictor(raceConverter, bettingTicketConverter)
 	return predictor
 }
+
+func AnalyserInit() *service.Analyser {
+	raceConverter := service.NewRaceConverter()
+	analyser := service.NewAnalyser(raceConverter)
+	return analyser
+}

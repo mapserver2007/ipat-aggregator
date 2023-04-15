@@ -36,6 +36,11 @@ func (s *SpreadSheet) WriteSummary(ctx context.Context, summary *spreadsheet_ent
 		return err
 	}
 
+	err = s.spreadSheetClient.WriteForCurrentYearSummary(ctx, summary.LatestYearResultSummary)
+	if err != nil {
+		return err
+	}
+
 	err = s.spreadSheetClient.WriteForTotalBettingTicketRateSummary(ctx, summary.BettingTicketSummary)
 	if err != nil {
 		return err
@@ -90,6 +95,11 @@ func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadshee
 	}
 
 	err = s.spreadSheetClient.WriteStyleForCurrentMonthlySummary(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.spreadSheetClient.WriteStyleForCurrentYearSummary(ctx)
 	if err != nil {
 		return err
 	}

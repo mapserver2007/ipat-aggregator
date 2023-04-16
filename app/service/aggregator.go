@@ -302,7 +302,7 @@ func (a *Aggregator) getRaceClassResultRate(records []*betting_ticket_entity.Csv
 		case race_vo.ListedClass, race_vo.OpenClass, race_vo.AllowanceClass:
 			newRaceClassRatesMap[race_vo.NonGradeClass] = mergeFunc(newRaceClassRatesMap[race_vo.NonGradeClass], raceClassRatesMap[raceClass])
 		default:
-			newRaceClassRatesMap[raceClass] = raceClassRatesMap[raceClass]
+			newRaceClassRatesMap[raceClass] = mergeFunc(newRaceClassRatesMap[raceClass], raceClassRatesMap[raceClass])
 		}
 	}
 

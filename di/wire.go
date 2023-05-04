@@ -40,10 +40,11 @@ func PredictInit() *service.Predictor {
 	return nil
 }
 
-func AnalyserInit() *service.Analyser {
+func AnalyserInit() *usecase.Analyser {
 	wire.Build(
-		service.NewRaceConverter,
+		usecase.NewAnalyser,
 		service.NewAnalyser,
+		service.NewRaceConverter,
 	)
 	return nil
 }

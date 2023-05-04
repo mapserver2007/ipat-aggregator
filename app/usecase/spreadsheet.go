@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	analyse_entity "github.com/mapserver2007/ipat-aggregator/app/domain/analyse/entity"
 	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
@@ -10,17 +11,20 @@ import (
 )
 
 type SpreadSheet struct {
-	spreadSheetClient     repository.SpreadSheetClient
-	spreadSheetListClient repository.SpreadSheetListClient
+	spreadSheetClient        repository.SpreadSheetClient
+	spreadSheetListClient    repository.SpreadSheetListClient
+	spreadSheetAnalyseClient repository.SpreadSheetAnalyseClient
 }
 
 func NewSpreadSheet(
 	spreadSheetClient repository.SpreadSheetClient,
 	spreadSheetListClient repository.SpreadSheetListClient,
+	spreadSheetAnalyse repository.SpreadSheetAnalyseClient,
 ) *SpreadSheet {
 	return &SpreadSheet{
-		spreadSheetClient:     spreadSheetClient,
-		spreadSheetListClient: spreadSheetListClient,
+		spreadSheetClient:        spreadSheetClient,
+		spreadSheetListClient:    spreadSheetListClient,
+		spreadSheetAnalyseClient: spreadSheetAnalyse,
 	}
 }
 
@@ -139,6 +143,29 @@ func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadshee
 
 func (s *SpreadSheet) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.ResultStyle) error {
 	err := s.spreadSheetListClient.WriteStyleList(ctx, records, styleMap)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheet) WriteAnalyse(ctx context.Context, summary *analyse_entity.AnalyseSummary) error {
+	err := s.spreadSheetAnalyseClient.Clear(ctx)
+	if err != nil {
+		return err
+	}
+	log.Println(ctx, "writing spreadsheet for analyse")
+	err = s.spreadSheetAnalyseClient.WriteWin(ctx, summary.PopularAnalyseSummaries())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheet) WriteStyleAnalyse(ctx context.Context, summary *analyse_entity.AnalyseSummary) error {
+	err := s.spreadSheetAnalyseClient.WriteStyleWin(ctx, summary.PopularAnalyseSummaries())
 	if err != nil {
 		return err
 	}

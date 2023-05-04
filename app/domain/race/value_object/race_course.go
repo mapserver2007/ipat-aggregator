@@ -25,6 +25,7 @@ const (
 	Ooi       = 44
 	Kawasaki  = 45
 	Nagoya    = 48
+	Sonoda    = 50
 	Kouchi    = 54
 	Saga      = 55
 	Longchamp = 90 // 値はダミー
@@ -50,6 +51,7 @@ var raceCourseMap = map[RaceCourse]string{
 	Ooi:          "大井",
 	Kawasaki:     "川崎",
 	Nagoya:       "名古屋",
+	Sonoda:       "園田",
 	Urawa:        "浦和",
 	Hunabashi:    "船橋",
 	Kouchi:       "高知",
@@ -80,9 +82,9 @@ func (r RaceCourse) Value() int {
 
 func (r RaceCourse) Organizer() Organizer {
 	switch r {
-	case Tokyo, Nakayama, Hanshin, Chukyo, Kokura, Niigata, Hakodate, Sapporo, Fukushima:
+	case Tokyo, Nakayama, Hanshin, Kyoto, Chukyo, Kokura, Niigata, Hakodate, Sapporo, Fukushima:
 		return JRA
-	case Monbetsu, Morioka, Ooi, Kawasaki, Urawa, Hunabashi, Nagoya, Kouchi, Saga:
+	case Monbetsu, Morioka, Ooi, Kawasaki, Urawa, Hunabashi, Nagoya, Sonoda, Kouchi, Saga:
 		return NAR
 	case Longchamp, Deauville, Shatin, Meydan:
 		return OverseaOrganizer

@@ -1,6 +1,9 @@
 package entity
 
-import "strconv"
+import (
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	"strconv"
+)
 
 type PopularAnalyse struct {
 	popularNumber int
@@ -8,6 +11,7 @@ type PopularAnalyse struct {
 	payout        int
 	odds          string
 	isHit         bool
+	class         race_vo.GradeClass
 }
 
 func NewPopularAnalyse(
@@ -16,6 +20,7 @@ func NewPopularAnalyse(
 	payout int,
 	odds string,
 	isHit bool,
+	class race_vo.GradeClass,
 ) *PopularAnalyse {
 	return &PopularAnalyse{
 		popularNumber: popularNumber,
@@ -23,6 +28,7 @@ func NewPopularAnalyse(
 		payout:        payout,
 		odds:          odds,
 		isHit:         isHit,
+		class:         class,
 	}
 }
 
@@ -45,4 +51,8 @@ func (p *PopularAnalyse) Odds() float64 {
 
 func (p *PopularAnalyse) IsHit() bool {
 	return p.isHit
+}
+
+func (p *PopularAnalyse) Class() race_vo.GradeClass {
+	return p.class
 }

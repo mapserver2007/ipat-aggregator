@@ -2006,104 +2006,109 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 	return nil
 }
 
-func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, records []*analyse_entity.PopularAnalyseSummary) error {
+func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error {
 	sheetProperties, ok := s.sheetMap[spreadsheet_vo.Win]
 	if !ok {
 		return fmt.Errorf("sheet not found")
 	}
 
 	writeRange := fmt.Sprintf("%s!%s", sheetProperties.Title, "A1")
-	values := [][]interface{}{
-		{
-			"全レース集計",
-		},
+	var values [][]interface{}
+	addValues := func(values [][]interface{}, summaries []*analyse_entity.PopularAnalyseSummary, title string) [][]interface{} {
+		values = append(values, [][]interface{}{
+			{
+				title,
+				"1人気",
+				"2人気",
+				"3人気",
+				"4人気",
+				"5人気",
+				"6人気",
+				"7人気",
+				"8人気",
+				"9人気",
+				"10人気",
+				"11人気",
+				"12人気",
+				"13人気",
+				"14人気",
+				"15人気",
+				"16人気",
+				"17人気",
+				"18人気",
+			},
+		}...)
+		capacity := 19
+		betCounts := make([]interface{}, 0, capacity)
+		hitCounts := make([]interface{}, 0, capacity)
+		hitRates := make([]interface{}, 0, capacity)
+		payoutRate := make([]interface{}, 0, capacity)
+		payoutUpside := make([]interface{}, 0, capacity)
+		averageOddsAtVotes := make([]interface{}, 0, capacity)
+		averageOddsAtHits := make([]interface{}, 0, capacity)
+		averageOddsAtUnHits := make([]interface{}, 0, capacity)
+		maxOddsAtHits := make([]interface{}, 0, capacity)
+		minOddsAtHits := make([]interface{}, 0, capacity)
+		totalPayments := make([]interface{}, 0, capacity)
+		totalPayouts := make([]interface{}, 0, capacity)
+		averagePayments := make([]interface{}, 0, capacity)
+		averagePayouts := make([]interface{}, 0, capacity)
+		medianPayments := make([]interface{}, 0, capacity)
+		medianPayouts := make([]interface{}, 0, capacity)
+		maxPayouts := make([]interface{}, 0, capacity)
+		minPayouts := make([]interface{}, 0, capacity)
+
+		betCounts = append(betCounts, "投票回数")
+		hitCounts = append(hitCounts, "的中回数")
+		hitRates = append(hitRates, "的中率")
+		payoutRate = append(payoutRate, "回収率")
+		payoutUpside = append(payoutUpside, "回収上振れ率")
+		averageOddsAtVotes = append(averageOddsAtVotes, "投票時平均オッズ")
+		averageOddsAtHits = append(averageOddsAtHits, "的中時平均オッズ")
+		averageOddsAtUnHits = append(averageOddsAtUnHits, "不的中時平均オッズ")
+		maxOddsAtHits = append(maxOddsAtHits, "的中時最大オッズ")
+		minOddsAtHits = append(minOddsAtHits, "的中時最小オッズ")
+		totalPayments = append(totalPayments, "投票金額合計")
+		totalPayouts = append(totalPayouts, "払戻金額合計")
+		averagePayments = append(averagePayments, "平均投票金額")
+		medianPayments = append(medianPayments, "中央値投票金額")
+		averagePayouts = append(averagePayouts, "平均払戻金額")
+		medianPayouts = append(medianPayouts, "中央値払戻金額")
+		maxPayouts = append(maxPayouts, "最大払戻金額")
+		minPayouts = append(minPayouts, "最小払戻金額")
+
+		for _, record := range summaries {
+			betCounts = append(betCounts, record.BetCount())
+			hitCounts = append(hitCounts, record.HitCount())
+			hitRates = append(hitRates, record.FormattedHitRate())
+			payoutRate = append(payoutRate, record.FormattedPayoutRate())
+			payoutUpside = append(payoutUpside, record.FormattedPayoutUpsideRate())
+			averageOddsAtVotes = append(averageOddsAtVotes, record.AverageOddsAtVote())
+			averageOddsAtHits = append(averageOddsAtHits, record.AverageOddsAtHit())
+			averageOddsAtUnHits = append(averageOddsAtUnHits, record.AverageOddsAtUnHit())
+			maxOddsAtHits = append(maxOddsAtHits, record.MaxOddsAtHit())
+			minOddsAtHits = append(minOddsAtHits, record.MinOddsAtHit())
+			totalPayments = append(totalPayments, record.TotalPayment())
+			totalPayouts = append(totalPayouts, record.TotalPayout())
+			averagePayments = append(averagePayments, record.AveragePayment())
+			medianPayments = append(medianPayments, record.MedianPayment())
+			averagePayouts = append(averagePayouts, record.AveragePayout())
+			medianPayouts = append(medianPayouts, record.MedianPayout())
+			maxPayouts = append(maxPayouts, record.MaxPayout())
+			minPayouts = append(minPayouts, record.MinPayout())
+		}
+
+		values = append(values, betCounts, hitCounts, hitRates, payoutRate, payoutUpside, averageOddsAtVotes,
+			averageOddsAtHits, averageOddsAtUnHits, maxOddsAtHits, minOddsAtHits, totalPayments, totalPayouts, averagePayments, medianPayments, averagePayouts, medianPayouts, maxPayouts, minPayouts)
+
+		return values
 	}
-	values = append(values, [][]interface{}{
-		{
-			"",
-			"1人気",
-			"2人気",
-			"3人気",
-			"4人気",
-			"5人気",
-			"6人気",
-			"7人気",
-			"8人気",
-			"9人気",
-			"10人気",
-			"11人気",
-			"12人気",
-			"13人気",
-			"14人気",
-			"15人気",
-			"16人気",
-			"17人気",
-			"18人気",
-		},
-	}...)
 
-	capacity := 19
-	betCounts := make([]interface{}, 0, capacity)
-	hitCounts := make([]interface{}, 0, capacity)
-	hitRates := make([]interface{}, 0, capacity)
-	payoutRate := make([]interface{}, 0, capacity)
-	payoutUpside := make([]interface{}, 0, capacity)
-	averageOddsAtVotes := make([]interface{}, 0, capacity)
-	averageOddsAtHits := make([]interface{}, 0, capacity)
-	averageOddsAtUnHits := make([]interface{}, 0, capacity)
-	maxOddsAtHits := make([]interface{}, 0, capacity)
-	minOddsAtHits := make([]interface{}, 0, capacity)
-	totalPayments := make([]interface{}, 0, capacity)
-	totalPayouts := make([]interface{}, 0, capacity)
-	averagePayments := make([]interface{}, 0, capacity)
-	averagePayouts := make([]interface{}, 0, capacity)
-	medianPayments := make([]interface{}, 0, capacity)
-	medianPayouts := make([]interface{}, 0, capacity)
-	maxPayouts := make([]interface{}, 0, capacity)
-	minPayouts := make([]interface{}, 0, capacity)
-
-	betCounts = append(betCounts, "投票回数")
-	hitCounts = append(hitCounts, "的中回数")
-	hitRates = append(hitRates, "的中率")
-	payoutRate = append(payoutRate, "回収率")
-	payoutUpside = append(payoutUpside, "回収上振れ率")
-	averageOddsAtVotes = append(averageOddsAtVotes, "投票時平均オッズ")
-	averageOddsAtHits = append(averageOddsAtHits, "的中時平均オッズ")
-	averageOddsAtUnHits = append(averageOddsAtUnHits, "不的中時平均オッズ")
-	maxOddsAtHits = append(maxOddsAtHits, "的中時最大オッズ")
-	minOddsAtHits = append(minOddsAtHits, "的中時最小オッズ")
-	totalPayments = append(totalPayments, "投票金額合計")
-	totalPayouts = append(totalPayouts, "払戻金額合計")
-	averagePayments = append(averagePayments, "平均投票金額")
-	medianPayments = append(medianPayments, "中央値投票金額")
-	averagePayouts = append(averagePayouts, "平均払戻金額")
-	medianPayouts = append(medianPayouts, "中央値払戻金額")
-	maxPayouts = append(maxPayouts, "最大払戻金額")
-	minPayouts = append(minPayouts, "最小払戻金額")
-
-	for _, record := range records {
-		betCounts = append(betCounts, record.BetCount())
-		hitCounts = append(hitCounts, record.HitCount())
-		hitRates = append(hitRates, record.FormattedHitRate())
-		payoutRate = append(payoutRate, record.FormattedPayoutRate())
-		payoutUpside = append(payoutUpside, record.FormattedPayoutUpsideRate())
-		averageOddsAtVotes = append(averageOddsAtVotes, record.AverageOddsAtVote())
-		averageOddsAtHits = append(averageOddsAtHits, record.AverageOddsAtHit())
-		averageOddsAtUnHits = append(averageOddsAtUnHits, record.AverageOddsAtUnHit())
-		maxOddsAtHits = append(maxOddsAtHits, record.MaxOddsAtHit())
-		minOddsAtHits = append(minOddsAtHits, record.MinOddsAtHit())
-		totalPayments = append(totalPayments, record.TotalPayment())
-		totalPayouts = append(totalPayouts, record.TotalPayout())
-		averagePayments = append(averagePayments, record.AveragePayment())
-		medianPayments = append(medianPayments, record.MedianPayment())
-		averagePayouts = append(averagePayouts, record.AveragePayout())
-		medianPayouts = append(medianPayouts, record.MedianPayout())
-		maxPayouts = append(maxPayouts, record.MaxPayout())
-		minPayouts = append(minPayouts, record.MinPayout())
-	}
-
-	values = append(values, betCounts, hitCounts, hitRates, payoutRate, payoutUpside, averageOddsAtVotes,
-		averageOddsAtHits, averageOddsAtUnHits, maxOddsAtHits, minOddsAtHits, totalPayments, totalPayouts, averagePayments, medianPayments, averagePayouts, medianPayouts, maxPayouts, minPayouts)
+	values = addValues(values, summary.AllSummaries(), "全レース集計")
+	values = addValues(values, summary.Grade1Summaries(), "JRA G1集計")
+	values = addValues(values, summary.Grade2Summaries(), "JRA G2集計")
+	values = addValues(values, summary.Grade3Summaries(), "JRA G3集計")
+	values = addValues(values, summary.AllowanceClassSummaries(), "JRA 平場集計")
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,
@@ -2115,9 +2120,10 @@ func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, records []*anal
 	return nil
 }
 
-func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []*analyse_entity.PopularAnalyseSummary) error {
+func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error {
 	sheetProperties, _ := s.sheetMap[spreadsheet_vo.Win]
 
+	// 全レース
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -2126,9 +2132,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    1,
+						StartRowIndex:    0,
 						EndColumnIndex:   19,
-						EndRowIndex:      2,
+						EndRowIndex:      1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2145,9 +2151,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    1,
+						StartRowIndex:    0,
 						EndColumnIndex:   19,
-						EndRowIndex:      2,
+						EndRowIndex:      1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2194,9 +2200,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    1,
+						StartRowIndex:    0,
 						EndColumnIndex:   1,
-						EndRowIndex:      20,
+						EndRowIndex:      19,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2213,9 +2219,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    2,
+						StartRowIndex:    1,
 						EndColumnIndex:   1,
-						EndRowIndex:      7,
+						EndRowIndex:      6,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2234,9 +2240,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    7,
+						StartRowIndex:    6,
 						EndColumnIndex:   1,
-						EndRowIndex:      12,
+						EndRowIndex:      11,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2255,9 +2261,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    12,
+						StartRowIndex:    11,
 						EndColumnIndex:   1,
-						EndRowIndex:      20,
+						EndRowIndex:      19,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2276,9 +2282,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    4,
+						StartRowIndex:    3,
 						EndColumnIndex:   19,
-						EndRowIndex:      7,
+						EndRowIndex:      6,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2297,15 +2303,198 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 		return err
 	}
 
-	// 回収上振れ率の専用style
+	// G1
+	_, err = s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: []*sheets.Request{
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    19,
+						EndColumnIndex:   19,
+						EndRowIndex:      20,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    19,
+						EndColumnIndex:   19,
+						EndRowIndex:      20,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   1,
+						SheetId:    sheetProperties.SheetId,
+						StartIndex: 0,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 135,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   19,
+						SheetId:    sheetProperties.SheetId,
+						StartIndex: 1,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 50,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    0,
+						EndColumnIndex:   1,
+						EndRowIndex:      19,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    1,
+						EndColumnIndex:   1,
+						EndRowIndex:      6,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    6,
+						EndColumnIndex:   1,
+						EndRowIndex:      11,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    11,
+						EndColumnIndex:   1,
+						EndRowIndex:      19,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  1.0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.numberFormat",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    3,
+						EndColumnIndex:   19,
+						EndRowIndex:      6,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							NumberFormat: &sheets.NumberFormat{
+								Type:    "PERCENT",
+								Pattern: "0%",
+							},
+						},
+					},
+				},
+			},
+		},
+	}).Do()
+	if err != nil {
+		return err
+	}
+
 	var payoutUpsideIndexSlice []int64
-	for idx, record := range records {
+	var noPaymentIndexSlice []int64
+	for idx, record := range summary.AllSummaries() {
 		if record.PayoutUpsideRate() < 0 {
 			payoutUpsideIndexSlice = append(payoutUpsideIndexSlice, int64(idx+1))
+		}
+		if record.BetCount() == 0 {
+			noPaymentIndexSlice = append(noPaymentIndexSlice, int64(idx+1))
 		}
 	}
 
 	var requests []*sheets.Request
+	// 回収上振れ率の専用style
 	for _, idx := range payoutUpsideIndexSlice {
 		requests = append(requests, &sheets.Request{
 			RepeatCell: &sheets.RepeatCellRequest{
@@ -2313,9 +2502,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 				Range: &sheets.GridRange{
 					SheetId:          sheetProperties.SheetId,
 					StartColumnIndex: idx,
-					StartRowIndex:    6,
+					StartRowIndex:    5,
 					EndColumnIndex:   idx + 1,
-					EndRowIndex:      7,
+					EndRowIndex:      6,
 				},
 				Cell: &sheets.CellData{
 					UserEnteredFormat: &sheets.CellFormat{
@@ -2325,6 +2514,31 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, records []
 								Blue:  0,
 								Green: 0,
 							},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	// 購入実績なしのセルはグレーアウト
+	for _, idx := range noPaymentIndexSlice {
+		requests = append(requests, &sheets.Request{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "userEnteredFormat.backgroundColor",
+				Range: &sheets.GridRange{
+					SheetId:          sheetProperties.SheetId,
+					StartColumnIndex: idx,
+					StartRowIndex:    1,
+					EndColumnIndex:   idx + 1,
+					EndRowIndex:      19,
+				},
+				Cell: &sheets.CellData{
+					UserEnteredFormat: &sheets.CellFormat{
+						BackgroundColor: &sheets.Color{
+							Red:   0.7,
+							Blue:  0.7,
+							Green: 0.7,
 						},
 					},
 				},

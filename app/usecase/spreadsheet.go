@@ -156,7 +156,7 @@ func (s *SpreadSheet) WriteAnalyse(ctx context.Context, summary *analyse_entity.
 		return err
 	}
 	log.Println(ctx, "writing spreadsheet for analyse")
-	err = s.spreadSheetAnalyseClient.WriteWin(ctx, summary.PopularAnalyseSummaries())
+	err = s.spreadSheetAnalyseClient.WriteWin(ctx, summary.WinPopularitySummary())
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (s *SpreadSheet) WriteAnalyse(ctx context.Context, summary *analyse_entity.
 }
 
 func (s *SpreadSheet) WriteStyleAnalyse(ctx context.Context, summary *analyse_entity.AnalyseSummary) error {
-	err := s.spreadSheetAnalyseClient.WriteStyleWin(ctx, summary.PopularAnalyseSummaries())
+	err := s.spreadSheetAnalyseClient.WriteStyleWin(ctx, summary.WinPopularitySummary())
 	if err != nil {
 		return err
 	}

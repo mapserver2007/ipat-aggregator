@@ -220,7 +220,7 @@ func (p *Predictor) Predict(
 			raceInfo.RaceNumber(),
 			raceInfo.RaceName(),
 			raceInfo.StartTime(),
-			race_vo.GradeClass(raceInfo.Class()),
+			raceInfo.Class(),
 			raceInfo.RaceCourseId(),
 			raceInfo.CourseCategory(),
 			raceInfo.RaceDate(),

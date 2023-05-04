@@ -96,8 +96,8 @@ func (r *Race) Distance() int {
 	return r.distance
 }
 
-func (r *Race) Class() int {
-	return r.class
+func (r *Race) Class() race_vo.GradeClass {
+	return race_vo.GradeClass(r.class)
 }
 
 func (r *Race) CourseCategory() race_vo.CourseCategory {

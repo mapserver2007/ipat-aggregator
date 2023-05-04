@@ -36,7 +36,7 @@ type SpreadSheetListClient interface {
 }
 
 type SpreadSheetAnalyseClient interface {
-	WriteWin(ctx context.Context, records []*analyse_entity.PopularAnalyseSummary) error
-	WriteStyleWin(ctx context.Context, records []*analyse_entity.PopularAnalyseSummary) error
+	WriteWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error
+	WriteStyleWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error
 	Clear(ctx context.Context) error
 }

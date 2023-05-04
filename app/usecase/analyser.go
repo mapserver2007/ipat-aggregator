@@ -24,7 +24,7 @@ func (a *Analyser) Popular(
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
 ) *analyse_entity.AnalyseSummary {
-	popularAnalyseSummaries := a.analyser.PopularAnalyse(records, racingNumbers, races)
+	winAnalyseSummary := a.analyser.WinAnalyse(records, racingNumbers, races)
 
-	return analyse_entity.NewAnalyseSummary(popularAnalyseSummaries)
+	return analyse_entity.NewAnalyseSummary(winAnalyseSummary)
 }

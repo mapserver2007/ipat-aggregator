@@ -71,6 +71,12 @@ type PopularAnalyseSummary struct {
 	minOddsAtHit       float64
 }
 
+func DefaultPopularAnalyseSummary(popularNumber int) *PopularAnalyseSummary {
+	return &PopularAnalyseSummary{
+		popularNumber: popularNumber,
+	}
+}
+
 func NewPopularAnalyseSummary(
 	popularNumber int,
 	betCount int,
@@ -167,10 +173,6 @@ func (p *PopularAnalyseSummary) MedianPayout() float64 {
 	return p.medianPayout
 }
 
-//func (p *PopularAnalyseSummary) ExpectedValue() float64 {
-//	return math.Round(p.hitRate*p.averageOddsAtHit*100) / 100
-//}
-
 func (p *PopularAnalyseSummary) PayoutRate() float64 {
 	if p.totalPayment == 0 {
 		return 0
@@ -195,14 +197,6 @@ func (p *PopularAnalyseSummary) GeneralPayoutRate() float64 {
 	}
 	return generalPayoutRate[p.popularNumber]
 }
-
-//func (p *PopularAnalyseSummary) FormattedGeneralWinRate() string {
-//	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.GeneralWinRate()*100, 'f', 2, 64), "%")
-//}
-//
-//func (p *PopularAnalyseSummary) FormattedGeneralPayoutRate() string {
-//	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.GeneralPayoutRate()*100, 'f', 2, 64), "%")
-//}
 
 func (p *PopularAnalyseSummary) PayoutUpsideRate() float64 {
 	return math.Round((p.PayoutRate()-p.GeneralPayoutRate())*100) / 100

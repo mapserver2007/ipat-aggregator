@@ -23,11 +23,11 @@ func NewAnalyser(
 	}
 }
 
-func (a *Analyser) PopularAnalyse(
+func (a *Analyser) WinAnalyse(
 	records []*betting_ticket_entity.CsvEntity,
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
-) []*analyse_entity.PopularAnalyseSummary {
+) *analyse_entity.WinAnalyseSummary {
 	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(races)
 	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(racingNumbers)
 
@@ -46,19 +46,25 @@ func (a *Analyser) PopularAnalyse(
 		}
 		raceId := a.raceConverter.GetRaceId(record, racingNumber)
 		if race, ok := raceMap[*raceId]; ok {
-			popular := a.getPopularAnalyse(record, race.RaceResults())
+			popular := a.getPopularAnalyse(record, race)
 			popularMap[popular.PopularNumber()] = append(popularMap[popular.PopularNumber()], popular)
 		}
 	}
 
-	popularAnalyseSummaries := a.convertPopularAnalyzeSummary(popularMap)
+	allSummaries := a.convertWinPopularAnalyzeSummary(popularMap)
+	grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries := a.convertClassWinPopularAnalyzeSummaries(popularMap)
 
-	return popularAnalyseSummaries
+	return analyse_entity.NewWinAnalyseSummary(allSummaries, grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries)
 }
 
-func (a *Analyser) convertPopularAnalyzeSummary(popularMap map[int][]*analyse_entity.PopularAnalyse) []*analyse_entity.PopularAnalyseSummary {
-	var popularAnalyseSummaries []*analyse_entity.PopularAnalyseSummary
-	for popularNumber, populars := range popularMap {
+func (a *Analyser) convertWinPopularAnalyzeSummary(popularMap map[int][]*analyse_entity.PopularAnalyse) []*analyse_entity.PopularAnalyseSummary {
+	popularAnalyseSummaries := make([]*analyse_entity.PopularAnalyseSummary, 0, 18)
+	for popularNumber := 1; popularNumber <= 18; popularNumber++ {
+		populars, ok := popularMap[popularNumber]
+		if !ok {
+			popularAnalyseSummaries = append(popularAnalyseSummaries, analyse_entity.DefaultPopularAnalyseSummary(popularNumber))
+			continue
+		}
 		var (
 			hitCount                                                int
 			hitRate                                                 float64
@@ -156,6 +162,61 @@ func (a *Analyser) convertPopularAnalyzeSummary(popularMap map[int][]*analyse_en
 	return popularAnalyseSummaries
 }
 
+func (a *Analyser) convertClassWinPopularAnalyzeSummaries(
+	popularMap map[int][]*analyse_entity.PopularAnalyse,
+) (
+	[]*analyse_entity.PopularAnalyseSummary,
+	[]*analyse_entity.PopularAnalyseSummary,
+	[]*analyse_entity.PopularAnalyseSummary,
+	[]*analyse_entity.PopularAnalyseSummary,
+) {
+	var (
+		grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries []*analyse_entity.PopularAnalyseSummary
+	)
+	grade1PopularMap := map[int][]*analyse_entity.PopularAnalyse{}
+	grade2PopularMap := map[int][]*analyse_entity.PopularAnalyse{}
+	grade3PopularMap := map[int][]*analyse_entity.PopularAnalyse{}
+	allowanceClassPopularMap := map[int][]*analyse_entity.PopularAnalyse{}
+
+	for popularNumber, populars := range popularMap {
+		for _, popular := range populars {
+			switch popular.Class() {
+			case race_vo.Grade1:
+				if _, ok := grade1PopularMap[popularNumber]; !ok {
+					grade1PopularMap[popularNumber] = make([]*analyse_entity.PopularAnalyse, 0)
+				} else {
+					grade1PopularMap[popularNumber] = append(grade1PopularMap[popularNumber], popular)
+				}
+			case race_vo.Grade2:
+				if _, ok := grade2PopularMap[popularNumber]; !ok {
+					grade2PopularMap[popularNumber] = make([]*analyse_entity.PopularAnalyse, 0)
+				} else {
+					grade2PopularMap[popularNumber] = append(grade2PopularMap[popularNumber], popular)
+				}
+			case race_vo.Grade3:
+				if _, ok := grade3PopularMap[popularNumber]; !ok {
+					grade3PopularMap[popularNumber] = make([]*analyse_entity.PopularAnalyse, 0)
+				} else {
+					grade3PopularMap[popularNumber] = append(grade3PopularMap[popularNumber], popular)
+				}
+			case race_vo.AllowanceClass:
+				if _, ok := allowanceClassPopularMap[popularNumber]; !ok {
+					allowanceClassPopularMap[popularNumber] = make([]*analyse_entity.PopularAnalyse, 0)
+				} else {
+					allowanceClassPopularMap[popularNumber] = append(allowanceClassPopularMap[popularNumber], popular)
+				}
+			}
+		}
+	}
+
+	grade1Summaries = a.convertWinPopularAnalyzeSummary(grade1PopularMap)
+	grade2Summaries = a.convertWinPopularAnalyzeSummary(grade2PopularMap)
+	grade3Summaries = a.convertWinPopularAnalyzeSummary(grade3PopularMap)
+	allowanceClassSummaries = a.convertWinPopularAnalyzeSummary(allowanceClassPopularMap)
+
+	return grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries
+}
+
 func (a *Analyser) getRecordsByWin(records []*betting_ticket_entity.CsvEntity) []*betting_ticket_entity.CsvEntity {
 	var recordsByWin []*betting_ticket_entity.CsvEntity
 	for _, record := range records {
@@ -177,8 +238,8 @@ func (a *Analyser) getRecordsByPopular(records []*betting_ticket_entity.CsvEntit
 	return recordsByPopular
 }
 
-func (a *Analyser) getPopularAnalyse(record *betting_ticket_entity.CsvEntity, raceResults []*race_entity.RaceResult) *analyse_entity.PopularAnalyse {
-	for _, raceResult := range raceResults {
+func (a *Analyser) getPopularAnalyse(record *betting_ticket_entity.CsvEntity, race *race_entity.Race) *analyse_entity.PopularAnalyse {
+	for _, raceResult := range race.RaceResults() {
 		betNumber := record.BetNumber().List()[0]
 		if betNumber == raceResult.HorseNumber() {
 			return analyse_entity.NewPopularAnalyse(
@@ -187,6 +248,7 @@ func (a *Analyser) getPopularAnalyse(record *betting_ticket_entity.CsvEntity, ra
 				record.Repayment(),
 				raceResult.Odds(),
 				record.Winning(),
+				race.Class(),
 			)
 		}
 	}

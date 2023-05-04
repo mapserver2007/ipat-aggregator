@@ -38,7 +38,7 @@ func (b *BettingTicketConverter) ConvertToRaceClassRecordsMap(records []*betting
 	return ConvertToSliceMap(records, func(record *betting_ticket_entity.CsvEntity) race_vo.GradeClass {
 		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
 		if race, ok := raceMap[key]; ok {
-			return race_vo.GradeClass(race.Class())
+			return race.Class()
 		}
 		return race_vo.NonGrade
 	})

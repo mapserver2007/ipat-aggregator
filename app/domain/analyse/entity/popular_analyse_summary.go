@@ -206,13 +206,6 @@ func (p *PopularAnalyseSummary) FormattedMedianPayoutRateAtHit() string {
 	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.MedianPayoutRateAtHit()*100, 'f', 2, 64), "%")
 }
 
-//func (p *PopularAnalyseSummary) GeneralWinRate() float64 {
-//	if p.betCount == 0 {
-//		return 0
-//	}
-//	return generalWinRateSlice[p.popularNumber]
-//}
-
 func (p *PopularAnalyseSummary) GeneralPayoutRate() float64 {
 	if p.betCount == 0 {
 		return 0

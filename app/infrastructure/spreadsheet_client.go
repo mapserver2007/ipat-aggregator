@@ -2912,9 +2912,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
 							BackgroundColor: &sheets.Color{
-								Red:   0.7,
-								Blue:  0.7,
-								Green: 0.7,
+								Red:   0.8,
+								Blue:  0.8,
+								Green: 0.8,
 							},
 						},
 					},

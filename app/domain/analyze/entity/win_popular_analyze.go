@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-type PopularAnalyse struct {
+type WinPopularAnalyze struct {
 	popularNumber int
 	payment       int
 	payout        int
@@ -14,15 +14,15 @@ type PopularAnalyse struct {
 	class         race_vo.GradeClass
 }
 
-func NewPopularAnalyse(
+func NewWinPopularAnalyze(
 	popularNumber int,
 	payment int,
 	payout int,
 	odds string,
 	isHit bool,
 	class race_vo.GradeClass,
-) *PopularAnalyse {
-	return &PopularAnalyse{
+) *WinPopularAnalyze {
+	return &WinPopularAnalyze{
 		popularNumber: popularNumber,
 		payment:       payment,
 		payout:        payout,
@@ -32,27 +32,27 @@ func NewPopularAnalyse(
 	}
 }
 
-func (p *PopularAnalyse) PopularNumber() int {
+func (p *WinPopularAnalyze) PopularNumber() int {
 	return p.popularNumber
 }
 
-func (p *PopularAnalyse) Payment() int {
+func (p *WinPopularAnalyze) Payment() int {
 	return p.payment
 }
 
-func (p *PopularAnalyse) Payout() int {
+func (p *WinPopularAnalyze) Payout() int {
 	return p.payout
 }
 
-func (p *PopularAnalyse) Odds() float64 {
+func (p *WinPopularAnalyze) Odds() float64 {
 	odds, _ := strconv.ParseFloat(p.odds, 64)
 	return odds
 }
 
-func (p *PopularAnalyse) IsHit() bool {
+func (p *WinPopularAnalyze) IsHit() bool {
 	return p.isHit
 }
 
-func (p *PopularAnalyse) Class() race_vo.GradeClass {
+func (p *WinPopularAnalyze) Class() race_vo.GradeClass {
 	return p.class
 }

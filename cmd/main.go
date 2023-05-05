@@ -12,7 +12,7 @@ func main() {
 	ctx := context.Background()
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx)
 	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx)
-	spreadSheetAnalyseClient := infrastructure.NewSpreadSheetAnalyseClient(ctx)
+	spreadSheetAnalyzeClient := infrastructure.NewSpreadSheetAnalyzeClient(ctx)
 
 	log.Println(ctx, "start")
 
@@ -31,11 +31,11 @@ func main() {
 		panic(err)
 	}
 
-	analyser := di.AnalyserInit()
-	analyseSummary := analyser.Popular(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
+	analyzer := di.AnalyzerInit()
+	analyzeSummary := analyzer.Popular(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
 
 	//spreadSheetUseCase := di.SpreadSheetInit()
-	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient, spreadSheetAnalyseClient)
+	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient, spreadSheetAnalyzeClient)
 	err = spreadSheetUseCase.WriteSummary(ctx, summary)
 	if err != nil {
 		panic(err)
@@ -52,11 +52,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = spreadSheetUseCase.WriteAnalyse(ctx, analyseSummary)
+	err = spreadSheetUseCase.WriteAnalyze(ctx, analyzeSummary)
 	if err != nil {
 		panic(err)
 	}
-	err = spreadSheetUseCase.WriteStyleAnalyse(ctx, analyseSummary)
+	err = spreadSheetUseCase.WriteStyleAnalyze(ctx, analyzeSummary)
 	if err != nil {
 		panic(err)
 	}

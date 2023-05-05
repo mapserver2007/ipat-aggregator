@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	analyse_entity "github.com/mapserver2007/ipat-aggregator/app/domain/analyse/entity"
+	analyze_entity "github.com/mapserver2007/ipat-aggregator/app/domain/analyze/entity"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
@@ -24,7 +24,7 @@ const (
 	secretFileName             = "secret.json"
 	spreadSheetCalcFileName    = "spreadsheet_calc.json"
 	spreadSheetListFileName    = "spreadsheet_list.json"
-	spreadSheetAnalyseFileName = "spreadsheet_analyse.json"
+	spreadSheetAnalyzeFileName = "spreadsheet_analyze.json"
 )
 
 type SpreadSheetClient struct {
@@ -61,17 +61,17 @@ func NewSpreadSheetListClient(
 	}
 }
 
-type SpreadSheetAnalyseClient struct {
+type SpreadSheetAnalyzeClient struct {
 	client            *sheets.Service
-	spreadSheetConfig spreadsheet_entity.SpreadSheetAnalyseConfig
-	sheetMap          map[spreadsheet_vo.AnalyseType]*sheets.SheetProperties
+	spreadSheetConfig spreadsheet_entity.SpreadSheetAnalyzeConfig
+	sheetMap          map[spreadsheet_vo.AnalyzeType]*sheets.SheetProperties
 }
 
-func NewSpreadSheetAnalyseClient(
+func NewSpreadSheetAnalyzeClient(
 	ctx context.Context,
-) repository.SpreadSheetAnalyseClient {
-	service, spreadSheetConfig, sheetMap := getSpreadSheetAnalyseConfig(ctx, spreadSheetAnalyseFileName)
-	return &SpreadSheetAnalyseClient{
+) repository.SpreadSheetAnalyzeClient {
+	service, spreadSheetConfig, sheetMap := getSpreadSheetAnalyzeConfig(ctx, spreadSheetAnalyzeFileName)
+	return &SpreadSheetAnalyzeClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
 		sheetMap:          sheetMap,
@@ -127,10 +127,10 @@ func getSpreadSheetConfig(
 	return service, spreadSheetConfig, sheetId
 }
 
-func getSpreadSheetAnalyseConfig(
+func getSpreadSheetAnalyzeConfig(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
-) (*sheets.Service, spreadsheet_entity.SpreadSheetAnalyseConfig, map[spreadsheet_vo.AnalyseType]*sheets.SheetProperties) {
+) (*sheets.Service, spreadsheet_entity.SpreadSheetAnalyzeConfig, map[spreadsheet_vo.AnalyzeType]*sheets.SheetProperties) {
 	rootPath, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -156,7 +156,7 @@ func getSpreadSheetAnalyseConfig(
 		panic(err)
 	}
 
-	var spreadSheetConfig spreadsheet_entity.SpreadSheetAnalyseConfig
+	var spreadSheetConfig spreadsheet_entity.SpreadSheetAnalyzeConfig
 	if err = json.Unmarshal(spreadSheetConfigBytes, &spreadSheetConfig); err != nil {
 		panic(err)
 	}
@@ -166,15 +166,15 @@ func getSpreadSheetAnalyseConfig(
 		panic(err)
 	}
 
-	var sheetReverseMap = map[string]spreadsheet_vo.AnalyseType{}
+	var sheetReverseMap = map[string]spreadsheet_vo.AnalyzeType{}
 	for _, sheetName := range spreadSheetConfig.SheetNames {
-		sheetReverseMap[sheetName.Name] = spreadsheet_vo.AnalyseType(sheetName.Type)
+		sheetReverseMap[sheetName.Name] = spreadsheet_vo.AnalyzeType(sheetName.Type)
 	}
 
-	sheetMap := map[spreadsheet_vo.AnalyseType]*sheets.SheetProperties{}
+	sheetMap := map[spreadsheet_vo.AnalyzeType]*sheets.SheetProperties{}
 	for _, sheet := range response.Sheets {
-		if analyseType, ok := sheetReverseMap[sheet.Properties.Title]; ok {
-			sheetMap[analyseType] = sheet.Properties
+		if analyzeType, ok := sheetReverseMap[sheet.Properties.Title]; ok {
+			sheetMap[analyzeType] = sheet.Properties
 		}
 	}
 
@@ -2006,7 +2006,7 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 	return nil
 }
 
-func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error {
+func (s *SpreadSheetAnalyzeClient) WriteWin(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
 	sheetProperties, ok := s.sheetMap[spreadsheet_vo.Win]
 	if !ok {
 		return fmt.Errorf("sheet not found")
@@ -2014,7 +2014,7 @@ func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analys
 
 	writeRange := fmt.Sprintf("%s!%s", sheetProperties.Title, "A1")
 	var values [][]interface{}
-	addValues := func(values [][]interface{}, summaries []*analyse_entity.PopularAnalyseSummary, title string) [][]interface{} {
+	addValues := func(values [][]interface{}, summaries []*analyze_entity.WinPopularAnalyzeSummary, title string) [][]interface{} {
 		values = append(values, [][]interface{}{
 			{
 				title,
@@ -2126,7 +2126,7 @@ func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analys
 	return nil
 }
 
-func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error {
+func (s *SpreadSheetAnalyzeClient) WriteStyleWin(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
 	sheetProperties, _ := s.sheetMap[spreadsheet_vo.Win]
 
 	// 全レース
@@ -2961,7 +2961,7 @@ func (s *SpreadSheetListClient) Clear(ctx context.Context) error {
 	return nil
 }
 
-func (s *SpreadSheetAnalyseClient) Clear(ctx context.Context) error {
+func (s *SpreadSheetAnalyzeClient) Clear(ctx context.Context) error {
 	for _, sheetProperties := range s.sheetMap {
 		requests := []*sheets.Request{
 			{

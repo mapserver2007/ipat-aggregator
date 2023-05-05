@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	analyse_entity "github.com/mapserver2007/ipat-aggregator/app/domain/analyse/entity"
+	analyze_entity "github.com/mapserver2007/ipat-aggregator/app/domain/analyze/entity"
 	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
@@ -35,8 +35,8 @@ type SpreadSheetListClient interface {
 	Clear(ctx context.Context) error
 }
 
-type SpreadSheetAnalyseClient interface {
-	WriteWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error
-	WriteStyleWin(ctx context.Context, summary *analyse_entity.WinAnalyseSummary) error
+type SpreadSheetAnalyzeClient interface {
+	WriteWin(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error
+	WriteStyleWin(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error
 	Clear(ctx context.Context) error
 }

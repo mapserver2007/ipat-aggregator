@@ -51,7 +51,7 @@ var generalPayoutRate = []float64{
 	0.14,
 }
 
-type PopularAnalyseSummary struct {
+type WinPopularAnalyzeSummary struct {
 	popularNumber      int
 	betCount           int
 	hitCount           int
@@ -71,13 +71,13 @@ type PopularAnalyseSummary struct {
 	minOddsAtHit       float64
 }
 
-func DefaultPopularAnalyseSummary(popularNumber int) *PopularAnalyseSummary {
-	return &PopularAnalyseSummary{
+func DefaultWinPopularAnalyzeSummary(popularNumber int) *WinPopularAnalyzeSummary {
+	return &WinPopularAnalyzeSummary{
 		popularNumber: popularNumber,
 	}
 }
 
-func NewPopularAnalyseSummary(
+func NewWinPopularAnalyzeSummary(
 	popularNumber int,
 	betCount int,
 	hitCount int,
@@ -95,8 +95,8 @@ func NewPopularAnalyseSummary(
 	minPayout int,
 	maxOddsAtHit float64,
 	minOddsAtHit float64,
-) *PopularAnalyseSummary {
-	return &PopularAnalyseSummary{
+) *WinPopularAnalyzeSummary {
+	return &WinPopularAnalyzeSummary{
 		popularNumber:      popularNumber,
 		betCount:           betCount,
 		hitCount:           hitCount,
@@ -117,122 +117,122 @@ func NewPopularAnalyseSummary(
 	}
 }
 
-func (p *PopularAnalyseSummary) PopularNumber() int {
+func (p *WinPopularAnalyzeSummary) PopularNumber() int {
 	return p.popularNumber
 }
 
-func (p *PopularAnalyseSummary) BetCount() int {
+func (p *WinPopularAnalyzeSummary) BetCount() int {
 	return p.betCount
 }
 
-func (p *PopularAnalyseSummary) HitCount() int {
+func (p *WinPopularAnalyzeSummary) HitCount() int {
 	return p.hitCount
 }
 
-func (p *PopularAnalyseSummary) HitRate() float64 {
+func (p *WinPopularAnalyzeSummary) HitRate() float64 {
 	return p.hitRate
 }
 
-func (p *PopularAnalyseSummary) FormattedHitRate() string {
+func (p *WinPopularAnalyzeSummary) FormattedHitRate() string {
 	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.hitRate*100, 'f', 2, 64), "%")
 }
 
-func (p *PopularAnalyseSummary) AverageOddsAtVote() float64 {
+func (p *WinPopularAnalyzeSummary) AverageOddsAtVote() float64 {
 	return p.averageOddsAtVote
 }
 
-func (p *PopularAnalyseSummary) AverageOddsAtHit() float64 {
+func (p *WinPopularAnalyzeSummary) AverageOddsAtHit() float64 {
 	return p.averageOddsAtHit
 }
 
-func (p *PopularAnalyseSummary) AverageOddsAtUnHit() float64 {
+func (p *WinPopularAnalyzeSummary) AverageOddsAtUnHit() float64 {
 	return p.averageOddsAtUnHit
 }
 
-func (p *PopularAnalyseSummary) TotalPayment() int {
+func (p *WinPopularAnalyzeSummary) TotalPayment() int {
 	return p.totalPayment
 }
 
-func (p *PopularAnalyseSummary) TotalPayout() int {
+func (p *WinPopularAnalyzeSummary) TotalPayout() int {
 	return p.totalPayout
 }
 
-func (p *PopularAnalyseSummary) AveragePayment() int {
+func (p *WinPopularAnalyzeSummary) AveragePayment() int {
 	return p.averagePayment
 }
 
-func (p *PopularAnalyseSummary) AveragePayout() int {
+func (p *WinPopularAnalyzeSummary) AveragePayout() int {
 	return p.averagePayout
 }
 
-func (p *PopularAnalyseSummary) MedianPayment() int {
+func (p *WinPopularAnalyzeSummary) MedianPayment() int {
 	return p.medianPayment
 }
 
-func (p *PopularAnalyseSummary) MedianPayout() int {
+func (p *WinPopularAnalyzeSummary) MedianPayout() int {
 	return p.medianPayout
 }
 
-func (p *PopularAnalyseSummary) PayoutRate() float64 {
+func (p *WinPopularAnalyzeSummary) PayoutRate() float64 {
 	if p.totalPayment == 0 {
 		return 0
 	}
 	return math.Round((float64(p.totalPayout)/float64(p.totalPayment))*100) / 100
 }
 
-func (p *PopularAnalyseSummary) FormattedPayoutRate() string {
+func (p *WinPopularAnalyzeSummary) FormattedPayoutRate() string {
 	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.PayoutRate()*100, 'f', 2, 64), "%")
 }
 
-func (p *PopularAnalyseSummary) AveragePayoutRateAtHit() float64 {
+func (p *WinPopularAnalyzeSummary) AveragePayoutRateAtHit() float64 {
 	if p.averagePayment == 0 {
 		return 0
 	}
 	return math.Round((float64(p.averagePayout)/float64(p.averagePayment))*100) / 100
 }
 
-func (p *PopularAnalyseSummary) FormattedAveragePayoutRateAtHit() string {
+func (p *WinPopularAnalyzeSummary) FormattedAveragePayoutRateAtHit() string {
 	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.AveragePayoutRateAtHit()*100, 'f', 2, 64), "%")
 }
 
-func (p *PopularAnalyseSummary) MedianPayoutRateAtHit() float64 {
+func (p *WinPopularAnalyzeSummary) MedianPayoutRateAtHit() float64 {
 	if p.medianPayment == 0 {
 		return 0
 	}
 	return math.Round((float64(p.medianPayout)/float64(p.medianPayment))*100) / 100
 }
 
-func (p *PopularAnalyseSummary) FormattedMedianPayoutRateAtHit() string {
+func (p *WinPopularAnalyzeSummary) FormattedMedianPayoutRateAtHit() string {
 	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.MedianPayoutRateAtHit()*100, 'f', 2, 64), "%")
 }
 
-func (p *PopularAnalyseSummary) GeneralPayoutRate() float64 {
+func (p *WinPopularAnalyzeSummary) GeneralPayoutRate() float64 {
 	if p.betCount == 0 {
 		return 0
 	}
 	return generalPayoutRate[p.popularNumber]
 }
 
-func (p *PopularAnalyseSummary) PayoutUpsideRate() float64 {
+func (p *WinPopularAnalyzeSummary) PayoutUpsideRate() float64 {
 	return math.Round((p.PayoutRate()-p.GeneralPayoutRate())*100) / 100
 }
 
-func (p *PopularAnalyseSummary) FormattedPayoutUpsideRate() string {
+func (p *WinPopularAnalyzeSummary) FormattedPayoutUpsideRate() string {
 	return fmt.Sprintf("%s%s", strconv.FormatFloat(math.Round((p.PayoutRate()-p.GeneralPayoutRate())*100), 'f', 2, 64), "%")
 }
 
-func (p *PopularAnalyseSummary) MaxPayout() int {
+func (p *WinPopularAnalyzeSummary) MaxPayout() int {
 	return p.maxPayout
 }
 
-func (p *PopularAnalyseSummary) MinPayout() int {
+func (p *WinPopularAnalyzeSummary) MinPayout() int {
 	return p.minPayout
 }
 
-func (p *PopularAnalyseSummary) MaxOddsAtHit() float64 {
+func (p *WinPopularAnalyzeSummary) MaxOddsAtHit() float64 {
 	return p.maxOddsAtHit
 }
 
-func (p *PopularAnalyseSummary) MinOddsAtHit() float64 {
+func (p *WinPopularAnalyzeSummary) MinOddsAtHit() float64 {
 	return p.minOddsAtHit
 }

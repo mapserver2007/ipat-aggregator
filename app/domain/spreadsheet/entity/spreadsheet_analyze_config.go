@@ -1,6 +1,6 @@
 package entity
 
-type SpreadSheetAnalyseConfig struct {
+type SpreadSheetAnalyzeConfig struct {
 	Id         string      `json:"spreadsheet_id"`
 	SheetNames []SheetName `json:"spreadsheet_sheet_names"`
 }

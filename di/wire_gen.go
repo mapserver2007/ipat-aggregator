@@ -38,9 +38,9 @@ func PredictInit() *service.Predictor {
 	return predictor
 }
 
-func AnalyserInit() *usecase.Analyser {
+func AnalyzerInit() *usecase.Analyzer {
 	raceConverter := service.NewRaceConverter()
-	analyser := service.NewAnalyser(raceConverter)
-	usecaseAnalyser := usecase.NewAnalyser(analyser)
-	return usecaseAnalyser
+	analyzer := service.NewAnalyzer(raceConverter)
+	usecaseAnalyzer := usecase.NewAnalyzer(analyzer)
+	return usecaseAnalyzer
 }

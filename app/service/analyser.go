@@ -72,7 +72,7 @@ func (a *Analyser) convertWinPopularAnalyzeSummary(popularMap map[int][]*analyse
 			averageOddsAtVote, averageOddsAtHit, averageOddsAtUnHit float64
 			totalPayment, totalPayout                               int
 			averagePayment, averagePayout                           int
-			medianPayment, medianPayout                             float64
+			medianPayment, medianPayout                             int
 			maxPayout, minPayout                                    int
 			maxOddsAtHit, minOddsAtHit                              float64
 			allPayments, allPayouts                                 []int
@@ -120,16 +120,16 @@ func (a *Analyser) convertWinPopularAnalyzeSummary(popularMap map[int][]*analyse
 
 		if len(allPayments) > 0 {
 			if len(allPayments)%2 == 0 {
-				medianPayment = float64(allPayments[len(allPayments)/2]+allPayments[len(allPayments)/2-1]) / 2
+				medianPayment = (allPayments[len(allPayments)/2] + allPayments[len(allPayments)/2-1]) / 2
 			} else {
-				medianPayment = float64(allPayments[len(allPayments)/2])
+				medianPayment = allPayments[len(allPayments)/2]
 			}
 		}
 		if len(allPayouts) > 0 {
 			if len(allPayouts) > 0 && len(allPayouts)%2 == 0 {
-				medianPayout = float64(allPayouts[len(allPayouts)/2]+allPayouts[len(allPayouts)/2-1]) / 2
+				medianPayout = (allPayouts[len(allPayouts)/2] + allPayouts[len(allPayouts)/2-1]) / 2
 			} else {
-				medianPayout = float64(allPayouts[len(allPayouts)/2])
+				medianPayout = allPayouts[len(allPayouts)/2]
 			}
 		}
 

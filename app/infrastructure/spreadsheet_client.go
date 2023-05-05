@@ -2042,7 +2042,9 @@ func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analys
 		betCounts := make([]interface{}, 0, capacity)
 		hitCounts := make([]interface{}, 0, capacity)
 		hitRates := make([]interface{}, 0, capacity)
-		payoutRate := make([]interface{}, 0, capacity)
+		payoutRates := make([]interface{}, 0, capacity)
+		averagePayoutRateAtHits := make([]interface{}, 0, capacity)
+		medianPayoutRateAtHits := make([]interface{}, 0, capacity)
 		payoutUpside := make([]interface{}, 0, capacity)
 		averageOddsAtVotes := make([]interface{}, 0, capacity)
 		averageOddsAtHits := make([]interface{}, 0, capacity)
@@ -2061,7 +2063,9 @@ func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analys
 		betCounts = append(betCounts, "投票回数")
 		hitCounts = append(hitCounts, "的中回数")
 		hitRates = append(hitRates, "的中率")
-		payoutRate = append(payoutRate, "回収率")
+		payoutRates = append(payoutRates, "回収率")
+		averagePayoutRateAtHits = append(averagePayoutRateAtHits, "的中回収率(平均値)")
+		medianPayoutRateAtHits = append(medianPayoutRateAtHits, "的中回収率(中央値)")
 		payoutUpside = append(payoutUpside, "回収上振れ率")
 		averageOddsAtVotes = append(averageOddsAtVotes, "投票時平均オッズ")
 		averageOddsAtHits = append(averageOddsAtHits, "的中時平均オッズ")
@@ -2081,7 +2085,9 @@ func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analys
 			betCounts = append(betCounts, record.BetCount())
 			hitCounts = append(hitCounts, record.HitCount())
 			hitRates = append(hitRates, record.FormattedHitRate())
-			payoutRate = append(payoutRate, record.FormattedPayoutRate())
+			payoutRates = append(payoutRates, record.FormattedPayoutRate())
+			averagePayoutRateAtHits = append(averagePayoutRateAtHits, record.FormattedAveragePayoutRateAtHit())
+			medianPayoutRateAtHits = append(medianPayoutRateAtHits, record.FormattedMedianPayoutRateAtHit())
 			payoutUpside = append(payoutUpside, record.FormattedPayoutUpsideRate())
 			averageOddsAtVotes = append(averageOddsAtVotes, record.AverageOddsAtVote())
 			averageOddsAtHits = append(averageOddsAtHits, record.AverageOddsAtHit())
@@ -2098,7 +2104,7 @@ func (s *SpreadSheetAnalyseClient) WriteWin(ctx context.Context, summary *analys
 			minPayouts = append(minPayouts, record.MinPayout())
 		}
 
-		values = append(values, betCounts, hitCounts, hitRates, payoutRate, payoutUpside, averageOddsAtVotes,
+		values = append(values, betCounts, hitCounts, hitRates, payoutRates, averagePayoutRateAtHits, medianPayoutRateAtHits, payoutUpside, averageOddsAtVotes,
 			averageOddsAtHits, averageOddsAtUnHits, maxOddsAtHits, minOddsAtHits, totalPayments, totalPayouts, averagePayments, medianPayments, averagePayouts, medianPayouts, maxPayouts, minPayouts)
 
 		return values
@@ -2134,7 +2140,7 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 						StartColumnIndex: 0,
 						StartRowIndex:    0,
 						EndColumnIndex:   1,
-						EndRowIndex:      99,
+						EndRowIndex:      110,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2221,7 +2227,7 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 						StartColumnIndex: 0,
 						StartRowIndex:    1,
 						EndColumnIndex:   1,
-						EndRowIndex:      6,
+						EndRowIndex:      8,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2240,9 +2246,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    6,
+						StartRowIndex:    8,
 						EndColumnIndex:   1,
-						EndRowIndex:      11,
+						EndRowIndex:      13,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2261,9 +2267,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    11,
+						StartRowIndex:    13,
 						EndColumnIndex:   1,
-						EndRowIndex:      19,
+						EndRowIndex:      21,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2284,7 +2290,7 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 						StartColumnIndex: 1,
 						StartRowIndex:    3,
 						EndColumnIndex:   19,
-						EndRowIndex:      6,
+						EndRowIndex:      8,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2302,9 +2308,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    19,
+						StartRowIndex:    21,
 						EndColumnIndex:   19,
-						EndRowIndex:      20,
+						EndRowIndex:      22,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2321,9 +2327,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    19,
+						StartRowIndex:    21,
 						EndColumnIndex:   19,
-						EndRowIndex:      20,
+						EndRowIndex:      22,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2342,132 +2348,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    20,
-						EndColumnIndex:   1,
-						EndRowIndex:      25,
-					},
-					Cell: &sheets.CellData{
-						UserEnteredFormat: &sheets.CellFormat{
-							BackgroundColor: &sheets.Color{
-								Red:   1.0,
-								Blue:  0,
-								Green: 0.75,
-							},
-						},
-					},
-				},
-			},
-			{
-				RepeatCell: &sheets.RepeatCellRequest{
-					Fields: "userEnteredFormat.backgroundColor",
-					Range: &sheets.GridRange{
-						SheetId:          sheetProperties.SheetId,
-						StartColumnIndex: 0,
-						StartRowIndex:    25,
-						EndColumnIndex:   1,
-						EndRowIndex:      30,
-					},
-					Cell: &sheets.CellData{
-						UserEnteredFormat: &sheets.CellFormat{
-							BackgroundColor: &sheets.Color{
-								Red:   0.35,
-								Blue:  0,
-								Green: 0.75,
-							},
-						},
-					},
-				},
-			},
-			{
-				RepeatCell: &sheets.RepeatCellRequest{
-					Fields: "userEnteredFormat.backgroundColor",
-					Range: &sheets.GridRange{
-						SheetId:          sheetProperties.SheetId,
-						StartColumnIndex: 0,
-						StartRowIndex:    30,
-						EndColumnIndex:   1,
-						EndRowIndex:      38,
-					},
-					Cell: &sheets.CellData{
-						UserEnteredFormat: &sheets.CellFormat{
-							BackgroundColor: &sheets.Color{
-								Red:   0.35,
-								Blue:  1.0,
-								Green: 1.0,
-							},
-						},
-					},
-				},
-			},
-			{
-				RepeatCell: &sheets.RepeatCellRequest{
-					Fields: "userEnteredFormat.numberFormat",
-					Range: &sheets.GridRange{
-						SheetId:          sheetProperties.SheetId,
-						StartColumnIndex: 1,
 						StartRowIndex:    22,
-						EndColumnIndex:   19,
-						EndRowIndex:      25,
-					},
-					Cell: &sheets.CellData{
-						UserEnteredFormat: &sheets.CellFormat{
-							NumberFormat: &sheets.NumberFormat{
-								Type:    "PERCENT",
-								Pattern: "0%",
-							},
-						},
-					},
-				},
-			},
-			{
-				RepeatCell: &sheets.RepeatCellRequest{
-					Fields: "userEnteredFormat.textFormat.bold",
-					Range: &sheets.GridRange{
-						SheetId:          sheetProperties.SheetId,
-						StartColumnIndex: 1,
-						StartRowIndex:    38,
-						EndColumnIndex:   19,
-						EndRowIndex:      39,
-					},
-					Cell: &sheets.CellData{
-						UserEnteredFormat: &sheets.CellFormat{
-							TextFormat: &sheets.TextFormat{
-								Bold: true,
-							},
-						},
-					},
-				},
-			},
-			{
-				RepeatCell: &sheets.RepeatCellRequest{
-					Fields: "userEnteredFormat.backgroundColor",
-					Range: &sheets.GridRange{
-						SheetId:          sheetProperties.SheetId,
-						StartColumnIndex: 1,
-						StartRowIndex:    38,
-						EndColumnIndex:   19,
-						EndRowIndex:      39,
-					},
-					Cell: &sheets.CellData{
-						UserEnteredFormat: &sheets.CellFormat{
-							BackgroundColor: &sheets.Color{
-								Red:   1.0,
-								Blue:  0,
-								Green: 1.0,
-							},
-						},
-					},
-				},
-			},
-			{
-				RepeatCell: &sheets.RepeatCellRequest{
-					Fields: "userEnteredFormat.backgroundColor",
-					Range: &sheets.GridRange{
-						SheetId:          sheetProperties.SheetId,
-						StartColumnIndex: 0,
-						StartRowIndex:    39,
 						EndColumnIndex:   1,
-						EndRowIndex:      44,
+						EndRowIndex:      29,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2486,9 +2369,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    44,
+						StartRowIndex:    29,
 						EndColumnIndex:   1,
-						EndRowIndex:      49,
+						EndRowIndex:      34,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2507,9 +2390,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    49,
+						StartRowIndex:    34,
 						EndColumnIndex:   1,
-						EndRowIndex:      57,
+						EndRowIndex:      42,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2528,9 +2411,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    41,
+						StartRowIndex:    26,
 						EndColumnIndex:   19,
-						EndRowIndex:      44,
+						EndRowIndex:      29,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2548,9 +2431,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    57,
+						StartRowIndex:    42,
 						EndColumnIndex:   19,
-						EndRowIndex:      58,
+						EndRowIndex:      43,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2567,9 +2450,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    57,
+						StartRowIndex:    42,
 						EndColumnIndex:   19,
-						EndRowIndex:      58,
+						EndRowIndex:      43,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2588,13 +2471,136 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    58,
+						StartRowIndex:    43,
+						EndColumnIndex:   1,
+						EndRowIndex:      50,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    50,
+						EndColumnIndex:   1,
+						EndRowIndex:      55,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    55,
 						EndColumnIndex:   1,
 						EndRowIndex:      63,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
 							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  1.0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.numberFormat",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    45,
+						EndColumnIndex:   19,
+						EndRowIndex:      50,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							NumberFormat: &sheets.NumberFormat{
+								Type:    "PERCENT",
+								Pattern: "0%",
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    63,
+						EndColumnIndex:   19,
+						EndRowIndex:      64,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    63,
+						EndColumnIndex:   19,
+						EndRowIndex:      64,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    64,
+						EndColumnIndex:   1,
+						EndRowIndex:      71,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
 								Red:   1.0,
 								Blue:  0,
 								Green: 0.75,
@@ -2609,28 +2615,7 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    63,
-						EndColumnIndex:   1,
-						EndRowIndex:      68,
-					},
-					Cell: &sheets.CellData{
-						UserEnteredFormat: &sheets.CellFormat{
-							BackgroundColor: &sheets.Color{
-								Red:   0.35,
-								Blue:  0,
-								Green: 0.75,
-							},
-						},
-					},
-				},
-			},
-			{
-				RepeatCell: &sheets.RepeatCellRequest{
-					Fields: "userEnteredFormat.backgroundColor",
-					Range: &sheets.GridRange{
-						SheetId:          sheetProperties.SheetId,
-						StartColumnIndex: 0,
-						StartRowIndex:    68,
+						StartRowIndex:    71,
 						EndColumnIndex:   1,
 						EndRowIndex:      76,
 					},
@@ -2638,6 +2623,27 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 						UserEnteredFormat: &sheets.CellFormat{
 							BackgroundColor: &sheets.Color{
 								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    76,
+						EndColumnIndex:   1,
+						EndRowIndex:      84,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
 								Blue:  1.0,
 								Green: 1.0,
 							},
@@ -2651,9 +2657,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    60,
+						StartRowIndex:    66,
 						EndColumnIndex:   19,
-						EndRowIndex:      63,
+						EndRowIndex:      71,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2671,9 +2677,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    76,
+						StartRowIndex:    84,
 						EndColumnIndex:   19,
-						EndRowIndex:      77,
+						EndRowIndex:      85,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2690,9 +2696,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    76,
+						StartRowIndex:    84,
 						EndColumnIndex:   19,
-						EndRowIndex:      77,
+						EndRowIndex:      85,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2711,9 +2717,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    77,
+						StartRowIndex:    85,
 						EndColumnIndex:   1,
-						EndRowIndex:      82,
+						EndRowIndex:      92,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2732,9 +2738,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    82,
+						StartRowIndex:    92,
 						EndColumnIndex:   1,
-						EndRowIndex:      87,
+						EndRowIndex:      97,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2753,9 +2759,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    87,
+						StartRowIndex:    97,
 						EndColumnIndex:   1,
-						EndRowIndex:      95,
+						EndRowIndex:      105,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2774,9 +2780,9 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 					Range: &sheets.GridRange{
 						SheetId:          sheetProperties.SheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    79,
+						StartRowIndex:    87,
 						EndColumnIndex:   19,
-						EndRowIndex:      82,
+						EndRowIndex:      92,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2797,16 +2803,16 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 
 	payoutUpsideIndexMap := map[int64][]int64{}
 	noPaymentIndexMap := map[int64][]int64{}
-	payoutUpsideRowIndexForAll := int64(5)
-	payoutUpsideRowIndexForG1 := int64(24)
-	payoutUpsideRowIndexForG2 := int64(43)
-	payoutUpsideRowIndexForG3 := int64(62)
-	payoutUpsideRowIndexForAllowance := int64(81)
+	payoutUpsideRowIndexForAll := int64(7)
+	payoutUpsideRowIndexForG1 := int64(28)
+	payoutUpsideRowIndexForG2 := int64(49)
+	payoutUpsideRowIndexForG3 := int64(70)
+	payoutUpsideRowIndexForAllowance := int64(91)
 	noPaymentRowIndexForAll := int64(1)
-	noPaymentRowIndexForG1 := int64(20)
-	noPaymentRowIndexForG2 := int64(39)
-	noPaymentRowIndexForG3 := int64(58)
-	noPaymentRowIndexForAllowance := int64(77)
+	noPaymentRowIndexForG1 := int64(22)
+	noPaymentRowIndexForG2 := int64(43)
+	noPaymentRowIndexForG3 := int64(64)
+	noPaymentRowIndexForAllowance := int64(85)
 	payoutUpsideIndexMap[payoutUpsideRowIndexForAll] = []int64{}
 	payoutUpsideIndexMap[payoutUpsideRowIndexForG1] = []int64{}
 	payoutUpsideIndexMap[payoutUpsideRowIndexForG2] = []int64{}
@@ -2901,7 +2907,7 @@ func (s *SpreadSheetAnalyseClient) WriteStyleWin(ctx context.Context, summary *a
 						StartColumnIndex: columnIndex,
 						StartRowIndex:    rowIndex,
 						EndColumnIndex:   columnIndex + 1,
-						EndRowIndex:      rowIndex + 18,
+						EndRowIndex:      rowIndex + 20,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{

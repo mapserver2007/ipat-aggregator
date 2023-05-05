@@ -63,8 +63,8 @@ type PopularAnalyseSummary struct {
 	totalPayout        int
 	averagePayment     int
 	averagePayout      int
-	medianPayment      float64
-	medianPayout       float64
+	medianPayment      int
+	medianPayout       int
 	maxPayout          int
 	minPayout          int
 	maxOddsAtHit       float64
@@ -89,8 +89,8 @@ func NewPopularAnalyseSummary(
 	totalPayout int,
 	averagePayment int,
 	averagePayout int,
-	medanPayment float64,
-	medianPayout float64,
+	medanPayment int,
+	medianPayout int,
 	maxPayout int,
 	minPayout int,
 	maxOddsAtHit float64,
@@ -165,11 +165,11 @@ func (p *PopularAnalyseSummary) AveragePayout() int {
 	return p.averagePayout
 }
 
-func (p *PopularAnalyseSummary) MedianPayment() float64 {
+func (p *PopularAnalyseSummary) MedianPayment() int {
 	return p.medianPayment
 }
 
-func (p *PopularAnalyseSummary) MedianPayout() float64 {
+func (p *PopularAnalyseSummary) MedianPayout() int {
 	return p.medianPayout
 }
 
@@ -184,12 +184,34 @@ func (p *PopularAnalyseSummary) FormattedPayoutRate() string {
 	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.PayoutRate()*100, 'f', 2, 64), "%")
 }
 
-func (p *PopularAnalyseSummary) GeneralWinRate() float64 {
-	if p.betCount == 0 {
+func (p *PopularAnalyseSummary) AveragePayoutRateAtHit() float64 {
+	if p.averagePayment == 0 {
 		return 0
 	}
-	return generalWinRateSlice[p.popularNumber]
+	return math.Round((float64(p.averagePayout)/float64(p.averagePayment))*100) / 100
 }
+
+func (p *PopularAnalyseSummary) FormattedAveragePayoutRateAtHit() string {
+	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.AveragePayoutRateAtHit()*100, 'f', 2, 64), "%")
+}
+
+func (p *PopularAnalyseSummary) MedianPayoutRateAtHit() float64 {
+	if p.medianPayment == 0 {
+		return 0
+	}
+	return math.Round((float64(p.medianPayout)/float64(p.medianPayment))*100) / 100
+}
+
+func (p *PopularAnalyseSummary) FormattedMedianPayoutRateAtHit() string {
+	return fmt.Sprintf("%s%s", strconv.FormatFloat(p.MedianPayoutRateAtHit()*100, 'f', 2, 64), "%")
+}
+
+//func (p *PopularAnalyseSummary) GeneralWinRate() float64 {
+//	if p.betCount == 0 {
+//		return 0
+//	}
+//	return generalWinRateSlice[p.popularNumber]
+//}
 
 func (p *PopularAnalyseSummary) GeneralPayoutRate() float64 {
 	if p.betCount == 0 {

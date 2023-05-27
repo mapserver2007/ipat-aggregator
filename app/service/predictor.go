@@ -332,7 +332,7 @@ func (p *Predictor) getFavoritesAndRivals(
 }
 
 func getMaxBetNumbers(details []*betting_ticket_entity.BettingTicketDetail, excludeBetNumbers []betting_ticket_vo.BetNumber) []betting_ticket_vo.BetNumber {
-	// 馬単の買い目計算ルール
+	// 馬単、三連単の買い目計算ルール
 	// 1着付けの馬番の金額を1.0倍、2着付けの馬番の金額を0.25倍で計算
 	// それをソートして1番目、2番目...を算出
 	result := make([]betting_ticket_vo.BetNumber, 0)
@@ -342,6 +342,7 @@ func getMaxBetNumbers(details []*betting_ticket_entity.BettingTicketDetail, excl
 
 	isExacta := func(ticketType betting_ticket_vo.BettingTicket) bool {
 		if ticketType == betting_ticket_vo.Exacta ||
+			ticketType == betting_ticket_vo.ExactaWheelOfFirst ||
 			ticketType == betting_ticket_vo.Trifecta ||
 			ticketType == betting_ticket_vo.TrifectaFormation ||
 			ticketType == betting_ticket_vo.TrifectaWheelOfFirst {
@@ -465,6 +466,7 @@ func getSortedBettingTickets() []betting_ticket_vo.BettingTicket {
 	return []betting_ticket_vo.BettingTicket{
 		betting_ticket_vo.Win,
 		betting_ticket_vo.Exacta,
+		betting_ticket_vo.ExactaWheelOfFirst,
 		betting_ticket_vo.Trifecta,
 		betting_ticket_vo.TrifectaWheelOfFirst,
 		betting_ticket_vo.TrifectaFormation,

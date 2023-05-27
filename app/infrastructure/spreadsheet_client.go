@@ -1226,7 +1226,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      40,
+						EndRowIndex:      41,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1266,7 +1266,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      40,
+						EndRowIndex:      41,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -2006,7 +2006,7 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 	return nil
 }
 
-func (s *SpreadSheetAnalyzeClient) WriteWin(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
+func (s *SpreadSheetAnalyzeClient) WriteWinPopular(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
 	sheetProperties, ok := s.sheetMap[spreadsheet_vo.Win]
 	if !ok {
 		return fmt.Errorf("sheet not found")
@@ -2126,7 +2126,7 @@ func (s *SpreadSheetAnalyzeClient) WriteWin(ctx context.Context, summary *analyz
 	return nil
 }
 
-func (s *SpreadSheetAnalyzeClient) WriteStyleWin(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
+func (s *SpreadSheetAnalyzeClient) WriteStyleWinPopular(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
 	sheetProperties, _ := s.sheetMap[spreadsheet_vo.Win]
 
 	// 全レース

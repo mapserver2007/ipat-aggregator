@@ -52,9 +52,12 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 		raceNo := ConvertToIntValue(record[5])
 		raceCourse := race_vo.ConvertToRaceCourse(record[3])
 
-		// 三連複・三連単の場合は金額形式が異なる
+		// 連複、連単系の流し、フォーメーションなどの場合は金額形式が異なる
 		var payment int
 		switch bettingTicket {
+		case betting_ticket_vo.ExactaWheelOfFirst:
+			betNumbers = ConvertToBetNumbersForExacta(record[7])
+			payment = ConvertToPaymentForWheel(record[8])[0]
 		case betting_ticket_vo.QuinellaPlaceWheel:
 			betNumbers = ConvertToBetNumbersForQuinella(record[7])
 			payment = ConvertToPaymentForWheel(record[8])[0]
@@ -65,19 +68,29 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 			betNumbers = ConvertToBetNumbersForTrio(record[7])
 			payment = ConvertToPaymentForWheel(record[8])[0]
 		case betting_ticket_vo.TrifectaFormation:
-			// not implemented
+			betNumbers = ConvertToBetNumbersForTrifectaFormation(record[7])
+			payment = ConvertToPaymentForWheel(record[8])[0]
 		case betting_ticket_vo.TrifectaWheelOfFirst:
-			betNumbers = ConvertToBetNumbersForExacta(record[7])
+			betNumbers = ConvertToBetNumbersForTrifecta(record[7])
 			payment = ConvertToPaymentForWheel(record[8])[0]
 		case betting_ticket_vo.UnknownTicket:
 			panic("unknown betting ticket")
 		default:
 			payment = ConvertToIntValue(record[8])
 		}
-
-		winning := strings.HasPrefix(record[9], "的中")
+		var winningBetNumber betting_ticket_vo.BetNumber
+		if strings.HasPrefix(record[9], "的中") {
+			rawBetNumber := strings.Split(record[9], "的中")[1]
+			winningBetNumber = betting_ticket_vo.NewBetNumber(rawBetNumber)
+		}
 
 		for _, betNumber := range betNumbers {
+			repayment := 0
+			winning := false
+			if winningBetNumber == betNumber {
+				repayment = ConvertToIntValue(record[11])
+				winning = true
+			}
 			entities = append(entities, entity.NewCsvEntity(
 				raceDate,
 				ConvertToIntValue(record[1]),
@@ -88,7 +101,7 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 				winning,
 				betNumber,
 				payment,
-				ConvertToIntValue(record[11]),
+				repayment,
 			))
 		}
 	}

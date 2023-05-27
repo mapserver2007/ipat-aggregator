@@ -35,7 +35,7 @@ func ConvertToIntValue(v string) int {
 }
 
 func ConvertToPaymentForWheel(value string) []int {
-	// 3連複軸1頭ながし, 3連単1着流し:
+	// 3連複軸1頭ながし, 馬単、3連単1着流し:
 	// (1点あたりの購入金額)／(合計金額)
 	separator := "／"
 	values := strings.Split(value, separator)
@@ -68,6 +68,25 @@ func ConvertToBetNumbersForQuinella(value string) []betting_ticket_vo.BetNumber 
 		} else {
 			betNumberStr = fmt.Sprintf("%02d%s%02d", challengerNumber, betting_ticket_vo.QuinellaSeparator, pivotalNumber)
 		}
+		betNumbers = append(betNumbers, betting_ticket_vo.NewBetNumber(betNumberStr))
+	}
+
+	return betNumbers
+}
+
+// ConvertToBetNumbersForExacta 馬単流し変換
+func ConvertToBetNumbersForExacta(value string) []betting_ticket_vo.BetNumber {
+	// 複数の買い目がまとめられてるものをバラす
+	separator1 := "／"
+	separator2 := "；"
+	values1 := strings.Split(value, separator1)
+	pivotalNumber, _ := strconv.Atoi(values1[0])                  // 軸
+	strChallengerNumbers := strings.Split(values1[1], separator2) // 相手
+	var betNumbers []betting_ticket_vo.BetNumber
+	for _, strChallengerNumber := range strChallengerNumbers {
+		var betNumberStr string
+		challengerNumber, _ := strconv.Atoi(strChallengerNumber)
+		betNumberStr = fmt.Sprintf("%02d%s%02d", pivotalNumber, betting_ticket_vo.ExactaSeparator, challengerNumber)
 		betNumbers = append(betNumbers, betting_ticket_vo.NewBetNumber(betNumberStr))
 	}
 
@@ -152,8 +171,8 @@ func ConvertToPaymentForFoTrioFormation(value string) []betting_ticket_vo.BetNum
 	return betNumbers
 }
 
-// ConvertToBetNumbersForTrio 3連単流し変換
-func ConvertToBetNumbersForExacta(value string) []betting_ticket_vo.BetNumber {
+// ConvertToBetNumbersForTrifecta 3連単流し変換
+func ConvertToBetNumbersForTrifecta(value string) []betting_ticket_vo.BetNumber {
 	// 複数の買い目がまとめられてるものをバラす
 	separator1 := "／"
 	separator2 := "；"
@@ -172,6 +191,51 @@ func ConvertToBetNumbersForExacta(value string) []betting_ticket_vo.BetNumber {
 			betNumberStr := fmt.Sprintf("%02d%s%02d%s%02d", pivotalNumber, betting_ticket_vo.ExactaSeparator, challengerNumber1, betting_ticket_vo.ExactaSeparator, challengerNumber2)
 			betNumbers = append(betNumbers, betting_ticket_vo.NewBetNumber(betNumberStr))
 		}
+	}
+
+	return betNumbers
+}
+
+// ConvertToBetNumbersForTrifectaFormation 3連単フォーメーション変換
+func ConvertToBetNumbersForTrifectaFormation(value string) []betting_ticket_vo.BetNumber {
+	// 複数の買い目がまとめられてるものをバラす
+	separator1 := "／"
+	separator2 := "；"
+	values := strings.Split(value, separator1)
+
+	values1 := strings.Split(values[0], separator2)
+	values2 := strings.Split(values[1], separator2)
+	values3 := strings.Split(values[2], separator2)
+
+	betNumberMap := map[string]betting_ticket_vo.BetNumber{}
+	var betNumbers []betting_ticket_vo.BetNumber
+
+	for i := 0; i < len(values1); i++ {
+		challengerNumber1, _ := strconv.Atoi(values1[i])
+		for j := 0; j < len(values2); j++ {
+			challengerNumber2, _ := strconv.Atoi(values2[j])
+
+			if challengerNumber1 == challengerNumber2 {
+				continue
+			}
+
+			for k := 0; k < len(values3); k++ {
+				challengerNumber3, _ := strconv.Atoi(values3[k])
+
+				if challengerNumber1 == challengerNumber3 || challengerNumber2 == challengerNumber3 {
+					continue
+				}
+
+				betNumberStr := fmt.Sprintf("%02d%s%02d%s%02d", challengerNumber1, betting_ticket_vo.ExactaSeparator, challengerNumber2, betting_ticket_vo.ExactaSeparator, challengerNumber3)
+				if _, ok := betNumberMap[betNumberStr]; !ok {
+					betNumberMap[betNumberStr] = betting_ticket_vo.NewBetNumber(betNumberStr)
+				}
+			}
+		}
+	}
+
+	for _, betNumber := range betNumberMap {
+		betNumbers = append(betNumbers, betNumber)
 	}
 
 	return betNumbers

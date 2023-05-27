@@ -9,6 +9,7 @@ const (
 	BracketQuinella
 	Quinella
 	Exacta
+	ExactaWheelOfFirst
 	QuinellaPlace
 	QuinellaPlaceWheel
 	Trio
@@ -25,6 +26,7 @@ var bettingTicketMap = map[BettingTicket]string{
 	BracketQuinella:      "枠連",
 	Quinella:             "馬連",
 	Exacta:               "馬単",
+	ExactaWheelOfFirst:   "馬単1着ながし",
 	QuinellaPlace:        "ワイド",
 	QuinellaPlaceWheel:   "ワイドながし",
 	Trio:                 "3連複",
@@ -46,6 +48,8 @@ func (b BettingTicket) Value() int {
 
 func (b BettingTicket) ConvertToOriginBettingTicket() BettingTicket {
 	switch b {
+	case ExactaWheelOfFirst:
+		return Exacta
 	case QuinellaPlaceWheel:
 		return QuinellaPlace
 	case TrioFormation, TrioWheelOfFirst:

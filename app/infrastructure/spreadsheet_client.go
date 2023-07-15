@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -1381,7 +1380,7 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 	return nil
 }
 
-func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.ResultStyle, error) {
+func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle, error) {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A1")
 	values := [][]interface{}{
 		{
@@ -1422,12 +1421,12 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 		return records[i].Race().RaceDate() > records[j].Race().RaceDate()
 	})
 
-	styleMap := map[race_vo.RaceId]*spreadsheet_entity.ResultStyle{}
+	styleMap := map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle{}
 	for idx, record := range records {
 		var (
 			favoriteColor, rivalColor spreadsheet_vo.PlaceColor
 			gradeClassColor           spreadsheet_vo.GradeClassColor
-			repaymentComment          string
+			repaymentComments         spreadsheet_vo.RepaymentComments
 		)
 		raceResults := record.Race().RaceResults()
 		raceResultOfFirst := raceResults[0]
@@ -1457,16 +1456,13 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 		}
 
 		if record.WinningTickets() != nil {
-			var comments []string
 			for _, winningTicket := range record.WinningTickets() {
-				comment := fmt.Sprintf("%s %s %s倍 %d円", winningTicket.BettingTicket.Name(), winningTicket.BetNumber.String(), winningTicket.Odds, winningTicket.Repayment)
-				comments = append(comments, comment)
+				repaymentComments = append(repaymentComments, fmt.Sprintf("%s %s %s倍 %d円", winningTicket.BettingTicket.Name(), winningTicket.BetNumber.String(), winningTicket.Odds, winningTicket.Repayment))
 			}
-			repaymentComment = strings.Join(comments, "\n")
 		}
 
-		styleMap[record.Race().RaceId()] = spreadsheet_entity.NewResultStyle(
-			idx+1, favoriteColor, rivalColor, gradeClassColor, repaymentComment,
+		styleMap[record.Race().RaceId()] = spreadsheet_entity.NewSpreadSheetStyle(
+			idx+1, favoriteColor, rivalColor, gradeClassColor, repaymentComments,
 		)
 
 		if record.RivalHorse() != nil {
@@ -1520,7 +1516,7 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 	return styleMap, nil
 }
 
-func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.ResultStyle) error {
+func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle) error {
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1851,25 +1847,25 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 	var requests []*sheets.Request
 	for _, record := range records {
 		if style, ok := styleMap[record.Race().RaceId()]; ok {
-			if style.GradeClassColor != spreadsheet_vo.NonGrade {
+			if style.GetGradeClassColor() != spreadsheet_vo.NonGrade {
 				color := &sheets.Color{
 					Red:   1.0,
 					Blue:  1.0,
 					Green: 1.0,
 				}
-				if style.GradeClassColor == spreadsheet_vo.Grade1 {
+				if style.GetGradeClassColor() == spreadsheet_vo.Grade1 {
 					color = &sheets.Color{
 						Red:   1.0,
 						Green: 0.937,
 						Blue:  0.498,
 					}
-				} else if style.GradeClassColor == spreadsheet_vo.Grade2 {
+				} else if style.GetGradeClassColor() == spreadsheet_vo.Grade2 {
 					color = &sheets.Color{
 						Red:   0.796,
 						Green: 0.871,
 						Blue:  1.0,
 					}
-				} else if style.GradeClassColor == spreadsheet_vo.Grade3 {
+				} else if style.GetGradeClassColor() == spreadsheet_vo.Grade3 {
 					color = &sheets.Color{
 						Red:   0.937,
 						Green: 0.78,
@@ -1882,9 +1878,9 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    int64(style.RowIndex),
+						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   2,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1896,19 +1892,19 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 					RepeatCell: cellRequest,
 				})
 			}
-			if style.FavoriteColor != spreadsheet_vo.OtherPlace {
+			if style.GetFavoriteColor() != spreadsheet_vo.OtherPlace {
 				color := &sheets.Color{
 					Red:   1.0,
 					Blue:  1.0,
 					Green: 1.0,
 				}
-				if style.FavoriteColor == spreadsheet_vo.FirstPlace {
+				if style.GetFavoriteColor() == spreadsheet_vo.FirstPlace {
 					color = &sheets.Color{
 						Red:   1.0,
 						Green: 0.937,
 						Blue:  0.498,
 					}
-				} else if style.FavoriteColor == spreadsheet_vo.SecondPlace {
+				} else if style.GetFavoriteColor() == spreadsheet_vo.SecondPlace {
 					color = &sheets.Color{
 						Red:   0.796,
 						Green: 0.871,
@@ -1921,9 +1917,9 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 9,
-						StartRowIndex:    int64(style.RowIndex),
+						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   10,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1935,19 +1931,19 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 					RepeatCell: cellRequest,
 				})
 			}
-			if style.RivalColor != spreadsheet_vo.OtherPlace {
+			if style.GetRivalColor() != spreadsheet_vo.OtherPlace {
 				color := &sheets.Color{
 					Red:   1.0,
 					Blue:  1.0,
 					Green: 1.0,
 				}
-				if style.RivalColor == spreadsheet_vo.FirstPlace {
+				if style.GetRivalColor() == spreadsheet_vo.FirstPlace {
 					color = &sheets.Color{
 						Red:   1.0,
 						Green: 0.937,
 						Blue:  0.498,
 					}
-				} else if style.RivalColor == spreadsheet_vo.SecondPlace {
+				} else if style.GetRivalColor() == spreadsheet_vo.SecondPlace {
 					color = &sheets.Color{
 						Red:   0.796,
 						Green: 0.871,
@@ -1960,9 +1956,9 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 13,
-						StartRowIndex:    int64(style.RowIndex),
+						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   14,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1974,18 +1970,18 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 					RepeatCell: cellRequest,
 				})
 			}
-			if len(style.RepaymentComment) > 0 {
+			if len(style.GetRepaymentComment()) > 0 {
 				cellRequest := &sheets.RepeatCellRequest{
 					Fields: "note",
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 7,
-						StartRowIndex:    int64(style.RowIndex),
+						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   8,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
-						Note: style.RepaymentComment,
+						Note: style.GetRepaymentComment(),
 					},
 				}
 				requests = append(requests, &sheets.Request{

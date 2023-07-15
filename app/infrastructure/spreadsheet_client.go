@@ -8,6 +8,7 @@ import (
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	result_summary_entity "github.com/mapserver2007/ipat-aggregator/app/domain/result/entity"
 	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
 	spreadsheet_vo "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/repository"
@@ -180,7 +181,7 @@ func getSpreadSheetAnalyzeConfig(
 	return service, spreadSheetConfig, sheetMap
 }
 
-func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error {
+func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary result_summary_entity.ShortSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A1")
 	values := [][]interface{}{
 		{
@@ -189,15 +190,15 @@ func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary sp
 		},
 		{
 			"投資",
-			summary.Payments,
+			summary.GetPayment(),
 		},
 		{
 			"回収",
-			summary.Repayments,
+			summary.GetPayout(),
 		},
 		{
 			"回収率",
-			summary.CalcReturnOnInvestment(),
+			summary.GetRecoveryRate(),
 		},
 	}
 
@@ -211,7 +212,7 @@ func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary sp
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error {
+func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, summary result_summary_entity.ShortSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "C1")
 	values := [][]interface{}{
 		{
@@ -220,15 +221,15 @@ func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, sum
 		},
 		{
 			"投資",
-			summary.Payments,
+			summary.GetPayment(),
 		},
 		{
 			"回収",
-			summary.Repayments,
+			summary.GetPayout(),
 		},
 		{
 			"回収率",
-			summary.CalcReturnOnInvestment(),
+			summary.GetRecoveryRate(),
 		},
 	}
 
@@ -242,7 +243,7 @@ func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, sum
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForCurrentYearSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error {
+func (s *SpreadSheetClient) WriteForCurrentYearSummary(ctx context.Context, summary result_summary_entity.ShortSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "E1")
 	values := [][]interface{}{
 		{
@@ -251,15 +252,15 @@ func (s *SpreadSheetClient) WriteForCurrentYearSummary(ctx context.Context, summ
 		},
 		{
 			"投資",
-			summary.Payments,
+			summary.GetPayment(),
 		},
 		{
 			"回収",
-			summary.Repayments,
+			summary.GetPayout(),
 		},
 		{
 			"回収率",
-			summary.CalcReturnOnInvestment(),
+			summary.GetRecoveryRate(),
 		},
 	}
 

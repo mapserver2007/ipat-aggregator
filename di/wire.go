@@ -27,6 +27,7 @@ func AggregatorInit() *service.Aggregator {
 		service.NewAggregator,
 		service.NewRaceConverter,
 		service.NewBettingTicketConverter,
+		service.NewSummarizer,
 	)
 	return nil
 }

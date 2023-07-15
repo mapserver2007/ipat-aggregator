@@ -6,6 +6,9 @@ import (
 	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
 )
 
+// TODO コンストラクタ化してDIしたい
+// というかいらなくなるかも
+
 func CalcSumResultRate(records []*entity.CsvEntity) spreadsheet_entity.ResultRate {
 	var voteCount, hitCount, repayments, payments int
 	for _, record := range records {

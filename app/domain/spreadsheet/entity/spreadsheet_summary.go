@@ -33,17 +33,66 @@ func (s *SpreadSheetSummary) GetShortSummaryForYear() result_summary_entity.Shor
 }
 
 type SpreadSheetBettingTicketSummary struct {
-	winSummary result_summary_entity.DetailSummary
+	winSummary           result_summary_entity.DetailSummary
+	placeSummary         result_summary_entity.DetailSummary
+	quinellaSummary      result_summary_entity.DetailSummary
+	exactaSummary        result_summary_entity.DetailSummary
+	quinellaPlaceSummary result_summary_entity.DetailSummary
+	trioSummary          result_summary_entity.DetailSummary
+	trifectaSummary      result_summary_entity.DetailSummary
+	totalSummary         result_summary_entity.DetailSummary
 }
 
 func NewSpreadSheetBettingTicketSummary(
 	winSummary result_summary_entity.DetailSummary,
+	placeSummary result_summary_entity.DetailSummary,
+	quinellaSummary result_summary_entity.DetailSummary,
+	exactaSummary result_summary_entity.DetailSummary,
+	quinellaPlaceSummary result_summary_entity.DetailSummary,
+	trioSummary result_summary_entity.DetailSummary,
+	trifectaSummary result_summary_entity.DetailSummary,
+	totalSummary result_summary_entity.DetailSummary,
 ) *SpreadSheetBettingTicketSummary {
 	return &SpreadSheetBettingTicketSummary{
-		winSummary: winSummary,
+		winSummary:           winSummary,
+		placeSummary:         placeSummary,
+		quinellaSummary:      quinellaSummary,
+		exactaSummary:        exactaSummary,
+		quinellaPlaceSummary: quinellaPlaceSummary,
+		trioSummary:          trioSummary,
+		trifectaSummary:      trifectaSummary,
+		totalSummary:         totalSummary,
 	}
 }
 
 func (s *SpreadSheetBettingTicketSummary) GetWinSummary() result_summary_entity.DetailSummary {
 	return s.winSummary
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetPlaceSummary() result_summary_entity.DetailSummary {
+	return s.placeSummary
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetQuinellaSummary() result_summary_entity.DetailSummary {
+	return s.quinellaSummary
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetExactaSummary() result_summary_entity.DetailSummary {
+	return s.exactaSummary
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetQuinellaPlaceSummary() result_summary_entity.DetailSummary {
+	return s.quinellaPlaceSummary
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetTrioSummary() result_summary_entity.DetailSummary {
+	return s.trioSummary
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetTrifectaSummary() result_summary_entity.DetailSummary {
+	return s.trifectaSummary
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetTotalSummary() result_summary_entity.DetailSummary {
+	return s.totalSummary
 }

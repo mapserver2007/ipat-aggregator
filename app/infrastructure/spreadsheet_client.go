@@ -274,7 +274,7 @@ func (s *SpreadSheetClient) WriteForCurrentYearSummary(ctx context.Context, summ
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Context, summary spreadsheet_entity.BettingTicketSummary, summary2 *spreadsheet_entity.SpreadSheetBettingTicketSummary) error {
+func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetBettingTicketSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A6")
 	values := [][]interface{}{
 		{
@@ -288,8 +288,15 @@ func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Co
 		},
 	}
 
-	// 新処理
-	winSummary := summary2.GetWinSummary()
+	winSummary := summary.GetWinSummary()
+	placeSummary := summary.GetPlaceSummary()
+	quinellaSummary := summary.GetQuinellaSummary()
+	exactaSummary := summary.GetExactaSummary()
+	quinellaPlaceSummary := summary.GetQuinellaPlaceSummary()
+	trioSummary := summary.GetTrioSummary()
+	trifectaSummary := summary.GetTrifectaSummary()
+	totalSummary := summary.GetTotalSummary()
+
 	values = append(values, []interface{}{
 		betting_ticket_vo.Win.Name(),
 		winSummary.GetBetCount(),
@@ -299,47 +306,68 @@ func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Co
 		winSummary.GetPayout(),
 		winSummary.GetRecoveryRate(),
 	})
-
-	// 旧処理
-	var bettingTicketKindList []betting_ticket_vo.BettingTicket
-	for bettingTicketKind := range summary.BettingTicketRates {
-		bettingTicketKindList = append(bettingTicketKindList, bettingTicketKind)
-	}
-
-	sort.Slice(bettingTicketKindList, func(i, j int) bool {
-		return bettingTicketKindList[i].Value() < bettingTicketKindList[j].Value()
+	values = append(values, []interface{}{
+		betting_ticket_vo.Place.Name(),
+		placeSummary.GetBetCount(),
+		placeSummary.GetHitCount(),
+		placeSummary.GetHitRate(),
+		placeSummary.GetPayment(),
+		placeSummary.GetPayout(),
+		placeSummary.GetRecoveryRate(),
 	})
-
-	var totalResultRate spreadsheet_entity.ResultRate
-	for _, bettingTicketKind := range bettingTicketKindList {
-		bettingTicketRate, _ := summary.BettingTicketRates[bettingTicketKind]
-
-		if bettingTicketKind != betting_ticket_vo.Win {
-			values = append(values, []interface{}{
-				bettingTicketKind.Name(),
-				bettingTicketRate.VoteCount,
-				bettingTicketRate.HitCount,
-				bettingTicketRate.HitRateFormat(),
-				bettingTicketRate.Payments,
-				bettingTicketRate.Repayments,
-				bettingTicketRate.ReturnOnInvestmentFormat(),
-			})
-		}
-
-		totalResultRate.VoteCount += bettingTicketRate.VoteCount
-		totalResultRate.HitCount += bettingTicketRate.HitCount
-		totalResultRate.Payments += bettingTicketRate.Payments
-		totalResultRate.Repayments += bettingTicketRate.Repayments
-	}
-
+	values = append(values, []interface{}{
+		betting_ticket_vo.Quinella.Name(),
+		quinellaSummary.GetBetCount(),
+		quinellaSummary.GetHitCount(),
+		quinellaSummary.GetHitRate(),
+		quinellaSummary.GetPayment(),
+		quinellaSummary.GetPayout(),
+		quinellaSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Exacta.Name(),
+		exactaSummary.GetBetCount(),
+		exactaSummary.GetHitCount(),
+		exactaSummary.GetHitRate(),
+		exactaSummary.GetPayment(),
+		exactaSummary.GetPayout(),
+		exactaSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.QuinellaPlace.Name(),
+		quinellaPlaceSummary.GetBetCount(),
+		quinellaPlaceSummary.GetHitCount(),
+		quinellaPlaceSummary.GetHitRate(),
+		quinellaPlaceSummary.GetPayment(),
+		quinellaPlaceSummary.GetPayout(),
+		quinellaPlaceSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Trio.Name(),
+		trioSummary.GetBetCount(),
+		trioSummary.GetHitCount(),
+		trioSummary.GetHitRate(),
+		trioSummary.GetPayment(),
+		trioSummary.GetPayout(),
+		trioSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Trifecta.Name(),
+		trifectaSummary.GetBetCount(),
+		trifectaSummary.GetHitCount(),
+		trifectaSummary.GetHitRate(),
+		trifectaSummary.GetPayment(),
+		trifectaSummary.GetPayout(),
+		trifectaSummary.GetRecoveryRate(),
+	})
 	values = append(values, []interface{}{
 		"累計",
-		totalResultRate.VoteCount,
-		totalResultRate.HitCount,
-		totalResultRate.HitRateFormat(),
-		totalResultRate.Payments,
-		totalResultRate.Repayments,
-		totalResultRate.ReturnOnInvestmentFormat(),
+		totalSummary.GetBetCount(),
+		totalSummary.GetHitCount(),
+		totalSummary.GetHitRate(),
+		totalSummary.GetPayment(),
+		totalSummary.GetPayout(),
+		totalSummary.GetRecoveryRate(),
 	})
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{

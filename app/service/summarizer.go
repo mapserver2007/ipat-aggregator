@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
+	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	result_entity "github.com/mapserver2007/ipat-aggregator/app/domain/result/entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/result/types"
 	"strconv"
@@ -42,6 +43,18 @@ func (s *Summarizer) GetShortSummaryForYear(records []*betting_ticket_entity.Csv
 		s.getPaymentForYear(records),
 		s.getPayoutForYear(records),
 		s.getRecoveryRateForYear(records),
+	)
+}
+
+func (s *Summarizer) GetBettingTicketSummaryForAll(records []*betting_ticket_entity.CsvEntity) result_entity.DetailSummary {
+	return result_entity.NewDetailSummary(
+		s.getBettingTicketWinVoteCountForAll(records),
+		s.getBettingTicketWinHitCountForAll(records),
+		s.getBettingTicketWinPaymentForAll(records),
+		s.getBettingTicketWinPayoutForAll(records),
+		s.getBettingTicketWinAveragePayoutForAll(records),
+		s.getBettingTicketWinMaxPayoutForAll(records),
+		s.getBettingTicketWinMinPayoutForAll(records),
 	)
 }
 
@@ -145,6 +158,107 @@ func (s *Summarizer) getRecoveryRateForYear(records []*betting_ticket_entity.Csv
 		return fmt.Sprintf("%d%s", 0, "%")
 	}
 	return fmt.Sprintf("%s%s", strconv.FormatFloat((float64(payout)*float64(100))/float64(payment), 'f', 2, 64), "%")
+}
+
+// getBettingTicketWinPaymentForAll 券種別投資額の合計を取得する(全期間)
+func (s *Summarizer) getBettingTicketWinPaymentForAll(records []*betting_ticket_entity.CsvEntity) types.Payment {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	if recordsForWin, ok := recordsGroup[betting_ticket_vo.Win]; ok {
+		payment, _ := getSumAmount(recordsForWin)
+		return payment
+	}
+
+	return types.Payment(0)
+}
+
+// getBettingTicketWinPayoutForAll 券種別回収額の合計を取得する(全期間)
+func (s *Summarizer) getBettingTicketWinPayoutForAll(records []*betting_ticket_entity.CsvEntity) types.Payout {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	if recordsForWin, ok := recordsGroup[betting_ticket_vo.Win]; ok {
+		_, payout := getSumAmount(recordsForWin)
+		return payout
+	}
+
+	return types.Payout(0)
+}
+
+// getBettingTicketWinRecoveryRateForAll 券種別回収率の合計を取得する(全期間)
+func (s *Summarizer) getBettingTicketWinRecoveryRateForAll(records []*betting_ticket_entity.CsvEntity) string {
+	payment := s.getBettingTicketWinPaymentForAll(records)
+	payout := s.getBettingTicketWinPayoutForAll(records)
+	if payment == 0 {
+		return fmt.Sprintf("%d%s", 0, "%")
+	}
+	return fmt.Sprintf("%s%s", strconv.FormatFloat((float64(payout)*float64(100))/float64(payment), 'f', 2, 64), "%")
+}
+
+// getBettingTicketWinVoteCountForAll 券種別投票数の合計を取得する(全期間)
+func (s *Summarizer) getBettingTicketWinVoteCountForAll(records []*betting_ticket_entity.CsvEntity) types.BetCount {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	if recordsForWin, ok := recordsGroup[betting_ticket_vo.Win]; ok {
+		return types.BetCount(len(recordsForWin))
+	}
+
+	return types.BetCount(0)
+}
+
+// getBettingTicketWinHitCountForAll 券種別的中数の合計を取得する(全期間)
+func (s *Summarizer) getBettingTicketWinHitCountForAll(records []*betting_ticket_entity.CsvEntity) types.HitCount {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	if recordsForWin, ok := recordsGroup[betting_ticket_vo.Win]; ok {
+		hitCount := 0
+		for _, record := range recordsForWin {
+			if record.BettingResult() == betting_ticket_vo.Hit {
+				hitCount++
+			}
+		}
+		return types.HitCount(hitCount)
+	}
+
+	return types.HitCount(0)
+}
+
+func (s *Summarizer) getBettingTicketWinMaxPayoutForAll(records []*betting_ticket_entity.CsvEntity) types.Payout {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	if recordsForWin, ok := recordsGroup[betting_ticket_vo.Win]; ok {
+		maxPayout := 0
+		for _, record := range recordsForWin {
+			if maxPayout < record.Repayment() {
+				maxPayout = record.Repayment()
+			}
+		}
+		return types.Payout(maxPayout)
+	}
+
+	return types.Payout(0)
+}
+
+func (s *Summarizer) getBettingTicketWinMinPayoutForAll(records []*betting_ticket_entity.CsvEntity) types.Payout {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	if recordsForWin, ok := recordsGroup[betting_ticket_vo.Win]; ok {
+		minPayout := 0
+		for _, record := range recordsForWin {
+			if record.Repayment() == 0 {
+				continue
+			}
+			if minPayout == 0 || minPayout > record.Repayment() {
+				minPayout = record.Repayment()
+			}
+		}
+		return types.Payout(minPayout)
+	}
+
+	return types.Payout(0)
+}
+
+func (s *Summarizer) getBettingTicketWinAveragePayoutForAll(records []*betting_ticket_entity.CsvEntity) types.Payout {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	if recordsForWin, ok := recordsGroup[betting_ticket_vo.Win]; ok {
+		_, payout := getSumAmount(recordsForWin)
+		return types.Payout(int(float64(payout) / float64(len(recordsForWin))))
+	}
+
+	return types.Payout(0)
 }
 
 func getSumAmount(records []*betting_ticket_entity.CsvEntity) (types.Payment, types.Payout) {

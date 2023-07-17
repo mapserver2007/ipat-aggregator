@@ -274,7 +274,7 @@ func (s *SpreadSheetClient) WriteForCurrentYearSummary(ctx context.Context, summ
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Context, summary spreadsheet_entity.BettingTicketSummary) error {
+func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Context, summary spreadsheet_entity.BettingTicketSummary, summary2 *spreadsheet_entity.SpreadSheetBettingTicketSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A6")
 	values := [][]interface{}{
 		{
@@ -288,6 +288,19 @@ func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Co
 		},
 	}
 
+	// 新処理
+	winSummary := summary2.GetWinSummary()
+	values = append(values, []interface{}{
+		betting_ticket_vo.Win.Name(),
+		winSummary.GetBetCount(),
+		winSummary.GetHitCount(),
+		winSummary.GetHitRate(),
+		winSummary.GetPayment(),
+		winSummary.GetPayout(),
+		winSummary.GetRecoveryRate(),
+	})
+
+	// 旧処理
 	var bettingTicketKindList []betting_ticket_vo.BettingTicket
 	for bettingTicketKind := range summary.BettingTicketRates {
 		bettingTicketKindList = append(bettingTicketKindList, bettingTicketKind)
@@ -300,15 +313,18 @@ func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Co
 	var totalResultRate spreadsheet_entity.ResultRate
 	for _, bettingTicketKind := range bettingTicketKindList {
 		bettingTicketRate, _ := summary.BettingTicketRates[bettingTicketKind]
-		values = append(values, []interface{}{
-			bettingTicketKind.Name(),
-			bettingTicketRate.VoteCount,
-			bettingTicketRate.HitCount,
-			bettingTicketRate.HitRateFormat(),
-			bettingTicketRate.Payments,
-			bettingTicketRate.Repayments,
-			bettingTicketRate.ReturnOnInvestmentFormat(),
-		})
+
+		if bettingTicketKind != betting_ticket_vo.Win {
+			values = append(values, []interface{}{
+				bettingTicketKind.Name(),
+				bettingTicketRate.VoteCount,
+				bettingTicketRate.HitCount,
+				bettingTicketRate.HitRateFormat(),
+				bettingTicketRate.Payments,
+				bettingTicketRate.Repayments,
+				bettingTicketRate.ReturnOnInvestmentFormat(),
+			})
+		}
 
 		totalResultRate.VoteCount += bettingTicketRate.VoteCount
 		totalResultRate.HitCount += bettingTicketRate.HitCount

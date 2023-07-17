@@ -31,3 +31,19 @@ func (s *SpreadSheetSummary) GetShortSummaryForMonth() result_summary_entity.Sho
 func (s *SpreadSheetSummary) GetShortSummaryForYear() result_summary_entity.ShortSummary {
 	return s.shortSummaryForYear
 }
+
+type SpreadSheetBettingTicketSummary struct {
+	winSummary result_summary_entity.DetailSummary
+}
+
+func NewSpreadSheetBettingTicketSummary(
+	winSummary result_summary_entity.DetailSummary,
+) *SpreadSheetBettingTicketSummary {
+	return &SpreadSheetBettingTicketSummary{
+		winSummary: winSummary,
+	}
+}
+
+func (s *SpreadSheetBettingTicketSummary) GetWinSummary() result_summary_entity.DetailSummary {
+	return s.winSummary
+}

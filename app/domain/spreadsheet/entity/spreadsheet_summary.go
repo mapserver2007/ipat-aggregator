@@ -133,3 +133,17 @@ func (s *SpreadSheetClassSummary) GetGrade3Summary() result_summary_entity.Detai
 func (s *SpreadSheetClassSummary) GetNonGradeSummary() result_summary_entity.DetailSummary {
 	return s.nonGradeSummary
 }
+
+type SpreadSheetMonthlySummary struct {
+	monthlySummaryMap map[int]result_summary_entity.DetailSummary
+}
+
+func NewSpreadSheetMonthlySummary(monthlySummaryMap map[int]result_summary_entity.DetailSummary) *SpreadSheetMonthlySummary {
+	return &SpreadSheetMonthlySummary{
+		monthlySummaryMap: monthlySummaryMap,
+	}
+}
+
+func (s *SpreadSheetMonthlySummary) GetMonthlySummaryMap() map[int]result_summary_entity.DetailSummary {
+	return s.monthlySummaryMap
+}

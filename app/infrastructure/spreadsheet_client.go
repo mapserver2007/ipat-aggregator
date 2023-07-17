@@ -585,7 +585,7 @@ func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, s
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summary spreadsheet_entity.MonthlySummary) error {
+func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A20")
 
 	values := [][]interface{}{
@@ -600,8 +600,13 @@ func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summ
 		},
 	}
 
-	var dateList []int
-	for key := range summary.MonthlyRates {
+	monthlySummaryMap := summary.GetMonthlySummaryMap()
+
+	var (
+		dateList  []int
+		summaries []result_summary_entity.DetailSummary
+	)
+	for key := range monthlySummaryMap {
 		dateList = append(dateList, key)
 	}
 	sort.Slice(dateList, func(i, j int) bool {
@@ -609,15 +614,17 @@ func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summ
 	})
 
 	for _, date := range dateList {
-		monthlyRate := summary.MonthlyRates[date]
+		summaries = append(summaries, monthlySummaryMap[date])
+	}
+	for idx, monthlySummary := range summaries {
 		values = append(values, []interface{}{
-			strconv.Itoa(date),
-			monthlyRate.VoteCount,
-			monthlyRate.HitCount,
-			monthlyRate.HitRateFormat(),
-			monthlyRate.Payments,
-			monthlyRate.Repayments,
-			monthlyRate.ReturnOnInvestmentFormat(),
+			strconv.Itoa(dateList[idx]),
+			monthlySummary.GetBetCount(),
+			monthlySummary.GetHitCount(),
+			monthlySummary.GetHitRate(),
+			monthlySummary.GetPayment(),
+			monthlySummary.GetPayout(),
+			monthlySummary.GetRecoveryRate(),
 		})
 	}
 

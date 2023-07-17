@@ -27,7 +27,7 @@ func DataCacheInit() *usecase.DataCache {
 func AggregatorInit() *service.Aggregator {
 	raceConverter := service.NewRaceConverter()
 	bettingTicketConverter := service.NewBettingTicketConverter()
-	summarizer := service.NewSummarizer(bettingTicketConverter)
+	summarizer := service.NewSummarizer(raceConverter, bettingTicketConverter)
 	aggregator := service.NewAggregator(raceConverter, bettingTicketConverter, summarizer)
 	return aggregator
 }

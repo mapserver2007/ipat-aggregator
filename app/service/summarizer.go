@@ -4,6 +4,8 @@ import (
 	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	result_entity "github.com/mapserver2007/ipat-aggregator/app/domain/result/entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/result/types"
 	"strconv"
@@ -11,13 +13,16 @@ import (
 )
 
 type Summarizer struct {
+	raceConverter          RaceConverter
 	bettingTicketConverter BettingTicketConverter
 }
 
 func NewSummarizer(
+	raceConverter RaceConverter,
 	bettingTicketConverter BettingTicketConverter,
 ) Summarizer {
 	return Summarizer{
+		raceConverter:          raceConverter,
 		bettingTicketConverter: bettingTicketConverter,
 	}
 }
@@ -55,6 +60,18 @@ func (s *Summarizer) GetBettingTicketSummaryForAll(records []*betting_ticket_ent
 		s.getBettingTicketAveragePayoutForAll(records, bettingTicketTypes...),
 		s.getBettingTicketMaxPayoutForAll(records, bettingTicketTypes...),
 		s.getBettingTicketMinPayoutForAll(records, bettingTicketTypes...),
+	)
+}
+
+func (s *Summarizer) GetGradeClassSummaryForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) result_entity.DetailSummary {
+	return result_entity.NewDetailSummary(
+		s.getGradeClassVoteCountForAll(records, races, gradeClasses...),
+		s.getGradeClassHitCountForAll(records, races, gradeClasses...),
+		s.getGradeClassPaymentForAll(records, races, gradeClasses...),
+		s.getGradeClassPayoutForAll(records, races, gradeClasses...),
+		s.getGradeClassAveragePayoutForAll(records, races, gradeClasses...),
+		s.getGradeClassMaxPayoutForAll(records, races, gradeClasses...),
+		s.getGradeClassMinPayoutForAll(records, races, gradeClasses...),
 	)
 }
 
@@ -284,6 +301,129 @@ func (s *Summarizer) getBettingTicketAveragePayoutForAll(records []*betting_tick
 
 	_, payout := getSumAmount(hitRecords)
 	return types.Payout(int(float64(payout) / float64(len(hitRecords))))
+}
+
+// getGradeClassVoteCountForAll クラス別投票数の合計を取得する(全期間)
+func (s *Summarizer) getGradeClassVoteCountForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.BetCount {
+	raceMap := s.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, gradeClass := range gradeClasses {
+		if recordsByGradeClass, ok := recordsGroup[gradeClass]; ok {
+			mergedRecords = append(mergedRecords, recordsByGradeClass...)
+		}
+	}
+	return types.BetCount(len(mergedRecords))
+}
+
+// getGradeClassHitCountForAll クラス別的中数の合計を取得する(全期間)
+func (s *Summarizer) getGradeClassHitCountForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.HitCount {
+	raceMap := s.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, gradeClass := range gradeClasses {
+		if recordsByGradeClass, ok := recordsGroup[gradeClass]; ok {
+			mergedRecords = append(mergedRecords, recordsByGradeClass...)
+		}
+	}
+	hitCount := 0
+	for _, record := range mergedRecords {
+		if record.BettingResult() == betting_ticket_vo.Hit {
+			hitCount++
+		}
+	}
+	return types.HitCount(hitCount)
+}
+
+// getGradeClassPaymentForAll クラス別投票金額の合計を取得する(全期間)
+func (s *Summarizer) getGradeClassPaymentForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.Payment {
+	raceMap := s.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, gradeClass := range gradeClasses {
+		if recordsByBettingTicket, ok := recordsGroup[gradeClass]; ok {
+			mergedRecords = append(mergedRecords, recordsByBettingTicket...)
+		}
+	}
+	payment, _ := getSumAmount(mergedRecords)
+	return payment
+}
+
+// getGradeClassPayoutForAll クラス別回収金額の合計を取得する(全期間)
+func (s *Summarizer) getGradeClassPayoutForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.Payout {
+	raceMap := s.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, gradeClass := range gradeClasses {
+		if recordsByBettingTicket, ok := recordsGroup[gradeClass]; ok {
+			mergedRecords = append(mergedRecords, recordsByBettingTicket...)
+		}
+	}
+	_, payout := getSumAmount(mergedRecords)
+	return payout
+}
+
+// getGradeClassAveragePayoutForAll クラス別平均回収額の合計を取得する(全期間)
+func (s *Summarizer) getGradeClassAveragePayoutForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.Payout {
+	raceMap := s.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, gradeClass := range gradeClasses {
+		if recordsByBettingTicket, ok := recordsGroup[gradeClass]; ok {
+			mergedRecords = append(mergedRecords, recordsByBettingTicket...)
+		}
+	}
+	// 不的中を除外
+	var hitRecords []*betting_ticket_entity.CsvEntity
+	for _, record := range mergedRecords {
+		if record.BettingResult() == betting_ticket_vo.Hit {
+			hitRecords = append(hitRecords, record)
+		}
+	}
+
+	_, payout := getSumAmount(hitRecords)
+	return types.Payout(int(float64(payout) / float64(len(hitRecords))))
+}
+
+// getGradeClassMaxPayoutForAll クラス別最大回収額の合計を取得する(全期間)
+func (s *Summarizer) getGradeClassMaxPayoutForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.Payout {
+	raceMap := s.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, gradeClass := range gradeClasses {
+		if recordsByBettingTicket, ok := recordsGroup[gradeClass]; ok {
+			mergedRecords = append(mergedRecords, recordsByBettingTicket...)
+		}
+	}
+	maxPayout := 0
+	for _, record := range mergedRecords {
+		if maxPayout < record.Repayment() {
+			maxPayout = record.Repayment()
+		}
+	}
+	return types.Payout(maxPayout)
+}
+
+// getGradeClassMinPayoutForAll クラス別最小回収額の合計を取得する(全期間)
+func (s *Summarizer) getGradeClassMinPayoutForAll(records []*betting_ticket_entity.CsvEntity, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.Payout {
+	raceMap := s.raceConverter.ConvertToRaceMapByRacingNumberId(races)
+	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, raceMap)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, gradeClass := range gradeClasses {
+		if recordsByBettingTicket, ok := recordsGroup[gradeClass]; ok {
+			mergedRecords = append(mergedRecords, recordsByBettingTicket...)
+		}
+	}
+	minPayout := 0
+	for _, record := range mergedRecords {
+		if record.Repayment() == 0 {
+			continue
+		}
+		if minPayout == 0 || minPayout > record.Repayment() {
+			minPayout = record.Repayment()
+		}
+	}
+	return types.Payout(minPayout)
 }
 
 func getSumAmount(records []*betting_ticket_entity.CsvEntity) (types.Payment, types.Payout) {

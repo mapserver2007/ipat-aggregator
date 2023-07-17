@@ -380,7 +380,7 @@ func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Co
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, summary spreadsheet_entity.RaceClassSummary) error {
+func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetClassSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A15")
 
 	values := [][]interface{}{
@@ -395,26 +395,47 @@ func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, su
 		},
 	}
 
-	var dateList []race_vo.GradeClass
-	for key := range summary.RaceClassRates {
-		dateList = append(dateList, key)
-	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i] < dateList[j]
-	})
+	grade1Summary := summary.GetGrade1Summary()
+	grade2Summary := summary.GetGrade2Summary()
+	grade3Summary := summary.GetGrade3Summary()
+	nonGradeSummary := summary.GetNonGradeSummary()
 
-	for _, raceClass := range dateList {
-		monthlyRate := summary.RaceClassRates[raceClass]
-		values = append(values, []interface{}{
-			raceClass.String(),
-			monthlyRate.VoteCount,
-			monthlyRate.HitCount,
-			monthlyRate.HitRateFormat(),
-			monthlyRate.Payments,
-			monthlyRate.Repayments,
-			monthlyRate.ReturnOnInvestmentFormat(),
-		})
-	}
+	values = append(values, []interface{}{
+		race_vo.Grade1.String(),
+		grade1Summary.GetBetCount(),
+		grade1Summary.GetHitCount(),
+		grade1Summary.GetHitRate(),
+		grade1Summary.GetPayment(),
+		grade1Summary.GetPayout(),
+		grade1Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Grade2.String(),
+		grade2Summary.GetBetCount(),
+		grade2Summary.GetHitCount(),
+		grade2Summary.GetHitRate(),
+		grade2Summary.GetPayment(),
+		grade2Summary.GetPayout(),
+		grade2Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Grade3.String(),
+		grade3Summary.GetBetCount(),
+		grade3Summary.GetHitCount(),
+		grade3Summary.GetHitRate(),
+		grade3Summary.GetPayment(),
+		grade3Summary.GetPayout(),
+		grade3Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.NonGradeClass.String(),
+		nonGradeSummary.GetBetCount(),
+		nonGradeSummary.GetHitCount(),
+		nonGradeSummary.GetHitRate(),
+		nonGradeSummary.GetPayment(),
+		nonGradeSummary.GetPayout(),
+		nonGradeSummary.GetRecoveryRate(),
+	})
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,

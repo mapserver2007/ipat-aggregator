@@ -1,25 +1,24 @@
 package entity
 
 import (
+	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/result/types"
+	"strconv"
 )
 
 // ShortSummary 投資・回収・回収率のみの集計結果
 type ShortSummary struct {
-	payment      types.Payment
-	payout       types.Payout
-	recoveryRate string
+	payment types.Payment
+	payout  types.Payout
 }
 
 func NewShortSummary(
 	payment types.Payment,
 	payout types.Payout,
-	recoveryRate string,
 ) ShortSummary {
 	return ShortSummary{
-		payment:      payment,
-		payout:       payout,
-		recoveryRate: recoveryRate,
+		payment: payment,
+		payout:  payout,
 	}
 }
 
@@ -32,5 +31,8 @@ func (s *ShortSummary) GetPayout() types.Payout {
 }
 
 func (s *ShortSummary) GetRecoveryRate() string {
-	return s.recoveryRate
+	if s.payment == 0 {
+		return fmt.Sprintf("%d%s", 0, "%")
+	}
+	return fmt.Sprintf("%s%s", strconv.FormatFloat((float64(s.payout)*float64(100))/float64(s.payment), 'f', 2, 64), "%")
 }

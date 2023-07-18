@@ -31,7 +31,6 @@ func (s *Summarizer) GetShortSummaryForAll(records []*betting_ticket_entity.CsvE
 	return result_entity.NewShortSummary(
 		s.getPayment(records),
 		s.getPayout(records),
-		s.getRecoveryRate(records),
 	)
 }
 
@@ -39,7 +38,6 @@ func (s *Summarizer) GetShortSummaryForMonth(records []*betting_ticket_entity.Cs
 	return result_entity.NewShortSummary(
 		s.getPaymentForMonth(records),
 		s.getPayoutForMonth(records),
-		s.getRecoveryRateForMonth(records),
 	)
 }
 
@@ -47,7 +45,6 @@ func (s *Summarizer) GetShortSummaryForYear(records []*betting_ticket_entity.Csv
 	return result_entity.NewShortSummary(
 		s.getPaymentForYear(records),
 		s.getPayoutForYear(records),
-		s.getRecoveryRateForYear(records),
 	)
 }
 
@@ -89,6 +86,18 @@ func (s *Summarizer) GetMonthlySummaryMap(records []*betting_ticket_entity.CsvEn
 		)
 	}
 	return monthlySummaryMap
+}
+
+func (s *Summarizer) GetCourseCategorySummaryForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) result_entity.DetailSummary {
+	return result_entity.NewDetailSummary(
+		s.getCourseCategoryBetCountForAll(records, racingNumbers, races, courseCategory),
+		s.getCourseCategoryHitCountForAll(records, racingNumbers, races, courseCategory),
+		s.getCourseCategoryPaymentForAll(records, racingNumbers, races, courseCategory),
+		s.getCourseCategoryPayoutForAll(records, racingNumbers, races, courseCategory),
+		s.getCourseCategoryAveragePayoutForAll(records, racingNumbers, races, courseCategory),
+		s.getCourseCategoryMaxPayoutForAll(records, racingNumbers, races, courseCategory),
+		s.getCourseCategoryMinPayoutForAll(records, racingNumbers, races, courseCategory),
+	)
 }
 
 // getPayment 投資額の合計を取得する
@@ -487,6 +496,115 @@ func (s *Summarizer) getGradeClassMinPayoutForAll(records []*betting_ticket_enti
 		}
 		if minPayout == 0 || minPayout > record.Repayment() {
 			minPayout = record.Repayment()
+		}
+	}
+	return types.Payout(minPayout)
+}
+
+func (s *Summarizer) getCourseCategoryRecordsMap(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.CourseCategory][]*betting_ticket_entity.CsvEntity {
+	raceMap := s.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := s.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	courseCategoryRecordsMap := map[race_vo.CourseCategory][]*betting_ticket_entity.CsvEntity{}
+	for _, record := range records {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
+		racingNumber, ok := racingNumberMap[racingNumberId]
+		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
+			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
+		}
+		raceId := s.raceConverter.GetRaceId(record, racingNumber)
+		if race, ok := raceMap[*raceId]; ok {
+			courseCategory := race.CourseCategory()
+			courseCategoryRecordsMap[courseCategory] = append(courseCategoryRecordsMap[courseCategory], record)
+		}
+	}
+
+	return courseCategoryRecordsMap
+}
+
+// getCourseCategoryBetCountForAll コース別投票数の合計を取得する(全期間)
+func (s *Summarizer) getCourseCategoryBetCountForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) types.BetCount {
+	courseCategoryRecordsMap := s.getCourseCategoryRecordsMap(records, racingNumbers, races)
+	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
+		return types.BetCount(len(recordsByCourseCategory))
+	}
+	return types.BetCount(0)
+}
+
+// getCourseCategoryHitCountForAll コース別的中数の合計を取得する(全期間)
+func (s *Summarizer) getCourseCategoryHitCountForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) types.HitCount {
+	courseCategoryRecordsMap := s.getCourseCategoryRecordsMap(records, racingNumbers, races)
+	hitCount := 0
+	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
+		for _, record := range recordsByCourseCategory {
+			if record.BettingResult() == betting_ticket_vo.Hit {
+				hitCount++
+			}
+		}
+	}
+	return types.HitCount(hitCount)
+}
+
+// getCourseCategoryPaymentForAll コース別払戻金の合計を取得する(全期間)
+func (s *Summarizer) getCourseCategoryPaymentForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) types.Payment {
+	courseCategoryRecordsMap := s.getCourseCategoryRecordsMap(records, racingNumbers, races)
+	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
+		payment, _ := getSumAmount(recordsByCourseCategory)
+		return payment
+	}
+	return types.Payment(0)
+}
+
+// getCourseCategoryPayoutForAll コース別払戻金の合計を取得する(全期間)
+func (s *Summarizer) getCourseCategoryPayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) types.Payout {
+	courseCategoryRecordsMap := s.getCourseCategoryRecordsMap(records, racingNumbers, races)
+	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
+		_, payout := getSumAmount(recordsByCourseCategory)
+		return payout
+	}
+	return types.Payout(0)
+}
+
+// getCourseCategoryAveragePayoutForAll コース別平均払戻金を取得する(全期間)
+func (s *Summarizer) getCourseCategoryAveragePayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) types.Payout {
+	courseCategoryRecordsMap := s.getCourseCategoryRecordsMap(records, racingNumbers, races)
+	var hitRecords []*betting_ticket_entity.CsvEntity
+	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
+		for _, record := range recordsByCourseCategory {
+			if record.BettingResult() == betting_ticket_vo.Hit {
+				hitRecords = append(hitRecords, record)
+			}
+		}
+	}
+	_, payout := getSumAmount(hitRecords)
+	return types.Payout(int(float64(payout) / float64(len(hitRecords))))
+}
+
+// getCourseCategoryMaxPayoutForAll コース別最大払戻金を取得する(全期間)
+func (s *Summarizer) getCourseCategoryMaxPayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) types.Payout {
+	courseCategoryRecordsMap := s.getCourseCategoryRecordsMap(records, racingNumbers, races)
+	maxPayout := 0
+	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
+		for _, record := range recordsByCourseCategory {
+			if maxPayout < record.Repayment() {
+				maxPayout = record.Repayment()
+			}
+		}
+	}
+	return types.Payout(maxPayout)
+}
+
+// getCourseCategoryMinPayoutForAll コース別最小払戻金を取得する(全期間)
+func (s *Summarizer) getCourseCategoryMinPayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, courseCategory race_vo.CourseCategory) types.Payout {
+	courseCategoryRecordsMap := s.getCourseCategoryRecordsMap(records, racingNumbers, races)
+	minPayout := 0
+	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
+		for _, record := range recordsByCourseCategory {
+			if record.Repayment() == 0 {
+				continue
+			}
+			if minPayout == 0 || minPayout > record.Repayment() {
+				minPayout = record.Repayment()
+			}
 		}
 	}
 	return types.Payout(minPayout)

@@ -23,7 +23,7 @@ func main() {
 	}
 
 	aggregator := di.AggregatorInit()
-	summary := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
+	summary, summary2, summary3, summary4, summary5, summary6 := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
 
 	predictor := di.PredictInit()
 	predictResults, err := predictor.Predict(records, raceNumberInfo.RacingNumbers(), raceInfo.Races(), jockeyInfo.Jockeys())
@@ -31,12 +31,12 @@ func main() {
 		panic(err)
 	}
 
-	analyzer := di.AnalyzerInit()
-	analyzeSummary := analyzer.Popular(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
+	//analyzer := di.AnalyzerInit()
+	//analyzeSummary := analyzer.WinAnalyze(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
 
 	//spreadSheetUseCase := di.SpreadSheetInit()
 	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient, spreadSheetAnalyzeClient)
-	err = spreadSheetUseCase.WriteSummary(ctx, summary)
+	err = spreadSheetUseCase.WriteSummary(ctx, summary, summary2, summary3, summary4, summary5, summary6)
 	if err != nil {
 		panic(err)
 	}
@@ -52,14 +52,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = spreadSheetUseCase.WriteAnalyze(ctx, analyzeSummary)
-	if err != nil {
-		panic(err)
-	}
-	err = spreadSheetUseCase.WriteStyleAnalyze(ctx, analyzeSummary)
-	if err != nil {
-		panic(err)
-	}
+	//err = spreadSheetUseCase.WriteAnalyze(ctx, analyzeSummary)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//err = spreadSheetUseCase.WriteStyleAnalyze(ctx, analyzeSummary)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	log.Println(ctx, "end")
 }

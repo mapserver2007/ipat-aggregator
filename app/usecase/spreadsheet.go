@@ -28,34 +28,42 @@ func NewSpreadSheet(
 	}
 }
 
-func (s *SpreadSheet) WriteSummary(ctx context.Context, summary *spreadsheet_entity.Summary) error {
+func (s *SpreadSheet) WriteSummary(
+	ctx context.Context,
+	summary *spreadsheet_entity.Summary,
+	summary2 *spreadsheet_entity.SpreadSheetSummary,
+	summary3 *spreadsheet_entity.SpreadSheetBettingTicketSummary,
+	summary4 *spreadsheet_entity.SpreadSheetClassSummary,
+	summary5 *spreadsheet_entity.SpreadSheetMonthlySummary,
+	sumamry6 *spreadsheet_entity.SpreadSheetCourseCategorySummary,
+) error {
 	log.Println(ctx, "writing spreadsheet for summary")
-	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary.TotalResultSummary)
+	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary2.GetShortSummaryForAll())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForCurrentMonthSummary(ctx, summary.LatestMonthResultSummary)
+	err = s.spreadSheetClient.WriteForCurrentMonthSummary(ctx, summary2.GetShortSummaryForMonth())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForCurrentYearSummary(ctx, summary.LatestYearResultSummary)
+	err = s.spreadSheetClient.WriteForCurrentYearSummary(ctx, summary2.GetShortSummaryForYear())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForTotalBettingTicketRateSummary(ctx, summary.BettingTicketSummary)
+	err = s.spreadSheetClient.WriteForTotalBettingTicketRateSummary(ctx, summary3)
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForRaceClassRateSummary(ctx, summary.RaceClassSummary)
+	err = s.spreadSheetClient.WriteForRaceClassRateSummary(ctx, summary4)
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForCourseCategoryRateSummary(ctx, summary.CourseCategorySummary)
+	err = s.spreadSheetClient.WriteForCourseCategoryRateSummary(ctx, sumamry6)
 	if err != nil {
 		return err
 	}
@@ -70,7 +78,7 @@ func (s *SpreadSheet) WriteSummary(ctx context.Context, summary *spreadsheet_ent
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForMonthlyRateSummary(ctx, summary.MonthlySummary)
+	err = s.spreadSheetClient.WriteForMonthlyRateSummary(ctx, summary5)
 	if err != nil {
 		return err
 	}
@@ -78,7 +86,7 @@ func (s *SpreadSheet) WriteSummary(ctx context.Context, summary *spreadsheet_ent
 	return nil
 }
 
-func (s *SpreadSheet) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.ResultStyle, error) {
+func (s *SpreadSheet) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle, error) {
 	err := s.spreadSheetListClient.Clear(ctx)
 	if err != nil {
 		return nil, err
@@ -141,7 +149,7 @@ func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadshee
 	return nil
 }
 
-func (s *SpreadSheet) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.ResultStyle) error {
+func (s *SpreadSheet) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle) error {
 	err := s.spreadSheetListClient.WriteStyleList(ctx, records, styleMap)
 	if err != nil {
 		return err
@@ -156,7 +164,7 @@ func (s *SpreadSheet) WriteAnalyze(ctx context.Context, summary *analyze_entity.
 		return err
 	}
 	log.Println(ctx, "writing spreadsheet for analyze")
-	err = s.spreadSheetAnalyzeClient.WriteWin(ctx, summary.WinPopularitySummary())
+	err = s.spreadSheetAnalyzeClient.WriteWinPopular(ctx, summary.WinPopularitySummary())
 	if err != nil {
 		return err
 	}
@@ -165,7 +173,7 @@ func (s *SpreadSheet) WriteAnalyze(ctx context.Context, summary *analyze_entity.
 }
 
 func (s *SpreadSheet) WriteStyleAnalyze(ctx context.Context, summary *analyze_entity.AnalyzeSummary) error {
-	err := s.spreadSheetAnalyzeClient.WriteStyleWin(ctx, summary.WinPopularitySummary())
+	err := s.spreadSheetAnalyzeClient.WriteStyleWinPopular(ctx, summary.WinPopularitySummary())
 	if err != nil {
 		return err
 	}

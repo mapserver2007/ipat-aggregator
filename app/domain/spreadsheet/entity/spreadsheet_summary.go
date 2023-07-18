@@ -147,3 +147,33 @@ func NewSpreadSheetMonthlySummary(monthlySummaryMap map[int]result_summary_entit
 func (s *SpreadSheetMonthlySummary) GetMonthlySummaryMap() map[int]result_summary_entity.DetailSummary {
 	return s.monthlySummaryMap
 }
+
+type SpreadSheetCourseCategorySummary struct {
+	turfSummary result_summary_entity.DetailSummary
+	dirtSummary result_summary_entity.DetailSummary
+	jumpSummary result_summary_entity.DetailSummary
+}
+
+func NewSpreadSheetCourseCategorySummary(
+	turfSummary result_summary_entity.DetailSummary,
+	dirtSummary result_summary_entity.DetailSummary,
+	jumpSummary result_summary_entity.DetailSummary,
+) *SpreadSheetCourseCategorySummary {
+	return &SpreadSheetCourseCategorySummary{
+		turfSummary: turfSummary,
+		dirtSummary: dirtSummary,
+		jumpSummary: jumpSummary,
+	}
+}
+
+func (s *SpreadSheetCourseCategorySummary) GetTurfSummary() result_summary_entity.DetailSummary {
+	return s.turfSummary
+}
+
+func (s *SpreadSheetCourseCategorySummary) GetDirtSummary() result_summary_entity.DetailSummary {
+	return s.dirtSummary
+}
+
+func (s *SpreadSheetCourseCategorySummary) GetJumpSummary() result_summary_entity.DetailSummary {
+	return s.jumpSummary
+}

@@ -447,7 +447,7 @@ func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, su
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Context, summary spreadsheet_entity.CourseCategorySummary) error {
+func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetCourseCategorySummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "H6")
 
 	values := [][]interface{}{
@@ -462,26 +462,37 @@ func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Contex
 		},
 	}
 
-	var dateList []race_vo.CourseCategory
-	for key := range summary.CourseCategoryRates {
-		dateList = append(dateList, key)
-	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i] < dateList[j]
-	})
+	turfSummary := summary.GetTurfSummary()
+	dirtSummary := summary.GetDirtSummary()
+	jumpSummary := summary.GetJumpSummary()
 
-	for _, courseCategory := range dateList {
-		courseCategoryRate := summary.CourseCategoryRates[courseCategory]
-		values = append(values, []interface{}{
-			courseCategory.String(),
-			courseCategoryRate.VoteCount,
-			courseCategoryRate.HitCount,
-			courseCategoryRate.HitRateFormat(),
-			courseCategoryRate.Payments,
-			courseCategoryRate.Repayments,
-			courseCategoryRate.ReturnOnInvestmentFormat(),
-		})
-	}
+	values = append(values, []interface{}{
+		race_vo.Turf.String(),
+		turfSummary.GetBetCount(),
+		turfSummary.GetHitCount(),
+		turfSummary.GetHitRate(),
+		turfSummary.GetPayment(),
+		turfSummary.GetPayout(),
+		turfSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Dirt.String(),
+		dirtSummary.GetBetCount(),
+		dirtSummary.GetHitCount(),
+		dirtSummary.GetHitRate(),
+		dirtSummary.GetPayment(),
+		dirtSummary.GetPayout(),
+		dirtSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Jump.String(),
+		jumpSummary.GetBetCount(),
+		jumpSummary.GetHitCount(),
+		jumpSummary.GetHitRate(),
+		jumpSummary.GetPayment(),
+		jumpSummary.GetPayout(),
+		jumpSummary.GetRecoveryRate(),
+	})
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,

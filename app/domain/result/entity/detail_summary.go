@@ -3,7 +3,6 @@ package entity
 import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/result/types"
-	"math"
 	"strconv"
 )
 
@@ -49,8 +48,7 @@ func (s *DetailSummary) GetHitRate() string {
 	if s.betCount == 0 {
 		return fmt.Sprintf("%d%s", 0, "%")
 	}
-	hitRate := math.Round((float64(s.hitCount)/float64(s.betCount))*100) / 100
-	return fmt.Sprintf("%s%s", strconv.FormatFloat(hitRate*100, 'f', 2, 64), "%")
+	return fmt.Sprintf("%s%s", strconv.FormatFloat((float64(s.hitCount)*float64(100))/float64(s.betCount), 'f', 2, 64), "%")
 }
 
 func (s *DetailSummary) GetPayment() types.Payment {

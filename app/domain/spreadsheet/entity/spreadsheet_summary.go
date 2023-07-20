@@ -177,3 +177,82 @@ func (s *SpreadSheetCourseCategorySummary) GetDirtSummary() result_summary_entit
 func (s *SpreadSheetCourseCategorySummary) GetJumpSummary() result_summary_entity.DetailSummary {
 	return s.jumpSummary
 }
+
+type SpreadSheetDistanceCategorySummary struct {
+	turfSprintSummary       result_summary_entity.DetailSummary
+	turfMileSummary         result_summary_entity.DetailSummary
+	turfIntermediateSummary result_summary_entity.DetailSummary
+	turfLongSummary         result_summary_entity.DetailSummary
+	turfExtendedSummary     result_summary_entity.DetailSummary
+	dirtSprintSummary       result_summary_entity.DetailSummary
+	dirtMileSummary         result_summary_entity.DetailSummary
+	dirtIntermediateSummary result_summary_entity.DetailSummary
+	dirtLongSummary         result_summary_entity.DetailSummary
+	jumpAllDistanceSummary  result_summary_entity.DetailSummary
+}
+
+func NewSpreadSheetDistanceCategorySummary(
+	turfSprintSummary result_summary_entity.DetailSummary,
+	turfMileSummary result_summary_entity.DetailSummary,
+	turfIntermediateSummary result_summary_entity.DetailSummary,
+	turfLongSummary result_summary_entity.DetailSummary,
+	turfExtendedSummary result_summary_entity.DetailSummary,
+	dirtSprintSummary result_summary_entity.DetailSummary,
+	dirtMileSummary result_summary_entity.DetailSummary,
+	dirtIntermediateSummary result_summary_entity.DetailSummary,
+	dirtLongSummary result_summary_entity.DetailSummary,
+	jumpAllDistanceSummary result_summary_entity.DetailSummary,
+) *SpreadSheetDistanceCategorySummary {
+	return &SpreadSheetDistanceCategorySummary{
+		turfSprintSummary:       turfSprintSummary,
+		turfMileSummary:         turfMileSummary,
+		turfIntermediateSummary: turfIntermediateSummary,
+		turfLongSummary:         turfLongSummary,
+		turfExtendedSummary:     turfExtendedSummary,
+		dirtSprintSummary:       dirtSprintSummary,
+		dirtMileSummary:         dirtMileSummary,
+		dirtIntermediateSummary: dirtIntermediateSummary,
+		dirtLongSummary:         dirtLongSummary,
+		jumpAllDistanceSummary:  jumpAllDistanceSummary,
+	}
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetTurfSprintSummary() result_summary_entity.DetailSummary {
+	return s.turfSprintSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetTurfMileSummary() result_summary_entity.DetailSummary {
+	return s.turfMileSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetTurfIntermediateSummary() result_summary_entity.DetailSummary {
+	return s.turfIntermediateSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetTurfLongSummary() result_summary_entity.DetailSummary {
+	return s.turfLongSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetTurfExtendedSummary() result_summary_entity.DetailSummary {
+	return s.turfExtendedSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetDirtSprintSummary() result_summary_entity.DetailSummary {
+	return s.dirtSprintSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetDirtMileSummary() result_summary_entity.DetailSummary {
+	return s.dirtMileSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetDirtIntermediateSummary() result_summary_entity.DetailSummary {
+	return s.dirtIntermediateSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetDirtLongSummary() result_summary_entity.DetailSummary {
+	return s.dirtLongSummary
+}
+
+func (s *SpreadSheetDistanceCategorySummary) GetJumpAllDistanceSummary() result_summary_entity.DetailSummary {
+	return s.jumpAllDistanceSummary
+}

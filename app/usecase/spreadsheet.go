@@ -35,7 +35,8 @@ func (s *SpreadSheet) WriteSummary(
 	summary3 *spreadsheet_entity.SpreadSheetBettingTicketSummary,
 	summary4 *spreadsheet_entity.SpreadSheetClassSummary,
 	summary5 *spreadsheet_entity.SpreadSheetMonthlySummary,
-	sumamry6 *spreadsheet_entity.SpreadSheetCourseCategorySummary,
+	summary6 *spreadsheet_entity.SpreadSheetCourseCategorySummary,
+	summary7 *spreadsheet_entity.SpreadSheetDistanceCategorySummary,
 ) error {
 	log.Println(ctx, "writing spreadsheet for summary")
 	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary2.GetShortSummaryForAll())
@@ -63,12 +64,12 @@ func (s *SpreadSheet) WriteSummary(
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForCourseCategoryRateSummary(ctx, sumamry6)
+	err = s.spreadSheetClient.WriteForCourseCategoryRateSummary(ctx, summary6)
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForDistanceCategoryRateSummary(ctx, summary.DistanceCategorySummary)
+	err = s.spreadSheetClient.WriteForDistanceCategoryRateSummary(ctx, summary7)
 	if err != nil {
 		return err
 	}

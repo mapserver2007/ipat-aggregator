@@ -504,7 +504,7 @@ func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Contex
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Context, summary spreadsheet_entity.DistanceCategorySummary) error {
+func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetDistanceCategorySummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "H10")
 
 	values := [][]interface{}{
@@ -519,26 +519,107 @@ func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Cont
 		},
 	}
 
-	var dateList []race_vo.DistanceCategory
-	for key := range summary.DistanceCategoryRates {
-		dateList = append(dateList, key)
-	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i] < dateList[j]
-	})
+	turfSprintSummary := summary.GetTurfSprintSummary()
+	turfMileSummary := summary.GetTurfMileSummary()
+	turfIntermediateSummary := summary.GetTurfIntermediateSummary()
+	turfLongSummary := summary.GetTurfLongSummary()
+	turfExtendedSummary := summary.GetTurfExtendedSummary()
+	dirtSprintSummary := summary.GetDirtSprintSummary()
+	dirtMileSummary := summary.GetDirtMileSummary()
+	dirtIntermediateSummary := summary.GetDirtIntermediateSummary()
+	dirtLongSummary := summary.GetDirtLongSummary()
+	jumpAllDistanceSummary := summary.GetJumpAllDistanceSummary()
 
-	for _, distanceCategory := range dateList {
-		distanceCategoryRate := summary.DistanceCategoryRates[distanceCategory]
-		values = append(values, []interface{}{
-			distanceCategory.String(),
-			distanceCategoryRate.VoteCount,
-			distanceCategoryRate.HitCount,
-			distanceCategoryRate.HitRateFormat(),
-			distanceCategoryRate.Payments,
-			distanceCategoryRate.Repayments,
-			distanceCategoryRate.ReturnOnInvestmentFormat(),
-		})
-	}
+	values = append(values, []interface{}{
+		race_vo.TurfSprint.String(),
+		turfSprintSummary.GetBetCount(),
+		turfSprintSummary.GetHitCount(),
+		turfSprintSummary.GetHitRate(),
+		turfSprintSummary.GetPayment(),
+		turfSprintSummary.GetPayout(),
+		turfSprintSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.TurfMile.String(),
+		turfMileSummary.GetBetCount(),
+		turfMileSummary.GetHitCount(),
+		turfMileSummary.GetHitRate(),
+		turfMileSummary.GetPayment(),
+		turfMileSummary.GetPayout(),
+		turfMileSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.TurfIntermediate.String(),
+		turfIntermediateSummary.GetBetCount(),
+		turfIntermediateSummary.GetHitCount(),
+		turfIntermediateSummary.GetHitRate(),
+		turfIntermediateSummary.GetPayment(),
+		turfIntermediateSummary.GetPayout(),
+		turfIntermediateSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.TurfLong.String(),
+		turfLongSummary.GetBetCount(),
+		turfLongSummary.GetHitCount(),
+		turfLongSummary.GetHitRate(),
+		turfLongSummary.GetPayment(),
+		turfLongSummary.GetPayout(),
+		turfLongSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.TurfExtended.String(),
+		turfExtendedSummary.GetBetCount(),
+		turfExtendedSummary.GetHitCount(),
+		turfExtendedSummary.GetHitRate(),
+		turfExtendedSummary.GetPayment(),
+		turfExtendedSummary.GetPayout(),
+		turfExtendedSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.DirtSprint.String(),
+		dirtSprintSummary.GetBetCount(),
+		dirtSprintSummary.GetHitCount(),
+		dirtSprintSummary.GetHitRate(),
+		dirtSprintSummary.GetPayment(),
+		dirtSprintSummary.GetPayout(),
+		dirtSprintSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.DirtMile.String(),
+		dirtMileSummary.GetBetCount(),
+		dirtMileSummary.GetHitCount(),
+		dirtMileSummary.GetHitRate(),
+		dirtMileSummary.GetPayment(),
+		dirtMileSummary.GetPayout(),
+		dirtMileSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.DirtIntermediate.String(),
+		dirtIntermediateSummary.GetBetCount(),
+		dirtIntermediateSummary.GetHitCount(),
+		dirtIntermediateSummary.GetHitRate(),
+		dirtIntermediateSummary.GetPayment(),
+		dirtIntermediateSummary.GetPayout(),
+		dirtIntermediateSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.DirtLong.String(),
+		dirtLongSummary.GetBetCount(),
+		dirtLongSummary.GetHitCount(),
+		dirtLongSummary.GetHitRate(),
+		dirtLongSummary.GetPayment(),
+		dirtLongSummary.GetPayout(),
+		dirtLongSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.JumpAllDistance.String(),
+		jumpAllDistanceSummary.GetBetCount(),
+		jumpAllDistanceSummary.GetHitCount(),
+		jumpAllDistanceSummary.GetHitRate(),
+		jumpAllDistanceSummary.GetPayment(),
+		jumpAllDistanceSummary.GetPayout(),
+		jumpAllDistanceSummary.GetRecoveryRate(),
+	})
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,

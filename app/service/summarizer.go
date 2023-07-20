@@ -100,6 +100,18 @@ func (s *Summarizer) GetCourseCategorySummaryForAll(records []*betting_ticket_en
 	)
 }
 
+func (s *Summarizer) GetDistanceSummaryForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) result_entity.DetailSummary {
+	return result_entity.NewDetailSummary(
+		s.getDistanceCategoryBetCountForAll(records, racingNumbers, races, distanceCategory),
+		s.getDistanceCategoryHitCountForAll(records, racingNumbers, races, distanceCategory),
+		s.getDistanceCategoryPaymentForAll(records, racingNumbers, races, distanceCategory),
+		s.getDistanceCategoryPayoutForAll(records, racingNumbers, races, distanceCategory),
+		s.getDistanceCategoryAveragePayoutForAll(records, racingNumbers, races, distanceCategory),
+		s.getDistanceCategoryMaxPayoutForAll(records, racingNumbers, races, distanceCategory),
+		s.getDistanceCategoryMinPayoutForAll(records, racingNumbers, races, distanceCategory),
+	)
+}
+
 // getPayment 投資額の合計を取得する
 func (s *Summarizer) getPayment(records []*betting_ticket_entity.CsvEntity) types.Payment {
 	payment, _ := getSumAmount(records)
@@ -599,6 +611,116 @@ func (s *Summarizer) getCourseCategoryMinPayoutForAll(records []*betting_ticket_
 	minPayout := 0
 	if recordsByCourseCategory, ok := courseCategoryRecordsMap[courseCategory]; ok {
 		for _, record := range recordsByCourseCategory {
+			if record.Repayment() == 0 {
+				continue
+			}
+			if minPayout == 0 || minPayout > record.Repayment() {
+				minPayout = record.Repayment()
+			}
+		}
+	}
+	return types.Payout(minPayout)
+}
+
+func (s *Summarizer) getDistanceCategoryRecordsMap(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.DistanceCategory][]*betting_ticket_entity.CsvEntity {
+	raceMap := s.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := s.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	distanceCategoryRecordsMap := map[race_vo.DistanceCategory][]*betting_ticket_entity.CsvEntity{}
+	for _, record := range records {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
+		racingNumber, ok := racingNumberMap[racingNumberId]
+		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
+			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
+		}
+		raceId := s.raceConverter.GetRaceId(record, racingNumber)
+		if race, ok := raceMap[*raceId]; ok {
+			courseCategory := race.CourseCategory()
+			distanceCategory := race_vo.NewDistanceCategory(race.Distance(), courseCategory)
+			distanceCategoryRecordsMap[distanceCategory] = append(distanceCategoryRecordsMap[distanceCategory], record)
+		}
+	}
+
+	return distanceCategoryRecordsMap
+}
+
+// getDistanceCategoryBetCountForAll 距離別投票数を取得する(全期間)
+func (s *Summarizer) getDistanceCategoryBetCountForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) types.BetCount {
+	distanceCategoryRecordsMap := s.getDistanceCategoryRecordsMap(records, racingNumbers, races)
+	if recordsByDistanceCategory, ok := distanceCategoryRecordsMap[distanceCategory]; ok {
+		return types.BetCount(len(recordsByDistanceCategory))
+	}
+	return types.BetCount(0)
+}
+
+// getDistanceCategoryHitCountForAll 距離別的中数を取得する(全期間)
+func (s *Summarizer) getDistanceCategoryHitCountForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) types.HitCount {
+	distanceCategoryRecordsMap := s.getDistanceCategoryRecordsMap(records, racingNumbers, races)
+	hitCount := 0
+	if recordsByDistanceCategory, ok := distanceCategoryRecordsMap[distanceCategory]; ok {
+		for _, record := range recordsByDistanceCategory {
+			if record.BettingResult() == betting_ticket_vo.Hit {
+				hitCount++
+			}
+		}
+	}
+	return types.HitCount(hitCount)
+}
+
+// getDistanceCategoryPaymentForAll 距離別投票金額を取得する(全期間)
+func (s *Summarizer) getDistanceCategoryPaymentForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) types.Payment {
+	distanceCategoryRecordsMap := s.getDistanceCategoryRecordsMap(records, racingNumbers, races)
+	if recordsByDistanceCategory, ok := distanceCategoryRecordsMap[distanceCategory]; ok {
+		payment, _ := getSumAmount(recordsByDistanceCategory)
+		return payment
+	}
+	return types.Payment(0)
+}
+
+// getDistanceCategoryPayoutForAll 距離別払戻金を取得する(全期間)
+func (s *Summarizer) getDistanceCategoryPayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) types.Payout {
+	distanceCategoryRecordsMap := s.getDistanceCategoryRecordsMap(records, racingNumbers, races)
+	if recordsByDistanceCategory, ok := distanceCategoryRecordsMap[distanceCategory]; ok {
+		_, payout := getSumAmount(recordsByDistanceCategory)
+		return payout
+	}
+	return types.Payout(0)
+}
+
+// getDistanceCategoryAveragePayoutForAll 距離別平均払戻金を取得する(全期間)
+func (s *Summarizer) getDistanceCategoryAveragePayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) types.Payout {
+	distanceCategoryRecordsMap := s.getDistanceCategoryRecordsMap(records, racingNumbers, races)
+	var hitRecords []*betting_ticket_entity.CsvEntity
+	if recordsByDistanceCategory, ok := distanceCategoryRecordsMap[distanceCategory]; ok {
+		for _, record := range recordsByDistanceCategory {
+			if record.BettingResult() == betting_ticket_vo.Hit {
+				hitRecords = append(hitRecords, record)
+			}
+		}
+	}
+	_, payout := getSumAmount(hitRecords)
+	return types.Payout(int(float64(payout) / float64(len(hitRecords))))
+}
+
+// getDistanceCategoryMaxPayoutForAll 距離別最高払戻金を取得する(全期間)
+func (s *Summarizer) getDistanceCategoryMaxPayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) types.Payout {
+	distanceCategoryRecordsMap := s.getDistanceCategoryRecordsMap(records, racingNumbers, races)
+	maxPayout := 0
+	if recordsByDistanceCategory, ok := distanceCategoryRecordsMap[distanceCategory]; ok {
+		for _, record := range recordsByDistanceCategory {
+			if maxPayout < record.Repayment() {
+				maxPayout = record.Repayment()
+			}
+		}
+	}
+	return types.Payout(maxPayout)
+}
+
+// getDistanceCategoryMinPayoutForAll 距離別最低払戻金を取得する(全期間)
+func (s *Summarizer) getDistanceCategoryMinPayoutForAll(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, distanceCategory race_vo.DistanceCategory) types.Payout {
+	distanceCategoryRecordsMap := s.getDistanceCategoryRecordsMap(records, racingNumbers, races)
+	minPayout := 0
+	if recordsByDistanceCategory, ok := distanceCategoryRecordsMap[distanceCategory]; ok {
+		for _, record := range recordsByDistanceCategory {
 			if record.Repayment() == 0 {
 				continue
 			}

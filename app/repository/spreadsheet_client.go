@@ -22,7 +22,7 @@ type SpreadSheetClient interface {
 	WriteStyleForRaceClassRateSummary(ctx context.Context) error
 	WriteForCourseCategoryRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetCourseCategorySummary) error
 	WriteStyleForCourseCategoryRateSummary(ctx context.Context) error
-	WriteForDistanceCategoryRateSummary(ctx context.Context, summary spreadsheet_entity.DistanceCategorySummary) error
+	WriteForDistanceCategoryRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetDistanceCategorySummary) error
 	WriteStyleForDistanceCategoryRateSummary(ctx context.Context) error
 	WriteForRaceCourseRateSummary(ctx context.Context, summary spreadsheet_entity.RaceCourseSummary) error
 	WriteStyleForRaceCourseRateSummary(ctx context.Context) error

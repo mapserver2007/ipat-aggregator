@@ -23,7 +23,7 @@ func main() {
 	}
 
 	aggregator := di.AggregatorInit()
-	summary, summary2, summary3, summary4, summary5, summary6 := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
+	summary, summary2, summary3, summary4, summary5, summary6, summary7 := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
 
 	predictor := di.PredictInit()
 	predictResults, err := predictor.Predict(records, raceNumberInfo.RacingNumbers(), raceInfo.Races(), jockeyInfo.Jockeys())
@@ -36,7 +36,7 @@ func main() {
 
 	//spreadSheetUseCase := di.SpreadSheetInit()
 	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient, spreadSheetAnalyzeClient)
-	err = spreadSheetUseCase.WriteSummary(ctx, summary, summary2, summary3, summary4, summary5, summary6)
+	err = spreadSheetUseCase.WriteSummary(ctx, summary, summary2, summary3, summary4, summary5, summary6, summary7)
 	if err != nil {
 		panic(err)
 	}

@@ -24,10 +24,10 @@ type SpreadSheetClient interface {
 	WriteStyleForCourseCategoryRateSummary(ctx context.Context) error
 	WriteForDistanceCategoryRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetDistanceCategorySummary) error
 	WriteStyleForDistanceCategoryRateSummary(ctx context.Context) error
-	WriteForRaceCourseRateSummary(ctx context.Context, summary spreadsheet_entity.RaceCourseSummary) error
+	WriteForRaceCourseRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetRaceCourseSummary) error
 	WriteStyleForRaceCourseRateSummary(ctx context.Context) error
 	WriteForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error
-	WriteStyleForMonthlyRateSummary(ctx context.Context, summary spreadsheet_entity.MonthlySummary) error
+	WriteStyleForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error
 }
 
 type SpreadSheetListClient interface {

@@ -18,21 +18,21 @@ const (
 	Kyoto
 	Hanshin
 	Kokura
-	Monbetsu  = 30
-	Morioka   = 35
-	Urawa     = 42
-	Hunabashi = 43
-	Ooi       = 44
-	Kawasaki  = 45
-	Nagoya    = 48
-	Sonoda    = 50
-	Kouchi    = 54
-	Saga      = 55
-	Longchamp = 90 // 値はダミー
-	Deauville = 91 // 値はダミー
-	Shatin    = 92 // 値はダミー
-	Meydan    = 93 // 値はダミー
-	Overseas  = 99 // その他海外
+	Monbetsu  RaceCourse = 30
+	Morioka   RaceCourse = 35
+	Urawa     RaceCourse = 42
+	Hunabashi RaceCourse = 43
+	Ooi       RaceCourse = 44
+	Kawasaki  RaceCourse = 45
+	Nagoya    RaceCourse = 48
+	Sonoda    RaceCourse = 50
+	Kouchi    RaceCourse = 54
+	Saga      RaceCourse = 55
+	Longchamp RaceCourse = 90 // 値はダミー
+	Deauville RaceCourse = 91 // 値はダミー
+	Shatin    RaceCourse = 92 // 値はダミー
+	Meydan    RaceCourse = 93 // 値はダミー
+	Overseas  RaceCourse = 99 // その他海外
 )
 
 var raceCourseMap = map[RaceCourse]string{

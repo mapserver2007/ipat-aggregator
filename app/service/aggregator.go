@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	betting_ticket_entity "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/entity"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
@@ -31,12 +30,10 @@ func (a *Aggregator) GetSummary(
 	records []*betting_ticket_entity.CsvEntity,
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
-) (*spreadsheet_entity.Summary, *spreadsheet_entity.SpreadSheetSummary, *spreadsheet_entity.SpreadSheetBettingTicketSummary, *spreadsheet_entity.SpreadSheetClassSummary, *spreadsheet_entity.SpreadSheetMonthlySummary, *spreadsheet_entity.SpreadSheetCourseCategorySummary, *spreadsheet_entity.SpreadSheetDistanceCategorySummary) {
-
+) *spreadsheet_entity.SpreadSheetSummary {
 	// TODO averageがなんかあってない気がする。多分単体の馬券で計算している。averageは1レース単位。
 
-	// TODO 移行中なのでいろいろ混在
-	spreadSheetSummary := spreadsheet_entity.NewSpreadSheetSummary(
+	spreadSheetShortSummary := spreadsheet_entity.NewSpreadSheetShortSummary(
 		a.summarizer.GetShortSummaryForAll(records),
 		a.summarizer.GetShortSummaryForMonth(records),
 		a.summarizer.GetShortSummaryForYear(records),
@@ -66,81 +63,24 @@ func (a *Aggregator) GetSummary(
 	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records))
 
 	spreadSheetCourseCategorySummary := spreadsheet_entity.NewSpreadSheetCourseCategorySummary(
-		a.summarizer.GetCourseCategorySummaryForAll(records, racingNumbers, races, race_vo.Turf),
-		a.summarizer.GetCourseCategorySummaryForAll(records, racingNumbers, races, race_vo.Dirt),
-		a.summarizer.GetCourseCategorySummaryForAll(records, racingNumbers, races, race_vo.Jump),
+		a.summarizer.GetCourseCategorySummaryMapForAll(records, racingNumbers, races),
 	)
 
 	spreadSheetDistanceCategorySummary := spreadsheet_entity.NewSpreadSheetDistanceCategorySummary(
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.TurfSprint),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.TurfMile),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.TurfIntermediate),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.TurfLong),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.TurfExtended),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.DirtSprint),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.DirtMile),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.DirtIntermediate),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.DirtLong),
-		a.summarizer.GetDistanceSummaryForAll(records, racingNumbers, races, race_vo.JumpAllDistance),
+		a.summarizer.GetDistanceCategorySummaryMapForAll(records, racingNumbers, races),
 	)
 
-	return spreadsheet_entity.NewResult(
-		spreadsheet_entity.BettingTicketSummary{},
-		spreadsheet_entity.RaceClassSummary{},
-		spreadsheet_entity.MonthlySummary{},
-		spreadsheet_entity.YearlySummary{},
-		spreadsheet_entity.CourseCategorySummary{},
-		spreadsheet_entity.DistanceCategorySummary{},
-		a.getRaceCourseSummary(records, racingNumbers, races),
-	), spreadSheetSummary, spreadSheetBettingTicketSummary, spreadSheetGradeClassSummary, spreadSheetMonthlySummary, spreadSheetCourseCategorySummary, spreadSheetDistanceCategorySummary
-}
+	spreadSheetRaceCourseSummary := spreadsheet_entity.NewSpreadSheetRaceCourseSummary(
+		a.summarizer.GetRaceCourseSummaryMapForAll(records, racingNumbers, races),
+	)
 
-func (a *Aggregator) getRaceCourseSummary(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) spreadsheet_entity.RaceCourseSummary {
-	return spreadsheet_entity.NewRaceCourseSummary(a.getRaceCourseRates(records, racingNumbers, races))
-}
-
-func (a *Aggregator) getRaceCourseRates(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.RaceCourse]spreadsheet_entity.ResultRate {
-	raceCourseRatesMap := map[race_vo.RaceCourse]spreadsheet_entity.ResultRate{}
-	raceCourseRecordsMap := map[race_vo.RaceCourse][]*betting_ticket_entity.CsvEntity{}
-	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(races)
-	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(racingNumbers)
-	for _, record := range records {
-		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
-		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
-			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
-		}
-		raceId := a.raceConverter.GetRaceId(record, racingNumber)
-		if race, ok := raceMap[*raceId]; ok {
-			raceCourse := race.RaceCourseId()
-			raceCourseRecordsMap[raceCourse] = append(raceCourseRecordsMap[raceCourse], record)
-		}
-	}
-	for raceCourse, records := range raceCourseRecordsMap {
-		raceCourseRatesMap[raceCourse] = CalcSumResultRate(records)
-	}
-
-	// 開催場所をまとめる
-	mergeFunc := func(o1, o2 spreadsheet_entity.ResultRate) spreadsheet_entity.ResultRate {
-		o1.HitCount += o2.HitCount
-		o1.VoteCount += o2.VoteCount
-		o1.Payments += o2.Payments
-		o1.Repayments += o2.Repayments
-		return o1
-	}
-	newRaceCourseRatesMap := map[race_vo.RaceCourse]spreadsheet_entity.ResultRate{}
-	for raceCourse := range raceCourseRatesMap {
-		switch raceCourse {
-		case race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan:
-			newRaceCourseRatesMap[race_vo.Overseas] = mergeFunc(newRaceCourseRatesMap[race_vo.Overseas], raceCourseRatesMap[raceCourse])
-		default:
-			if raceCourse == race_vo.Longchamp || raceCourse == race_vo.Deauville || raceCourse == race_vo.Shatin || raceCourse == race_vo.Meydan {
-				newRaceCourseRatesMap[raceCourse] = mergeFunc(newRaceCourseRatesMap[raceCourse], raceCourseRatesMap[raceCourse])
-			} else {
-				newRaceCourseRatesMap[raceCourse] = raceCourseRatesMap[raceCourse]
-			}
-		}
-	}
-
-	return newRaceCourseRatesMap
+	return spreadsheet_entity.NewSpreadSheetSummary(
+		spreadSheetShortSummary,
+		spreadSheetBettingTicketSummary,
+		spreadSheetGradeClassSummary,
+		spreadSheetMonthlySummary,
+		spreadSheetCourseCategorySummary,
+		spreadSheetDistanceCategorySummary,
+		spreadSheetRaceCourseSummary,
+	)
 }

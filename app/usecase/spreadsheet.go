@@ -30,56 +30,50 @@ func NewSpreadSheet(
 
 func (s *SpreadSheet) WriteSummary(
 	ctx context.Context,
-	summary *spreadsheet_entity.Summary,
-	summary2 *spreadsheet_entity.SpreadSheetSummary,
-	summary3 *spreadsheet_entity.SpreadSheetBettingTicketSummary,
-	summary4 *spreadsheet_entity.SpreadSheetClassSummary,
-	summary5 *spreadsheet_entity.SpreadSheetMonthlySummary,
-	summary6 *spreadsheet_entity.SpreadSheetCourseCategorySummary,
-	summary7 *spreadsheet_entity.SpreadSheetDistanceCategorySummary,
+	summary *spreadsheet_entity.SpreadSheetSummary,
 ) error {
 	log.Println(ctx, "writing spreadsheet for summary")
-	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary2.GetShortSummaryForAll())
+	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary.GetShortSummary().GetShortSummaryForAll())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForCurrentMonthSummary(ctx, summary2.GetShortSummaryForMonth())
+	err = s.spreadSheetClient.WriteForCurrentMonthSummary(ctx, summary.GetShortSummary().GetShortSummaryForMonth())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForCurrentYearSummary(ctx, summary2.GetShortSummaryForYear())
+	err = s.spreadSheetClient.WriteForCurrentYearSummary(ctx, summary.GetShortSummary().GetShortSummaryForYear())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForTotalBettingTicketRateSummary(ctx, summary3)
+	err = s.spreadSheetClient.WriteForTotalBettingTicketRateSummary(ctx, summary.GetBettingTicketSummary())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForRaceClassRateSummary(ctx, summary4)
+	err = s.spreadSheetClient.WriteForRaceClassRateSummary(ctx, summary.GetClassSummary())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForCourseCategoryRateSummary(ctx, summary6)
+	err = s.spreadSheetClient.WriteForCourseCategoryRateSummary(ctx, summary.GetCourseCategorySummary())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForDistanceCategoryRateSummary(ctx, summary7)
+	err = s.spreadSheetClient.WriteForDistanceCategoryRateSummary(ctx, summary.GetDistanceCategorySummary())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForRaceCourseRateSummary(ctx, summary.RaceCourseSummary)
+	err = s.spreadSheetClient.WriteForRaceCourseRateSummary(ctx, summary.GetRaceCourseSummary())
 	if err != nil {
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteForMonthlyRateSummary(ctx, summary5)
+	err = s.spreadSheetClient.WriteForMonthlyRateSummary(ctx, summary.GetMonthlySummary())
 	if err != nil {
 		return err
 	}
@@ -101,7 +95,7 @@ func (s *SpreadSheet) WriteList(ctx context.Context, records []*predict_entity.P
 	return styleMap, nil
 }
 
-func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadsheet_entity.Summary) error {
+func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetSummary) error {
 	err := s.spreadSheetClient.WriteStyleForTotalSummary(ctx)
 	if err != nil {
 		return err
@@ -142,7 +136,7 @@ func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadshee
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteStyleForMonthlyRateSummary(ctx, summary.MonthlySummary)
+	err = s.spreadSheetClient.WriteStyleForMonthlyRateSummary(ctx, summary.GetMonthlySummary())
 	if err != nil {
 		return err
 	}

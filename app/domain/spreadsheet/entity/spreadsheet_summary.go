@@ -1,34 +1,96 @@
 package entity
 
-import result_summary_entity "github.com/mapserver2007/ipat-aggregator/app/domain/result/entity"
+import (
+	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	result_summary_entity "github.com/mapserver2007/ipat-aggregator/app/domain/result/entity"
+)
 
 type SpreadSheetSummary struct {
+	shortSummary            *SpreadSheetShortSummary
+	bettingTicketSummary    *SpreadSheetBettingTicketSummary
+	classSummary            *SpreadSheetClassSummary
+	monthlySummary          *SpreadSheetMonthlySummary
+	courseCategorySummary   *SpreadSheetCourseCategorySummary
+	distanceCategorySummary *SpreadSheetDistanceCategorySummary
+	raceCourseSummary       *SpreadSheetRaceCourseSummary
+}
+
+func NewSpreadSheetSummary(
+	shortSummary *SpreadSheetShortSummary,
+	bettingTicketSummary *SpreadSheetBettingTicketSummary,
+	classSummary *SpreadSheetClassSummary,
+	monthlySummary *SpreadSheetMonthlySummary,
+	courseCategorySummary *SpreadSheetCourseCategorySummary,
+	distanceCategorySummary *SpreadSheetDistanceCategorySummary,
+	raceCourseSummary *SpreadSheetRaceCourseSummary,
+) *SpreadSheetSummary {
+	return &SpreadSheetSummary{
+		shortSummary:            shortSummary,
+		bettingTicketSummary:    bettingTicketSummary,
+		classSummary:            classSummary,
+		monthlySummary:          monthlySummary,
+		courseCategorySummary:   courseCategorySummary,
+		distanceCategorySummary: distanceCategorySummary,
+		raceCourseSummary:       raceCourseSummary,
+	}
+}
+
+func (s *SpreadSheetSummary) GetShortSummary() *SpreadSheetShortSummary {
+	return s.shortSummary
+}
+
+func (s *SpreadSheetSummary) GetBettingTicketSummary() *SpreadSheetBettingTicketSummary {
+	return s.bettingTicketSummary
+}
+
+func (s *SpreadSheetSummary) GetClassSummary() *SpreadSheetClassSummary {
+	return s.classSummary
+
+}
+
+func (s *SpreadSheetSummary) GetMonthlySummary() *SpreadSheetMonthlySummary {
+	return s.monthlySummary
+}
+
+func (s *SpreadSheetSummary) GetCourseCategorySummary() *SpreadSheetCourseCategorySummary {
+	return s.courseCategorySummary
+}
+
+func (s *SpreadSheetSummary) GetDistanceCategorySummary() *SpreadSheetDistanceCategorySummary {
+	return s.distanceCategorySummary
+}
+
+func (s *SpreadSheetSummary) GetRaceCourseSummary() *SpreadSheetRaceCourseSummary {
+	return s.raceCourseSummary
+}
+
+type SpreadSheetShortSummary struct {
 	shortSummaryForAll   result_summary_entity.ShortSummary
 	shortSummaryForMonth result_summary_entity.ShortSummary
 	shortSummaryForYear  result_summary_entity.ShortSummary
 }
 
-func NewSpreadSheetSummary(
+func NewSpreadSheetShortSummary(
 	shortSummaryForAll result_summary_entity.ShortSummary,
 	shortSummaryForMonth result_summary_entity.ShortSummary,
 	shortSummaryForYear result_summary_entity.ShortSummary,
-) *SpreadSheetSummary {
-	return &SpreadSheetSummary{
+) *SpreadSheetShortSummary {
+	return &SpreadSheetShortSummary{
 		shortSummaryForAll:   shortSummaryForAll,
 		shortSummaryForMonth: shortSummaryForMonth,
 		shortSummaryForYear:  shortSummaryForYear,
 	}
 }
 
-func (s *SpreadSheetSummary) GetShortSummaryForAll() result_summary_entity.ShortSummary {
+func (s *SpreadSheetShortSummary) GetShortSummaryForAll() result_summary_entity.ShortSummary {
 	return s.shortSummaryForAll
 }
 
-func (s *SpreadSheetSummary) GetShortSummaryForMonth() result_summary_entity.ShortSummary {
+func (s *SpreadSheetShortSummary) GetShortSummaryForMonth() result_summary_entity.ShortSummary {
 	return s.shortSummaryForMonth
 }
 
-func (s *SpreadSheetSummary) GetShortSummaryForYear() result_summary_entity.ShortSummary {
+func (s *SpreadSheetShortSummary) GetShortSummaryForYear() result_summary_entity.ShortSummary {
 	return s.shortSummaryForYear
 }
 
@@ -149,110 +211,58 @@ func (s *SpreadSheetMonthlySummary) GetMonthlySummaryMap() map[int]result_summar
 }
 
 type SpreadSheetCourseCategorySummary struct {
-	turfSummary result_summary_entity.DetailSummary
-	dirtSummary result_summary_entity.DetailSummary
-	jumpSummary result_summary_entity.DetailSummary
+	courseCategorySummaryMap map[race_vo.CourseCategory]result_summary_entity.DetailSummary
 }
 
 func NewSpreadSheetCourseCategorySummary(
-	turfSummary result_summary_entity.DetailSummary,
-	dirtSummary result_summary_entity.DetailSummary,
-	jumpSummary result_summary_entity.DetailSummary,
+	courseCategorySummaryMap map[race_vo.CourseCategory]result_summary_entity.DetailSummary,
 ) *SpreadSheetCourseCategorySummary {
 	return &SpreadSheetCourseCategorySummary{
-		turfSummary: turfSummary,
-		dirtSummary: dirtSummary,
-		jumpSummary: jumpSummary,
+		courseCategorySummaryMap: courseCategorySummaryMap,
 	}
 }
 
-func (s *SpreadSheetCourseCategorySummary) GetTurfSummary() result_summary_entity.DetailSummary {
-	return s.turfSummary
-}
-
-func (s *SpreadSheetCourseCategorySummary) GetDirtSummary() result_summary_entity.DetailSummary {
-	return s.dirtSummary
-}
-
-func (s *SpreadSheetCourseCategorySummary) GetJumpSummary() result_summary_entity.DetailSummary {
-	return s.jumpSummary
+func (s *SpreadSheetCourseCategorySummary) GetCourseCategorySummary(courseCategory race_vo.CourseCategory) result_summary_entity.DetailSummary {
+	if courseCategorySummary, ok := s.courseCategorySummaryMap[courseCategory]; ok {
+		return courseCategorySummary
+	}
+	return result_summary_entity.DetailSummary{}
 }
 
 type SpreadSheetDistanceCategorySummary struct {
-	turfSprintSummary       result_summary_entity.DetailSummary
-	turfMileSummary         result_summary_entity.DetailSummary
-	turfIntermediateSummary result_summary_entity.DetailSummary
-	turfLongSummary         result_summary_entity.DetailSummary
-	turfExtendedSummary     result_summary_entity.DetailSummary
-	dirtSprintSummary       result_summary_entity.DetailSummary
-	dirtMileSummary         result_summary_entity.DetailSummary
-	dirtIntermediateSummary result_summary_entity.DetailSummary
-	dirtLongSummary         result_summary_entity.DetailSummary
-	jumpAllDistanceSummary  result_summary_entity.DetailSummary
+	distanceCategorySummaryMap map[race_vo.DistanceCategory]result_summary_entity.DetailSummary
 }
 
 func NewSpreadSheetDistanceCategorySummary(
-	turfSprintSummary result_summary_entity.DetailSummary,
-	turfMileSummary result_summary_entity.DetailSummary,
-	turfIntermediateSummary result_summary_entity.DetailSummary,
-	turfLongSummary result_summary_entity.DetailSummary,
-	turfExtendedSummary result_summary_entity.DetailSummary,
-	dirtSprintSummary result_summary_entity.DetailSummary,
-	dirtMileSummary result_summary_entity.DetailSummary,
-	dirtIntermediateSummary result_summary_entity.DetailSummary,
-	dirtLongSummary result_summary_entity.DetailSummary,
-	jumpAllDistanceSummary result_summary_entity.DetailSummary,
+	distanceCategorySummaryMap map[race_vo.DistanceCategory]result_summary_entity.DetailSummary,
 ) *SpreadSheetDistanceCategorySummary {
 	return &SpreadSheetDistanceCategorySummary{
-		turfSprintSummary:       turfSprintSummary,
-		turfMileSummary:         turfMileSummary,
-		turfIntermediateSummary: turfIntermediateSummary,
-		turfLongSummary:         turfLongSummary,
-		turfExtendedSummary:     turfExtendedSummary,
-		dirtSprintSummary:       dirtSprintSummary,
-		dirtMileSummary:         dirtMileSummary,
-		dirtIntermediateSummary: dirtIntermediateSummary,
-		dirtLongSummary:         dirtLongSummary,
-		jumpAllDistanceSummary:  jumpAllDistanceSummary,
+		distanceCategorySummaryMap: distanceCategorySummaryMap,
 	}
 }
 
-func (s *SpreadSheetDistanceCategorySummary) GetTurfSprintSummary() result_summary_entity.DetailSummary {
-	return s.turfSprintSummary
+func (s *SpreadSheetDistanceCategorySummary) GetDistanceCategorySummary(distanceCategory race_vo.DistanceCategory) result_summary_entity.DetailSummary {
+	if distanceCategorySummary, ok := s.distanceCategorySummaryMap[distanceCategory]; ok {
+		return distanceCategorySummary
+	}
+	return result_summary_entity.DetailSummary{}
 }
 
-func (s *SpreadSheetDistanceCategorySummary) GetTurfMileSummary() result_summary_entity.DetailSummary {
-	return s.turfMileSummary
+type SpreadSheetRaceCourseSummary struct {
+	raceCourseSummaryMap map[race_vo.RaceCourse]result_summary_entity.DetailSummary
 }
 
-func (s *SpreadSheetDistanceCategorySummary) GetTurfIntermediateSummary() result_summary_entity.DetailSummary {
-	return s.turfIntermediateSummary
+func NewSpreadSheetRaceCourseSummary(
+	raceCourseSummaryMap map[race_vo.RaceCourse]result_summary_entity.DetailSummary,
+) *SpreadSheetRaceCourseSummary {
+	return &SpreadSheetRaceCourseSummary{
+		raceCourseSummaryMap: raceCourseSummaryMap,
+	}
 }
 
-func (s *SpreadSheetDistanceCategorySummary) GetTurfLongSummary() result_summary_entity.DetailSummary {
-	return s.turfLongSummary
-}
-
-func (s *SpreadSheetDistanceCategorySummary) GetTurfExtendedSummary() result_summary_entity.DetailSummary {
-	return s.turfExtendedSummary
-}
-
-func (s *SpreadSheetDistanceCategorySummary) GetDirtSprintSummary() result_summary_entity.DetailSummary {
-	return s.dirtSprintSummary
-}
-
-func (s *SpreadSheetDistanceCategorySummary) GetDirtMileSummary() result_summary_entity.DetailSummary {
-	return s.dirtMileSummary
-}
-
-func (s *SpreadSheetDistanceCategorySummary) GetDirtIntermediateSummary() result_summary_entity.DetailSummary {
-	return s.dirtIntermediateSummary
-}
-
-func (s *SpreadSheetDistanceCategorySummary) GetDirtLongSummary() result_summary_entity.DetailSummary {
-	return s.dirtLongSummary
-}
-
-func (s *SpreadSheetDistanceCategorySummary) GetJumpAllDistanceSummary() result_summary_entity.DetailSummary {
-	return s.jumpAllDistanceSummary
+func (s *SpreadSheetRaceCourseSummary) GetRaceCourseSummary(raceCourse race_vo.RaceCourse) result_summary_entity.DetailSummary {
+	if raceCourseSummary, ok := s.raceCourseSummaryMap[raceCourse]; ok {
+		return raceCourseSummary
+	}
+	return result_summary_entity.DetailSummary{}
 }

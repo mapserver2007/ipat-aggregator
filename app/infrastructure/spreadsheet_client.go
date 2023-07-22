@@ -462,9 +462,9 @@ func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Contex
 		},
 	}
 
-	turfSummary := summary.GetTurfSummary()
-	dirtSummary := summary.GetDirtSummary()
-	jumpSummary := summary.GetJumpSummary()
+	turfSummary := summary.GetCourseCategorySummary(race_vo.Turf)
+	dirtSummary := summary.GetCourseCategorySummary(race_vo.Dirt)
+	jumpSummary := summary.GetCourseCategorySummary(race_vo.Jump)
 
 	values = append(values, []interface{}{
 		race_vo.Turf.String(),
@@ -519,107 +519,32 @@ func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Cont
 		},
 	}
 
-	turfSprintSummary := summary.GetTurfSprintSummary()
-	turfMileSummary := summary.GetTurfMileSummary()
-	turfIntermediateSummary := summary.GetTurfIntermediateSummary()
-	turfLongSummary := summary.GetTurfLongSummary()
-	turfExtendedSummary := summary.GetTurfExtendedSummary()
-	dirtSprintSummary := summary.GetDirtSprintSummary()
-	dirtMileSummary := summary.GetDirtMileSummary()
-	dirtIntermediateSummary := summary.GetDirtIntermediateSummary()
-	dirtLongSummary := summary.GetDirtLongSummary()
-	jumpAllDistanceSummary := summary.GetJumpAllDistanceSummary()
+	distanceCategories := []race_vo.DistanceCategory{
+		race_vo.TurfSprint,
+		race_vo.TurfMile,
+		race_vo.TurfIntermediate,
+		race_vo.TurfLong,
+		race_vo.TurfExtended,
+		race_vo.DirtSprint,
+		race_vo.DirtMile,
+		race_vo.DirtIntermediate,
+		race_vo.DirtLong,
+		race_vo.DirtExtended,
+		race_vo.JumpAllDistance,
+	}
 
-	values = append(values, []interface{}{
-		race_vo.TurfSprint.String(),
-		turfSprintSummary.GetBetCount(),
-		turfSprintSummary.GetHitCount(),
-		turfSprintSummary.GetHitRate(),
-		turfSprintSummary.GetPayment(),
-		turfSprintSummary.GetPayout(),
-		turfSprintSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.TurfMile.String(),
-		turfMileSummary.GetBetCount(),
-		turfMileSummary.GetHitCount(),
-		turfMileSummary.GetHitRate(),
-		turfMileSummary.GetPayment(),
-		turfMileSummary.GetPayout(),
-		turfMileSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.TurfIntermediate.String(),
-		turfIntermediateSummary.GetBetCount(),
-		turfIntermediateSummary.GetHitCount(),
-		turfIntermediateSummary.GetHitRate(),
-		turfIntermediateSummary.GetPayment(),
-		turfIntermediateSummary.GetPayout(),
-		turfIntermediateSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.TurfLong.String(),
-		turfLongSummary.GetBetCount(),
-		turfLongSummary.GetHitCount(),
-		turfLongSummary.GetHitRate(),
-		turfLongSummary.GetPayment(),
-		turfLongSummary.GetPayout(),
-		turfLongSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.TurfExtended.String(),
-		turfExtendedSummary.GetBetCount(),
-		turfExtendedSummary.GetHitCount(),
-		turfExtendedSummary.GetHitRate(),
-		turfExtendedSummary.GetPayment(),
-		turfExtendedSummary.GetPayout(),
-		turfExtendedSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.DirtSprint.String(),
-		dirtSprintSummary.GetBetCount(),
-		dirtSprintSummary.GetHitCount(),
-		dirtSprintSummary.GetHitRate(),
-		dirtSprintSummary.GetPayment(),
-		dirtSprintSummary.GetPayout(),
-		dirtSprintSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.DirtMile.String(),
-		dirtMileSummary.GetBetCount(),
-		dirtMileSummary.GetHitCount(),
-		dirtMileSummary.GetHitRate(),
-		dirtMileSummary.GetPayment(),
-		dirtMileSummary.GetPayout(),
-		dirtMileSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.DirtIntermediate.String(),
-		dirtIntermediateSummary.GetBetCount(),
-		dirtIntermediateSummary.GetHitCount(),
-		dirtIntermediateSummary.GetHitRate(),
-		dirtIntermediateSummary.GetPayment(),
-		dirtIntermediateSummary.GetPayout(),
-		dirtIntermediateSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.DirtLong.String(),
-		dirtLongSummary.GetBetCount(),
-		dirtLongSummary.GetHitCount(),
-		dirtLongSummary.GetHitRate(),
-		dirtLongSummary.GetPayment(),
-		dirtLongSummary.GetPayout(),
-		dirtLongSummary.GetRecoveryRate(),
-	})
-	values = append(values, []interface{}{
-		race_vo.JumpAllDistance.String(),
-		jumpAllDistanceSummary.GetBetCount(),
-		jumpAllDistanceSummary.GetHitCount(),
-		jumpAllDistanceSummary.GetHitRate(),
-		jumpAllDistanceSummary.GetPayment(),
-		jumpAllDistanceSummary.GetPayout(),
-		jumpAllDistanceSummary.GetRecoveryRate(),
-	})
+	for _, distanceCategory := range distanceCategories {
+		distanceCategorySummary := summary.GetDistanceCategorySummary(distanceCategory)
+		values = append(values, []interface{}{
+			distanceCategory.String(),
+			distanceCategorySummary.GetBetCount(),
+			distanceCategorySummary.GetHitCount(),
+			distanceCategorySummary.GetHitRate(),
+			distanceCategorySummary.GetPayment(),
+			distanceCategorySummary.GetPayout(),
+			distanceCategorySummary.GetRecoveryRate(),
+		})
+	}
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,
@@ -631,7 +556,7 @@ func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Cont
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, summary spreadsheet_entity.RaceCourseSummary) error {
+func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetRaceCourseSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "H21")
 
 	values := [][]interface{}{
@@ -646,24 +571,22 @@ func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, s
 		},
 	}
 
-	var dateList []race_vo.RaceCourse
-	for key := range summary.RaceCourseRates {
-		dateList = append(dateList, key)
+	raceCourses := []race_vo.RaceCourse{
+		race_vo.Sapporo, race_vo.Hakodate, race_vo.Fukushima, race_vo.Niigata, race_vo.Tokyo, race_vo.Nakayama, race_vo.Chukyo, race_vo.Kyoto, race_vo.Hanshin, race_vo.Kokura,
+		race_vo.Monbetsu, race_vo.Morioka, race_vo.Urawa, race_vo.Hunabashi, race_vo.Ooi, race_vo.Kawasaki, race_vo.Nagoya, race_vo.Sonoda, race_vo.Kouchi, race_vo.Saga,
+		race_vo.Overseas,
 	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i].Value() < dateList[j].Value()
-	})
 
-	for _, raceCourse := range dateList {
-		raceCourseRate := summary.RaceCourseRates[raceCourse]
+	for _, raceCourse := range raceCourses {
+		raceCourseSummary := summary.GetRaceCourseSummary(raceCourse)
 		values = append(values, []interface{}{
 			raceCourse.Name(),
-			raceCourseRate.VoteCount,
-			raceCourseRate.HitCount,
-			raceCourseRate.HitRateFormat(),
-			raceCourseRate.Payments,
-			raceCourseRate.Repayments,
-			raceCourseRate.ReturnOnInvestmentFormat(),
+			raceCourseSummary.GetBetCount(),
+			raceCourseSummary.GetHitCount(),
+			raceCourseSummary.GetHitRate(),
+			raceCourseSummary.GetPayment(),
+			raceCourseSummary.GetPayout(),
+			raceCourseSummary.GetRecoveryRate(),
 		})
 	}
 
@@ -1451,8 +1374,8 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context, summary spreadsheet_entity.MonthlySummary) error {
-	rowCount := len(summary.MonthlyRates)
+func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error {
+	rowCount := len(summary.GetMonthlySummaryMap())
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{

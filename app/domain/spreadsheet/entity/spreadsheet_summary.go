@@ -160,23 +160,35 @@ func (s *SpreadSheetBettingTicketSummary) GetTotalSummary() result_summary_entit
 }
 
 type SpreadSheetClassSummary struct {
-	grade1Summary   result_summary_entity.DetailSummary
-	grade2Summary   result_summary_entity.DetailSummary
-	grade3Summary   result_summary_entity.DetailSummary
-	nonGradeSummary result_summary_entity.DetailSummary
+	grade1Summary        result_summary_entity.DetailSummary
+	grade2Summary        result_summary_entity.DetailSummary
+	grade3Summary        result_summary_entity.DetailSummary
+	openClassSummary     result_summary_entity.DetailSummary
+	threeWinClassSummary result_summary_entity.DetailSummary
+	twoWinClassSummary   result_summary_entity.DetailSummary
+	oneWinClassSummary   result_summary_entity.DetailSummary
+	maidenClassSummary   result_summary_entity.DetailSummary
 }
 
 func NewSpreadSheetClassSummary(
 	grade1Summary result_summary_entity.DetailSummary,
 	grade2Summary result_summary_entity.DetailSummary,
 	grade3Summary result_summary_entity.DetailSummary,
-	nonGradeSummary result_summary_entity.DetailSummary,
+	openClassSummary result_summary_entity.DetailSummary,
+	threeWinClassSummary result_summary_entity.DetailSummary,
+	twoWinClassSummary result_summary_entity.DetailSummary,
+	oneWinClassSummary result_summary_entity.DetailSummary,
+	maidenClassSummary result_summary_entity.DetailSummary,
 ) *SpreadSheetClassSummary {
 	return &SpreadSheetClassSummary{
-		grade1Summary:   grade1Summary,
-		grade2Summary:   grade2Summary,
-		grade3Summary:   grade3Summary,
-		nonGradeSummary: nonGradeSummary,
+		grade1Summary:        grade1Summary,
+		grade2Summary:        grade2Summary,
+		grade3Summary:        grade3Summary,
+		openClassSummary:     openClassSummary,
+		threeWinClassSummary: threeWinClassSummary,
+		twoWinClassSummary:   twoWinClassSummary,
+		oneWinClassSummary:   oneWinClassSummary,
+		maidenClassSummary:   maidenClassSummary,
 	}
 }
 
@@ -192,8 +204,24 @@ func (s *SpreadSheetClassSummary) GetGrade3Summary() result_summary_entity.Detai
 	return s.grade3Summary
 }
 
-func (s *SpreadSheetClassSummary) GetNonGradeSummary() result_summary_entity.DetailSummary {
-	return s.nonGradeSummary
+func (s *SpreadSheetClassSummary) GetOpenClassSummary() result_summary_entity.DetailSummary {
+	return s.openClassSummary
+}
+
+func (s *SpreadSheetClassSummary) GetThreeWinClassSummary() result_summary_entity.DetailSummary {
+	return s.threeWinClassSummary
+}
+
+func (s *SpreadSheetClassSummary) GetTwoWinClassSummary() result_summary_entity.DetailSummary {
+	return s.twoWinClassSummary
+}
+
+func (s *SpreadSheetClassSummary) GetOneWinClassSummary() result_summary_entity.DetailSummary {
+	return s.oneWinClassSummary
+}
+
+func (s *SpreadSheetClassSummary) GetMaidenClassSummary() result_summary_entity.DetailSummary {
+	return s.maidenClassSummary
 }
 
 type SpreadSheetMonthlySummary struct {

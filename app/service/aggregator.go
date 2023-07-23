@@ -54,10 +54,14 @@ func (a *Aggregator) GetSummary(
 	)
 
 	spreadSheetGradeClassSummary := spreadsheet_entity.NewSpreadSheetClassSummary(
-		a.summarizer.GetGradeClassSummaryForAll(records, races, race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1),
-		a.summarizer.GetGradeClassSummaryForAll(records, races, race_vo.Grade2, race_vo.Jpn2, race_vo.JumpGrade2),
-		a.summarizer.GetGradeClassSummaryForAll(records, races, race_vo.Grade3, race_vo.Jpn3, race_vo.JumpGrade3),
-		a.summarizer.GetGradeClassSummaryForAll(records, races, race_vo.OpenClass, race_vo.ListedClass, race_vo.AllowanceClass),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Grade2, race_vo.Jpn2, race_vo.JumpGrade2),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Grade3, race_vo.Jpn3, race_vo.JumpGrade3),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.OpenClass, race_vo.ListedClass),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.ThreeWinClass),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.TwoWinClass),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.OneWinClass),
+		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Maiden, race_vo.JumpMaiden),
 	)
 
 	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records))

@@ -190,7 +190,11 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 					} else if len(ce.DOM.Find(".Icon_GradeType3").Nodes) > 0 {
 						gradeClass = race_vo.Grade3
 					} else if len(ce.DOM.Find(".Icon_GradeType5").Nodes) > 0 {
-						gradeClass = race_vo.OpenClass
+						if strings.Contains(raceName, "障害") {
+							gradeClass = race_vo.JumpOpenClass
+						} else {
+							gradeClass = race_vo.OpenClass
+						}
 					} else if len(ce.DOM.Find(".Icon_GradeType10").Nodes) > 0 {
 						gradeClass = race_vo.JumpGrade1
 					} else if len(ce.DOM.Find(".Icon_GradeType11").Nodes) > 0 {
@@ -199,18 +203,33 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 						gradeClass = race_vo.JumpGrade3
 					} else if len(ce.DOM.Find(".Icon_GradeType15").Nodes) > 0 {
 						gradeClass = race_vo.ListedClass
-					} else if len(ce.DOM.Find(".Icon_GradeType16").Nodes) > 0 {
-						gradeClass = race_vo.AllowanceClass
-					} else if len(ce.DOM.Find(".Icon_GradeType17").Nodes) > 0 {
-						gradeClass = race_vo.AllowanceClass
-					} else if len(ce.DOM.Find(".Icon_GradeType18").Nodes) > 0 {
-						gradeClass = race_vo.AllowanceClass
+					} else if len(ce.DOM.Find(".Icon_GradeType16").Nodes) > 0 { // 3勝クラス
+						gradeClass = race_vo.ThreeWinClass
+					} else if len(ce.DOM.Find(".Icon_GradeType17").Nodes) > 0 { // 2勝クラス
+						gradeClass = race_vo.TwoWinClass
+					} else if len(ce.DOM.Find(".Icon_GradeType18").Nodes) > 0 { // 1勝クラス
+						gradeClass = race_vo.OneWinClass
 					} else if len(ce.DOM.Find(".Icon_GradeType19").Nodes) > 0 {
 						gradeClass = race_vo.Jpn1
 					} else if len(ce.DOM.Find(".Icon_GradeType20").Nodes) > 0 {
 						gradeClass = race_vo.Jpn2
 					} else if len(ce.DOM.Find(".Icon_GradeType21").Nodes) > 0 {
 						gradeClass = race_vo.Jpn3
+					} else {
+						// 条件戦の特別戦、OP、L以外の平場はアイコンが無いのでレース名からクラスを判定する
+						if strings.Contains(raceName, "新馬") || strings.Contains(raceName, "未勝利") {
+							if strings.Contains(raceName, "障害") {
+								gradeClass = race_vo.JumpMaiden
+							} else {
+								gradeClass = race_vo.Maiden
+							}
+						} else if strings.Contains(raceName, "1勝クラス") {
+							gradeClass = race_vo.OneWinClass
+						} else if strings.Contains(raceName, "2勝クラス") {
+							gradeClass = race_vo.TwoWinClass
+						} else if strings.Contains(raceName, "3勝クラス") {
+							gradeClass = race_vo.ThreeWinClass
+						}
 					}
 				case 1:
 					text := ConvertFromEucJPToUtf8(ce.DOM.Text())

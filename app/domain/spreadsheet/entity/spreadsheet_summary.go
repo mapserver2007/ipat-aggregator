@@ -294,3 +294,78 @@ func (s *SpreadSheetRaceCourseSummary) GetRaceCourseSummary(raceCourse race_vo.R
 	}
 	return result_summary_entity.DetailSummary{}
 }
+
+type SpreadSheetMonthlyBettingTicketSummary struct {
+	monthlyBettingTicketSummaryMap map[int]*SpreadSheetBettingTicketSummary
+}
+
+func NewSpreadSheetMonthlyBettingTicketSummary(
+	monthlyBettingTicketSummaryMap map[int]*SpreadSheetBettingTicketSummary,
+) *SpreadSheetMonthlyBettingTicketSummary {
+	return &SpreadSheetMonthlyBettingTicketSummary{
+		monthlyBettingTicketSummaryMap: monthlyBettingTicketSummaryMap,
+	}
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary) GetMonthlyBettingTicketSummaryMap() map[int]*SpreadSheetBettingTicketSummary {
+	return s.monthlyBettingTicketSummaryMap
+}
+
+type SpreadSheetMonthlyBettingTicketSummary2 struct {
+	winSummaryMap           map[int]*result_summary_entity.DetailSummary
+	placeSummaryMap         map[int]*result_summary_entity.DetailSummary
+	quinellaSummaryMap      map[int]*result_summary_entity.DetailSummary
+	exactaSummaryMap        map[int]*result_summary_entity.DetailSummary
+	quinellaPlaceSummaryMap map[int]*result_summary_entity.DetailSummary
+	trioSummaryMap          map[int]*result_summary_entity.DetailSummary
+	trifectaSummaryMap      map[int]*result_summary_entity.DetailSummary
+	totalSummaryMap         map[int]*result_summary_entity.DetailSummary
+}
+
+func NewSpreadSheetMonthlyBettingTicketSummary2(
+	winSummaryMap map[int]*result_summary_entity.DetailSummary,
+	placeSummaryMap map[int]*result_summary_entity.DetailSummary,
+	quinellaSummaryMap map[int]*result_summary_entity.DetailSummary,
+	exactaSummaryMap map[int]*result_summary_entity.DetailSummary,
+	quinellaPlaceSummaryMap map[int]*result_summary_entity.DetailSummary,
+	trioSummaryMap map[int]*result_summary_entity.DetailSummary,
+	trifectaSummaryMap map[int]*result_summary_entity.DetailSummary,
+) *SpreadSheetMonthlyBettingTicketSummary2 {
+	return &SpreadSheetMonthlyBettingTicketSummary2{
+		winSummaryMap:           winSummaryMap,
+		placeSummaryMap:         placeSummaryMap,
+		quinellaSummaryMap:      quinellaSummaryMap,
+		exactaSummaryMap:        exactaSummaryMap,
+		quinellaPlaceSummaryMap: quinellaPlaceSummaryMap,
+		trioSummaryMap:          trioSummaryMap,
+		trifectaSummaryMap:      trifectaSummaryMap,
+	}
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary2) GetWinSummaryMap() map[int]*result_summary_entity.DetailSummary {
+	return s.winSummaryMap
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary2) GetPlaceSummaryMap() map[int]*result_summary_entity.DetailSummary {
+	return s.placeSummaryMap
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary2) GetQuinellaSummaryMap() map[int]*result_summary_entity.DetailSummary {
+	return s.quinellaSummaryMap
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary2) GetExactaSummaryMap() map[int]*result_summary_entity.DetailSummary {
+	return s.exactaSummaryMap
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary2) GetQuinellaPlaceSummaryMap() map[int]*result_summary_entity.DetailSummary {
+	return s.quinellaPlaceSummaryMap
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary2) GetTrioSummaryMap() map[int]*result_summary_entity.DetailSummary {
+	return s.trioSummaryMap
+}
+
+func (s *SpreadSheetMonthlyBettingTicketSummary2) GetTrifectaSummaryMap() map[int]*result_summary_entity.DetailSummary {
+	return s.trifectaSummaryMap
+}

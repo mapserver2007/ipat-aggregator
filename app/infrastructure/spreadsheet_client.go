@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	secretFileName             = "secret.json"
-	spreadSheetCalcFileName    = "spreadsheet_calc.json"
-	spreadSheetListFileName    = "spreadsheet_list.json"
-	spreadSheetAnalyzeFileName = "spreadsheet_analyze.json"
+	secretFileName                   = "secret.json"
+	spreadSheetSummaryFileName       = "spreadsheet_summary.json"
+	spreadSheetTicketSummaryFileName = "spreadsheet_ticket_summary.json"
+	spreadSheetListFileName          = "spreadsheet_list.json"
+	spreadSheetAnalyzeFileName       = "spreadsheet_analyze.json"
 )
 
 type SpreadSheetClient struct {
@@ -36,8 +37,25 @@ type SpreadSheetClient struct {
 func NewSpreadSheetClient(
 	ctx context.Context,
 ) repository.SpreadSheetClient {
-	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetCalcFileName)
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName)
 	return &SpreadSheetClient{
+		client:            service,
+		spreadSheetConfig: spreadSheetConfig,
+		sheetId:           sheetId,
+	}
+}
+
+type SpreadSheetMonthlyBettingTicketClient struct {
+	client            *sheets.Service
+	spreadSheetConfig spreadsheet_entity.SpreadSheetConfig
+	sheetId           int64
+}
+
+func NewSpreadSheetMonthlyBettingTicketClient(
+	ctx context.Context,
+) repository.SpreadSheetMonthlyBettingTicketClient {
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetTicketSummaryFileName)
+	return &SpreadSheetMonthlyBettingTicketClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
 		sheetId:           sheetId,
@@ -569,7 +587,6 @@ func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Cont
 		race_vo.DirtMile,
 		race_vo.DirtIntermediate,
 		race_vo.DirtLong,
-		race_vo.DirtExtended,
 		race_vo.JumpAllDistance,
 	}
 
@@ -1501,6 +1518,286 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 		},
 	}).Do()
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary) error {
+	summaryMap := summary.GetMonthlyBettingTicketSummaryMap()
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A1")
+	var dateList []int
+	for key := range summaryMap {
+		dateList = append(dateList, key)
+	}
+	sort.Slice(dateList, func(i, j int) bool {
+		return dateList[i] > dateList[j]
+	})
+
+	// 単勝
+	values := [][]interface{}{
+		{
+			"単勝",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}
+	summaries := make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetWinSummary())
+	}
+	for idx, winSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			winSummary.GetBetCount(),
+			winSummary.GetHitCount(),
+			winSummary.GetHitRate(),
+			winSummary.GetPayment(),
+			winSummary.GetPayout(),
+			winSummary.GetRecoveryRate(),
+			winSummary.GetAveragePayout(),
+			winSummary.GetMaxPayout(),
+			winSummary.GetMinPayout(),
+		})
+	}
+
+	// 複勝
+	values = append(values, [][]interface{}{
+		{
+			"複勝",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetPlaceSummary())
+	}
+	for idx, placeSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			placeSummary.GetBetCount(),
+			placeSummary.GetHitCount(),
+			placeSummary.GetHitRate(),
+			placeSummary.GetPayment(),
+			placeSummary.GetPayout(),
+			placeSummary.GetRecoveryRate(),
+			placeSummary.GetAveragePayout(),
+			placeSummary.GetMaxPayout(),
+			placeSummary.GetMinPayout(),
+		})
+	}
+
+	// 馬連
+	values = append(values, [][]interface{}{
+		{
+			"馬連",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetQuinellaSummary())
+	}
+	for idx, quinellaSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			quinellaSummary.GetBetCount(),
+			quinellaSummary.GetHitCount(),
+			quinellaSummary.GetHitRate(),
+			quinellaSummary.GetPayment(),
+			quinellaSummary.GetPayout(),
+			quinellaSummary.GetRecoveryRate(),
+			quinellaSummary.GetAveragePayout(),
+			quinellaSummary.GetMaxPayout(),
+			quinellaSummary.GetMinPayout(),
+		})
+	}
+
+	// 馬単
+	values = append(values, [][]interface{}{
+		{
+			"馬単",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetExactaSummary())
+	}
+	for idx, exactaSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			exactaSummary.GetBetCount(),
+			exactaSummary.GetHitCount(),
+			exactaSummary.GetHitRate(),
+			exactaSummary.GetPayment(),
+			exactaSummary.GetPayout(),
+			exactaSummary.GetRecoveryRate(),
+			exactaSummary.GetAveragePayout(),
+			exactaSummary.GetMaxPayout(),
+			exactaSummary.GetMinPayout(),
+		})
+	}
+
+	// ワイド
+	values = append(values, [][]interface{}{
+		{
+			"ワイド",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetQuinellaPlaceSummary())
+	}
+	for idx, quinellaPlaceSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			quinellaPlaceSummary.GetBetCount(),
+			quinellaPlaceSummary.GetHitCount(),
+			quinellaPlaceSummary.GetHitRate(),
+			quinellaPlaceSummary.GetPayment(),
+			quinellaPlaceSummary.GetPayout(),
+			quinellaPlaceSummary.GetRecoveryRate(),
+			quinellaPlaceSummary.GetAveragePayout(),
+			quinellaPlaceSummary.GetMaxPayout(),
+			quinellaPlaceSummary.GetMinPayout(),
+		})
+	}
+
+	// 3連複
+	values = append(values, [][]interface{}{
+		{
+			"3連複",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetTrioSummary())
+	}
+	for idx, trioPlaceSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			trioPlaceSummary.GetBetCount(),
+			trioPlaceSummary.GetHitCount(),
+			trioPlaceSummary.GetHitRate(),
+			trioPlaceSummary.GetPayment(),
+			trioPlaceSummary.GetPayout(),
+			trioPlaceSummary.GetRecoveryRate(),
+			trioPlaceSummary.GetAveragePayout(),
+			trioPlaceSummary.GetMaxPayout(),
+			trioPlaceSummary.GetMinPayout(),
+		})
+	}
+
+	// 3連単
+	values = append(values, [][]interface{}{
+		{
+			"3連単",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetTrifectaSummary())
+	}
+	for idx, trifectaPlaceSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			trifectaPlaceSummary.GetBetCount(),
+			trifectaPlaceSummary.GetHitCount(),
+			trifectaPlaceSummary.GetHitRate(),
+			trifectaPlaceSummary.GetPayment(),
+			trifectaPlaceSummary.GetPayout(),
+			trifectaPlaceSummary.GetRecoveryRate(),
+			trifectaPlaceSummary.GetAveragePayout(),
+			trifectaPlaceSummary.GetMaxPayout(),
+			trifectaPlaceSummary.GetMinPayout(),
+		})
+	}
+
+	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
+		Values: values,
+	}).ValueInputOption("USER_ENTERED").Do()
 	if err != nil {
 		return err
 	}
@@ -3048,6 +3345,33 @@ func (s *SpreadSheetAnalyzeClient) WriteStyleWinPopular(ctx context.Context, sum
 	}
 
 	_, err = s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetMonthlyBettingTicketClient) Clear(ctx context.Context) error {
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.sheetId,
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   9,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: requests,
 	}).Do()
 

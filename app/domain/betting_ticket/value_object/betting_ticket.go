@@ -38,6 +38,16 @@ var bettingTicketMap = map[BettingTicket]string{
 	UnknownTicket:        "不明",
 }
 
+func NewBettingTicket(name string) BettingTicket {
+	for key, value := range bettingTicketMap {
+		if value == name {
+			return key
+		}
+	}
+
+	return UnknownTicket
+}
+
 func (b BettingTicket) Name() string {
 	return convertToBettingTicketName(b)
 }
@@ -64,14 +74,4 @@ func (b BettingTicket) ConvertToOriginBettingTicket() BettingTicket {
 func convertToBettingTicketName(b BettingTicket) string {
 	bettingTicketName, _ := bettingTicketMap[b]
 	return bettingTicketName
-}
-
-func ConvertToBettingTicket(name string) BettingTicket {
-	for key, value := range bettingTicketMap {
-		if value == name {
-			return key
-		}
-	}
-
-	return UnknownTicket
 }

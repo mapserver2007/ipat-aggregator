@@ -30,6 +30,11 @@ type SpreadSheetClient interface {
 	WriteStyleForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error
 }
 
+type SpreadSheetMonthlyBettingTicketClient interface {
+	Write(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary) error
+	Clear(ctx context.Context) error
+}
+
 type SpreadSheetListClient interface {
 	WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle, error)
 	WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle) error

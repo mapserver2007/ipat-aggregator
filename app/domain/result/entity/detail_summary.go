@@ -2,7 +2,7 @@ package entity
 
 import (
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/result/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"strconv"
 )
 
@@ -68,4 +68,12 @@ func (s *DetailSummary) GetRecoveryRate() string {
 
 func (s *DetailSummary) GetAveragePayout() types.Payout {
 	return s.averagePayout
+}
+
+func (s *DetailSummary) GetMaxPayout() types.Payout {
+	return s.maxPayout
+}
+
+func (s *DetailSummary) GetMinPayout() types.Payout {
+	return s.minPayout
 }

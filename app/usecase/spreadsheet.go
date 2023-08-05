@@ -11,20 +11,23 @@ import (
 )
 
 type SpreadSheet struct {
-	spreadSheetClient        repository.SpreadSheetClient
-	spreadSheetListClient    repository.SpreadSheetListClient
-	spreadSheetAnalyzeClient repository.SpreadSheetAnalyzeClient
+	spreadSheetClient                     repository.SpreadSheetClient
+	spreadSheetMonthlyBettingTicketClient repository.SpreadSheetMonthlyBettingTicketClient
+	spreadSheetListClient                 repository.SpreadSheetListClient
+	spreadSheetAnalyzeClient              repository.SpreadSheetAnalyzeClient
 }
 
 func NewSpreadSheet(
 	spreadSheetClient repository.SpreadSheetClient,
+	spreadSheetMonthlyBettingTicketClient repository.SpreadSheetMonthlyBettingTicketClient,
 	spreadSheetListClient repository.SpreadSheetListClient,
 	spreadSheetAnalyze repository.SpreadSheetAnalyzeClient,
 ) *SpreadSheet {
 	return &SpreadSheet{
-		spreadSheetClient:        spreadSheetClient,
-		spreadSheetListClient:    spreadSheetListClient,
-		spreadSheetAnalyzeClient: spreadSheetAnalyze,
+		spreadSheetClient:                     spreadSheetClient,
+		spreadSheetMonthlyBettingTicketClient: spreadSheetMonthlyBettingTicketClient,
+		spreadSheetListClient:                 spreadSheetListClient,
+		spreadSheetAnalyzeClient:              spreadSheetAnalyze,
 	}
 }
 
@@ -146,6 +149,19 @@ func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadshee
 
 func (s *SpreadSheet) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle) error {
 	err := s.spreadSheetListClient.WriteStyleList(ctx, records, styleMap)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheet) WriteMonthlyBettingTicketSummary(
+	ctx context.Context,
+	summary *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary,
+) error {
+	log.Println(ctx, "writing spreadsheet for monthly betting ticket summary")
+	err := s.spreadSheetMonthlyBettingTicketClient.Write(ctx, summary)
 	if err != nil {
 		return err
 	}

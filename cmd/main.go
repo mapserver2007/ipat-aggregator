@@ -11,6 +11,7 @@ import (
 func main() {
 	ctx := context.Background()
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx)
+	spreadSheetMonthlyBettingTicketClient := infrastructure.NewSpreadSheetMonthlyBettingTicketClient(ctx)
 	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx)
 	spreadSheetAnalyzeClient := infrastructure.NewSpreadSheetAnalyzeClient(ctx)
 
@@ -24,6 +25,7 @@ func main() {
 
 	aggregator := di.AggregatorInit()
 	summary := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
+	monthlyBettingTicketSummary := aggregator.GetyMonthlyBettingTicketSummary(records)
 
 	predictor := di.PredictInit()
 	predictResults, err := predictor.Predict(records, raceNumberInfo.RacingNumbers(), raceInfo.Races(), jockeyInfo.Jockeys())
@@ -35,8 +37,12 @@ func main() {
 	//analyzeSummary := analyzer.WinAnalyze(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
 
 	//spreadSheetUseCase := di.SpreadSheetInit()
-	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetListClient, spreadSheetAnalyzeClient)
+	spreadSheetUseCase := usecase.NewSpreadSheet(spreadSheetClient, spreadSheetMonthlyBettingTicketClient, spreadSheetListClient, spreadSheetAnalyzeClient)
 	err = spreadSheetUseCase.WriteSummary(ctx, summary)
+	if err != nil {
+		panic(err)
+	}
+	err = spreadSheetUseCase.WriteMonthlyBettingTicketSummary(ctx, monthlyBettingTicketSummary)
 	if err != nil {
 		panic(err)
 	}

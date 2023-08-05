@@ -31,51 +31,49 @@ func (a *Aggregator) GetSummary(
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
 ) *spreadsheet_entity.SpreadSheetSummary {
-	// TODO averageがなんかあってない気がする。多分単体の馬券で計算している。averageは1レース単位。
-
 	spreadSheetShortSummary := spreadsheet_entity.NewSpreadSheetShortSummary(
-		a.summarizer.GetShortSummaryForAll(records),
+		a.summarizer.GetShortSummary(records),
 		a.summarizer.GetShortSummaryForMonth(records),
 		a.summarizer.GetShortSummaryForYear(records),
 	)
 
 	spreadSheetBettingTicketSummary := spreadsheet_entity.NewSpreadSheetBettingTicketSummary(
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.Win),
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.Place),
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.Quinella),
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst),
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel),
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst),
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst),
-		a.summarizer.GetBettingTicketSummaryForAll(records, betting_ticket_vo.Win, betting_ticket_vo.Place, betting_ticket_vo.Quinella,
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Win),
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Place),
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Quinella),
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst),
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel),
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst),
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst),
+		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Win, betting_ticket_vo.Place, betting_ticket_vo.Quinella,
 			betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel,
 			betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst,
 			betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst),
 	)
 
 	spreadSheetGradeClassSummary := spreadsheet_entity.NewSpreadSheetClassSummary(
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1),
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Grade2, race_vo.Jpn2, race_vo.JumpGrade2),
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Grade3, race_vo.Jpn3, race_vo.JumpGrade3),
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.OpenClass, race_vo.ListedClass),
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.ThreeWinClass),
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.TwoWinClass),
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.OneWinClass),
-		a.summarizer.GetGradeClassSummaryForAll(records, racingNumbers, races, race_vo.Maiden, race_vo.JumpMaiden),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade2, race_vo.Jpn2, race_vo.JumpGrade2),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade3, race_vo.Jpn3, race_vo.JumpGrade3),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OpenClass, race_vo.ListedClass),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.ThreeWinClass),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.TwoWinClass),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OneWinClass),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Maiden, race_vo.JumpMaiden),
 	)
 
 	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records))
 
 	spreadSheetCourseCategorySummary := spreadsheet_entity.NewSpreadSheetCourseCategorySummary(
-		a.summarizer.GetCourseCategorySummaryMapForAll(records, racingNumbers, races),
+		a.summarizer.GetCourseCategorySummaryMap(records, racingNumbers, races),
 	)
 
 	spreadSheetDistanceCategorySummary := spreadsheet_entity.NewSpreadSheetDistanceCategorySummary(
-		a.summarizer.GetDistanceCategorySummaryMapForAll(records, racingNumbers, races),
+		a.summarizer.GetDistanceCategorySummaryMap(records, racingNumbers, races),
 	)
 
 	spreadSheetRaceCourseSummary := spreadsheet_entity.NewSpreadSheetRaceCourseSummary(
-		a.summarizer.GetRaceCourseSummaryMapForAll(records, racingNumbers, races),
+		a.summarizer.GetRaceCourseSummaryMap(records, racingNumbers, races),
 	)
 
 	return spreadsheet_entity.NewSpreadSheetSummary(
@@ -87,4 +85,10 @@ func (a *Aggregator) GetSummary(
 		spreadSheetDistanceCategorySummary,
 		spreadSheetRaceCourseSummary,
 	)
+}
+
+func (a *Aggregator) GetyMonthlyBettingTicketSummary(
+	records []*betting_ticket_entity.CsvEntity,
+) *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary {
+	return spreadsheet_entity.NewSpreadSheetMonthlyBettingTicketSummary(a.summarizer.GetMonthlyBettingTicketSummary(records))
 }

@@ -51,10 +51,10 @@ func (p *Predictor) Predict(
 			return nil, fmt.Errorf("unknown raceId: %s", raceId)
 		}
 
-		var payment, repayment int
+		var payment, payout int
 		for _, bettingTicketDetail := range bettingTicketDetails {
-			payment += bettingTicketDetail.Payment()
-			repayment += bettingTicketDetail.Repayment()
+			payment += bettingTicketDetail.Payment().Value()
+			payout += bettingTicketDetail.Payout().Value()
 		}
 
 		bettingTicketMap := p.bettingTicketConverter.ConvertToBettingTicketMap(bettingTicketDetails)
@@ -179,7 +179,7 @@ func (p *Predictor) Predict(
 				if !ok {
 					return nil, fmt.Errorf("unknown payout result in ticketType %d", detail.BettingTicket().Value())
 				}
-				if detail.Winning() {
+				if detail.BettingResult() == betting_ticket_vo.Hit {
 					var odds string
 					for idx, betNumber := range payoutResult.Numbers() {
 						if betNumber == detail.BetNumber().String() {
@@ -190,7 +190,7 @@ func (p *Predictor) Predict(
 						detail.BettingTicket(),
 						detail.BetNumber(),
 						odds,
-						detail.Repayment(),
+						detail.Payout().Value(),
 					))
 				}
 			}
@@ -227,12 +227,12 @@ func (p *Predictor) Predict(
 			raceInfo.Distance(),
 			raceInfo.TrackCondition(),
 			payment,
-			repayment,
+			payout,
 			raceInfo.Url(),
 			raceInfo.RaceResults()[0:2],
 		)
 		entities = append(entities, predict_entity.NewPredictEntity(
-			race, favoriteHorse, rivalHorse, favoriteJockey, rivalJockey, payment, repayment, winningTickets, status))
+			race, favoriteHorse, rivalHorse, favoriteJockey, rivalJockey, payment, payout, winningTickets, status))
 
 		if len(favorites) >= 2 || len(rivals) >= 2 {
 			return nil, fmt.Errorf("failed to find favorite or rival")
@@ -361,9 +361,9 @@ func getMaxBetNumbers(details []*betting_ticket_entity.BettingTicketDetail, excl
 		if size >= 1 && !containsInSlices(excludeBetNumbers, betting_ticket_vo.NewBetNumber(strconv.Itoa(nums[0]))) {
 			// 1着付け
 			if _, ok := betNumberPaymentMap[nums[0]]; !ok {
-				betNumberPaymentMap[nums[0]] = detail.Payment()
+				betNumberPaymentMap[nums[0]] = detail.Payment().Value()
 			} else {
-				betNumberPaymentMap[nums[0]] += detail.Payment()
+				betNumberPaymentMap[nums[0]] += detail.Payment().Value()
 			}
 		}
 		if size >= 2 && !containsInSlices(excludeBetNumbers, betting_ticket_vo.NewBetNumber(strconv.Itoa(nums[1]))) {
@@ -450,10 +450,10 @@ func (p *Predictor) getRecordMapByRaceId(records []*betting_ticket_entity.CsvEnt
 		raceId := p.raceConverter.GetRaceId(record, racingNumber)
 		bettingTicketDetail := betting_ticket_entity.NewBettingTicketDetail(
 			record.BettingTicket(),
+			record.BettingResult(),
 			record.BetNumber(),
 			record.Payment(),
-			record.Repayment(),
-			record.Winning(),
+			record.Payout(),
 		)
 		recordMap[*raceId] = append(recordMap[*raceId], bettingTicketDetail)
 	}
@@ -470,6 +470,7 @@ func getSortedBettingTickets() []betting_ticket_vo.BettingTicket {
 		betting_ticket_vo.Trifecta,
 		betting_ticket_vo.TrifectaWheelOfFirst,
 		betting_ticket_vo.TrifectaFormation,
+		betting_ticket_vo.TrifectaWheelOfSecondMulti,
 		betting_ticket_vo.QuinellaPlaceWheel,
 		betting_ticket_vo.Quinella,
 		betting_ticket_vo.QuinellaPlace,

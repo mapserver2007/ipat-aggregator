@@ -40,13 +40,7 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 			continue
 		}
 
-		bettingTicket := betting_ticket_vo.ConvertToBettingTicket(record[6])
-
-		bettingResult := betting_ticket_vo.UnHit
-		if record[9] != "―" {
-			bettingResult = betting_ticket_vo.Hit
-		}
-
+		bettingTicket := betting_ticket_vo.NewBettingTicket(record[6])
 		betNumbers := []betting_ticket_vo.BetNumber{betting_ticket_vo.NewBetNumber(record[7])}
 		raceDate := ConvertToRaceDate(record[0])
 		raceNo := ConvertToIntValue(record[5])
@@ -73,6 +67,9 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 		case betting_ticket_vo.TrifectaWheelOfFirst:
 			betNumbers = ConvertToBetNumbersForTrifecta(record[7])
 			payment = ConvertToPaymentForWheel(record[8])[0]
+		case betting_ticket_vo.TrifectaWheelOfSecondMulti:
+			betNumbers = ConvertToBetNumbersForTrifectaMulti(record[7])
+			payment = ConvertToPaymentForWheel(record[8])[0]
 		case betting_ticket_vo.UnknownTicket:
 			panic("unknown betting ticket")
 		default:
@@ -86,11 +83,13 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 
 		for _, betNumber := range betNumbers {
 			repayment := 0
-			winning := false
+			bettingResult := betting_ticket_vo.UnHit
 			if winningBetNumber == betNumber {
+				// betNumberに対して的中判定をしないとフォーメーションなどがまとめられてしまっている
 				repayment = ConvertToIntValue(record[11])
-				winning = true
+				bettingResult = betting_ticket_vo.Hit
 			}
+
 			entities = append(entities, entity.NewCsvEntity(
 				raceDate,
 				ConvertToIntValue(record[1]),
@@ -98,7 +97,6 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 				raceNo,
 				bettingTicket,
 				bettingResult,
-				winning,
 				betNumber,
 				payment,
 				repayment,

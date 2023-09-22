@@ -240,3 +240,71 @@ func ConvertToBetNumbersForTrifectaFormation(value string) []betting_ticket_vo.B
 
 	return betNumbers
 }
+
+// ConvertToBetNumbersForTrifectaMulti 3連単流しマルチ変換
+func ConvertToBetNumbersForTrifectaMulti(value string) []betting_ticket_vo.BetNumber {
+	// 複数の買い目がまとめられてるものをバラす
+	separator1 := "／"
+	separator2 := "；"
+	values1 := strings.Split(value, separator1)
+	strPivotalNumbers := strings.Split(values1[0], separator2)    // 軸
+	strChallengerNumbers := strings.Split(values1[1], separator2) // 相手
+	var betNumbers []betting_ticket_vo.BetNumber
+
+	if len(strPivotalNumbers) == 1 {
+		// 1頭軸マルチ
+		var combinations [][3]int
+		for i := 0; i < len(strChallengerNumbers); i++ {
+			for j := 0; j < len(strChallengerNumbers); j++ {
+				if i == j {
+					continue
+				}
+				challengerNumber1, _ := strconv.Atoi(strChallengerNumbers[i])
+				challengerNumber2, _ := strconv.Atoi(strChallengerNumbers[j])
+				pivotalNumber, _ := strconv.Atoi(strPivotalNumbers[0])
+
+				combinations = append(combinations, [3]int{pivotalNumber, challengerNumber1, challengerNumber2})
+				combinations = append(combinations, [3]int{pivotalNumber, challengerNumber2, challengerNumber1})
+				combinations = append(combinations, [3]int{challengerNumber1, pivotalNumber, challengerNumber2})
+				combinations = append(combinations, [3]int{challengerNumber1, challengerNumber2, pivotalNumber})
+				combinations = append(combinations, [3]int{challengerNumber2, pivotalNumber, challengerNumber1})
+				combinations = append(combinations, [3]int{challengerNumber2, challengerNumber1, pivotalNumber})
+			}
+		}
+		for _, combination := range combinations {
+			betNumbers = append(betNumbers, betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d%s%02d%s%02d",
+				combination[0],
+				betting_ticket_vo.ExactaSeparator,
+				combination[1],
+				betting_ticket_vo.ExactaSeparator,
+				combination[2])))
+		}
+
+	} else if len(strPivotalNumbers) == 2 {
+		// 2頭軸マルチ
+		var combinations [][3]int
+		pivotalNumber1, _ := strconv.Atoi(strPivotalNumbers[0])
+		pivotalNumber2, _ := strconv.Atoi(strPivotalNumbers[1])
+		for i := 0; i < len(strChallengerNumbers); i++ {
+			challengerNumber, _ := strconv.Atoi(strChallengerNumbers[i])
+			combinations = append(combinations, [3]int{pivotalNumber1, pivotalNumber2, challengerNumber})
+			combinations = append(combinations, [3]int{pivotalNumber1, challengerNumber, pivotalNumber2})
+			combinations = append(combinations, [3]int{pivotalNumber2, pivotalNumber1, challengerNumber})
+			combinations = append(combinations, [3]int{pivotalNumber2, challengerNumber, pivotalNumber1})
+			combinations = append(combinations, [3]int{challengerNumber, pivotalNumber1, pivotalNumber2})
+			combinations = append(combinations, [3]int{challengerNumber, pivotalNumber2, pivotalNumber1})
+		}
+		for _, combination := range combinations {
+			betNumbers = append(betNumbers, betting_ticket_vo.NewBetNumber(fmt.Sprintf("%02d%s%02d%s%02d",
+				combination[0],
+				betting_ticket_vo.ExactaSeparator,
+				combination[1],
+				betting_ticket_vo.ExactaSeparator,
+				combination[2])))
+		}
+	} else {
+		panic("no support pivotal number by 3 or more")
+	}
+
+	return betNumbers
+}

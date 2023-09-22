@@ -475,6 +475,10 @@ func (s *Summarizer) getBettingTicketAveragePayout(records []*betting_ticket_ent
 	return types.Payout(0)
 }
 
+func (s *Summarizer) getBettingTicketMinOdds() {
+
+}
+
 // getGradeClassBetCount クラス別投票数の合計を取得する(全期間)
 func (s *Summarizer) getGradeClassBetCount(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race, gradeClasses ...race_vo.GradeClass) types.BetCount {
 	recordsGroup := s.bettingTicketConverter.ConvertToRaceClassRecordsMap(records, racingNumbers, races)

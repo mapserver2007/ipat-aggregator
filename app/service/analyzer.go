@@ -7,6 +7,7 @@ import (
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	"github.com/mapserver2007/ipat-aggregator/app/service/factory"
 	"math"
 	"sort"
 )
@@ -23,46 +24,46 @@ func NewAnalyzer(
 	}
 }
 
-func (a *Analyzer) WinAnalyze(
+func (a *Analyzer) WinPopularAnalyze(
 	records []*betting_ticket_entity.CsvEntity,
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
 ) *analyze_entity.WinAnalyzeSummary {
-	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(races)
-	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(racingNumbers)
-
-	// TODO とりあえず券種別にメソッドを割るが、後々リファクタリングするかも
-	recordsByWin := a.getRecordsByWin(records)
-	popularMap := map[int][]*analyze_entity.WinPopularAnalyze{}
-	for i := 1; i <= 18; i++ {
-		popularMap[i] = []*analyze_entity.WinPopularAnalyze{}
+	entities := a.getWinAnalyzeEntities(records, racingNumbers, races)
+	popularMap := map[int][]*analyze_entity.WinAnalyze{}
+	for _, entity := range entities {
+		popularMap[entity.PopularNumber()] = append(popularMap[entity.PopularNumber()], entity)
 	}
-
-	for _, record := range recordsByWin {
-		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
-		racingNumber, ok := racingNumberMap[racingNumberId]
-		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
-			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
-		}
-		raceId := a.raceConverter.GetRaceId(record, racingNumber)
-		if race, ok := raceMap[*raceId]; ok {
-			popular := a.getPopularAnalyze(record, race)
-			popularMap[popular.PopularNumber()] = append(popularMap[popular.PopularNumber()], popular)
-		}
-	}
-
 	allSummaries := a.convertWinPopularAnalyzeSummary(popularMap)
 	grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries := a.convertClassWinPopularAnalyzeSummaries(popularMap)
 
 	return analyze_entity.NewWinAnalyzeSummary(allSummaries, grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries)
 }
 
-func (a *Analyzer) convertWinPopularAnalyzeSummary(popularMap map[int][]*analyze_entity.WinPopularAnalyze) []*analyze_entity.WinPopularAnalyzeSummary {
-	popularAnalyzeSummaries := make([]*analyze_entity.WinPopularAnalyzeSummary, 0, 18)
-	for popularNumber := 1; popularNumber <= 18; popularNumber++ {
-		populars, ok := popularMap[popularNumber]
+func (a *Analyzer) WinOddsAnalyzer(
+	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
+) {
+	entities := a.getWinAnalyzeEntities(records, racingNumbers, races)
+	oddsMap := map[string][]*analyze_entity.WinAnalyze{}
+	for _, entity := range entities {
+		oddsMap[entity.Odds().OddsRange()] = append(oddsMap[entity.Odds().OddsRange()], entity)
+	}
+
+	allSummaries := a.convertWinOddsAnalyzeSummary(oddsMap)
+
+	fmt.Println(allSummaries)
+}
+
+func (a *Analyzer) convertWinPopularAnalyzeSummary(popularMap map[int][]*analyze_entity.WinAnalyze) []*analyze_entity.WinPopularAnalyzeSummary {
+	winPopularAnalyzeSummaries := factory.DefaultWinPopularAnalyzeSummarySlice()
+	size := len(winPopularAnalyzeSummaries)
+	for idx := 0; idx < size; idx++ {
+		popularNumber := idx + 1
+		popularEntities, ok := popularMap[popularNumber]
 		if !ok {
-			popularAnalyzeSummaries = append(popularAnalyzeSummaries, analyze_entity.DefaultWinPopularAnalyzeSummary(popularNumber))
+			winPopularAnalyzeSummaries = append(winPopularAnalyzeSummaries, analyze_entity.DefaultWinPopularAnalyzeSummary(popularNumber))
 			continue
 		}
 		var (
@@ -78,29 +79,29 @@ func (a *Analyzer) convertWinPopularAnalyzeSummary(popularMap map[int][]*analyze
 			allPayments, allPayouts                                 []int
 		)
 
-		betCount := len(populars)
+		betCount := len(popularEntities)
 
-		for _, popular := range populars {
-			totalOddsAtVote += popular.Odds()
-			totalPayment += popular.Payment()
-			totalPayout += popular.Payout()
-			allPayments = append(allPayments, popular.Payment())
-			if popular.IsHit() {
+		for _, popularEntity := range popularEntities {
+			totalOddsAtVote += popularEntity.Odds().Value()
+			totalPayment += popularEntity.Payment()
+			totalPayout += popularEntity.Payout()
+			allPayments = append(allPayments, popularEntity.Payment())
+			if popularEntity.IsHit() {
 				hitCount++
-				totalOddsAtHit += popular.Odds()
-				allPayouts = append(allPayouts, popular.Payout())
+				totalOddsAtHit += popularEntity.Odds().Value()
+				allPayouts = append(allPayouts, popularEntity.Payout())
 			}
-			if popular.Payout() > maxPayout {
-				maxPayout = popular.Payout()
+			if popularEntity.Payout() > maxPayout {
+				maxPayout = popularEntity.Payout()
 			}
-			if (popular.Payout() > 0 && popular.Payout() < minPayout) || minPayout == 0 {
-				minPayout = popular.Payout()
+			if (popularEntity.Payout() > 0 && popularEntity.Payout() < minPayout) || minPayout == 0 {
+				minPayout = popularEntity.Payout()
 			}
-			if (popular.Odds() > maxOddsAtHit) && popular.IsHit() {
-				maxOddsAtHit = popular.Odds()
+			if (popularEntity.Odds().Value() > maxOddsAtHit) && popularEntity.IsHit() {
+				maxOddsAtHit = popularEntity.Odds().Value()
 			}
-			if ((popular.Odds() > 0 && popular.Odds() < minOddsAtHit) || minOddsAtHit == 0) && popular.IsHit() {
-				minOddsAtHit = popular.Odds()
+			if ((popularEntity.Odds() > 0 && popularEntity.Odds().Value() < minOddsAtHit) || minOddsAtHit == 0) && popularEntity.IsHit() {
+				minOddsAtHit = popularEntity.Odds().Value()
 			}
 		}
 
@@ -152,18 +153,118 @@ func (a *Analyzer) convertWinPopularAnalyzeSummary(popularMap map[int][]*analyze
 			maxOddsAtHit,
 			minOddsAtHit,
 		)
-		popularAnalyzeSummaries = append(popularAnalyzeSummaries, popularAnalyzeSummary)
+		winPopularAnalyzeSummaries = append(winPopularAnalyzeSummaries, popularAnalyzeSummary)
 	}
 
-	sort.Slice(popularAnalyzeSummaries, func(i, j int) bool {
-		return popularAnalyzeSummaries[i].PopularNumber() < popularAnalyzeSummaries[j].PopularNumber()
+	sort.Slice(winPopularAnalyzeSummaries, func(i, j int) bool {
+		return winPopularAnalyzeSummaries[i].PopularNumber() < winPopularAnalyzeSummaries[j].PopularNumber()
 	})
 
-	return popularAnalyzeSummaries
+	return winPopularAnalyzeSummaries
+}
+
+func (a *Analyzer) convertWinOddsAnalyzeSummary(oddsMap map[string][]*analyze_entity.WinAnalyze) map[string]*analyze_entity.WinOddsAnalyzeSummary {
+	winOddsAnalyzeSummaryMap := factory.DefaultWinOddsAnalyzeSummaryMap()
+	for oddRange := range winOddsAnalyzeSummaryMap {
+		oddsEntities, ok := oddsMap[oddRange]
+		if !ok {
+			continue
+		}
+		var (
+			hitCount                                                int
+			hitRate                                                 float64
+			totalOddsAtVote, totalOddsAtHit                         float64
+			averageOddsAtVote, averageOddsAtHit, averageOddsAtUnHit float64
+			totalPayment, totalPayout                               int
+			averagePayment, averagePayout                           int
+			medianPayment, medianPayout                             int
+			maxPayout, minPayout                                    int
+			maxOddsAtHit, minOddsAtHit                              float64
+			allPayments, allPayouts                                 []int
+		)
+
+		betCount := len(oddsEntities)
+		for _, oddsEntity := range oddsEntities {
+			totalOddsAtVote += oddsEntity.Odds().Value()
+			totalPayment += oddsEntity.Payment()
+			totalPayout += oddsEntity.Payout()
+			allPayments = append(allPayments, oddsEntity.Payment())
+			if oddsEntity.IsHit() {
+				hitCount++
+				totalOddsAtHit += oddsEntity.Odds().Value()
+				allPayouts = append(allPayouts, oddsEntity.Payout())
+			}
+			if oddsEntity.Payout() > maxPayout {
+				maxPayout = oddsEntity.Payout()
+			}
+			if (oddsEntity.Payout() > 0 && oddsEntity.Payout() < minPayout) || minPayout == 0 {
+				minPayout = oddsEntity.Payout()
+			}
+			if (oddsEntity.Odds().Value() > maxOddsAtHit) && oddsEntity.IsHit() {
+				maxOddsAtHit = oddsEntity.Odds().Value()
+			}
+			if ((oddsEntity.Odds() > 0 && oddsEntity.Odds().Value() < minOddsAtHit) || minOddsAtHit == 0) && oddsEntity.IsHit() {
+				minOddsAtHit = oddsEntity.Odds().Value()
+			}
+		}
+
+		if betCount > 0 {
+			hitRate = math.Round((float64(hitCount)/float64(betCount))*100) / 100
+			averageOddsAtVote = math.Round((totalOddsAtVote/float64(betCount))*10) / 10
+			averagePayment = totalPayment / betCount
+		}
+		if hitCount > 0 {
+			averageOddsAtHit = math.Round((totalOddsAtHit/float64(hitCount))*10) / 10
+			averagePayout = totalPayout / hitCount
+		}
+		unHitCount := betCount - hitCount
+		if unHitCount > 0 {
+			averageOddsAtUnHit = math.Round(((totalOddsAtVote-totalOddsAtHit)/float64(unHitCount))*10) / 10
+		}
+
+		if len(allPayments) > 0 {
+			if len(allPayments)%2 == 0 {
+				medianPayment = (allPayments[len(allPayments)/2] + allPayments[len(allPayments)/2-1]) / 2
+			} else {
+				medianPayment = allPayments[len(allPayments)/2]
+			}
+		}
+		if len(allPayouts) > 0 {
+			if len(allPayouts) > 0 && len(allPayouts)%2 == 0 {
+				medianPayout = (allPayouts[len(allPayouts)/2] + allPayouts[len(allPayouts)/2-1]) / 2
+			} else {
+				medianPayout = allPayouts[len(allPayouts)/2]
+			}
+		}
+
+		oddsAnalyzeSummary := analyze_entity.NewWinOddsAnalyzeSummary(
+			oddRange,
+			betCount,
+			hitCount,
+			hitRate,
+			averageOddsAtVote,
+			averageOddsAtHit,
+			averageOddsAtUnHit,
+			totalPayment,
+			totalPayout,
+			averagePayment,
+			averagePayout,
+			medianPayment,
+			medianPayout,
+			maxPayout,
+			minPayout,
+			maxOddsAtHit,
+			minOddsAtHit,
+		)
+
+		winOddsAnalyzeSummaryMap[oddRange] = oddsAnalyzeSummary
+	}
+
+	return winOddsAnalyzeSummaryMap
 }
 
 func (a *Analyzer) convertClassWinPopularAnalyzeSummaries(
-	popularMap map[int][]*analyze_entity.WinPopularAnalyze,
+	popularMap map[int][]*analyze_entity.WinAnalyze,
 ) (
 	[]*analyze_entity.WinPopularAnalyzeSummary,
 	[]*analyze_entity.WinPopularAnalyzeSummary,
@@ -173,35 +274,35 @@ func (a *Analyzer) convertClassWinPopularAnalyzeSummaries(
 	var (
 		grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries []*analyze_entity.WinPopularAnalyzeSummary
 	)
-	grade1PopularMap := map[int][]*analyze_entity.WinPopularAnalyze{}
-	grade2PopularMap := map[int][]*analyze_entity.WinPopularAnalyze{}
-	grade3PopularMap := map[int][]*analyze_entity.WinPopularAnalyze{}
-	allowanceClassPopularMap := map[int][]*analyze_entity.WinPopularAnalyze{}
+	grade1PopularMap := map[int][]*analyze_entity.WinAnalyze{}
+	grade2PopularMap := map[int][]*analyze_entity.WinAnalyze{}
+	grade3PopularMap := map[int][]*analyze_entity.WinAnalyze{}
+	allowanceClassPopularMap := map[int][]*analyze_entity.WinAnalyze{}
 
 	for popularNumber, populars := range popularMap {
 		for _, popular := range populars {
 			switch popular.Class() {
 			case race_vo.Grade1:
 				if _, ok := grade1PopularMap[popularNumber]; !ok {
-					grade1PopularMap[popularNumber] = make([]*analyze_entity.WinPopularAnalyze, 0)
+					grade1PopularMap[popularNumber] = make([]*analyze_entity.WinAnalyze, 0)
 				} else {
 					grade1PopularMap[popularNumber] = append(grade1PopularMap[popularNumber], popular)
 				}
 			case race_vo.Grade2:
 				if _, ok := grade2PopularMap[popularNumber]; !ok {
-					grade2PopularMap[popularNumber] = make([]*analyze_entity.WinPopularAnalyze, 0)
+					grade2PopularMap[popularNumber] = make([]*analyze_entity.WinAnalyze, 0)
 				} else {
 					grade2PopularMap[popularNumber] = append(grade2PopularMap[popularNumber], popular)
 				}
 			case race_vo.Grade3:
 				if _, ok := grade3PopularMap[popularNumber]; !ok {
-					grade3PopularMap[popularNumber] = make([]*analyze_entity.WinPopularAnalyze, 0)
+					grade3PopularMap[popularNumber] = make([]*analyze_entity.WinAnalyze, 0)
 				} else {
 					grade3PopularMap[popularNumber] = append(grade3PopularMap[popularNumber], popular)
 				}
 			case race_vo.AllowanceClass:
 				if _, ok := allowanceClassPopularMap[popularNumber]; !ok {
-					allowanceClassPopularMap[popularNumber] = make([]*analyze_entity.WinPopularAnalyze, 0)
+					allowanceClassPopularMap[popularNumber] = make([]*analyze_entity.WinAnalyze, 0)
 				} else {
 					allowanceClassPopularMap[popularNumber] = append(allowanceClassPopularMap[popularNumber], popular)
 				}
@@ -217,10 +318,36 @@ func (a *Analyzer) convertClassWinPopularAnalyzeSummaries(
 	return grade1Summaries, grade2Summaries, grade3Summaries, allowanceClassSummaries
 }
 
+func (a *Analyzer) getWinAnalyzeEntities(
+	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
+) []*analyze_entity.WinAnalyze {
+	raceMap := a.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := a.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	recordsByWin := a.getRecordsByWin(records)
+
+	var winAnalyzeEntities []*analyze_entity.WinAnalyze
+	for _, record := range recordsByWin {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
+		racingNumber, ok := racingNumberMap[racingNumberId]
+		if !ok {
+			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
+		}
+		raceId := a.raceConverter.GetRaceId(record, racingNumber)
+		if race, ok := raceMap[*raceId]; ok {
+			winAnalyze := a.getWinAnalyze(record, race)
+			winAnalyzeEntities = append(winAnalyzeEntities, winAnalyze)
+		}
+	}
+
+	return winAnalyzeEntities
+}
+
 func (a *Analyzer) getRecordsByWin(records []*betting_ticket_entity.CsvEntity) []*betting_ticket_entity.CsvEntity {
 	var recordsByWin []*betting_ticket_entity.CsvEntity
 	for _, record := range records {
-		if record.BettingTicket() != betting_ticket_vo.Win {
+		if record.BettingTicket() != betting_ticket_vo.Win || record.RaceCourse().Organizer() != race_vo.JRA {
 			continue
 		}
 		recordsByWin = append(recordsByWin, record)
@@ -238,16 +365,16 @@ func (a *Analyzer) getRecordsByPopular(records []*betting_ticket_entity.CsvEntit
 	return recordsByPopular
 }
 
-func (a *Analyzer) getPopularAnalyze(record *betting_ticket_entity.CsvEntity, race *race_entity.Race) *analyze_entity.WinPopularAnalyze {
+func (a *Analyzer) getWinAnalyze(record *betting_ticket_entity.CsvEntity, race *race_entity.Race) *analyze_entity.WinAnalyze {
 	for _, raceResult := range race.RaceResults() {
 		betNumber := record.BetNumber().List()[0]
 		if betNumber == raceResult.HorseNumber() {
-			return analyze_entity.NewWinPopularAnalyze(
+			return analyze_entity.NewWinAnalyze(
 				raceResult.PopularNumber(),
-				record.Payment(),
-				record.Repayment(),
+				record.Payment().Value(),
+				record.Payout().Value(),
 				raceResult.Odds(),
-				record.Winning(),
+				record.BettingResult() == betting_ticket_vo.Hit,
 				race.Class(),
 			)
 		}

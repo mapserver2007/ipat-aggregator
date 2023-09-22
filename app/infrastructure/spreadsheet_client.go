@@ -2019,7 +2019,7 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 						StartIndex: 1,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 30,
+						PixelSize: 90,
 					},
 					Fields: "pixelSize",
 				},

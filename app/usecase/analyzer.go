@@ -19,12 +19,13 @@ func NewAnalyzer(
 	}
 }
 
-func (a *Analyzer) Popular(
+func (a *Analyzer) WinAnalyze(
 	records []*betting_ticket_entity.CsvEntity,
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
 ) *analyze_entity.AnalyzeSummary {
-	winAnalyzeSummary := a.analyzer.WinAnalyze(records, racingNumbers, races)
+	winAnalyzeSummary := a.analyzer.WinPopularAnalyze(records, racingNumbers, races)
+	a.analyzer.WinOddsAnalyzer(records, racingNumbers, races)
 
 	return analyze_entity.NewAnalyzeSummary(winAnalyzeSummary)
 }

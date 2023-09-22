@@ -29,7 +29,7 @@ var generalWinRateSlice = []float64{
 	0.001,
 }
 
-var generalPayoutRate = []float64{
+var generalWinPayoutRate = []float64{
 	0.0,
 	0.80,
 	0.80,
@@ -210,7 +210,7 @@ func (p *WinPopularAnalyzeSummary) GeneralPayoutRate() float64 {
 	if p.betCount == 0 {
 		return 0
 	}
-	return generalPayoutRate[p.popularNumber]
+	return generalWinPayoutRate[p.popularNumber]
 }
 
 func (p *WinPopularAnalyzeSummary) PayoutUpsideRate() float64 {

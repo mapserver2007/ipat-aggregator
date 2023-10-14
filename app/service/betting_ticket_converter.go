@@ -98,8 +98,8 @@ func (b *BettingTicketConverter) ConvertToBettingTicketMap(bettingTicketDetails 
 	})
 }
 
-func (b *BettingTicketConverter) ConvertToPayoutResultMap(payoutResults []*race_entity.PayoutResult) map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult {
-	return ConvertToMap(payoutResults, func(payoutResult *race_entity.PayoutResult) betting_ticket_vo.BettingTicket {
-		return betting_ticket_vo.BettingTicket(payoutResult.TicketType())
+func (b *BettingTicketConverter) ConvertToPayoutResultMap(payoutResults []*race_entity.PayoutResult) map[betting_ticket_vo.BettingTicket][]*race_entity.PayoutResult {
+	return ConvertToSliceMap(payoutResults, func(payoutResult *race_entity.PayoutResult) betting_ticket_vo.BettingTicket {
+		return payoutResult.TicketType()
 	})
 }

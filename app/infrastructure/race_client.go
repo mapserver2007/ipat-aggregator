@@ -300,9 +300,9 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 		}
 		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
 			var (
-				numbers                        []string
-				odds                           []string
-				resultSelector, payoutSelector string
+				numbers, odds                                         []string
+				populars                                              []int
+				resultSelector, payoutSelector, popularNumberSelector string
 			)
 
 			ticketClassName, _ := ce.DOM.Attr("class")
@@ -326,11 +326,22 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				}
 				return fixValues
 			}
+			readPopulars := func(ce2 *colly.HTMLElement) []int {
+				values := strings.Split(ConvertFromEucJPToUtf8(ce2.DOM.Text()), "人気")
+				values = values[0 : len(values)-1]
+				var fixValues []int
+				for _, value := range values {
+					fixValue, _ := strconv.Atoi(value)
+					fixValues = append(fixValues, fixValue)
+				}
+				return fixValues
+			}
 
 			switch ticketType {
 			case betting_ticket_vo.Win, betting_ticket_vo.Place:
 				resultSelector = fmt.Sprintf(".%s > .Result > div", ticketClassName)
 				payoutSelector = fmt.Sprintf(".%s > .Payout", ticketClassName)
+				popularNumberSelector = fmt.Sprintf(".%s > .Ninki", ticketClassName)
 				ce.ForEach(resultSelector, func(j int, ce2 *colly.HTMLElement) {
 					switch j {
 					case 0, 3, 6:
@@ -343,9 +354,13 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ce.ForEach(payoutSelector, func(j int, ce2 *colly.HTMLElement) {
 					odds = readOdds(ce2)
 				})
+				ce.ForEach(popularNumberSelector, func(j int, ce2 *colly.HTMLElement) {
+					populars = readPopulars(ce2)
+				})
 			case betting_ticket_vo.BracketQuinella, betting_ticket_vo.Quinella, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.Trio:
 				resultSelector = fmt.Sprintf(".%s > .Result > ul > li", ticketClassName)
 				payoutSelector = fmt.Sprintf(".%s > .Payout", ticketClassName)
+				popularNumberSelector = fmt.Sprintf(".%s > .Ninki", ticketClassName)
 				size := 2
 				if ticketType == betting_ticket_vo.Trio {
 					size = 3
@@ -364,9 +379,13 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ce.ForEach(payoutSelector, func(j int, ce2 *colly.HTMLElement) {
 					odds = readOdds(ce2)
 				})
+				ce.ForEach(popularNumberSelector, func(j int, ce2 *colly.HTMLElement) {
+					populars = readPopulars(ce2)
+				})
 			case betting_ticket_vo.Exacta, betting_ticket_vo.Trifecta:
 				resultSelector = fmt.Sprintf(".%s > .Result > ul > li", ticketClassName)
 				payoutSelector = fmt.Sprintf(".%s > .Payout", ticketClassName)
+				popularNumberSelector = fmt.Sprintf(".%s > .Ninki", ticketClassName)
 				size := 2
 				if ticketType == betting_ticket_vo.Trifecta {
 					size = 3
@@ -385,6 +404,9 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ce.ForEach(payoutSelector, func(j int, ce2 *colly.HTMLElement) {
 					odds = readOdds(ce2)
 				})
+				ce.ForEach(popularNumberSelector, func(j int, ce2 *colly.HTMLElement) {
+					populars = readPopulars(ce2)
+				})
 			default:
 				// NARの場合、枠単があるが今の所集計するつもりがない
 				return
@@ -394,6 +416,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ticketType.Value(),
 				numbers,
 				odds,
+				populars,
 			))
 		})
 	})

@@ -36,6 +36,7 @@ type PayoutResult struct {
 	TicketType int      `json:"ticket_type"`
 	Numbers    []string `json:"numbers"`
 	Odds       []string `json:"odds"`
+	Populars   []int    `json:"populars"`
 }
 
 type RacingNumberInfo struct {

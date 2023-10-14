@@ -28,6 +28,7 @@ type RawPayoutResultNetkeiba struct {
 	ticketType int
 	numbers    []string
 	odds       []string
+	populars   []int
 }
 
 type RawRacingNumberNetkeiba struct {
@@ -161,11 +162,13 @@ func NewRawPayoutResultNetkeiba(
 	ticketType int,
 	numbers []string,
 	odds []string,
+	populars []int,
 ) *RawPayoutResultNetkeiba {
 	return &RawPayoutResultNetkeiba{
 		ticketType: ticketType,
 		numbers:    numbers,
 		odds:       odds,
+		populars:   populars,
 	}
 }
 
@@ -179,6 +182,10 @@ func (r *RawPayoutResultNetkeiba) Numbers() []string {
 
 func (r *RawPayoutResultNetkeiba) Odds() []string {
 	return r.odds
+}
+
+func (r *RawPayoutResultNetkeiba) Populars() []int {
+	return r.populars
 }
 
 func NewRawRacingNumberNetkeiba(

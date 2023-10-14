@@ -135,6 +135,7 @@ func (r *RaceConverter) ConvertFromRawPayoutResultsNetkeibaToRawPayoutResultsCsv
 			TicketType: rawPayoutResult.TicketType(),
 			Numbers:    rawPayoutResult.Numbers(),
 			Odds:       rawPayoutResult.Odds(),
+			Populars:   rawPayoutResult.Populars(),
 		}
 		payoutResults = append(payoutResults, payoutResult)
 	}
@@ -215,12 +216,16 @@ func (r *RaceConverter) ConvertFromRawRaceResultsCsvToRaceResults(rawRaceResults
 func (r *RaceConverter) ConvertFromRawPayoutResultsCsvToPayoutResults(rawPayoutResults []*raw_race_entity.PayoutResult) []*race_entity.PayoutResult {
 	var payoutResults []*race_entity.PayoutResult
 	for _, rawPayoutResult := range rawPayoutResults {
-		payoutResult := race_entity.NewPayoutResult(
-			rawPayoutResult.TicketType,
-			rawPayoutResult.Numbers,
-			rawPayoutResult.Odds,
-		)
-		payoutResults = append(payoutResults, payoutResult)
+		size := len(rawPayoutResult.Numbers)
+		for i := 0; i < size; i++ {
+			payoutResult := race_entity.NewPayoutResult(
+				rawPayoutResult.TicketType,
+				rawPayoutResult.Numbers[i],
+				rawPayoutResult.Odds[i],
+				rawPayoutResult.Populars[i],
+			)
+			payoutResults = append(payoutResults, payoutResult)
+		}
 	}
 
 	return payoutResults

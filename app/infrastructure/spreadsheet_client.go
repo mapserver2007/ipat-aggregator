@@ -630,7 +630,7 @@ func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, s
 
 	raceCourses := []race_vo.RaceCourse{
 		race_vo.Sapporo, race_vo.Hakodate, race_vo.Fukushima, race_vo.Niigata, race_vo.Tokyo, race_vo.Nakayama, race_vo.Chukyo, race_vo.Kyoto, race_vo.Hanshin, race_vo.Kokura,
-		race_vo.Monbetsu, race_vo.Morioka, race_vo.Urawa, race_vo.Hunabashi, race_vo.Ooi, race_vo.Kawasaki, race_vo.Nagoya, race_vo.Sonoda, race_vo.Kouchi, race_vo.Saga,
+		race_vo.Monbetsu, race_vo.Morioka, race_vo.Urawa, race_vo.Hunabashi, race_vo.Ooi, race_vo.Kawasaki, race_vo.Kanazawa, race_vo.Nagoya, race_vo.Sonoda, race_vo.Kouchi, race_vo.Saga,
 		race_vo.Overseas,
 	}
 
@@ -1370,7 +1370,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      42,
+						EndRowIndex:      43,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1410,7 +1410,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      42,
+						EndRowIndex:      43,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1882,7 +1882,8 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 
 		if record.WinningTickets() != nil {
 			for _, winningTicket := range record.WinningTickets() {
-				repaymentComments = append(repaymentComments, fmt.Sprintf("%s %s %s倍 %d円", winningTicket.BettingTicket.Name(), winningTicket.BetNumber.String(), winningTicket.Odds, winningTicket.Repayment))
+				repaymentComments = append(repaymentComments,
+					fmt.Sprintf("%s %s %s倍 %d円 %d人気", winningTicket.BettingTicket().Name(), winningTicket.BetNumber().String(), winningTicket.Odds(), winningTicket.Repayment(), winningTicket.Popular()))
 			}
 		}
 

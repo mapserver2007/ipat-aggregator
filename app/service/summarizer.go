@@ -49,7 +49,13 @@ func (s *Summarizer) GetShortSummaryForYear(records []*betting_ticket_entity.Csv
 	)
 }
 
-func (s *Summarizer) GetBettingTicketSummary(records []*betting_ticket_entity.CsvEntity, bettingTicketTypes ...betting_ticket_vo.BettingTicket) result_entity.DetailSummary {
+func (s *Summarizer) GetBettingTicketSummary(
+	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
+	bettingTicketTypes ...betting_ticket_vo.BettingTicket,
+) result_entity.DetailSummary {
+	s.getBettingTicketMinOdds(records, racingNumbers, races, bettingTicketTypes...)
 	return result_entity.NewDetailSummary(
 		s.getBettingTicketBetCount(records, bettingTicketTypes...),
 		s.getBettingTicketHitCount(records, bettingTicketTypes...),
@@ -140,7 +146,7 @@ func (s *Summarizer) GetDistanceCategorySummaryMap(records []*betting_ticket_ent
 func (s *Summarizer) GetRaceCourseSummaryMap(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.RaceCourse]result_entity.DetailSummary {
 	raceCourses := []race_vo.RaceCourse{
 		race_vo.Sapporo, race_vo.Hakodate, race_vo.Fukushima, race_vo.Niigata, race_vo.Tokyo, race_vo.Nakayama, race_vo.Chukyo, race_vo.Kyoto, race_vo.Hanshin, race_vo.Kokura,
-		race_vo.Monbetsu, race_vo.Morioka, race_vo.Urawa, race_vo.Hunabashi, race_vo.Ooi, race_vo.Kawasaki, race_vo.Nagoya, race_vo.Sonoda, race_vo.Kouchi, race_vo.Saga,
+		race_vo.Monbetsu, race_vo.Morioka, race_vo.Urawa, race_vo.Hunabashi, race_vo.Ooi, race_vo.Kawasaki, race_vo.Kanazawa, race_vo.Nagoya, race_vo.Sonoda, race_vo.Kouchi, race_vo.Saga,
 	}
 	raceCourseMap := map[race_vo.RaceCourse]result_entity.DetailSummary{}
 	for _, raceCourse := range raceCourses {
@@ -167,18 +173,22 @@ func (s *Summarizer) GetRaceCourseSummaryMap(records []*betting_ticket_entity.Cs
 	return raceCourseMap
 }
 
-func (s *Summarizer) GetMonthlyBettingTicketSummary(records []*betting_ticket_entity.CsvEntity) map[int]*spreadsheet_entity.SpreadSheetBettingTicketSummary {
+func (s *Summarizer) GetMonthlyBettingTicketSummary(
+	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
+) map[int]*spreadsheet_entity.SpreadSheetBettingTicketSummary {
 	bettingTicketMonthlyMap := map[int]*spreadsheet_entity.SpreadSheetBettingTicketSummary{}
 	for date, recordsGroup := range s.bettingTicketConverter.ConvertToMonthRecordsMap(records) {
 		spreadSheetBettingTicketSummary := spreadsheet_entity.NewSpreadSheetBettingTicketSummary(
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.Win),
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.Place),
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.Quinella),
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst),
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel),
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst),
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst),
-			s.GetBettingTicketSummary(recordsGroup, betting_ticket_vo.Win, betting_ticket_vo.Place, betting_ticket_vo.Quinella,
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.Win),
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.Place),
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.Quinella),
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst),
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel),
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst),
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst),
+			s.GetBettingTicketSummary(recordsGroup, racingNumbers, races, betting_ticket_vo.Win, betting_ticket_vo.Place, betting_ticket_vo.Quinella,
 				betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel,
 				betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst,
 				betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst),
@@ -475,7 +485,48 @@ func (s *Summarizer) getBettingTicketAveragePayout(records []*betting_ticket_ent
 	return types.Payout(0)
 }
 
-func (s *Summarizer) getBettingTicketMinOdds() {
+func (s *Summarizer) getBettingTicketMinOdds(
+	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
+	bettingTicketTypes ...betting_ticket_vo.BettingTicket,
+) {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	var mergedRecords []*betting_ticket_entity.CsvEntity
+	for _, bettingTicketType := range bettingTicketTypes {
+		if recordsByBettingTicket, ok := recordsGroup[bettingTicketType]; ok {
+			mergedRecords = append(mergedRecords, recordsByBettingTicket...)
+		}
+	}
+
+	//minOdds := 0
+	raceMap := s.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := s.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	for _, record := range mergedRecords {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
+		racingNumber, ok := racingNumberMap[racingNumberId]
+		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
+			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
+		}
+		payoutResultMap := map[betting_ticket_vo.BettingTicket]*race_entity.PayoutResult{}
+		if record.BettingResult() == betting_ticket_vo.Hit {
+			raceId := s.raceConverter.GetRaceId(record, racingNumber)
+			if race, ok := raceMap[*raceId]; ok {
+				for _, payoutResult := range race.PayoutResults() {
+					payoutResultMap[payoutResult.TicketType()] = payoutResult
+				}
+			}
+		}
+		for _, bettingTicketType := range bettingTicketTypes {
+			if payoutResult, ok := payoutResultMap[bettingTicketType]; ok {
+				//if minOdds == 0 || minOdds > payoutResult.Odds() {
+				//
+				//}
+				payoutResult.Odds()
+			}
+		}
+
+	}
 
 }
 

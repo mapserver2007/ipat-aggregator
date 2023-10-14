@@ -38,14 +38,14 @@ func (a *Aggregator) GetSummary(
 	)
 
 	spreadSheetBettingTicketSummary := spreadsheet_entity.NewSpreadSheetBettingTicketSummary(
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Win),
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Place),
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Quinella),
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst),
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel),
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst),
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst, betting_ticket_vo.TrifectaWheelOfSecondMulti),
-		a.summarizer.GetBettingTicketSummary(records, betting_ticket_vo.Win, betting_ticket_vo.Place, betting_ticket_vo.Quinella,
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Win),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Place),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Quinella),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst, betting_ticket_vo.TrifectaWheelOfSecondMulti),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Win, betting_ticket_vo.Place, betting_ticket_vo.Quinella,
 			betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel,
 			betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst,
 			betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst, betting_ticket_vo.TrifectaWheelOfSecondMulti),
@@ -89,6 +89,8 @@ func (a *Aggregator) GetSummary(
 
 func (a *Aggregator) GetyMonthlyBettingTicketSummary(
 	records []*betting_ticket_entity.CsvEntity,
+	racingNumbers []*race_entity.RacingNumber,
+	races []*race_entity.Race,
 ) *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary {
-	return spreadsheet_entity.NewSpreadSheetMonthlyBettingTicketSummary(a.summarizer.GetMonthlyBettingTicketSummary(records))
+	return spreadsheet_entity.NewSpreadSheetMonthlyBettingTicketSummary(a.summarizer.GetMonthlyBettingTicketSummary(records, racingNumbers, races))
 }

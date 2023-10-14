@@ -175,23 +175,22 @@ func (p *Predictor) Predict(
 			}
 
 			for _, detail := range details {
-				payoutResult, ok := payoutResultMap[detail.BettingTicket().ConvertToOriginBettingTicket()]
+				payoutResults, ok := payoutResultMap[detail.BettingTicket().ConvertToOriginBettingTicket()]
 				if !ok {
 					return nil, fmt.Errorf("unknown payout result in ticketType %d", detail.BettingTicket().Value())
 				}
 				if detail.BettingResult() == betting_ticket_vo.Hit {
-					var odds string
-					for idx, betNumber := range payoutResult.Numbers() {
-						if betNumber == detail.BetNumber().String() {
-							odds = payoutResult.Odds()[idx]
+					for _, payoutResult := range payoutResults {
+						if payoutResult.Number() == detail.BetNumber() {
+							winningTickets = append(winningTickets, predict_entity.NewWinningTicketEntity(
+								detail.BettingTicket(),
+								detail.BetNumber(),
+								payoutResult.Odds(),
+								payoutResult.Popular(),
+								detail.Payout().Value(),
+							))
 						}
 					}
-					winningTickets = append(winningTickets, predict_entity.NewWinningTicketEntity(
-						detail.BettingTicket(),
-						detail.BetNumber(),
-						odds,
-						detail.Payout().Value(),
-					))
 				}
 			}
 		}

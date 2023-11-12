@@ -27,6 +27,7 @@ func AggregatorInit() *service.Aggregator {
 		service.NewAggregator,
 		service.NewRaceConverter,
 		service.NewBettingTicketConverter,
+		service.NewSummarizer,
 	)
 	return nil
 }
@@ -36,6 +37,15 @@ func PredictInit() *service.Predictor {
 		service.NewPredictor,
 		service.NewRaceConverter,
 		service.NewBettingTicketConverter,
+	)
+	return nil
+}
+
+func AnalyzerInit() *usecase.Analyzer {
+	wire.Build(
+		usecase.NewAnalyzer,
+		service.NewAnalyzer,
+		service.NewRaceConverter,
 	)
 	return nil
 }

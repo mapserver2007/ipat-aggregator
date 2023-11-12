@@ -1,10 +1,16 @@
 package entity
 
+import (
+	jockey_vo "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/value_object"
+)
+
 type RaceResult struct {
 	orderNo       int
 	horseName     string
 	bracketNumber int
 	horseNumber   int
+	jockeyId      int
+	jockeyName    string
 	odds          string
 	popularNumber int
 }
@@ -14,6 +20,8 @@ func NewRaceResult(
 	horseName string,
 	bracketNumber int,
 	horseNumber int,
+	jockeyId int,
+	jockeyName string,
 	odds string,
 	popularNumber int,
 ) *RaceResult {
@@ -22,6 +30,8 @@ func NewRaceResult(
 		horseName:     horseName,
 		bracketNumber: bracketNumber,
 		horseNumber:   horseNumber,
+		jockeyId:      jockeyId,
+		jockeyName:    jockeyName,
 		odds:          odds,
 		popularNumber: popularNumber,
 	}
@@ -41,6 +51,14 @@ func (r *RaceResult) BracketNumber() int {
 
 func (r *RaceResult) HorseNumber() int {
 	return r.horseNumber
+}
+
+func (r *RaceResult) JockeyId() jockey_vo.JockeyId {
+	return jockey_vo.JockeyId(r.jockeyId)
+}
+
+func (r *RaceResult) JockeyName() string {
+	return r.jockeyName
 }
 
 func (r *RaceResult) Odds() string {

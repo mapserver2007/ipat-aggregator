@@ -4,19 +4,25 @@ type GradeClass int
 
 const (
 	NonGrade       GradeClass = 0
-	Grade1                    = 1
-	Grade2                    = 2
-	Grade3                    = 3
-	OpenClass                 = 5
-	JumpGrade1                = 10
-	JumpGrade2                = 11
-	JumpGrade3                = 12
-	ListedClass               = 15
-	Jpn1                      = 19
-	Jpn2                      = 20
-	Jpn3                      = 21
-	AllowanceClass            = 98 // Class1-3は特別戦、AllowanceClassは非特別戦の条件戦
-	NonGradeClass             = 99 // リステッド,OP,条件戦をまとめるためのクラス
+	Grade1         GradeClass = 1
+	Grade2         GradeClass = 2
+	Grade3         GradeClass = 3
+	OpenClass      GradeClass = 5
+	JumpGrade1     GradeClass = 10
+	JumpGrade2     GradeClass = 11
+	JumpGrade3     GradeClass = 12
+	ListedClass    GradeClass = 15
+	Jpn1           GradeClass = 19
+	Jpn2           GradeClass = 20
+	Jpn3           GradeClass = 21
+	Maiden         GradeClass = 31 // 新馬・未勝利
+	OneWinClass    GradeClass = 32 // 1勝クラス
+	TwoWinClass    GradeClass = 33 // 2勝クラス
+	ThreeWinClass  GradeClass = 34 // 3勝クラス
+	JumpMaiden     GradeClass = 35 // 障害未勝利
+	JumpOpenClass  GradeClass = 36 // 障害オープン
+	AllowanceClass GradeClass = 98 // Class1-3は特別戦、AllowanceClassは非特別戦の条件戦
+	NonGradeClass  GradeClass = 99 // リステッド,OP,条件戦をまとめるためのクラス
 )
 
 var gradeClassMap = map[GradeClass]string{
@@ -32,6 +38,12 @@ var gradeClassMap = map[GradeClass]string{
 	Jpn1:           "Jpn1",
 	Jpn2:           "Jpn2",
 	Jpn3:           "Jpn3",
+	Maiden:         "新馬・未勝利",
+	OneWinClass:    "1勝クラス",
+	TwoWinClass:    "2勝クラス",
+	ThreeWinClass:  "3勝クラス",
+	JumpMaiden:     "障害未勝利",
+	JumpOpenClass:  "障害オープン",
 	AllowanceClass: "条件戦",
 	NonGradeClass:  "平場",
 }

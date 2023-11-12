@@ -5,16 +5,17 @@ import (
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
-	spreadsheet_vo "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/value_object"
 	"strconv"
 )
 
 type Summary struct {
 	TotalResultSummary       ResultSummary
 	LatestMonthResultSummary ResultSummary
+	LatestYearResultSummary  ResultSummary
 	BettingTicketSummary     BettingTicketSummary
 	RaceClassSummary         RaceClassSummary
 	MonthlySummary           MonthlySummary
+	YearlySummary            YearlySummary
 	CourseCategorySummary    CourseCategorySummary
 	RaceCourseSummary        RaceCourseSummary
 	DistanceCategorySummary  DistanceCategorySummary
@@ -42,6 +43,10 @@ type RaceClassSummary struct {
 
 type MonthlySummary struct {
 	MonthlyRates map[int]ResultRate
+}
+
+type YearlySummary struct {
+	YearlyRates map[int]ResultRate
 }
 
 type CourseCategorySummary struct {
@@ -97,27 +102,4 @@ func (m *ResultRate) ReturnOnInvestmentFormat() string {
 		return fmt.Sprintf("%d%s", 0, "%")
 	}
 	return fmt.Sprintf("%s%s", strconv.FormatFloat((float64(m.Repayments)*float64(100))/float64(m.Payments), 'f', 2, 64), "%")
-}
-
-type ResultStyle struct {
-	RowIndex         int
-	FavoriteColor    spreadsheet_vo.PlaceColor
-	RivalColor       spreadsheet_vo.PlaceColor
-	GradeClassColor  spreadsheet_vo.GradeClassColor
-	RepaymentComment string
-}
-
-func NewResultStyle(
-	rowIndex int,
-	favoriteColor, rivalColor spreadsheet_vo.PlaceColor,
-	gradeClassColor spreadsheet_vo.GradeClassColor,
-	repaymentComment string,
-) *ResultStyle {
-	return &ResultStyle{
-		RowIndex:         rowIndex,
-		FavoriteColor:    favoriteColor,
-		RivalColor:       rivalColor,
-		GradeClassColor:  gradeClassColor,
-		RepaymentComment: repaymentComment,
-	}
 }

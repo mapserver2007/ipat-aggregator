@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	raw_jockey_entity "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/raw_entity"
 	raw_race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/repository"
 	"os"
@@ -13,6 +14,7 @@ import (
 const (
 	racingNumberFileName = "racing_number.json"
 	raceResultFileName   = "race_result.json"
+	jockeyFileName       = "jockey.json"
 )
 
 type RaceDB struct {
@@ -55,6 +57,20 @@ func (r *RaceDB) ReadRacingNumberInfo(ctx context.Context) (*raw_race_entity.Rac
 	return racingNumberInfo, nil
 }
 
+func (r *RaceDB) ReadJockeyInfo(ctx context.Context) (*raw_jockey_entity.JockeyInfo, error) {
+	bytes, err := r.readFile(jockeyFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	var jockeyInfo *raw_jockey_entity.JockeyInfo
+	if err := json.Unmarshal(bytes, &jockeyInfo); err != nil {
+		return nil, err
+	}
+
+	return jockeyInfo, nil
+}
+
 func (r *RaceDB) WriteRaceInfo(ctx context.Context, raceInfo *raw_race_entity.RaceInfo) error {
 	bytes, err := json.Marshal(raceInfo)
 	if err != nil {
@@ -80,6 +96,20 @@ func (r *RaceDB) WriteRacingNumberInfo(ctx context.Context, racingNumberInfo *ra
 	err = r.writeFile(racingNumberFileName, bytes)
 	if err != nil {
 		return fmt.Errorf("update %s failed: %w", racingNumberFileName, err)
+	}
+
+	return nil
+}
+
+func (r *RaceDB) WriteJockeyInfo(ctx context.Context, jockeyInfo *raw_jockey_entity.JockeyInfo) error {
+	bytes, err := json.Marshal(jockeyInfo)
+	if err != nil {
+		return err
+	}
+
+	err = r.writeFile(jockeyFileName, bytes)
+	if err != nil {
+		return fmt.Errorf("update %s failed: %w", jockeyFileName, err)
 	}
 
 	return nil

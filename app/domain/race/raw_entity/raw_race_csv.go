@@ -27,6 +27,7 @@ type RaceResult struct {
 	HorseName     string `json:"horse_name"`
 	BracketNumber int    `json:"bracket_number"`
 	HorseNumber   int    `json:"horse_number"`
+	JockeyId      int    `json:"jockey_id"`
 	Odds          string `json:"odds"`
 	PopularNumber int    `json:"popular_number"`
 }
@@ -35,6 +36,7 @@ type PayoutResult struct {
 	TicketType int      `json:"ticket_type"`
 	Numbers    []string `json:"numbers"`
 	Odds       []string `json:"odds"`
+	Populars   []int    `json:"populars"`
 }
 
 type RacingNumberInfo struct {

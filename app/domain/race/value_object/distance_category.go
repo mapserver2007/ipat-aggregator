@@ -29,7 +29,7 @@ var distanceCategoryMap = map[DistanceCategory]string{
 	DirtMile:                  "ダ1301~1899",
 	DirtIntermediate:          "ダ1900~2100",
 	DirtLong:                  "ダ2101~2700",
-	DirtExtended:              "ダ2701~",
+	DirtExtended:              "ダ2701~", // レースとしては存在しない
 	JumpAllDistance:           "障害全距離",
 }
 

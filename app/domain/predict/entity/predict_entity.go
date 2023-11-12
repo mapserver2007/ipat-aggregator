@@ -5,9 +5,11 @@ import (
 )
 
 type PredictEntity struct {
-	race           *RaceEntity
-	favoriteHorse  *HorseEntity
-	rivalHorse     *HorseEntity
+	race           *Race
+	favoriteHorse  *Horse
+	rivalHorse     *Horse
+	favoriteJockey *Jockey
+	rivalJockey    *Jockey
 	payment        int
 	repayment      int
 	winningTickets []*WinningTicketEntity
@@ -15,9 +17,11 @@ type PredictEntity struct {
 }
 
 func NewPredictEntity(
-	race *RaceEntity,
-	favoriteHorse *HorseEntity,
-	rivalHorse *HorseEntity,
+	race *Race,
+	favoriteHorse *Horse,
+	rivalHorse *Horse,
+	favoriteJockey *Jockey,
+	rivalJockey *Jockey,
 	payment int,
 	repayment int,
 	winningTickets []*WinningTicketEntity,
@@ -27,6 +31,8 @@ func NewPredictEntity(
 		race:           race,
 		favoriteHorse:  favoriteHorse,
 		rivalHorse:     rivalHorse,
+		favoriteJockey: favoriteJockey,
+		rivalJockey:    rivalJockey,
 		payment:        payment,
 		repayment:      repayment,
 		winningTickets: winningTickets,
@@ -34,16 +40,24 @@ func NewPredictEntity(
 	}
 }
 
-func (p *PredictEntity) Race() *RaceEntity {
+func (p *PredictEntity) Race() *Race {
 	return p.race
 }
 
-func (p *PredictEntity) FavoriteHorse() *HorseEntity {
+func (p *PredictEntity) FavoriteHorse() *Horse {
 	return p.favoriteHorse
 }
 
-func (p *PredictEntity) RivalHorse() *HorseEntity {
+func (p *PredictEntity) RivalHorse() *Horse {
 	return p.rivalHorse
+}
+
+func (p *PredictEntity) FavoriteJockey() *Jockey {
+	return p.favoriteJockey
+}
+
+func (p *PredictEntity) RivalJockey() *Jockey {
+	return p.rivalJockey
 }
 
 func (p *PredictEntity) Payment() int {

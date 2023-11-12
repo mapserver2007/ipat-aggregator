@@ -1,31 +1,40 @@
 package entity
 
+import betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+
 type PayoutResult struct {
 	ticketType int
-	numbers    []string
-	odds       []string
+	number     string
+	odds       string
+	popular    int
 }
 
 func NewPayoutResult(
 	ticketType int,
-	numbers []string,
-	odds []string,
+	number string,
+	odds string,
+	popular int,
 ) *PayoutResult {
 	return &PayoutResult{
 		ticketType: ticketType,
-		numbers:    numbers,
+		number:     number,
 		odds:       odds,
+		popular:    popular,
 	}
 }
 
-func (p *PayoutResult) TicketType() int {
-	return p.ticketType
+func (p *PayoutResult) TicketType() betting_ticket_vo.BettingTicket {
+	return betting_ticket_vo.BettingTicket(p.ticketType)
 }
 
-func (p *PayoutResult) Numbers() []string {
-	return p.numbers
+func (p *PayoutResult) Number() betting_ticket_vo.BetNumber {
+	return betting_ticket_vo.BetNumber(p.number)
 }
 
-func (p *PayoutResult) Odds() []string {
+func (p *PayoutResult) Odds() string {
 	return p.odds
+}
+
+func (p *PayoutResult) Popular() int {
+	return p.popular
 }

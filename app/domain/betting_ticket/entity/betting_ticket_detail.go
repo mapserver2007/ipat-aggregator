@@ -1,13 +1,16 @@
 package entity
 
-import betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+import (
+	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+)
 
 type BettingTicketDetail struct {
 	bettingTicket betting_ticket_vo.BettingTicket
+	bettingResult betting_ticket_vo.BettingResult
 	betNumber     betting_ticket_vo.BetNumber
-	payment       int
-	repayment     int
-	winning       bool
+	payment       types.Payment
+	payout        types.Payout
 }
 
 type PredictionForHorse struct {
@@ -17,17 +20,17 @@ type PredictionForHorse struct {
 
 func NewBettingTicketDetail(
 	bettingTicket betting_ticket_vo.BettingTicket,
+	bettingResult betting_ticket_vo.BettingResult,
 	betNumber betting_ticket_vo.BetNumber,
-	payment int,
-	repayment int,
-	winning bool,
+	payment types.Payment,
+	payout types.Payout,
 ) *BettingTicketDetail {
 	return &BettingTicketDetail{
 		bettingTicket: bettingTicket,
+		bettingResult: bettingResult,
 		betNumber:     betNumber,
 		payment:       payment,
-		repayment:     repayment,
-		winning:       winning,
+		payout:        payout,
 	}
 }
 
@@ -39,16 +42,16 @@ func (b *BettingTicketDetail) BetNumber() betting_ticket_vo.BetNumber {
 	return b.betNumber
 }
 
-func (b *BettingTicketDetail) Payment() int {
+func (b *BettingTicketDetail) Payment() types.Payment {
 	return b.payment
 }
 
-func (b *BettingTicketDetail) Repayment() int {
-	return b.repayment
+func (b *BettingTicketDetail) Payout() types.Payout {
+	return b.payout
 }
 
-func (b *BettingTicketDetail) Winning() bool {
-	return b.winning
+func (b *BettingTicketDetail) BettingResult() betting_ticket_vo.BettingResult {
+	return b.bettingResult
 }
 
 func NewPredictionForHorse(first, second string) *PredictionForHorse {

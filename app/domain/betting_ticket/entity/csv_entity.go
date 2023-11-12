@@ -3,6 +3,7 @@ package entity
 import (
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 type CsvEntity struct {
@@ -12,10 +13,9 @@ type CsvEntity struct {
 	raceNo        int
 	bettingTicket betting_ticket_vo.BettingTicket
 	bettingResult betting_ticket_vo.BettingResult
-	winning       bool
 	betNumber     betting_ticket_vo.BetNumber
 	payment       int
-	repayment     int
+	payout        int
 }
 
 func NewCsvEntity(
@@ -25,10 +25,9 @@ func NewCsvEntity(
 	raceNo int,
 	bettingTicket betting_ticket_vo.BettingTicket,
 	bettingResult betting_ticket_vo.BettingResult,
-	winning bool,
 	betNumber betting_ticket_vo.BetNumber,
 	payment int,
-	repayment int,
+	payout int,
 ) *CsvEntity {
 	return &CsvEntity{
 		raceDate:      raceDate,
@@ -37,10 +36,9 @@ func NewCsvEntity(
 		raceNo:        raceNo,
 		bettingTicket: bettingTicket,
 		bettingResult: bettingResult,
-		winning:       winning,
 		betNumber:     betNumber,
 		payment:       payment,
-		repayment:     repayment,
+		payout:        payout,
 	}
 }
 
@@ -68,18 +66,14 @@ func (c *CsvEntity) BettingResult() betting_ticket_vo.BettingResult {
 	return c.bettingResult
 }
 
-func (c *CsvEntity) Winning() bool {
-	return c.winning
-}
-
 func (c *CsvEntity) BetNumber() betting_ticket_vo.BetNumber {
 	return c.betNumber
 }
 
-func (c *CsvEntity) Payment() int {
-	return c.payment
+func (c *CsvEntity) Payment() types.Payment {
+	return types.Payment(c.payment)
 }
 
-func (c *CsvEntity) Repayment() int {
-	return c.repayment
+func (c *CsvEntity) Payout() types.Payout {
+	return types.Payout(c.payout)
 }

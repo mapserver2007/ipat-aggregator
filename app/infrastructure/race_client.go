@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/gocolly/colly"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
+	raw_jockey_entity "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/race/raw_entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/repository"
+	"log"
 	neturl "net/url"
 	"regexp"
 	"strconv"
@@ -82,12 +84,21 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
+				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
+				regex := regexp.MustCompile(`(\d{5})`)
+				result := regex.FindStringSubmatch(linkUrl)
+				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
+				jockeyId := 0
+				if result != nil {
+					jockeyId, _ = strconv.Atoi(result[1])
+				}
 
 				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
 					numbers[1],
+					jockeyId,
 					oddsList[1],
 					popularNumber,
 				))
@@ -101,12 +112,21 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
+				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
+				regex := regexp.MustCompile(`(\d{5})`)
+				result := regex.FindStringSubmatch(linkUrl)
+				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
+				jockeyId := 0
+				if result != nil {
+					jockeyId, _ = strconv.Atoi(result[1])
+				}
 
 				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
 					numbers[1],
+					jockeyId,
 					oddsList[1],
 					popularNumber,
 				))
@@ -129,12 +149,21 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
 				popularNumber, _ := strconv.Atoi(oddsList[0])
+				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
+				regex := regexp.MustCompile(`(\d{5})`)
+				result := regex.FindStringSubmatch(linkUrl)
+				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
+				jockeyId := 0
+				if result != nil {
+					jockeyId, _ = strconv.Atoi(result[1])
+				}
 
 				raceResults = append(raceResults, raw_entity.NewRawRaceResultNetkeiba(
 					i+1,
 					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
 					numbers[1],
+					jockeyId,
 					oddsList[1],
 					popularNumber,
 				))
@@ -161,7 +190,11 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 					} else if len(ce.DOM.Find(".Icon_GradeType3").Nodes) > 0 {
 						gradeClass = race_vo.Grade3
 					} else if len(ce.DOM.Find(".Icon_GradeType5").Nodes) > 0 {
-						gradeClass = race_vo.OpenClass
+						if strings.Contains(raceName, "障害") {
+							gradeClass = race_vo.JumpOpenClass
+						} else {
+							gradeClass = race_vo.OpenClass
+						}
 					} else if len(ce.DOM.Find(".Icon_GradeType10").Nodes) > 0 {
 						gradeClass = race_vo.JumpGrade1
 					} else if len(ce.DOM.Find(".Icon_GradeType11").Nodes) > 0 {
@@ -170,18 +203,33 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 						gradeClass = race_vo.JumpGrade3
 					} else if len(ce.DOM.Find(".Icon_GradeType15").Nodes) > 0 {
 						gradeClass = race_vo.ListedClass
-					} else if len(ce.DOM.Find(".Icon_GradeType16").Nodes) > 0 {
-						gradeClass = race_vo.AllowanceClass
-					} else if len(ce.DOM.Find(".Icon_GradeType17").Nodes) > 0 {
-						gradeClass = race_vo.AllowanceClass
-					} else if len(ce.DOM.Find(".Icon_GradeType18").Nodes) > 0 {
-						gradeClass = race_vo.AllowanceClass
+					} else if len(ce.DOM.Find(".Icon_GradeType16").Nodes) > 0 { // 3勝クラス
+						gradeClass = race_vo.ThreeWinClass
+					} else if len(ce.DOM.Find(".Icon_GradeType17").Nodes) > 0 { // 2勝クラス
+						gradeClass = race_vo.TwoWinClass
+					} else if len(ce.DOM.Find(".Icon_GradeType18").Nodes) > 0 { // 1勝クラス
+						gradeClass = race_vo.OneWinClass
 					} else if len(ce.DOM.Find(".Icon_GradeType19").Nodes) > 0 {
 						gradeClass = race_vo.Jpn1
 					} else if len(ce.DOM.Find(".Icon_GradeType20").Nodes) > 0 {
 						gradeClass = race_vo.Jpn2
 					} else if len(ce.DOM.Find(".Icon_GradeType21").Nodes) > 0 {
 						gradeClass = race_vo.Jpn3
+					} else {
+						// 条件戦の特別戦、OP、L以外の平場はアイコンが無いのでレース名からクラスを判定する
+						if strings.Contains(raceName, "新馬") || strings.Contains(raceName, "未勝利") {
+							if strings.Contains(raceName, "障害") {
+								gradeClass = race_vo.JumpMaiden
+							} else {
+								gradeClass = race_vo.Maiden
+							}
+						} else if strings.Contains(raceName, "1勝クラス") {
+							gradeClass = race_vo.OneWinClass
+						} else if strings.Contains(raceName, "2勝クラス") {
+							gradeClass = race_vo.TwoWinClass
+						} else if strings.Contains(raceName, "3勝クラス") {
+							gradeClass = race_vo.ThreeWinClass
+						}
 					}
 				case 1:
 					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
@@ -252,9 +300,9 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 		}
 		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
 			var (
-				numbers                        []string
-				odds                           []string
-				resultSelector, payoutSelector string
+				numbers, odds                                         []string
+				populars                                              []int
+				resultSelector, payoutSelector, popularNumberSelector string
 			)
 
 			ticketClassName, _ := ce.DOM.Attr("class")
@@ -278,11 +326,22 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				}
 				return fixValues
 			}
+			readPopulars := func(ce2 *colly.HTMLElement) []int {
+				values := strings.Split(ConvertFromEucJPToUtf8(ce2.DOM.Text()), "人気")
+				values = values[0 : len(values)-1]
+				var fixValues []int
+				for _, value := range values {
+					fixValue, _ := strconv.Atoi(value)
+					fixValues = append(fixValues, fixValue)
+				}
+				return fixValues
+			}
 
 			switch ticketType {
 			case betting_ticket_vo.Win, betting_ticket_vo.Place:
 				resultSelector = fmt.Sprintf(".%s > .Result > div", ticketClassName)
 				payoutSelector = fmt.Sprintf(".%s > .Payout", ticketClassName)
+				popularNumberSelector = fmt.Sprintf(".%s > .Ninki", ticketClassName)
 				ce.ForEach(resultSelector, func(j int, ce2 *colly.HTMLElement) {
 					switch j {
 					case 0, 3, 6:
@@ -295,9 +354,13 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ce.ForEach(payoutSelector, func(j int, ce2 *colly.HTMLElement) {
 					odds = readOdds(ce2)
 				})
+				ce.ForEach(popularNumberSelector, func(j int, ce2 *colly.HTMLElement) {
+					populars = readPopulars(ce2)
+				})
 			case betting_ticket_vo.BracketQuinella, betting_ticket_vo.Quinella, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.Trio:
 				resultSelector = fmt.Sprintf(".%s > .Result > ul > li", ticketClassName)
 				payoutSelector = fmt.Sprintf(".%s > .Payout", ticketClassName)
+				popularNumberSelector = fmt.Sprintf(".%s > .Ninki", ticketClassName)
 				size := 2
 				if ticketType == betting_ticket_vo.Trio {
 					size = 3
@@ -316,9 +379,13 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ce.ForEach(payoutSelector, func(j int, ce2 *colly.HTMLElement) {
 					odds = readOdds(ce2)
 				})
+				ce.ForEach(popularNumberSelector, func(j int, ce2 *colly.HTMLElement) {
+					populars = readPopulars(ce2)
+				})
 			case betting_ticket_vo.Exacta, betting_ticket_vo.Trifecta:
 				resultSelector = fmt.Sprintf(".%s > .Result > ul > li", ticketClassName)
 				payoutSelector = fmt.Sprintf(".%s > .Payout", ticketClassName)
+				popularNumberSelector = fmt.Sprintf(".%s > .Ninki", ticketClassName)
 				size := 2
 				if ticketType == betting_ticket_vo.Trifecta {
 					size = 3
@@ -337,6 +404,9 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ce.ForEach(payoutSelector, func(j int, ce2 *colly.HTMLElement) {
 					odds = readOdds(ce2)
 				})
+				ce.ForEach(popularNumberSelector, func(j int, ce2 *colly.HTMLElement) {
+					populars = readPopulars(ce2)
+				})
 			default:
 				// NARの場合、枠単があるが今の所集計するつもりがない
 				return
@@ -346,6 +416,7 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 				ticketType.Value(),
 				numbers,
 				odds,
+				populars,
 			))
 		})
 	})
@@ -368,4 +439,26 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 		raceResults,
 		payoutResults,
 	), nil
+}
+
+func (r *RaceClient) GetJockey(ctx context.Context, url string) (*raw_jockey_entity.RawJockeyNetkeiba, error) {
+	var name string
+	r.client.OnHTML("div.Name h1", func(e *colly.HTMLElement) {
+		list := strings.Split(e.DOM.Text(), "\n")
+		name = ConvertFromEucJPToUtf8(list[1][:len(list[1])-2])
+	})
+	r.client.OnError(func(r *colly.Response, err error) {
+		log.Printf("GetJockey error: %v", err)
+	})
+
+	regex := regexp.MustCompile(`\/jockey\/(\d+)\/`)
+	result := regex.FindStringSubmatch(url)
+	id, _ := strconv.Atoi(result[1])
+
+	err := r.client.Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return raw_jockey_entity.NewRawJockeyNetkeiba(id, name), nil
 }

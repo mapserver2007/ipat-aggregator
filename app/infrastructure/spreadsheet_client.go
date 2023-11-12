@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	analyze_entity "github.com/mapserver2007/ipat-aggregator/app/domain/analyze/entity"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
 	predict_entity "github.com/mapserver2007/ipat-aggregator/app/domain/predict/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	result_summary_entity "github.com/mapserver2007/ipat-aggregator/app/domain/result/entity"
 	spreadsheet_entity "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/entity"
 	spreadsheet_vo "github.com/mapserver2007/ipat-aggregator/app/domain/spreadsheet/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/repository"
@@ -16,13 +18,14 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 const (
-	secretFileName          = "secret.json"
-	spreadSheetCalcFileName = "spreadsheet_calc.json"
-	spreadSheetListFileName = "spreadsheet_list.json"
+	secretFileName                   = "secret.json"
+	spreadSheetSummaryFileName       = "spreadsheet_summary.json"
+	spreadSheetTicketSummaryFileName = "spreadsheet_ticket_summary.json"
+	spreadSheetListFileName          = "spreadsheet_list.json"
+	spreadSheetAnalyzeFileName       = "spreadsheet_analyze.json"
 )
 
 type SpreadSheetClient struct {
@@ -34,8 +37,25 @@ type SpreadSheetClient struct {
 func NewSpreadSheetClient(
 	ctx context.Context,
 ) repository.SpreadSheetClient {
-	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetCalcFileName)
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName)
 	return &SpreadSheetClient{
+		client:            service,
+		spreadSheetConfig: spreadSheetConfig,
+		sheetId:           sheetId,
+	}
+}
+
+type SpreadSheetMonthlyBettingTicketClient struct {
+	client            *sheets.Service
+	spreadSheetConfig spreadsheet_entity.SpreadSheetConfig
+	sheetId           int64
+}
+
+func NewSpreadSheetMonthlyBettingTicketClient(
+	ctx context.Context,
+) repository.SpreadSheetMonthlyBettingTicketClient {
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetTicketSummaryFileName)
+	return &SpreadSheetMonthlyBettingTicketClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
 		sheetId:           sheetId,
@@ -56,6 +76,23 @@ func NewSpreadSheetListClient(
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
 		sheetId:           sheetId,
+	}
+}
+
+type SpreadSheetAnalyzeClient struct {
+	client            *sheets.Service
+	spreadSheetConfig spreadsheet_entity.SpreadSheetAnalyzeConfig
+	sheetMap          map[spreadsheet_vo.AnalyzeType]*sheets.SheetProperties
+}
+
+func NewSpreadSheetAnalyzeClient(
+	ctx context.Context,
+) repository.SpreadSheetAnalyzeClient {
+	service, spreadSheetConfig, sheetMap := getSpreadSheetAnalyzeConfig(ctx, spreadSheetAnalyzeFileName)
+	return &SpreadSheetAnalyzeClient{
+		client:            service,
+		spreadSheetConfig: spreadSheetConfig,
+		sheetMap:          sheetMap,
 	}
 }
 
@@ -108,7 +145,61 @@ func getSpreadSheetConfig(
 	return service, spreadSheetConfig, sheetId
 }
 
-func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error {
+func getSpreadSheetAnalyzeConfig(
+	ctx context.Context,
+	spreadSheetConfigFileName string,
+) (*sheets.Service, spreadsheet_entity.SpreadSheetAnalyzeConfig, map[spreadsheet_vo.AnalyzeType]*sheets.SheetProperties) {
+	rootPath, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	secretFilePath, err := filepath.Abs(fmt.Sprintf("%s/secret/%s", rootPath, secretFileName))
+	if err != nil {
+		panic(err)
+	}
+	spreadSheetConfigFilePath, err := filepath.Abs(fmt.Sprintf("%s/secret/%s", rootPath, spreadSheetConfigFileName))
+	if err != nil {
+		panic(err)
+	}
+
+	credential := option.WithCredentialsFile(secretFilePath)
+	service, err := sheets.NewService(ctx, credential)
+	if err != nil {
+		panic(err)
+	}
+
+	spreadSheetConfigBytes, err := os.ReadFile(spreadSheetConfigFilePath)
+	if err != nil {
+		panic(err)
+	}
+
+	var spreadSheetConfig spreadsheet_entity.SpreadSheetAnalyzeConfig
+	if err = json.Unmarshal(spreadSheetConfigBytes, &spreadSheetConfig); err != nil {
+		panic(err)
+	}
+
+	response, err := service.Spreadsheets.Get(spreadSheetConfig.Id).Do()
+	if err != nil {
+		panic(err)
+	}
+
+	var sheetReverseMap = map[string]spreadsheet_vo.AnalyzeType{}
+	for _, sheetName := range spreadSheetConfig.SheetNames {
+		sheetReverseMap[sheetName.Name] = spreadsheet_vo.AnalyzeType(sheetName.Type)
+	}
+
+	sheetMap := map[spreadsheet_vo.AnalyzeType]*sheets.SheetProperties{}
+	for _, sheet := range response.Sheets {
+		if analyzeType, ok := sheetReverseMap[sheet.Properties.Title]; ok {
+			sheetMap[analyzeType] = sheet.Properties
+		}
+	}
+
+	return service, spreadSheetConfig, sheetMap
+}
+
+func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary result_summary_entity.ShortSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A1")
 	values := [][]interface{}{
 		{
@@ -117,15 +208,15 @@ func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary sp
 		},
 		{
 			"投資",
-			summary.Payments,
+			summary.GetPayment(),
 		},
 		{
 			"回収",
-			summary.Repayments,
+			summary.GetPayout(),
 		},
 		{
 			"回収率",
-			summary.CalcReturnOnInvestment(),
+			summary.GetRecoveryRate(),
 		},
 	}
 
@@ -139,7 +230,7 @@ func (s *SpreadSheetClient) WriteForTotalSummary(ctx context.Context, summary sp
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, summary spreadsheet_entity.ResultSummary) error {
+func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, summary result_summary_entity.ShortSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "C1")
 	values := [][]interface{}{
 		{
@@ -148,15 +239,15 @@ func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, sum
 		},
 		{
 			"投資",
-			summary.Payments,
+			summary.GetPayment(),
 		},
 		{
 			"回収",
-			summary.Repayments,
+			summary.GetPayout(),
 		},
 		{
 			"回収率",
-			summary.CalcReturnOnInvestment(),
+			summary.GetRecoveryRate(),
 		},
 	}
 
@@ -170,7 +261,38 @@ func (s *SpreadSheetClient) WriteForCurrentMonthSummary(ctx context.Context, sum
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Context, summary spreadsheet_entity.BettingTicketSummary) error {
+func (s *SpreadSheetClient) WriteForCurrentYearSummary(ctx context.Context, summary result_summary_entity.ShortSummary) error {
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "E1")
+	values := [][]interface{}{
+		{
+			"年間累計",
+			"",
+		},
+		{
+			"投資",
+			summary.GetPayment(),
+		},
+		{
+			"回収",
+			summary.GetPayout(),
+		},
+		{
+			"回収率",
+			summary.GetRecoveryRate(),
+		},
+	}
+
+	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
+		Values: values,
+	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetBettingTicketSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A6")
 	values := [][]interface{}{
 		{
@@ -184,42 +306,86 @@ func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Co
 		},
 	}
 
-	var bettingTicketKindList []betting_ticket_vo.BettingTicket
-	for bettingTicketKind := range summary.BettingTicketRates {
-		bettingTicketKindList = append(bettingTicketKindList, bettingTicketKind)
-	}
-
-	sort.Slice(bettingTicketKindList, func(i, j int) bool {
-		return bettingTicketKindList[i].Value() < bettingTicketKindList[j].Value()
-	})
-
-	var totalResultRate spreadsheet_entity.ResultRate
-	for _, bettingTicketKind := range bettingTicketKindList {
-		bettingTicketRate, _ := summary.BettingTicketRates[bettingTicketKind]
-		values = append(values, []interface{}{
-			bettingTicketKind.Name(),
-			bettingTicketRate.VoteCount,
-			bettingTicketRate.HitCount,
-			bettingTicketRate.HitRateFormat(),
-			bettingTicketRate.Payments,
-			bettingTicketRate.Repayments,
-			bettingTicketRate.ReturnOnInvestmentFormat(),
-		})
-
-		totalResultRate.VoteCount += bettingTicketRate.VoteCount
-		totalResultRate.HitCount += bettingTicketRate.HitCount
-		totalResultRate.Payments += bettingTicketRate.Payments
-		totalResultRate.Repayments += bettingTicketRate.Repayments
-	}
+	winSummary := summary.GetWinSummary()
+	placeSummary := summary.GetPlaceSummary()
+	quinellaSummary := summary.GetQuinellaSummary()
+	exactaSummary := summary.GetExactaSummary()
+	quinellaPlaceSummary := summary.GetQuinellaPlaceSummary()
+	trioSummary := summary.GetTrioSummary()
+	trifectaSummary := summary.GetTrifectaSummary()
+	totalSummary := summary.GetTotalSummary()
 
 	values = append(values, []interface{}{
+		betting_ticket_vo.Win.Name(),
+		winSummary.GetBetCount(),
+		winSummary.GetHitCount(),
+		winSummary.GetHitRate(),
+		winSummary.GetPayment(),
+		winSummary.GetPayout(),
+		winSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Place.Name(),
+		placeSummary.GetBetCount(),
+		placeSummary.GetHitCount(),
+		placeSummary.GetHitRate(),
+		placeSummary.GetPayment(),
+		placeSummary.GetPayout(),
+		placeSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Quinella.Name(),
+		quinellaSummary.GetBetCount(),
+		quinellaSummary.GetHitCount(),
+		quinellaSummary.GetHitRate(),
+		quinellaSummary.GetPayment(),
+		quinellaSummary.GetPayout(),
+		quinellaSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Exacta.Name(),
+		exactaSummary.GetBetCount(),
+		exactaSummary.GetHitCount(),
+		exactaSummary.GetHitRate(),
+		exactaSummary.GetPayment(),
+		exactaSummary.GetPayout(),
+		exactaSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.QuinellaPlace.Name(),
+		quinellaPlaceSummary.GetBetCount(),
+		quinellaPlaceSummary.GetHitCount(),
+		quinellaPlaceSummary.GetHitRate(),
+		quinellaPlaceSummary.GetPayment(),
+		quinellaPlaceSummary.GetPayout(),
+		quinellaPlaceSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Trio.Name(),
+		trioSummary.GetBetCount(),
+		trioSummary.GetHitCount(),
+		trioSummary.GetHitRate(),
+		trioSummary.GetPayment(),
+		trioSummary.GetPayout(),
+		trioSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		betting_ticket_vo.Trifecta.Name(),
+		trifectaSummary.GetBetCount(),
+		trifectaSummary.GetHitCount(),
+		trifectaSummary.GetHitRate(),
+		trifectaSummary.GetPayment(),
+		trifectaSummary.GetPayout(),
+		trifectaSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
 		"累計",
-		totalResultRate.VoteCount,
-		totalResultRate.HitCount,
-		totalResultRate.HitRateFormat(),
-		totalResultRate.Payments,
-		totalResultRate.Repayments,
-		totalResultRate.ReturnOnInvestmentFormat(),
+		totalSummary.GetBetCount(),
+		totalSummary.GetHitCount(),
+		totalSummary.GetHitRate(),
+		totalSummary.GetPayment(),
+		totalSummary.GetPayout(),
+		totalSummary.GetRecoveryRate(),
 	})
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
@@ -232,7 +398,7 @@ func (s *SpreadSheetClient) WriteForTotalBettingTicketRateSummary(ctx context.Co
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, summary spreadsheet_entity.RaceClassSummary) error {
+func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetClassSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A15")
 
 	values := [][]interface{}{
@@ -247,26 +413,87 @@ func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, su
 		},
 	}
 
-	var dateList []race_vo.GradeClass
-	for key := range summary.RaceClassRates {
-		dateList = append(dateList, key)
-	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i] < dateList[j]
-	})
+	grade1Summary := summary.GetGrade1Summary()
+	grade2Summary := summary.GetGrade2Summary()
+	grade3Summary := summary.GetGrade3Summary()
+	openClassSummary := summary.GetOpenClassSummary()
+	threeWinClassSummary := summary.GetThreeWinClassSummary()
+	twoWinClassSummary := summary.GetTwoWinClassSummary()
+	oneWinClassSummary := summary.GetOneWinClassSummary()
+	maidenClassSummary := summary.GetMaidenClassSummary()
 
-	for _, raceClass := range dateList {
-		monthlyRate := summary.RaceClassRates[raceClass]
-		values = append(values, []interface{}{
-			raceClass.String(),
-			monthlyRate.VoteCount,
-			monthlyRate.HitCount,
-			monthlyRate.HitRateFormat(),
-			monthlyRate.Payments,
-			monthlyRate.Repayments,
-			monthlyRate.ReturnOnInvestmentFormat(),
-		})
-	}
+	values = append(values, []interface{}{
+		race_vo.Grade1.String(),
+		grade1Summary.GetBetCount(),
+		grade1Summary.GetHitCount(),
+		grade1Summary.GetHitRate(),
+		grade1Summary.GetPayment(),
+		grade1Summary.GetPayout(),
+		grade1Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Grade2.String(),
+		grade2Summary.GetBetCount(),
+		grade2Summary.GetHitCount(),
+		grade2Summary.GetHitRate(),
+		grade2Summary.GetPayment(),
+		grade2Summary.GetPayout(),
+		grade2Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Grade3.String(),
+		grade3Summary.GetBetCount(),
+		grade3Summary.GetHitCount(),
+		grade3Summary.GetHitRate(),
+		grade3Summary.GetPayment(),
+		grade3Summary.GetPayout(),
+		grade3Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.OpenClass.String(),
+		openClassSummary.GetBetCount(),
+		openClassSummary.GetHitCount(),
+		openClassSummary.GetHitRate(),
+		openClassSummary.GetPayment(),
+		openClassSummary.GetPayout(),
+		openClassSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.ThreeWinClass.String(),
+		threeWinClassSummary.GetBetCount(),
+		threeWinClassSummary.GetHitCount(),
+		threeWinClassSummary.GetHitRate(),
+		threeWinClassSummary.GetPayment(),
+		threeWinClassSummary.GetPayout(),
+		threeWinClassSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.TwoWinClass.String(),
+		twoWinClassSummary.GetBetCount(),
+		twoWinClassSummary.GetHitCount(),
+		twoWinClassSummary.GetHitRate(),
+		twoWinClassSummary.GetPayment(),
+		twoWinClassSummary.GetPayout(),
+		twoWinClassSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.OneWinClass.String(),
+		oneWinClassSummary.GetBetCount(),
+		oneWinClassSummary.GetHitCount(),
+		oneWinClassSummary.GetHitRate(),
+		oneWinClassSummary.GetPayment(),
+		oneWinClassSummary.GetPayout(),
+		oneWinClassSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Maiden.String(),
+		maidenClassSummary.GetBetCount(),
+		maidenClassSummary.GetHitCount(),
+		maidenClassSummary.GetHitRate(),
+		maidenClassSummary.GetPayment(),
+		maidenClassSummary.GetPayout(),
+		maidenClassSummary.GetRecoveryRate(),
+	})
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,
@@ -278,7 +505,7 @@ func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, su
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Context, summary spreadsheet_entity.CourseCategorySummary) error {
+func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetCourseCategorySummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "H6")
 
 	values := [][]interface{}{
@@ -293,26 +520,37 @@ func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Contex
 		},
 	}
 
-	var dateList []race_vo.CourseCategory
-	for key := range summary.CourseCategoryRates {
-		dateList = append(dateList, key)
-	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i] < dateList[j]
-	})
+	turfSummary := summary.GetCourseCategorySummary(race_vo.Turf)
+	dirtSummary := summary.GetCourseCategorySummary(race_vo.Dirt)
+	jumpSummary := summary.GetCourseCategorySummary(race_vo.Jump)
 
-	for _, courseCategory := range dateList {
-		courseCategoryRate := summary.CourseCategoryRates[courseCategory]
-		values = append(values, []interface{}{
-			courseCategory.String(),
-			courseCategoryRate.VoteCount,
-			courseCategoryRate.HitCount,
-			courseCategoryRate.HitRateFormat(),
-			courseCategoryRate.Payments,
-			courseCategoryRate.Repayments,
-			courseCategoryRate.ReturnOnInvestmentFormat(),
-		})
-	}
+	values = append(values, []interface{}{
+		race_vo.Turf.String(),
+		turfSummary.GetBetCount(),
+		turfSummary.GetHitCount(),
+		turfSummary.GetHitRate(),
+		turfSummary.GetPayment(),
+		turfSummary.GetPayout(),
+		turfSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Dirt.String(),
+		dirtSummary.GetBetCount(),
+		dirtSummary.GetHitCount(),
+		dirtSummary.GetHitRate(),
+		dirtSummary.GetPayment(),
+		dirtSummary.GetPayout(),
+		dirtSummary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Jump.String(),
+		jumpSummary.GetBetCount(),
+		jumpSummary.GetHitCount(),
+		jumpSummary.GetHitRate(),
+		jumpSummary.GetPayment(),
+		jumpSummary.GetPayout(),
+		jumpSummary.GetRecoveryRate(),
+	})
 
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,
@@ -324,7 +562,7 @@ func (s *SpreadSheetClient) WriteForCourseCategoryRateSummary(ctx context.Contex
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Context, summary spreadsheet_entity.DistanceCategorySummary) error {
+func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetDistanceCategorySummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "H10")
 
 	values := [][]interface{}{
@@ -339,24 +577,29 @@ func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Cont
 		},
 	}
 
-	var dateList []race_vo.DistanceCategory
-	for key := range summary.DistanceCategoryRates {
-		dateList = append(dateList, key)
+	distanceCategories := []race_vo.DistanceCategory{
+		race_vo.TurfSprint,
+		race_vo.TurfMile,
+		race_vo.TurfIntermediate,
+		race_vo.TurfLong,
+		race_vo.TurfExtended,
+		race_vo.DirtSprint,
+		race_vo.DirtMile,
+		race_vo.DirtIntermediate,
+		race_vo.DirtLong,
+		race_vo.JumpAllDistance,
 	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i] < dateList[j]
-	})
 
-	for _, distanceCategory := range dateList {
-		distanceCategoryRate := summary.DistanceCategoryRates[distanceCategory]
+	for _, distanceCategory := range distanceCategories {
+		distanceCategorySummary := summary.GetDistanceCategorySummary(distanceCategory)
 		values = append(values, []interface{}{
 			distanceCategory.String(),
-			distanceCategoryRate.VoteCount,
-			distanceCategoryRate.HitCount,
-			distanceCategoryRate.HitRateFormat(),
-			distanceCategoryRate.Payments,
-			distanceCategoryRate.Repayments,
-			distanceCategoryRate.ReturnOnInvestmentFormat(),
+			distanceCategorySummary.GetBetCount(),
+			distanceCategorySummary.GetHitCount(),
+			distanceCategorySummary.GetHitRate(),
+			distanceCategorySummary.GetPayment(),
+			distanceCategorySummary.GetPayout(),
+			distanceCategorySummary.GetRecoveryRate(),
 		})
 	}
 
@@ -370,7 +613,7 @@ func (s *SpreadSheetClient) WriteForDistanceCategoryRateSummary(ctx context.Cont
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, summary spreadsheet_entity.RaceCourseSummary) error {
+func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetRaceCourseSummary) error {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "H21")
 
 	values := [][]interface{}{
@@ -385,24 +628,22 @@ func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, s
 		},
 	}
 
-	var dateList []race_vo.RaceCourse
-	for key := range summary.RaceCourseRates {
-		dateList = append(dateList, key)
+	raceCourses := []race_vo.RaceCourse{
+		race_vo.Sapporo, race_vo.Hakodate, race_vo.Fukushima, race_vo.Niigata, race_vo.Tokyo, race_vo.Nakayama, race_vo.Chukyo, race_vo.Kyoto, race_vo.Hanshin, race_vo.Kokura,
+		race_vo.Monbetsu, race_vo.Morioka, race_vo.Urawa, race_vo.Hunabashi, race_vo.Ooi, race_vo.Kawasaki, race_vo.Kanazawa, race_vo.Nagoya, race_vo.Sonoda, race_vo.Kouchi, race_vo.Saga,
+		race_vo.Overseas,
 	}
-	sort.Slice(dateList, func(i, j int) bool {
-		return dateList[i].Value() < dateList[j].Value()
-	})
 
-	for _, raceCourse := range dateList {
-		raceCourseRate := summary.RaceCourseRates[raceCourse]
+	for _, raceCourse := range raceCourses {
+		raceCourseSummary := summary.GetRaceCourseSummary(raceCourse)
 		values = append(values, []interface{}{
 			raceCourse.Name(),
-			raceCourseRate.VoteCount,
-			raceCourseRate.HitCount,
-			raceCourseRate.HitRateFormat(),
-			raceCourseRate.Payments,
-			raceCourseRate.Repayments,
-			raceCourseRate.ReturnOnInvestmentFormat(),
+			raceCourseSummary.GetBetCount(),
+			raceCourseSummary.GetHitCount(),
+			raceCourseSummary.GetHitRate(),
+			raceCourseSummary.GetPayment(),
+			raceCourseSummary.GetPayout(),
+			raceCourseSummary.GetRecoveryRate(),
 		})
 	}
 
@@ -416,8 +657,8 @@ func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, s
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summary spreadsheet_entity.MonthlySummary) error {
-	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A20")
+func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error {
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A24")
 
 	values := [][]interface{}{
 		{
@@ -431,8 +672,13 @@ func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summ
 		},
 	}
 
-	var dateList []int
-	for key := range summary.MonthlyRates {
+	monthlySummaryMap := summary.GetMonthlySummaryMap()
+
+	var (
+		dateList  []int
+		summaries []result_summary_entity.DetailSummary
+	)
+	for key := range monthlySummaryMap {
 		dateList = append(dateList, key)
 	}
 	sort.Slice(dateList, func(i, j int) bool {
@@ -440,15 +686,17 @@ func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summ
 	})
 
 	for _, date := range dateList {
-		monthlyRate := summary.MonthlyRates[date]
+		summaries = append(summaries, monthlySummaryMap[date])
+	}
+	for idx, monthlySummary := range summaries {
 		values = append(values, []interface{}{
-			strconv.Itoa(date),
-			monthlyRate.VoteCount,
-			monthlyRate.HitCount,
-			monthlyRate.HitRateFormat(),
-			monthlyRate.Payments,
-			monthlyRate.Repayments,
-			monthlyRate.ReturnOnInvestmentFormat(),
+			strconv.Itoa(dateList[idx]),
+			monthlySummary.GetBetCount(),
+			monthlySummary.GetHitCount(),
+			monthlySummary.GetHitRate(),
+			monthlySummary.GetPayment(),
+			monthlySummary.GetPayout(),
+			monthlySummary.GetRecoveryRate(),
 		})
 	}
 
@@ -638,6 +886,86 @@ func (s *SpreadSheetClient) WriteStyleForCurrentMonthlySummary(ctx context.Conte
 	return nil
 }
 
+func (s *SpreadSheetClient) WriteStyleForCurrentYearSummary(ctx context.Context) error {
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: []*sheets.Request{
+			// 1行目のセルをマージ
+			{
+				MergeCells: &sheets.MergeCellsRequest{
+					MergeType: "MERGE_ROWS",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 4,
+						StartRowIndex:    0,
+						EndColumnIndex:   6,
+						EndRowIndex:      1,
+					},
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   3,
+						SheetId:    s.sheetId,
+						StartIndex: 2,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 90,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 4,
+						StartRowIndex:    1,
+						EndColumnIndex:   5,
+						EndRowIndex:      4,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 4,
+						StartRowIndex:    0,
+						EndColumnIndex:   6,
+						EndRowIndex:      4,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *SpreadSheetClient) WriteStyleForTotalBettingTicketRateSummary(ctx context.Context) error {
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -763,7 +1091,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceClassRateSummary(ctx context.Contex
 						StartColumnIndex: 0,
 						StartRowIndex:    15,
 						EndColumnIndex:   1,
-						EndRowIndex:      19,
+						EndRowIndex:      23,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -803,7 +1131,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceClassRateSummary(ctx context.Contex
 						StartColumnIndex: 0,
 						StartRowIndex:    15,
 						EndColumnIndex:   1,
-						EndRowIndex:      19,
+						EndRowIndex:      23,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1042,7 +1370,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      39,
+						EndRowIndex:      43,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1082,7 +1410,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 						StartColumnIndex: 7,
 						StartRowIndex:    21,
 						EndColumnIndex:   8,
-						EndRowIndex:      39,
+						EndRowIndex:      43,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1103,8 +1431,8 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context, summary spreadsheet_entity.MonthlySummary) error {
-	rowCount := len(summary.MonthlyRates)
+func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error {
+	rowCount := len(summary.GetMonthlySummaryMap())
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1113,9 +1441,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    19,
+						StartRowIndex:    23,
 						EndColumnIndex:   7,
-						EndRowIndex:      20,
+						EndRowIndex:      24,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1134,9 +1462,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    20,
+						StartRowIndex:    24,
 						EndColumnIndex:   1,
-						EndRowIndex:      20 + int64(rowCount),
+						EndRowIndex:      24 + int64(rowCount),
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1155,9 +1483,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    19,
+						StartRowIndex:    23,
 						EndColumnIndex:   7,
-						EndRowIndex:      20,
+						EndRowIndex:      24,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1174,9 +1502,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    20,
+						StartRowIndex:    24,
 						EndColumnIndex:   1,
-						EndRowIndex:      20 + int64(rowCount),
+						EndRowIndex:      24 + int64(rowCount),
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1197,7 +1525,287 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 	return nil
 }
 
-func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.ResultStyle, error) {
+func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary) error {
+	summaryMap := summary.GetMonthlyBettingTicketSummaryMap()
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A1")
+	var dateList []int
+	for key := range summaryMap {
+		dateList = append(dateList, key)
+	}
+	sort.Slice(dateList, func(i, j int) bool {
+		return dateList[i] > dateList[j]
+	})
+
+	// 単勝
+	values := [][]interface{}{
+		{
+			"単勝",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}
+	summaries := make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetWinSummary())
+	}
+	for idx, winSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			winSummary.GetBetCount(),
+			winSummary.GetHitCount(),
+			winSummary.GetHitRate(),
+			winSummary.GetPayment(),
+			winSummary.GetPayout(),
+			winSummary.GetRecoveryRate(),
+			winSummary.GetAveragePayout(),
+			winSummary.GetMaxPayout(),
+			winSummary.GetMinPayout(),
+		})
+	}
+
+	// 複勝
+	values = append(values, [][]interface{}{
+		{
+			"複勝",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetPlaceSummary())
+	}
+	for idx, placeSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			placeSummary.GetBetCount(),
+			placeSummary.GetHitCount(),
+			placeSummary.GetHitRate(),
+			placeSummary.GetPayment(),
+			placeSummary.GetPayout(),
+			placeSummary.GetRecoveryRate(),
+			placeSummary.GetAveragePayout(),
+			placeSummary.GetMaxPayout(),
+			placeSummary.GetMinPayout(),
+		})
+	}
+
+	// 馬連
+	values = append(values, [][]interface{}{
+		{
+			"馬連",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetQuinellaSummary())
+	}
+	for idx, quinellaSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			quinellaSummary.GetBetCount(),
+			quinellaSummary.GetHitCount(),
+			quinellaSummary.GetHitRate(),
+			quinellaSummary.GetPayment(),
+			quinellaSummary.GetPayout(),
+			quinellaSummary.GetRecoveryRate(),
+			quinellaSummary.GetAveragePayout(),
+			quinellaSummary.GetMaxPayout(),
+			quinellaSummary.GetMinPayout(),
+		})
+	}
+
+	// 馬単
+	values = append(values, [][]interface{}{
+		{
+			"馬単",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetExactaSummary())
+	}
+	for idx, exactaSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			exactaSummary.GetBetCount(),
+			exactaSummary.GetHitCount(),
+			exactaSummary.GetHitRate(),
+			exactaSummary.GetPayment(),
+			exactaSummary.GetPayout(),
+			exactaSummary.GetRecoveryRate(),
+			exactaSummary.GetAveragePayout(),
+			exactaSummary.GetMaxPayout(),
+			exactaSummary.GetMinPayout(),
+		})
+	}
+
+	// ワイド
+	values = append(values, [][]interface{}{
+		{
+			"ワイド",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetQuinellaPlaceSummary())
+	}
+	for idx, quinellaPlaceSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			quinellaPlaceSummary.GetBetCount(),
+			quinellaPlaceSummary.GetHitCount(),
+			quinellaPlaceSummary.GetHitRate(),
+			quinellaPlaceSummary.GetPayment(),
+			quinellaPlaceSummary.GetPayout(),
+			quinellaPlaceSummary.GetRecoveryRate(),
+			quinellaPlaceSummary.GetAveragePayout(),
+			quinellaPlaceSummary.GetMaxPayout(),
+			quinellaPlaceSummary.GetMinPayout(),
+		})
+	}
+
+	// 3連複
+	values = append(values, [][]interface{}{
+		{
+			"3連複",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetTrioSummary())
+	}
+	for idx, trioPlaceSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			trioPlaceSummary.GetBetCount(),
+			trioPlaceSummary.GetHitCount(),
+			trioPlaceSummary.GetHitRate(),
+			trioPlaceSummary.GetPayment(),
+			trioPlaceSummary.GetPayout(),
+			trioPlaceSummary.GetRecoveryRate(),
+			trioPlaceSummary.GetAveragePayout(),
+			trioPlaceSummary.GetMaxPayout(),
+			trioPlaceSummary.GetMinPayout(),
+		})
+	}
+
+	// 3連単
+	values = append(values, [][]interface{}{
+		{
+			"3連単",
+		},
+		{
+			"月別",
+			"投票回数",
+			"的中回数",
+			"的中率",
+			"投資額",
+			"回収額",
+			"回収率",
+			"平均払戻金額",
+			"最大払戻金額",
+			"最小払戻金額",
+		},
+	}...)
+	summaries = make([]result_summary_entity.DetailSummary, 0)
+	for _, date := range dateList {
+		summaries = append(summaries, summaryMap[date].GetTrifectaSummary())
+	}
+	for idx, trifectaPlaceSummary := range summaries {
+		values = append(values, []interface{}{
+			strconv.Itoa(dateList[idx]),
+			trifectaPlaceSummary.GetBetCount(),
+			trifectaPlaceSummary.GetHitCount(),
+			trifectaPlaceSummary.GetHitRate(),
+			trifectaPlaceSummary.GetPayment(),
+			trifectaPlaceSummary.GetPayout(),
+			trifectaPlaceSummary.GetRecoveryRate(),
+			trifectaPlaceSummary.GetAveragePayout(),
+			trifectaPlaceSummary.GetMaxPayout(),
+			trifectaPlaceSummary.GetMinPayout(),
+		})
+	}
+
+	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
+		Values: values,
+	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle, error) {
 	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A1")
 	values := [][]interface{}{
 		{
@@ -1211,21 +1819,25 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			"回収額",
 			"回収率",
 			"本命",
+			"騎手",
 			"人気",
 			"オッズ",
 			"対抗",
+			"騎手",
 			"人気",
 			"オッズ",
 			"1着",
+			"騎手",
 			"人気",
 			"オッズ",
 			"2着",
+			"騎手",
 			"人気",
 			"オッズ",
 		},
 	}
 
-	var rivalHorseName, rivalPopularNumber, rivalOdds string
+	var rivalHorseName, rivalPopularNumber, rivalOdds, rivalJockeyName string
 
 	sort.SliceStable(records, func(i, j int) bool {
 		return records[i].Race().StartTime() > records[j].Race().StartTime()
@@ -1234,12 +1846,12 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 		return records[i].Race().RaceDate() > records[j].Race().RaceDate()
 	})
 
-	styleMap := map[race_vo.RaceId]*spreadsheet_entity.ResultStyle{}
+	styleMap := map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle{}
 	for idx, record := range records {
 		var (
 			favoriteColor, rivalColor spreadsheet_vo.PlaceColor
 			gradeClassColor           spreadsheet_vo.GradeClassColor
-			repaymentComment          string
+			repaymentComments         spreadsheet_vo.RepaymentComments
 		)
 		raceResults := record.Race().RaceResults()
 		raceResultOfFirst := raceResults[0]
@@ -1269,26 +1881,26 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 		}
 
 		if record.WinningTickets() != nil {
-			var comments []string
 			for _, winningTicket := range record.WinningTickets() {
-				comment := fmt.Sprintf("%s %s %s倍 %d円", winningTicket.BettingTicket.Name(), winningTicket.BetNumber.String(), winningTicket.Odds, winningTicket.Repayment)
-				comments = append(comments, comment)
+				repaymentComments = append(repaymentComments,
+					fmt.Sprintf("%s %s %s倍 %d円 %d人気", winningTicket.BettingTicket().Name(), winningTicket.BetNumber().String(), winningTicket.Odds(), winningTicket.Repayment(), winningTicket.Popular()))
 			}
-			repaymentComment = strings.Join(comments, "\n")
 		}
 
-		styleMap[record.Race().RaceId()] = spreadsheet_entity.NewResultStyle(
-			idx+1, favoriteColor, rivalColor, gradeClassColor, repaymentComment,
+		styleMap[record.Race().RaceId()] = spreadsheet_entity.NewSpreadSheetStyle(
+			idx+1, favoriteColor, rivalColor, gradeClassColor, repaymentComments,
 		)
 
 		if record.RivalHorse() != nil {
 			rivalHorseName = record.RivalHorse().HorseName()
 			rivalPopularNumber = strconv.Itoa(record.RivalHorse().PopularNumber())
 			rivalOdds = record.RivalHorse().Odds()
+			rivalJockeyName = record.RivalJockey().JockeyName()
 		} else {
 			rivalHorseName = "-"
 			rivalPopularNumber = "-"
 			rivalOdds = "-"
+			rivalJockeyName = "-"
 		}
 
 		values = append(values, []interface{}{
@@ -1302,15 +1914,19 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 			record.Repayment(),
 			fmt.Sprintf("%.0f%s", float64(record.Repayment())*float64(100)/float64(record.Payment()), "%"),
 			record.FavoriteHorse().HorseName(),
+			record.FavoriteJockey().JockeyName(),
 			record.FavoriteHorse().PopularNumber(),
 			record.FavoriteHorse().Odds(),
 			rivalHorseName,
+			rivalJockeyName,
 			rivalPopularNumber,
 			rivalOdds,
 			raceResultOfFirst.HorseName(),
+			raceResultOfFirst.JockeyName(),
 			raceResultOfFirst.PopularNumber(),
 			raceResultOfFirst.Odds(),
 			raceResultOfSecond.HorseName(),
+			raceResultOfSecond.JockeyName(),
 			raceResultOfSecond.PopularNumber(),
 			raceResultOfSecond.Odds(),
 		})
@@ -1326,7 +1942,7 @@ func (s SpreadSheetListClient) WriteList(ctx context.Context, records []*predict
 	return styleMap, nil
 }
 
-func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.ResultStyle) error {
+func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle) error {
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1348,7 +1964,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
 						StartRowIndex:    0,
-						EndColumnIndex:   21,
+						EndColumnIndex:   25,
 						EndRowIndex:      1,
 					},
 					Cell: &sheets.CellData{
@@ -1367,7 +1983,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
 						StartRowIndex:    0,
-						EndColumnIndex:   21,
+						EndColumnIndex:   25,
 						EndRowIndex:      1,
 					},
 					Cell: &sheets.CellData{
@@ -1404,7 +2020,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						StartIndex: 1,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 30,
+						PixelSize: 90,
 					},
 					Fields: "pixelSize",
 				},
@@ -1497,9 +2113,23 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 					Range: &sheets.DimensionRange{
 						Dimension:  "COLUMNS",
-						EndIndex:   12,
+						EndIndex:   11,
 						SheetId:    s.sheetId,
 						StartIndex: 10,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 75,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   13,
+						SheetId:    s.sheetId,
+						StartIndex: 11,
 					},
 					Properties: &sheets.DimensionProperties{
 						PixelSize: 50,
@@ -1511,9 +2141,9 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 					Range: &sheets.DimensionRange{
 						Dimension:  "COLUMNS",
-						EndIndex:   13,
+						EndIndex:   14,
 						SheetId:    s.sheetId,
-						StartIndex: 12,
+						StartIndex: 13,
 					},
 					Properties: &sheets.DimensionProperties{
 						PixelSize: 135,
@@ -1527,10 +2157,10 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						Dimension:  "COLUMNS",
 						EndIndex:   15,
 						SheetId:    s.sheetId,
-						StartIndex: 13,
+						StartIndex: 14,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 50,
+						PixelSize: 75,
 					},
 					Fields: "pixelSize",
 				},
@@ -1539,12 +2169,12 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 					Range: &sheets.DimensionRange{
 						Dimension:  "COLUMNS",
-						EndIndex:   16,
+						EndIndex:   17,
 						SheetId:    s.sheetId,
 						StartIndex: 15,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 135,
+						PixelSize: 50,
 					},
 					Fields: "pixelSize",
 				},
@@ -1555,10 +2185,10 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						Dimension:  "COLUMNS",
 						EndIndex:   18,
 						SheetId:    s.sheetId,
-						StartIndex: 16,
+						StartIndex: 17,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 50,
+						PixelSize: 135,
 					},
 					Fields: "pixelSize",
 				},
@@ -1572,7 +2202,7 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 						StartIndex: 18,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 135,
+						PixelSize: 75,
 					},
 					Fields: "pixelSize",
 				},
@@ -1591,6 +2221,48 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					Fields: "pixelSize",
 				},
 			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   22,
+						SheetId:    s.sheetId,
+						StartIndex: 21,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 135,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   23,
+						SheetId:    s.sheetId,
+						StartIndex: 22,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 75,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   26,
+						SheetId:    s.sheetId,
+						StartIndex: 23,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 50,
+					},
+					Fields: "pixelSize",
+				},
+			},
 		},
 	}).Do()
 
@@ -1601,25 +2273,25 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 	var requests []*sheets.Request
 	for _, record := range records {
 		if style, ok := styleMap[record.Race().RaceId()]; ok {
-			if style.GradeClassColor != spreadsheet_vo.NonGrade {
+			if style.GetGradeClassColor() != spreadsheet_vo.NonGrade {
 				color := &sheets.Color{
 					Red:   1.0,
 					Blue:  1.0,
 					Green: 1.0,
 				}
-				if style.GradeClassColor == spreadsheet_vo.Grade1 {
+				if style.GetGradeClassColor() == spreadsheet_vo.Grade1 {
 					color = &sheets.Color{
 						Red:   1.0,
 						Green: 0.937,
 						Blue:  0.498,
 					}
-				} else if style.GradeClassColor == spreadsheet_vo.Grade2 {
+				} else if style.GetGradeClassColor() == spreadsheet_vo.Grade2 {
 					color = &sheets.Color{
 						Red:   0.796,
 						Green: 0.871,
 						Blue:  1.0,
 					}
-				} else if style.GradeClassColor == spreadsheet_vo.Grade3 {
+				} else if style.GetGradeClassColor() == spreadsheet_vo.Grade3 {
 					color = &sheets.Color{
 						Red:   0.937,
 						Green: 0.78,
@@ -1632,9 +2304,9 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 1,
-						StartRowIndex:    int64(style.RowIndex),
+						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   2,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1646,19 +2318,19 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					RepeatCell: cellRequest,
 				})
 			}
-			if style.FavoriteColor != spreadsheet_vo.OtherPlace {
+			if style.GetFavoriteColor() != spreadsheet_vo.OtherPlace {
 				color := &sheets.Color{
 					Red:   1.0,
 					Blue:  1.0,
 					Green: 1.0,
 				}
-				if style.FavoriteColor == spreadsheet_vo.FirstPlace {
+				if style.GetFavoriteColor() == spreadsheet_vo.FirstPlace {
 					color = &sheets.Color{
 						Red:   1.0,
 						Green: 0.937,
 						Blue:  0.498,
 					}
-				} else if style.FavoriteColor == spreadsheet_vo.SecondPlace {
+				} else if style.GetFavoriteColor() == spreadsheet_vo.SecondPlace {
 					color = &sheets.Color{
 						Red:   0.796,
 						Green: 0.871,
@@ -1671,9 +2343,9 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 9,
-						StartRowIndex:    int64(style.RowIndex),
+						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   10,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1685,19 +2357,19 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					RepeatCell: cellRequest,
 				})
 			}
-			if style.RivalColor != spreadsheet_vo.OtherPlace {
+			if style.GetRivalColor() != spreadsheet_vo.OtherPlace {
 				color := &sheets.Color{
 					Red:   1.0,
 					Blue:  1.0,
 					Green: 1.0,
 				}
-				if style.RivalColor == spreadsheet_vo.FirstPlace {
+				if style.GetRivalColor() == spreadsheet_vo.FirstPlace {
 					color = &sheets.Color{
 						Red:   1.0,
 						Green: 0.937,
 						Blue:  0.498,
 					}
-				} else if style.RivalColor == spreadsheet_vo.SecondPlace {
+				} else if style.GetRivalColor() == spreadsheet_vo.SecondPlace {
 					color = &sheets.Color{
 						Red:   0.796,
 						Green: 0.871,
@@ -1709,10 +2381,10 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					Fields: "userEnteredFormat.backgroundColor",
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
-						StartColumnIndex: 12,
-						StartRowIndex:    int64(style.RowIndex),
-						EndColumnIndex:   13,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						StartColumnIndex: 13,
+						StartRowIndex:    int64(style.GetRowIndex()),
+						EndColumnIndex:   14,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1724,18 +2396,18 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 					RepeatCell: cellRequest,
 				})
 			}
-			if len(style.RepaymentComment) > 0 {
+			if len(style.GetRepaymentComment()) > 0 {
 				cellRequest := &sheets.RepeatCellRequest{
 					Fields: "note",
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 7,
-						StartRowIndex:    int64(style.RowIndex),
+						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   8,
-						EndRowIndex:      int64(style.RowIndex) + 1,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{
-						Note: style.RepaymentComment,
+						Note: style.GetRepaymentComment(),
 					},
 				}
 				requests = append(requests, &sheets.Request{
@@ -1749,10 +2421,942 @@ func (s SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*pr
 		Requests: requests,
 	}).Do()
 
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (s SpreadSheetListClient) Clear(ctx context.Context) error {
+func (s *SpreadSheetAnalyzeClient) WriteWinPopular(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
+	sheetProperties, ok := s.sheetMap[spreadsheet_vo.Win]
+	if !ok {
+		return fmt.Errorf("sheet not found")
+	}
+
+	writeRange := fmt.Sprintf("%s!%s", sheetProperties.Title, "A1")
+	var values [][]interface{}
+	addValues := func(values [][]interface{}, summaries []*analyze_entity.WinPopularAnalyzeSummary, title string) [][]interface{} {
+		values = append(values, [][]interface{}{
+			{
+				title,
+				"1人気",
+				"2人気",
+				"3人気",
+				"4人気",
+				"5人気",
+				"6人気",
+				"7人気",
+				"8人気",
+				"9人気",
+				"10人気",
+				"11人気",
+				"12人気",
+				"13人気",
+				"14人気",
+				"15人気",
+				"16人気",
+				"17人気",
+				"18人気",
+			},
+		}...)
+		capacity := 19
+		betCounts := make([]interface{}, 0, capacity)
+		hitCounts := make([]interface{}, 0, capacity)
+		hitRates := make([]interface{}, 0, capacity)
+		payoutRates := make([]interface{}, 0, capacity)
+		averagePayoutRateAtHits := make([]interface{}, 0, capacity)
+		medianPayoutRateAtHits := make([]interface{}, 0, capacity)
+		payoutUpside := make([]interface{}, 0, capacity)
+		averageOddsAtVotes := make([]interface{}, 0, capacity)
+		averageOddsAtHits := make([]interface{}, 0, capacity)
+		averageOddsAtUnHits := make([]interface{}, 0, capacity)
+		maxOddsAtHits := make([]interface{}, 0, capacity)
+		minOddsAtHits := make([]interface{}, 0, capacity)
+		totalPayments := make([]interface{}, 0, capacity)
+		totalPayouts := make([]interface{}, 0, capacity)
+		averagePayments := make([]interface{}, 0, capacity)
+		averagePayouts := make([]interface{}, 0, capacity)
+		medianPayments := make([]interface{}, 0, capacity)
+		medianPayouts := make([]interface{}, 0, capacity)
+		maxPayouts := make([]interface{}, 0, capacity)
+		minPayouts := make([]interface{}, 0, capacity)
+
+		betCounts = append(betCounts, "投票回数")
+		hitCounts = append(hitCounts, "的中回数")
+		hitRates = append(hitRates, "的中率")
+		payoutRates = append(payoutRates, "回収率")
+		averagePayoutRateAtHits = append(averagePayoutRateAtHits, "的中回収率(平均値)")
+		medianPayoutRateAtHits = append(medianPayoutRateAtHits, "的中回収率(中央値)")
+		payoutUpside = append(payoutUpside, "回収上振れ率")
+		averageOddsAtVotes = append(averageOddsAtVotes, "投票時平均オッズ")
+		averageOddsAtHits = append(averageOddsAtHits, "的中時平均オッズ")
+		averageOddsAtUnHits = append(averageOddsAtUnHits, "不的中時平均オッズ")
+		maxOddsAtHits = append(maxOddsAtHits, "的中時最大オッズ")
+		minOddsAtHits = append(minOddsAtHits, "的中時最小オッズ")
+		totalPayments = append(totalPayments, "投票金額合計")
+		totalPayouts = append(totalPayouts, "払戻金額合計")
+		averagePayments = append(averagePayments, "平均投票金額")
+		medianPayments = append(medianPayments, "中央値投票金額")
+		averagePayouts = append(averagePayouts, "平均払戻金額")
+		medianPayouts = append(medianPayouts, "中央値払戻金額")
+		maxPayouts = append(maxPayouts, "最大払戻金額")
+		minPayouts = append(minPayouts, "最小払戻金額")
+
+		for _, record := range summaries {
+			betCounts = append(betCounts, record.BetCount())
+			hitCounts = append(hitCounts, record.HitCount())
+			hitRates = append(hitRates, record.FormattedHitRate())
+			payoutRates = append(payoutRates, record.FormattedPayoutRate())
+			averagePayoutRateAtHits = append(averagePayoutRateAtHits, record.FormattedAveragePayoutRateAtHit())
+			medianPayoutRateAtHits = append(medianPayoutRateAtHits, record.FormattedMedianPayoutRateAtHit())
+			payoutUpside = append(payoutUpside, record.FormattedPayoutUpsideRate())
+			averageOddsAtVotes = append(averageOddsAtVotes, record.AverageOddsAtVote())
+			averageOddsAtHits = append(averageOddsAtHits, record.AverageOddsAtHit())
+			averageOddsAtUnHits = append(averageOddsAtUnHits, record.AverageOddsAtUnHit())
+			maxOddsAtHits = append(maxOddsAtHits, record.MaxOddsAtHit())
+			minOddsAtHits = append(minOddsAtHits, record.MinOddsAtHit())
+			totalPayments = append(totalPayments, record.TotalPayment())
+			totalPayouts = append(totalPayouts, record.TotalPayout())
+			averagePayments = append(averagePayments, record.AveragePayment())
+			medianPayments = append(medianPayments, record.MedianPayment())
+			averagePayouts = append(averagePayouts, record.AveragePayout())
+			medianPayouts = append(medianPayouts, record.MedianPayout())
+			maxPayouts = append(maxPayouts, record.MaxPayout())
+			minPayouts = append(minPayouts, record.MinPayout())
+		}
+
+		values = append(values, betCounts, hitCounts, hitRates, payoutRates, averagePayoutRateAtHits, medianPayoutRateAtHits, payoutUpside, averageOddsAtVotes,
+			averageOddsAtHits, averageOddsAtUnHits, maxOddsAtHits, minOddsAtHits, totalPayments, totalPayouts, averagePayments, medianPayments, averagePayouts, medianPayouts, maxPayouts, minPayouts)
+
+		return values
+	}
+
+	values = addValues(values, summary.AllSummaries(), "全レース集計")
+	values = addValues(values, summary.Grade1Summaries(), "JRA G1集計")
+	values = addValues(values, summary.Grade2Summaries(), "JRA G2集計")
+	values = addValues(values, summary.Grade3Summaries(), "JRA G3集計")
+	values = addValues(values, summary.AllowanceClassSummaries(), "JRA 平場集計")
+
+	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
+		Values: values,
+	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetAnalyzeClient) WriteStyleWinPopular(ctx context.Context, summary *analyze_entity.WinAnalyzeSummary) error {
+	sheetProperties, _ := s.sheetMap[spreadsheet_vo.Win]
+
+	// 全レース
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: []*sheets.Request{
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    0,
+						EndColumnIndex:   1,
+						EndRowIndex:      110,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   1,
+						SheetId:    sheetProperties.SheetId,
+						StartIndex: 0,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 135,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   19,
+						SheetId:    sheetProperties.SheetId,
+						StartIndex: 1,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 50,
+					},
+					Fields: "pixelSize",
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    0,
+						EndColumnIndex:   19,
+						EndRowIndex:      1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    0,
+						EndColumnIndex:   19,
+						EndRowIndex:      1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    1,
+						EndColumnIndex:   1,
+						EndRowIndex:      8,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    8,
+						EndColumnIndex:   1,
+						EndRowIndex:      13,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    13,
+						EndColumnIndex:   1,
+						EndRowIndex:      21,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  1.0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.numberFormat",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    3,
+						EndColumnIndex:   19,
+						EndRowIndex:      8,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							NumberFormat: &sheets.NumberFormat{
+								Type:    "PERCENT",
+								Pattern: "0%",
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    21,
+						EndColumnIndex:   19,
+						EndRowIndex:      22,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    21,
+						EndColumnIndex:   19,
+						EndRowIndex:      22,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    22,
+						EndColumnIndex:   1,
+						EndRowIndex:      29,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    29,
+						EndColumnIndex:   1,
+						EndRowIndex:      34,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    34,
+						EndColumnIndex:   1,
+						EndRowIndex:      42,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  1.0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.numberFormat",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    26,
+						EndColumnIndex:   19,
+						EndRowIndex:      29,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							NumberFormat: &sheets.NumberFormat{
+								Type:    "PERCENT",
+								Pattern: "0%",
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    42,
+						EndColumnIndex:   19,
+						EndRowIndex:      43,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    42,
+						EndColumnIndex:   19,
+						EndRowIndex:      43,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    43,
+						EndColumnIndex:   1,
+						EndRowIndex:      50,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    50,
+						EndColumnIndex:   1,
+						EndRowIndex:      55,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    55,
+						EndColumnIndex:   1,
+						EndRowIndex:      63,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  1.0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.numberFormat",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    45,
+						EndColumnIndex:   19,
+						EndRowIndex:      50,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							NumberFormat: &sheets.NumberFormat{
+								Type:    "PERCENT",
+								Pattern: "0%",
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    63,
+						EndColumnIndex:   19,
+						EndRowIndex:      64,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    63,
+						EndColumnIndex:   19,
+						EndRowIndex:      64,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    64,
+						EndColumnIndex:   1,
+						EndRowIndex:      71,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    71,
+						EndColumnIndex:   1,
+						EndRowIndex:      76,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    76,
+						EndColumnIndex:   1,
+						EndRowIndex:      84,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  1.0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.numberFormat",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    66,
+						EndColumnIndex:   19,
+						EndRowIndex:      71,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							NumberFormat: &sheets.NumberFormat{
+								Type:    "PERCENT",
+								Pattern: "0%",
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    84,
+						EndColumnIndex:   19,
+						EndRowIndex:      85,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    84,
+						EndColumnIndex:   19,
+						EndRowIndex:      85,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    85,
+						EndColumnIndex:   1,
+						EndRowIndex:      92,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    92,
+						EndColumnIndex:   1,
+						EndRowIndex:      97,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  0,
+								Green: 0.75,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    97,
+						EndColumnIndex:   1,
+						EndRowIndex:      105,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.35,
+								Blue:  1.0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.numberFormat",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    87,
+						EndColumnIndex:   19,
+						EndRowIndex:      92,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							NumberFormat: &sheets.NumberFormat{
+								Type:    "PERCENT",
+								Pattern: "0%",
+							},
+						},
+					},
+				},
+			},
+		},
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	payoutUpsideIndexMap := map[int64][]int64{}
+	noPaymentIndexMap := map[int64][]int64{}
+	payoutUpsideRowIndexForAll := int64(7)
+	payoutUpsideRowIndexForG1 := int64(28)
+	payoutUpsideRowIndexForG2 := int64(49)
+	payoutUpsideRowIndexForG3 := int64(70)
+	payoutUpsideRowIndexForAllowance := int64(91)
+	noPaymentRowIndexForAll := int64(1)
+	noPaymentRowIndexForG1 := int64(22)
+	noPaymentRowIndexForG2 := int64(43)
+	noPaymentRowIndexForG3 := int64(64)
+	noPaymentRowIndexForAllowance := int64(85)
+	payoutUpsideIndexMap[payoutUpsideRowIndexForAll] = []int64{}
+	payoutUpsideIndexMap[payoutUpsideRowIndexForG1] = []int64{}
+	payoutUpsideIndexMap[payoutUpsideRowIndexForG2] = []int64{}
+	payoutUpsideIndexMap[payoutUpsideRowIndexForG3] = []int64{}
+	payoutUpsideIndexMap[payoutUpsideRowIndexForAllowance] = []int64{}
+	noPaymentIndexMap[noPaymentRowIndexForAll] = []int64{}
+	noPaymentIndexMap[noPaymentRowIndexForG1] = []int64{}
+	noPaymentIndexMap[noPaymentRowIndexForG2] = []int64{}
+	noPaymentIndexMap[noPaymentRowIndexForG3] = []int64{}
+	noPaymentIndexMap[noPaymentRowIndexForAllowance] = []int64{}
+
+	for idx, record := range summary.AllSummaries() {
+		if record.PayoutUpsideRate() < 0 {
+			payoutUpsideIndexMap[payoutUpsideRowIndexForAll] = append(payoutUpsideIndexMap[payoutUpsideRowIndexForAll], int64(idx+1))
+		}
+		if record.BetCount() == 0 {
+			noPaymentIndexMap[noPaymentRowIndexForAll] = append(noPaymentIndexMap[noPaymentRowIndexForAll], int64(idx+1))
+		}
+	}
+	for idx, record := range summary.Grade1Summaries() {
+		if record.PayoutUpsideRate() < 0 {
+			payoutUpsideIndexMap[payoutUpsideRowIndexForG1] = append(payoutUpsideIndexMap[payoutUpsideRowIndexForG1], int64(idx+1))
+		}
+		if record.BetCount() == 0 {
+			noPaymentIndexMap[noPaymentRowIndexForG1] = append(noPaymentIndexMap[noPaymentRowIndexForG1], int64(idx+1))
+		}
+	}
+	for idx, record := range summary.Grade2Summaries() {
+		if record.PayoutUpsideRate() < 0 {
+			payoutUpsideIndexMap[payoutUpsideRowIndexForG2] = append(payoutUpsideIndexMap[payoutUpsideRowIndexForG2], int64(idx+1))
+		}
+		if record.BetCount() == 0 {
+			noPaymentIndexMap[noPaymentRowIndexForG2] = append(noPaymentIndexMap[noPaymentRowIndexForG2], int64(idx+1))
+		}
+	}
+	for idx, record := range summary.Grade3Summaries() {
+		if record.PayoutUpsideRate() < 0 {
+			payoutUpsideIndexMap[payoutUpsideRowIndexForG3] = append(payoutUpsideIndexMap[payoutUpsideRowIndexForG3], int64(idx+1))
+		}
+		if record.BetCount() == 0 {
+			noPaymentIndexMap[noPaymentRowIndexForG3] = append(noPaymentIndexMap[noPaymentRowIndexForG3], int64(idx+1))
+		}
+	}
+	for idx, record := range summary.AllowanceClassSummaries() {
+		if record.PayoutUpsideRate() < 0 {
+			payoutUpsideIndexMap[payoutUpsideRowIndexForAllowance] = append(payoutUpsideIndexMap[payoutUpsideRowIndexForAllowance], int64(idx+1))
+		}
+		if record.BetCount() == 0 {
+			noPaymentIndexMap[noPaymentRowIndexForAllowance] = append(noPaymentIndexMap[noPaymentRowIndexForAllowance], int64(idx+1))
+		}
+	}
+
+	var requests []*sheets.Request
+	// 回収上振れ率の専用style
+	for rowIndex, columnIndexes := range payoutUpsideIndexMap {
+		for _, columnIndex := range columnIndexes {
+			requests = append(requests, &sheets.Request{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.foregroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: columnIndex,
+						StartRowIndex:    rowIndex,
+						EndColumnIndex:   columnIndex + 1,
+						EndRowIndex:      rowIndex + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								ForegroundColor: &sheets.Color{
+									Red:   1.0,
+									Blue:  0,
+									Green: 0,
+								},
+							},
+						},
+					},
+				},
+			})
+		}
+
+	}
+
+	// 購入実績なしのセルはグレーアウト
+	for rowIndex, columnIndexes := range noPaymentIndexMap {
+		for _, columnIndex := range columnIndexes {
+			requests = append(requests, &sheets.Request{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: columnIndex,
+						StartRowIndex:    rowIndex,
+						EndColumnIndex:   columnIndex + 1,
+						EndRowIndex:      rowIndex + 20,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   0.8,
+								Blue:  0.8,
+								Green: 0.8,
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	_, err = s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetMonthlyBettingTicketClient) Clear(ctx context.Context) error {
 	requests := []*sheets.Request{
 		{
 			RepeatCell: &sheets.RepeatCellRequest{
@@ -1761,7 +3365,7 @@ func (s SpreadSheetListClient) Clear(ctx context.Context) error {
 					SheetId:          s.sheetId,
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   21,
+					EndColumnIndex:   9,
 					EndRowIndex:      9999,
 				},
 				Cell: &sheets.CellData{},
@@ -1774,6 +3378,62 @@ func (s SpreadSheetListClient) Clear(ctx context.Context) error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetListClient) Clear(ctx context.Context) error {
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.sheetId,
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   25,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetAnalyzeClient) Clear(ctx context.Context) error {
+	for _, sheetProperties := range s.sheetMap {
+		requests := []*sheets.Request{
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "*",
+					Range: &sheets.GridRange{
+						SheetId:          sheetProperties.SheetId,
+						StartColumnIndex: 0,
+						StartRowIndex:    0,
+						EndColumnIndex:   25,
+						EndRowIndex:      9999,
+					},
+					Cell: &sheets.CellData{},
+				},
+			},
+		}
+		_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+			Requests: requests,
+		}).Do()
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -34,7 +34,7 @@ func (r *RaceConverter) GetRaceId(
 		raceCourseIdForOversea := race_vo.ConvertToOverseaRaceCourseId(record.RaceCourse())
 		rawRaceId := fmt.Sprintf("%d%s%02d%02d%02d", record.RaceDate().Year(), raceCourseIdForOversea, record.RaceDate().Month(), record.RaceDate().Day(), record.RaceNo())
 		// 海外の場合、日をまたぐケースがあり開催日時とrace_idが一致しない場合がある(例：3月のドバイ)
-		if record.RaceCourse() == race_vo.Meydan {
+		if record.RaceCourse() == race_vo.Meydan || record.RaceCourse() == race_vo.SantaAnitaPark {
 			// 日付を-1してraceIdを設定する特殊対応
 			// 月をまたぐわけではないのでtimeパッケージで厳密にはやらない
 			rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", record.RaceDate().Year(), raceCourseIdForOversea, record.RaceDate().Month(), record.RaceDate().Day()-1, record.RaceNo())

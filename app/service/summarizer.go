@@ -161,13 +161,13 @@ func (s *Summarizer) GetRaceCourseSummaryMap(records []*betting_ticket_entity.Cs
 		)
 	}
 	raceCourseMap[race_vo.Overseas] = result_entity.NewDetailSummary(
-		s.getRaceCourseBetCount(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan),
-		s.getRaceCourseHitCount(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan),
-		s.getRaceCoursePayment(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan),
-		s.getRaceCoursePayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan),
-		s.getRaceCourseAveragePayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan),
-		s.getRaceCourseMaxPayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan),
-		s.getRaceCourseMinPayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan),
+		s.getRaceCourseBetCount(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan, race_vo.SantaAnitaPark),
+		s.getRaceCourseHitCount(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan, race_vo.SantaAnitaPark),
+		s.getRaceCoursePayment(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan, race_vo.SantaAnitaPark),
+		s.getRaceCoursePayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan, race_vo.SantaAnitaPark),
+		s.getRaceCourseAveragePayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan, race_vo.SantaAnitaPark),
+		s.getRaceCourseMaxPayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan, race_vo.SantaAnitaPark),
+		s.getRaceCourseMinPayout(records, racingNumbers, races, race_vo.Longchamp, race_vo.Deauville, race_vo.Shatin, race_vo.Meydan, race_vo.SantaAnitaPark),
 	)
 
 	return raceCourseMap

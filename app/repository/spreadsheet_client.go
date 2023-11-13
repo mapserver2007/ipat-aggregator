@@ -27,11 +27,12 @@ type SpreadSheetClient interface {
 	WriteForRaceCourseRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetRaceCourseSummary) error
 	WriteStyleForRaceCourseRateSummary(ctx context.Context) error
 	WriteForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error
-	WriteStyleForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error
+	WriteStyleForMonthlyRateSummary(ctx context.Context, rowCount int) error
 }
 
 type SpreadSheetMonthlyBettingTicketClient interface {
 	Write(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary) error
+	WriteStyle(ctx context.Context, rowCount int) error
 	Clear(ctx context.Context) error
 }
 

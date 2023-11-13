@@ -1431,8 +1431,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceCourseRateSummary(ctx context.Conte
 	return nil
 }
 
-func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error {
-	rowCount := len(summary.GetMonthlySummaryMap())
+func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context, rowCount int) error {
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1539,9 +1538,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	// 単勝
 	values := [][]interface{}{
 		{
-			"単勝",
-		},
-		{
+			"",
 			"月別",
 			"投票回数",
 			"的中回数",
@@ -1559,7 +1556,12 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 		summaries = append(summaries, summaryMap[date].GetWinSummary())
 	}
 	for idx, winSummary := range summaries {
+		headerColumn := ""
+		if idx == 0 {
+			headerColumn = "単勝"
+		}
 		values = append(values, []interface{}{
+			headerColumn,
 			strconv.Itoa(dateList[idx]),
 			winSummary.GetBetCount(),
 			winSummary.GetHitCount(),
@@ -1576,9 +1578,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	// 複勝
 	values = append(values, [][]interface{}{
 		{
-			"複勝",
-		},
-		{
+			"",
 			"月別",
 			"投票回数",
 			"的中回数",
@@ -1596,7 +1596,12 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 		summaries = append(summaries, summaryMap[date].GetPlaceSummary())
 	}
 	for idx, placeSummary := range summaries {
+		headerColumn := ""
+		if idx == 0 {
+			headerColumn = "複勝"
+		}
 		values = append(values, []interface{}{
+			headerColumn,
 			strconv.Itoa(dateList[idx]),
 			placeSummary.GetBetCount(),
 			placeSummary.GetHitCount(),
@@ -1613,9 +1618,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	// 馬連
 	values = append(values, [][]interface{}{
 		{
-			"馬連",
-		},
-		{
+			"",
 			"月別",
 			"投票回数",
 			"的中回数",
@@ -1633,7 +1636,12 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 		summaries = append(summaries, summaryMap[date].GetQuinellaSummary())
 	}
 	for idx, quinellaSummary := range summaries {
+		headerColumn := ""
+		if idx == 0 {
+			headerColumn = "馬連"
+		}
 		values = append(values, []interface{}{
+			headerColumn,
 			strconv.Itoa(dateList[idx]),
 			quinellaSummary.GetBetCount(),
 			quinellaSummary.GetHitCount(),
@@ -1650,9 +1658,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	// 馬単
 	values = append(values, [][]interface{}{
 		{
-			"馬単",
-		},
-		{
+			"",
 			"月別",
 			"投票回数",
 			"的中回数",
@@ -1670,7 +1676,12 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 		summaries = append(summaries, summaryMap[date].GetExactaSummary())
 	}
 	for idx, exactaSummary := range summaries {
+		headerColumn := ""
+		if idx == 0 {
+			headerColumn = "馬単"
+		}
 		values = append(values, []interface{}{
+			headerColumn,
 			strconv.Itoa(dateList[idx]),
 			exactaSummary.GetBetCount(),
 			exactaSummary.GetHitCount(),
@@ -1687,9 +1698,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	// ワイド
 	values = append(values, [][]interface{}{
 		{
-			"ワイド",
-		},
-		{
+			"",
 			"月別",
 			"投票回数",
 			"的中回数",
@@ -1707,7 +1716,12 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 		summaries = append(summaries, summaryMap[date].GetQuinellaPlaceSummary())
 	}
 	for idx, quinellaPlaceSummary := range summaries {
+		headerColumn := ""
+		if idx == 0 {
+			headerColumn = "ワイド"
+		}
 		values = append(values, []interface{}{
+			headerColumn,
 			strconv.Itoa(dateList[idx]),
 			quinellaPlaceSummary.GetBetCount(),
 			quinellaPlaceSummary.GetHitCount(),
@@ -1724,9 +1738,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	// 3連複
 	values = append(values, [][]interface{}{
 		{
-			"3連複",
-		},
-		{
+			"",
 			"月別",
 			"投票回数",
 			"的中回数",
@@ -1744,7 +1756,12 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 		summaries = append(summaries, summaryMap[date].GetTrioSummary())
 	}
 	for idx, trioPlaceSummary := range summaries {
+		headerColumn := ""
+		if idx == 0 {
+			headerColumn = "3連複"
+		}
 		values = append(values, []interface{}{
+			headerColumn,
 			strconv.Itoa(dateList[idx]),
 			trioPlaceSummary.GetBetCount(),
 			trioPlaceSummary.GetHitCount(),
@@ -1761,9 +1778,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	// 3連単
 	values = append(values, [][]interface{}{
 		{
-			"3連単",
-		},
-		{
+			"",
 			"月別",
 			"投票回数",
 			"的中回数",
@@ -1781,7 +1796,12 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 		summaries = append(summaries, summaryMap[date].GetTrifectaSummary())
 	}
 	for idx, trifectaPlaceSummary := range summaries {
+		headerColumn := ""
+		if idx == 0 {
+			headerColumn = "3連単"
+		}
 		values = append(values, []interface{}{
+			headerColumn,
 			strconv.Itoa(dateList[idx]),
 			trifectaPlaceSummary.GetBetCount(),
 			trifectaPlaceSummary.GetHitCount(),
@@ -1798,6 +1818,317 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Write(ctx context.Context, summa
 	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.Id, writeRange, &sheets.ValueRange{
 		Values: values,
 	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetMonthlyBettingTicketClient) WriteStyle(ctx context.Context, rowCount int) error {
+	endRowFunc := func(idx int) int64 {
+		r := (rowCount + 1) * idx
+		return int64(r)
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: []*sheets.Request{
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    0,
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(0) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(1),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(1) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(2),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(2) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(3),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(3) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(4),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(4) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(5),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(5) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(6),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(6) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Blue:  0,
+								Green: 1.0,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    0,
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(0) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(1),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(1) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(2),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(2) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(3),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(3) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(4),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(4) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(5),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(5) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.textFormat.bold",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 1,
+						StartRowIndex:    endRowFunc(6),
+						EndColumnIndex:   11,
+						EndRowIndex:      endRowFunc(6) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							TextFormat: &sheets.TextFormat{
+								Bold: true,
+							},
+						},
+					},
+				},
+			},
+			{
+				UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+					Range: &sheets.DimensionRange{
+						Dimension:  "COLUMNS",
+						EndIndex:   1,
+						SheetId:    s.sheetId,
+						StartIndex: 0,
+					},
+					Properties: &sheets.DimensionProperties{
+						PixelSize: 45,
+					},
+					Fields: "pixelSize",
+				},
+			},
+		},
+	}).Do()
+
 	if err != nil {
 		return err
 	}
@@ -3365,7 +3696,7 @@ func (s *SpreadSheetMonthlyBettingTicketClient) Clear(ctx context.Context) error
 					SheetId:          s.sheetId,
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   9,
+					EndColumnIndex:   11,
 					EndRowIndex:      9999,
 				},
 				Cell: &sheets.CellData{},

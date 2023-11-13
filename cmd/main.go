@@ -46,6 +46,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	err = spreadSheetUseCase.WriteStyleMonthlyBettingTicketSummary(ctx, monthlyBettingTicketSummary)
+	if err != nil {
+		panic(err)
+	}
 	styleMap, err := spreadSheetUseCase.WriteList(ctx, predictResults)
 	if err != nil {
 		panic(err)

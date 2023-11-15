@@ -9,6 +9,7 @@ import (
 	predict_vo "github.com/mapserver2007/ipat-aggregator/app/domain/predict/value_object"
 	race_entity "github.com/mapserver2007/ipat-aggregator/app/domain/race/entity"
 	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
+	"golang.org/x/exp/slices"
 	"sort"
 	"strconv"
 )
@@ -109,6 +110,15 @@ func (p *Predictor) Predict(
 		// 本命が複数の場合
 		if status.Matched(predict_vo.FavoriteCandidate) {
 			if len(favorites) >= 2 {
+				// 候補になっている馬番絡みの払い戻し金額が最大の馬番に絞り込み、本命候補とする
+				// 同額の場合は複数返る
+				// それ以外の馬番は対抗候補とする
+				favoriteCandidates, rivalCandidates, isFound := getBetNumbersByMaxPayout(favorites, bettingTicketDetails)
+				if isFound {
+					favorites = favoriteCandidates
+					rivals = rivalCandidates
+				}
+
 				// 人気順ソート
 				sort.Slice(raceInfo.RaceResults(), func(i, j int) bool {
 					return raceInfo.RaceResults()[i].PopularNumber() < raceInfo.RaceResults()[j].PopularNumber()
@@ -143,6 +153,13 @@ func (p *Predictor) Predict(
 				// 対抗が存在しない場合
 				status = predict_vo.FavoriteCompleted | predict_vo.RivalCompleted
 			} else if len(rivals) >= 2 {
+				// 候補になっている馬番絡みの払い戻し金額が最大の馬番に絞り込む
+				// 同額の場合は複数返る
+				rivalCandidates, _, isFound := getBetNumbersByMaxPayout(rivals, bettingTicketDetails)
+				if isFound {
+					rivals = rivalCandidates
+				}
+
 				// 人気順ソート
 				sort.Slice(raceInfo.RaceResults(), func(i, j int) bool {
 					return raceInfo.RaceResults()[i].PopularNumber() < raceInfo.RaceResults()[j].PopularNumber()
@@ -208,6 +225,10 @@ func (p *Predictor) Predict(
 				rivalHorse = predict_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
 				rivalJockey = predict_entity.NewJockey(raceResult.JockeyName())
 			}
+		}
+
+		if favoriteHorse == nil {
+			fmt.Println("owata")
 		}
 
 		sort.Slice(raceInfo.RaceResults(), func(i, j int) bool {
@@ -330,6 +351,27 @@ func (p *Predictor) getFavoritesAndRivals(
 	return nil, nil, predict_vo.PredictUncompleted
 }
 
+func (p *Predictor) getRecordMapByRaceId(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber) map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail {
+	recordMap := map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail{}
+	racingNumberMap := p.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+
+	for _, record := range records {
+		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
+		racingNumber, _ := racingNumberMap[key]
+		raceId := p.raceConverter.GetRaceId(record, racingNumber)
+		bettingTicketDetail := betting_ticket_entity.NewBettingTicketDetail(
+			record.BettingTicket(),
+			record.BettingResult(),
+			record.BetNumber(),
+			record.Payment(),
+			record.Payout(),
+		)
+		recordMap[*raceId] = append(recordMap[*raceId], bettingTicketDetail)
+	}
+
+	return recordMap
+}
+
 func getMaxBetNumbers(details []*betting_ticket_entity.BettingTicketDetail, excludeBetNumbers []betting_ticket_vo.BetNumber) []betting_ticket_vo.BetNumber {
 	// 馬単、三連単の買い目計算ルール
 	// 1着付けの馬番の金額を1.0倍、2着付けの馬番の金額を0.25倍で計算
@@ -439,27 +481,6 @@ func getDetailByNumberForWin(number betting_ticket_vo.BetNumber, details []*bett
 	return nil
 }
 
-func (p *Predictor) getRecordMapByRaceId(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber) map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail {
-	recordMap := map[race_vo.RaceId][]*betting_ticket_entity.BettingTicketDetail{}
-	racingNumberMap := p.raceConverter.ConvertToRacingNumberMap(racingNumbers)
-
-	for _, record := range records {
-		key := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
-		racingNumber, _ := racingNumberMap[key]
-		raceId := p.raceConverter.GetRaceId(record, racingNumber)
-		bettingTicketDetail := betting_ticket_entity.NewBettingTicketDetail(
-			record.BettingTicket(),
-			record.BettingResult(),
-			record.BetNumber(),
-			record.Payment(),
-			record.Payout(),
-		)
-		recordMap[*raceId] = append(recordMap[*raceId], bettingTicketDetail)
-	}
-
-	return recordMap
-}
-
 func getSortedBettingTickets() []betting_ticket_vo.BettingTicket {
 	// 計算の優先順
 	return []betting_ticket_vo.BettingTicket{
@@ -479,6 +500,57 @@ func getSortedBettingTickets() []betting_ticket_vo.BettingTicket {
 		betting_ticket_vo.Place,
 		betting_ticket_vo.BracketQuinella,
 	}
+}
+
+func getBetNumbersByMaxPayout(
+	candidateBetNumbers []betting_ticket_vo.BetNumber,
+	bettingTicketDetails []*betting_ticket_entity.BettingTicketDetail,
+) ([]betting_ticket_vo.BetNumber, []betting_ticket_vo.BetNumber, bool) {
+	var (
+		maxKeys          []betting_ticket_vo.BetNumber
+		otherKeys        []betting_ticket_vo.BetNumber
+		isFoundCandidate bool
+	)
+
+	totalPaymentMap := map[betting_ticket_vo.BetNumber]int{}
+	for _, detail := range bettingTicketDetails {
+		if detail.BettingResult() != betting_ticket_vo.Hit {
+			continue
+		}
+		isFoundCandidate = true
+		for _, candidateBetNumber := range candidateBetNumbers {
+			rawCandidateBetNumber, _ := strconv.Atoi(candidateBetNumber.String())
+			if slices.Contains(detail.BetNumber().List(), rawCandidateBetNumber) {
+				totalPaymentMap[candidateBetNumber] += detail.Payment().Value()
+			} else {
+				totalPaymentMap[candidateBetNumber] += 0
+			}
+		}
+	}
+
+	if !isFoundCandidate {
+		return nil, nil, false
+	}
+
+	maxValue := 0
+
+	// 最大のvalueを見つける
+	for _, v := range totalPaymentMap {
+		if v > maxValue {
+			maxValue = v
+		}
+	}
+
+	// 最大のvalueを持つkeyを取得
+	for key, value := range totalPaymentMap {
+		if value == maxValue {
+			maxKeys = append(maxKeys, key)
+		} else {
+			otherKeys = append(otherKeys, key)
+		}
+	}
+
+	return maxKeys, otherKeys, true
 }
 
 func containsInSlices(betNumbers []betting_ticket_vo.BetNumber, betNumber betting_ticket_vo.BetNumber) bool {

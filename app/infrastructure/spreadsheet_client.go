@@ -2180,9 +2180,10 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 	styleMap := map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle{}
 	for idx, record := range records {
 		var (
-			favoriteColor, rivalColor spreadsheet_vo.PlaceColor
-			gradeClassColor           spreadsheet_vo.GradeClassColor
-			repaymentComments         spreadsheet_vo.RepaymentComments
+			favoriteColor, rivalColor         spreadsheet_vo.PlaceColor
+			firstPlaceColor, secondPlaceColor spreadsheet_vo.PopularColor
+			gradeClassColor                   spreadsheet_vo.GradeClassColor
+			repaymentComments                 spreadsheet_vo.RepaymentComments
 		)
 		raceResults := record.Race().RaceResults()
 		raceResultOfFirst := raceResults[0]
@@ -2207,6 +2208,22 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 			}
 		}
 
+		if raceResultOfFirst.PopularNumber() == 1 {
+			firstPlaceColor = spreadsheet_vo.FirstPopular
+		} else if raceResultOfFirst.PopularNumber() == 2 {
+			firstPlaceColor = spreadsheet_vo.SecondPopular
+		} else if raceResultOfFirst.PopularNumber() == 3 {
+			firstPlaceColor = spreadsheet_vo.ThirdPopular
+		}
+
+		if raceResultOfSecond.PopularNumber() == 1 {
+			secondPlaceColor = spreadsheet_vo.FirstPopular
+		} else if raceResultOfSecond.PopularNumber() == 2 {
+			secondPlaceColor = spreadsheet_vo.SecondPopular
+		} else if raceResultOfSecond.PopularNumber() == 3 {
+			secondPlaceColor = spreadsheet_vo.ThirdPopular
+		}
+
 		switch record.Race().Class() {
 		case race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1:
 			gradeClassColor = spreadsheet_vo.Grade1
@@ -2224,7 +2241,7 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 		}
 
 		styleMap[record.Race().RaceId()] = spreadsheet_entity.NewSpreadSheetStyle(
-			idx+1, favoriteColor, rivalColor, gradeClassColor, repaymentComments,
+			idx+1, favoriteColor, rivalColor, firstPlaceColor, secondPlaceColor, gradeClassColor, repaymentComments,
 		)
 
 		if record.RivalHorse() != nil {
@@ -2732,6 +2749,96 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 						StartColumnIndex: 13,
 						StartRowIndex:    int64(style.GetRowIndex()),
 						EndColumnIndex:   14,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: color,
+						},
+					},
+				}
+				requests = append(requests, &sheets.Request{
+					RepeatCell: cellRequest,
+				})
+			}
+			if style.GetFirstPlaceColor() != spreadsheet_vo.OtherPopular {
+				color := &sheets.Color{
+					Red:   1.0,
+					Blue:  1.0,
+					Green: 1.0,
+				}
+				if style.GetFirstPlaceColor() == spreadsheet_vo.FirstPopular {
+					color = &sheets.Color{
+						Red:   1.0,
+						Green: 0.937,
+						Blue:  0.498,
+					}
+				} else if style.GetFirstPlaceColor() == spreadsheet_vo.SecondPopular {
+					color = &sheets.Color{
+						Red:   0.796,
+						Green: 0.871,
+						Blue:  1.0,
+					}
+				} else if style.GetFirstPlaceColor() == spreadsheet_vo.ThirdPopular {
+					color = &sheets.Color{
+						Red:   0.937,
+						Green: 0.78,
+						Blue:  0.624,
+					}
+				}
+
+				cellRequest := &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 17,
+						StartRowIndex:    int64(style.GetRowIndex()),
+						EndColumnIndex:   18,
+						EndRowIndex:      int64(style.GetRowIndex()) + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: color,
+						},
+					},
+				}
+				requests = append(requests, &sheets.Request{
+					RepeatCell: cellRequest,
+				})
+			}
+			if style.GetSecondPlaceColor() != spreadsheet_vo.OtherPopular {
+				color := &sheets.Color{
+					Red:   1.0,
+					Blue:  1.0,
+					Green: 1.0,
+				}
+				if style.GetSecondPlaceColor() == spreadsheet_vo.FirstPopular {
+					color = &sheets.Color{
+						Red:   1.0,
+						Green: 0.937,
+						Blue:  0.498,
+					}
+				} else if style.GetSecondPlaceColor() == spreadsheet_vo.SecondPopular {
+					color = &sheets.Color{
+						Red:   0.796,
+						Green: 0.871,
+						Blue:  1.0,
+					}
+				} else if style.GetSecondPlaceColor() == spreadsheet_vo.ThirdPopular {
+					color = &sheets.Color{
+						Red:   0.937,
+						Green: 0.78,
+						Blue:  0.624,
+					}
+				}
+
+				cellRequest := &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.sheetId,
+						StartColumnIndex: 21,
+						StartRowIndex:    int64(style.GetRowIndex()),
+						EndColumnIndex:   22,
 						EndRowIndex:      int64(style.GetRowIndex()) + 1,
 					},
 					Cell: &sheets.CellData{

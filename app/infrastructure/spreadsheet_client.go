@@ -736,7 +736,7 @@ func (s *SpreadSheetClient) WriteStyleForTotalSummary(ctx context.Context) error
 						StartIndex: 0,
 					},
 					Properties: &sheets.DimensionProperties{
-						PixelSize: 90,
+						PixelSize: 95,
 					},
 					Fields: "pixelSize",
 				},

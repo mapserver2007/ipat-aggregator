@@ -227,10 +227,6 @@ func (p *Predictor) Predict(
 			}
 		}
 
-		if favoriteHorse == nil {
-			fmt.Println("owata")
-		}
-
 		sort.Slice(raceInfo.RaceResults(), func(i, j int) bool {
 			return raceInfo.RaceResults()[i].OrderNo() < raceInfo.RaceResults()[j].OrderNo()
 		})

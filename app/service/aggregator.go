@@ -55,7 +55,7 @@ func (a *Aggregator) GetSummary(
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade2, race_vo.Jpn2, race_vo.JumpGrade2),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade3, race_vo.Jpn3, race_vo.JumpGrade3),
-		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OpenClass, race_vo.ListedClass),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OpenClass, race_vo.ListedClass, race_vo.LocalGrade),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.ThreeWinClass),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.TwoWinClass),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OneWinClass),

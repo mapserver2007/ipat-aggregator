@@ -7,6 +7,7 @@ const (
 	Grade1         GradeClass = 1
 	Grade2         GradeClass = 2
 	Grade3         GradeClass = 3
+	LocalGrade     GradeClass = 4
 	OpenClass      GradeClass = 5
 	JumpGrade1     GradeClass = 10
 	JumpGrade2     GradeClass = 11
@@ -30,7 +31,8 @@ var gradeClassMap = map[GradeClass]string{
 	Grade1:         "G1",
 	Grade2:         "G2",
 	Grade3:         "G3",
-	OpenClass:      "OP",
+	LocalGrade:     "地方重賞",
+	OpenClass:      "OP/L/地方重賞",
 	JumpGrade1:     "JG1",
 	JumpGrade2:     "JG2",
 	JumpGrade3:     "JG3",

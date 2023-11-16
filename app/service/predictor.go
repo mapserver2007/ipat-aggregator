@@ -245,7 +245,7 @@ func (p *Predictor) Predict(
 			payment,
 			payout,
 			raceInfo.Url(),
-			raceInfo.RaceResults()[0:2],
+			raceInfo.RaceResults()[0:3],
 		)
 		entities = append(entities, predict_entity.NewPredictEntity(
 			race, favoriteHorse, rivalHorse, favoriteJockey, rivalJockey, payment, payout, winningTickets, status))

@@ -2187,11 +2187,14 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 		raceResults := record.Race().RaceResults()
 		raceResultOfFirst := raceResults[0]
 		raceResultOfSecond := raceResults[1]
+		raceResultOfThird := raceResults[2]
 
 		if record.FavoriteHorse().HorseName() == raceResultOfFirst.HorseName() {
 			favoriteColor = spreadsheet_vo.FirstPlace
 		} else if record.FavoriteHorse().HorseName() == raceResultOfSecond.HorseName() {
 			favoriteColor = spreadsheet_vo.SecondPlace
+		} else if record.FavoriteHorse().HorseName() == raceResultOfThird.HorseName() {
+			favoriteColor = spreadsheet_vo.ThirdPlace
 		}
 
 		if record.RivalHorse() != nil {
@@ -2199,6 +2202,8 @@ func (s *SpreadSheetListClient) WriteList(ctx context.Context, records []*predic
 				rivalColor = spreadsheet_vo.FirstPlace
 			} else if record.RivalHorse().HorseName() == raceResultOfSecond.HorseName() {
 				rivalColor = spreadsheet_vo.SecondPlace
+			} else if record.RivalHorse().HorseName() == raceResultOfThird.HorseName() {
+				rivalColor = spreadsheet_vo.ThirdPlace
 			}
 		}
 
@@ -2667,6 +2672,12 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 						Green: 0.871,
 						Blue:  1.0,
 					}
+				} else if style.GetFavoriteColor() == spreadsheet_vo.ThirdPlace {
+					color = &sheets.Color{
+						Red:   0.937,
+						Green: 0.78,
+						Blue:  0.624,
+					}
 				}
 
 				cellRequest := &sheets.RepeatCellRequest{
@@ -2705,6 +2716,12 @@ func (s *SpreadSheetListClient) WriteStyleList(ctx context.Context, records []*p
 						Red:   0.796,
 						Green: 0.871,
 						Blue:  1.0,
+					}
+				} else if style.GetRivalColor() == spreadsheet_vo.ThirdPlace {
+					color = &sheets.Color{
+						Red:   0.937,
+						Green: 0.78,
+						Blue:  0.624,
 					}
 				}
 

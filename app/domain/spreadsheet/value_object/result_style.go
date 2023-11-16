@@ -6,6 +6,7 @@ const (
 	OtherPlace PlaceColor = iota
 	FirstPlace
 	SecondPlace
+	ThirdPlace
 )
 
 type GradeClassColor int

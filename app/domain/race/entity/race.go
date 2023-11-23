@@ -6,7 +6,7 @@ type Race struct {
 	raceId         string
 	raceDate       int
 	raceNumber     int
-	raceCourseId   int
+	raceCourseId   race_vo.RaceCourse
 	raceName       string
 	url            string
 	time           string
@@ -24,7 +24,7 @@ func NewRace(
 	raceId string,
 	raceDate int,
 	raceNumber int,
-	raceCourseId int,
+	rawRaceCourseId int,
 	raceName string,
 	url string,
 	time string,
@@ -37,6 +37,13 @@ func NewRace(
 	raceResults []*RaceResult,
 	payoutResults []*PayoutResult,
 ) *Race {
+	var raceCourseId race_vo.RaceCourse
+	if rawRaceCourseId > 0 && rawRaceCourseId <= 99 {
+		raceCourseId = race_vo.RaceCourse(rawRaceCourseId)
+	} else {
+		raceCourseId = race_vo.UnknownPlace
+	}
+
 	return &Race{
 		raceId:         raceId,
 		raceDate:       raceDate,
@@ -69,7 +76,7 @@ func (r *Race) RaceNumber() int {
 }
 
 func (r *Race) RaceCourseId() race_vo.RaceCourse {
-	return race_vo.RaceCourse(r.raceCourseId)
+	return r.raceCourseId
 }
 
 func (r *Race) RaceName() string {

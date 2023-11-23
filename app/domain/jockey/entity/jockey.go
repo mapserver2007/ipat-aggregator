@@ -3,22 +3,22 @@ package entity
 import vo "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/value_object"
 
 type Jockey struct {
-	jockeyId   int
+	jockeyId   vo.JockeyId
 	jockeyName string
 }
 
 func NewJockey(
-	jockeyId int,
+	rawJockeyId int,
 	jockeyName string,
 ) *Jockey {
 	return &Jockey{
-		jockeyId:   jockeyId,
+		jockeyId:   vo.JockeyId(rawJockeyId),
 		jockeyName: jockeyName,
 	}
 }
 
 func (j *Jockey) JockeyId() vo.JockeyId {
-	return vo.JockeyId(j.jockeyId)
+	return j.jockeyId
 }
 
 func (j *Jockey) JockeyName() string {

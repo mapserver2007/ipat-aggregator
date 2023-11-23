@@ -49,9 +49,9 @@ func NewDataCache(
 
 func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	[]*betting_ticket_entity.CsvEntity,
-	*race_entity.RacingNumberInfo,
-	*race_entity.RaceInfo,
-	*jockey_entity.JockeyInfo,
+	[]*race_entity.RacingNumber,
+	[]*race_entity.Race,
+	[]*jockey_entity.Jockey,
 	error,
 ) {
 	records, err := d.readCsv(ctx)
@@ -138,7 +138,7 @@ func (d *DataCache) ReadAndUpdate(ctx context.Context) (
 	jockeys := d.raceConverter.ConvertFromRawJockeysToJockeys(rawJockeys)
 	races := d.raceConverter.ConvertFromRawRacesCsvToRaces(rawRaces, jockeys)
 
-	return records, race_entity.NewRacingNumberInfo(racingNumbers), race_entity.NewRaceInfo(races), jockey_entity.NewJockeyInfo(jockeys), nil
+	return records, racingNumbers, races, jockeys, nil
 }
 
 func (d *DataCache) getRacingNumberRequestParams(

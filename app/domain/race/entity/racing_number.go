@@ -6,18 +6,26 @@ import (
 )
 
 type RacingNumber struct {
-	date         int
+	date         race_vo.RaceDate
 	round        int
 	day          int
-	raceCourseId int
+	raceCourseId race_vo.RaceCourse
 }
 
 func NewRacingNumber(
-	date int,
+	rawDate int,
 	round int,
 	day int,
-	raceCourseId int,
+	rawRaceCourseId int,
 ) *RacingNumber {
+	date := race_vo.NewRaceDate(strconv.Itoa(rawDate))
+	var raceCourseId race_vo.RaceCourse
+	if rawRaceCourseId > 0 && rawRaceCourseId <= 99 {
+		raceCourseId = race_vo.RaceCourse(rawRaceCourseId)
+	} else {
+		raceCourseId = race_vo.UnknownPlace
+	}
+
 	return &RacingNumber{
 		date:         date,
 		round:        round,
@@ -27,7 +35,7 @@ func NewRacingNumber(
 }
 
 func (r *RacingNumber) Date() race_vo.RaceDate {
-	return race_vo.NewRaceDate(strconv.Itoa(r.date))
+	return r.date
 }
 
 func (r *RacingNumber) Round() int {
@@ -39,5 +47,5 @@ func (r *RacingNumber) Day() int {
 }
 
 func (r *RacingNumber) RaceCourseId() race_vo.RaceCourse {
-	return race_vo.RaceCourse(r.raceCourseId)
+	return r.raceCourseId
 }

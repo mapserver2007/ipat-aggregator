@@ -42,7 +42,7 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 
 		bettingTicket := betting_ticket_vo.NewBettingTicket(record[6])
 		betNumbers := []betting_ticket_vo.BetNumber{betting_ticket_vo.NewBetNumber(record[7])}
-		raceDate := ConvertToRaceDate(record[0])
+		raceDate := race_vo.NewRaceDate(record[0])
 		raceNo := ConvertToIntValue(record[5])
 		raceCourse := race_vo.ConvertToRaceCourse(record[3])
 

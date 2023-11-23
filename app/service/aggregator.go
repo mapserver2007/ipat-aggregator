@@ -60,6 +60,7 @@ func (a *Aggregator) GetSummary(
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.TwoWinClass),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OneWinClass),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Maiden, race_vo.JumpMaiden),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.MakeDebut),
 	)
 
 	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records))

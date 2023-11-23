@@ -219,7 +219,9 @@ func (r *RaceClient) GetRaceResult(ctx context.Context, url string) (*raw_entity
 						gradeClass = race_vo.LocalGrade
 					} else {
 						// 条件戦の特別戦、OP、L以外の平場はアイコンが無いのでレース名からクラスを判定する
-						if strings.Contains(raceName, "新馬") || strings.Contains(raceName, "未勝利") {
+						if strings.Contains(raceName, "新馬") {
+							gradeClass = race_vo.MakeDebut
+						} else if strings.Contains(raceName, "未勝利") {
 							if strings.Contains(raceName, "障害") {
 								gradeClass = race_vo.JumpMaiden
 							} else {

@@ -16,12 +16,13 @@ const (
 	Jpn1           GradeClass = 19
 	Jpn2           GradeClass = 20
 	Jpn3           GradeClass = 21
-	Maiden         GradeClass = 31 // 新馬・未勝利
+	Maiden         GradeClass = 31 // 未勝利
 	OneWinClass    GradeClass = 32 // 1勝クラス
 	TwoWinClass    GradeClass = 33 // 2勝クラス
 	ThreeWinClass  GradeClass = 34 // 3勝クラス
 	JumpMaiden     GradeClass = 35 // 障害未勝利
 	JumpOpenClass  GradeClass = 36 // 障害オープン
+	MakeDebut      GradeClass = 37 // 新馬
 	AllowanceClass GradeClass = 98 // Class1-3は特別戦、AllowanceClassは非特別戦の条件戦
 	NonGradeClass  GradeClass = 99 // リステッド,OP,条件戦をまとめるためのクラス
 )
@@ -40,7 +41,8 @@ var gradeClassMap = map[GradeClass]string{
 	Jpn1:           "Jpn1",
 	Jpn2:           "Jpn2",
 	Jpn3:           "Jpn3",
-	Maiden:         "新馬・未勝利",
+	Maiden:         "未勝利",
+	MakeDebut:      "新馬",
 	OneWinClass:    "1勝クラス",
 	TwoWinClass:    "2勝クラス",
 	ThreeWinClass:  "3勝クラス",
@@ -51,10 +53,6 @@ var gradeClassMap = map[GradeClass]string{
 }
 
 func (g GradeClass) String() string {
-	return convertToGradeClassName(g)
-}
-
-func convertToGradeClassName(g GradeClass) string {
 	gradeClassName, _ := gradeClassMap[g]
 	return gradeClassName
 }

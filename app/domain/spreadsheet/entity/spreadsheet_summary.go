@@ -160,14 +160,15 @@ func (s *SpreadSheetBettingTicketSummary) GetTotalSummary() result_summary_entit
 }
 
 type SpreadSheetClassSummary struct {
-	grade1Summary        result_summary_entity.DetailSummary
-	grade2Summary        result_summary_entity.DetailSummary
-	grade3Summary        result_summary_entity.DetailSummary
-	openClassSummary     result_summary_entity.DetailSummary
-	threeWinClassSummary result_summary_entity.DetailSummary
-	twoWinClassSummary   result_summary_entity.DetailSummary
-	oneWinClassSummary   result_summary_entity.DetailSummary
-	maidenClassSummary   result_summary_entity.DetailSummary
+	grade1Summary         result_summary_entity.DetailSummary
+	grade2Summary         result_summary_entity.DetailSummary
+	grade3Summary         result_summary_entity.DetailSummary
+	openClassSummary      result_summary_entity.DetailSummary
+	threeWinClassSummary  result_summary_entity.DetailSummary
+	twoWinClassSummary    result_summary_entity.DetailSummary
+	oneWinClassSummary    result_summary_entity.DetailSummary
+	maidenClassSummary    result_summary_entity.DetailSummary
+	makeDebutClassSummary result_summary_entity.DetailSummary
 }
 
 func NewSpreadSheetClassSummary(
@@ -179,16 +180,18 @@ func NewSpreadSheetClassSummary(
 	twoWinClassSummary result_summary_entity.DetailSummary,
 	oneWinClassSummary result_summary_entity.DetailSummary,
 	maidenClassSummary result_summary_entity.DetailSummary,
+	makeDebutClassSummary result_summary_entity.DetailSummary,
 ) *SpreadSheetClassSummary {
 	return &SpreadSheetClassSummary{
-		grade1Summary:        grade1Summary,
-		grade2Summary:        grade2Summary,
-		grade3Summary:        grade3Summary,
-		openClassSummary:     openClassSummary,
-		threeWinClassSummary: threeWinClassSummary,
-		twoWinClassSummary:   twoWinClassSummary,
-		oneWinClassSummary:   oneWinClassSummary,
-		maidenClassSummary:   maidenClassSummary,
+		grade1Summary:         grade1Summary,
+		grade2Summary:         grade2Summary,
+		grade3Summary:         grade3Summary,
+		openClassSummary:      openClassSummary,
+		threeWinClassSummary:  threeWinClassSummary,
+		twoWinClassSummary:    twoWinClassSummary,
+		oneWinClassSummary:    oneWinClassSummary,
+		maidenClassSummary:    maidenClassSummary,
+		makeDebutClassSummary: makeDebutClassSummary,
 	}
 }
 
@@ -222,6 +225,10 @@ func (s *SpreadSheetClassSummary) GetOneWinClassSummary() result_summary_entity.
 
 func (s *SpreadSheetClassSummary) GetMaidenClassSummary() result_summary_entity.DetailSummary {
 	return s.maidenClassSummary
+}
+
+func (s *SpreadSheetClassSummary) GetMakeDebutClassSummary() result_summary_entity.DetailSummary {
+	return s.makeDebutClassSummary
 }
 
 type SpreadSheetMonthlySummary struct {

@@ -25,7 +25,7 @@ func main() {
 
 	aggregator := di.AggregatorInit()
 	summary := aggregator.GetSummary(records, raceNumbers, races)
-	monthlyBettingTicketSummary := aggregator.GetyMonthlyBettingTicketSummary(records, raceNumbers, races)
+	monthlyBettingTicketSummary := aggregator.GetMonthlyBettingTicketSummary(records, raceNumbers, races)
 
 	predictor := di.PredictInit()
 	predictResults, err := predictor.Predict(records, raceNumbers, races, jockeys)

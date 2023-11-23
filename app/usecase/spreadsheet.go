@@ -36,7 +36,11 @@ func (s *SpreadSheet) WriteSummary(
 	summary *spreadsheet_entity.SpreadSheetSummary,
 ) error {
 	log.Println(ctx, "writing spreadsheet for summary")
-	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary.GetShortSummary().GetShortSummaryForAll())
+	err := s.spreadSheetClient.Clear(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.spreadSheetClient.WriteForTotalSummary(ctx, summary.GetShortSummary().GetShortSummaryForAll())
 	if err != nil {
 		return err
 	}

@@ -1005,6 +1005,13 @@ func (s *Summarizer) getBettingTicketRecordsMapForMonthly(records []*betting_tic
 	return mergedMonthlyRecordsMap, dateList
 }
 
+func (s *Summarizer) GetHitBettingTicketSummary(
+	records []*betting_ticket_entity.CsvEntity,
+) {
+	recordsGroup := s.bettingTicketConverter.ConvertToBettingTicketRecordsMap(records)
+	fmt.Println(recordsGroup)
+}
+
 func getSumAmount(records []*betting_ticket_entity.CsvEntity) (types.Payment, types.Payout) {
 	var (
 		sumPayment int

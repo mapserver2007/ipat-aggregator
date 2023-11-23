@@ -14,8 +14,8 @@ type CsvEntity struct {
 	bettingTicket betting_ticket_vo.BettingTicket
 	bettingResult betting_ticket_vo.BettingResult
 	betNumber     betting_ticket_vo.BetNumber
-	payment       int
-	payout        int
+	payment       types.Payment
+	payout        types.Payout
 }
 
 func NewCsvEntity(
@@ -26,8 +26,8 @@ func NewCsvEntity(
 	bettingTicket betting_ticket_vo.BettingTicket,
 	bettingResult betting_ticket_vo.BettingResult,
 	betNumber betting_ticket_vo.BetNumber,
-	payment int,
-	payout int,
+	rawPayment int,
+	rawPayout int,
 ) *CsvEntity {
 	return &CsvEntity{
 		raceDate:      raceDate,
@@ -37,8 +37,8 @@ func NewCsvEntity(
 		bettingTicket: bettingTicket,
 		bettingResult: bettingResult,
 		betNumber:     betNumber,
-		payment:       payment,
-		payout:        payout,
+		payment:       types.Payment(rawPayment),
+		payout:        types.Payout(rawPayout),
 	}
 }
 
@@ -71,9 +71,9 @@ func (c *CsvEntity) BetNumber() betting_ticket_vo.BetNumber {
 }
 
 func (c *CsvEntity) Payment() types.Payment {
-	return types.Payment(c.payment)
+	return c.payment
 }
 
 func (c *CsvEntity) Payout() types.Payout {
-	return types.Payout(c.payout)
+	return c.payout
 }

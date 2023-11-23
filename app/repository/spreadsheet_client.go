@@ -28,6 +28,7 @@ type SpreadSheetClient interface {
 	WriteStyleForRaceCourseRateSummary(ctx context.Context) error
 	WriteForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error
 	WriteStyleForMonthlyRateSummary(ctx context.Context, rowCount int) error
+	Clear(ctx context.Context) error
 }
 
 type SpreadSheetMonthlyBettingTicketClient interface {

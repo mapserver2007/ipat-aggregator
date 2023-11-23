@@ -416,6 +416,9 @@ func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, su
 	grade1Summary := summary.GetGrade1Summary()
 	grade2Summary := summary.GetGrade2Summary()
 	grade3Summary := summary.GetGrade3Summary()
+	jpn1Summary := summary.GetJpn1Summary()
+	jpn2Summary := summary.GetJpn2Summary()
+	jpn3Summary := summary.GetJpn3Summary()
 	openClassSummary := summary.GetOpenClassSummary()
 	threeWinClassSummary := summary.GetThreeWinClassSummary()
 	twoWinClassSummary := summary.GetTwoWinClassSummary()
@@ -449,6 +452,33 @@ func (s *SpreadSheetClient) WriteForRaceClassRateSummary(ctx context.Context, su
 		grade3Summary.GetPayment(),
 		grade3Summary.GetPayout(),
 		grade3Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Jpn1.String(),
+		jpn1Summary.GetBetCount(),
+		jpn1Summary.GetHitCount(),
+		jpn1Summary.GetHitRate(),
+		jpn1Summary.GetPayment(),
+		jpn1Summary.GetPayout(),
+		jpn1Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Jpn2.String(),
+		jpn2Summary.GetBetCount(),
+		jpn2Summary.GetHitCount(),
+		jpn2Summary.GetHitRate(),
+		jpn2Summary.GetPayment(),
+		jpn2Summary.GetPayout(),
+		jpn2Summary.GetRecoveryRate(),
+	})
+	values = append(values, []interface{}{
+		race_vo.Jpn3.String(),
+		jpn3Summary.GetBetCount(),
+		jpn3Summary.GetHitCount(),
+		jpn3Summary.GetHitRate(),
+		jpn3Summary.GetPayment(),
+		jpn3Summary.GetPayout(),
+		jpn3Summary.GetRecoveryRate(),
 	})
 	values = append(values, []interface{}{
 		race_vo.OpenClass.String(),
@@ -668,7 +698,7 @@ func (s *SpreadSheetClient) WriteForRaceCourseRateSummary(ctx context.Context, s
 }
 
 func (s *SpreadSheetClient) WriteForMonthlyRateSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetMonthlySummary) error {
-	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A25")
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName, "A28")
 
 	values := [][]interface{}{
 		{
@@ -1101,7 +1131,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceClassRateSummary(ctx context.Contex
 						StartColumnIndex: 0,
 						StartRowIndex:    15,
 						EndColumnIndex:   1,
-						EndRowIndex:      23,
+						EndRowIndex:      27,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1141,7 +1171,7 @@ func (s *SpreadSheetClient) WriteStyleForRaceClassRateSummary(ctx context.Contex
 						StartColumnIndex: 0,
 						StartRowIndex:    15,
 						EndColumnIndex:   1,
-						EndRowIndex:      23,
+						EndRowIndex:      27,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1450,9 +1480,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    24,
+						StartRowIndex:    27,
 						EndColumnIndex:   7,
-						EndRowIndex:      25,
+						EndRowIndex:      28,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1471,9 +1501,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    25,
+						StartRowIndex:    28,
 						EndColumnIndex:   1,
-						EndRowIndex:      25 + int64(rowCount),
+						EndRowIndex:      28 + int64(rowCount),
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1492,9 +1522,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    24,
+						StartRowIndex:    27,
 						EndColumnIndex:   7,
-						EndRowIndex:      25,
+						EndRowIndex:      28,
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -1511,9 +1541,9 @@ func (s *SpreadSheetClient) WriteStyleForMonthlyRateSummary(ctx context.Context,
 					Range: &sheets.GridRange{
 						SheetId:          s.sheetId,
 						StartColumnIndex: 0,
-						StartRowIndex:    25,
+						StartRowIndex:    28,
 						EndColumnIndex:   1,
-						EndRowIndex:      25 + int64(rowCount),
+						EndRowIndex:      28 + int64(rowCount),
 					},
 					Cell: &sheets.CellData{
 						UserEnteredFormat: &sheets.CellFormat{
@@ -3811,6 +3841,33 @@ func (s *SpreadSheetAnalyzeClient) WriteStyleWinPopular(ctx context.Context, sum
 	}
 
 	_, err = s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheetClient) Clear(ctx context.Context) error {
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.sheetId,
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   14,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.Id, &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: requests,
 	}).Do()
 

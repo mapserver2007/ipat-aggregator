@@ -3,7 +3,7 @@ package entity
 import race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 
 type Race struct {
-	raceId         string
+	raceId         race_vo.RaceId
 	raceDate       int
 	raceNumber     int
 	raceCourseId   race_vo.RaceCourse
@@ -21,7 +21,7 @@ type Race struct {
 }
 
 func NewRace(
-	raceId string,
+	rawRaceId string,
 	raceDate int,
 	raceNumber int,
 	rawRaceCourseId int,
@@ -45,7 +45,7 @@ func NewRace(
 	}
 
 	return &Race{
-		raceId:         raceId,
+		raceId:         race_vo.RaceId(rawRaceId),
 		raceDate:       raceDate,
 		raceNumber:     raceNumber,
 		raceCourseId:   raceCourseId,
@@ -64,7 +64,7 @@ func NewRace(
 }
 
 func (r *Race) RaceId() race_vo.RaceId {
-	return race_vo.RaceId(r.raceId)
+	return r.raceId
 }
 
 func (r *Race) RaceDate() race_vo.RaceDate {

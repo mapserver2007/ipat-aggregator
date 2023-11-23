@@ -66,7 +66,7 @@ func (a *Aggregator) GetSummary(
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.MakeDebut),
 	)
 
-	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records))
+	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records, racingNumbers, races))
 
 	spreadSheetCourseCategorySummary := spreadsheet_entity.NewSpreadSheetCourseCategorySummary(
 		a.summarizer.GetCourseCategorySummaryMap(records, racingNumbers, races),

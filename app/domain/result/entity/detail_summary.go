@@ -9,6 +9,7 @@ import (
 type DetailSummary struct {
 	betCount      types.BetCount
 	hitCount      types.HitCount
+	raceCount     types.RaceCount
 	payment       types.Payment
 	payout        types.Payout
 	averagePayout types.Payout
@@ -19,6 +20,7 @@ type DetailSummary struct {
 func NewDetailSummary(
 	voteCount types.BetCount,
 	hitCount types.HitCount,
+	raceCount types.RaceCount,
 	payment types.Payment,
 	payout types.Payout,
 	averagePayout types.Payout,
@@ -28,6 +30,7 @@ func NewDetailSummary(
 	return DetailSummary{
 		betCount:      voteCount,
 		hitCount:      hitCount,
+		raceCount:     raceCount,
 		payment:       payment,
 		payout:        payout,
 		averagePayout: averagePayout,
@@ -42,6 +45,10 @@ func (s *DetailSummary) GetBetCount() types.BetCount {
 
 func (s *DetailSummary) GetHitCount() types.HitCount {
 	return s.hitCount
+}
+
+func (s *DetailSummary) GetRaceCount() types.RaceCount {
+	return s.raceCount
 }
 
 func (s *DetailSummary) GetHitRate() string {

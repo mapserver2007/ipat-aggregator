@@ -40,6 +40,23 @@ func (b *BettingTicketConverter) ConvertToYearRecordsMap(records []*betting_tick
 	})
 }
 
+func (b *BettingTicketConverter) ConvertToRaceIdRecordsMap(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.RaceId][]*betting_ticket_entity.CsvEntity {
+	raceMap := b.raceConverter.ConvertToRaceMapByRaceId(races)
+	racingNumberMap := b.raceConverter.ConvertToRacingNumberMap(racingNumbers)
+	return ConvertToSliceMap(records, func(record *betting_ticket_entity.CsvEntity) race_vo.RaceId {
+		racingNumberId := race_vo.NewRacingNumberId(record.RaceDate(), record.RaceCourse())
+		racingNumber, ok := racingNumberMap[racingNumberId]
+		if !ok && record.RaceCourse().Organizer() == race_vo.JRA {
+			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
+		}
+		raceId := b.raceConverter.GetRaceId(record, racingNumber)
+		if race, ok := raceMap[*raceId]; ok {
+			return race.RaceId()
+		}
+		return ""
+	})
+}
+
 func (b *BettingTicketConverter) ConvertToRaceClassRecordsMap(records []*betting_ticket_entity.CsvEntity, racingNumbers []*race_entity.RacingNumber, races []*race_entity.Race) map[race_vo.GradeClass][]*betting_ticket_entity.CsvEntity {
 	raceMap := b.raceConverter.ConvertToRaceMapByRaceId(races)
 	racingNumberMap := b.raceConverter.ConvertToRacingNumberMap(racingNumbers)

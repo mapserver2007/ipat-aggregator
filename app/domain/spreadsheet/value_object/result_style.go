@@ -6,6 +6,16 @@ const (
 	OtherPlace PlaceColor = iota
 	FirstPlace
 	SecondPlace
+	ThirdPlace
+)
+
+type PopularColor int
+
+const (
+	OtherPopular PopularColor = iota
+	FirstPopular
+	SecondPopular
+	ThirdPopular
 )
 
 type GradeClassColor int

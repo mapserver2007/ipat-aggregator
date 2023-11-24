@@ -52,17 +52,21 @@ func (a *Aggregator) GetSummary(
 	)
 
 	spreadSheetGradeClassSummary := spreadsheet_entity.NewSpreadSheetClassSummary(
-		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade1, race_vo.Jpn1, race_vo.JumpGrade1),
-		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade2, race_vo.Jpn2, race_vo.JumpGrade2),
-		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade3, race_vo.Jpn3, race_vo.JumpGrade3),
-		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OpenClass, race_vo.ListedClass),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade1, race_vo.JumpGrade1),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade2, race_vo.JumpGrade2),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Grade3, race_vo.JumpGrade3),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Jpn1),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Jpn2),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Jpn3),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OpenClass, race_vo.ListedClass, race_vo.LocalGrade),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.ThreeWinClass),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.TwoWinClass),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.OneWinClass),
 		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.Maiden, race_vo.JumpMaiden),
+		a.summarizer.GetGradeClassSummary(records, racingNumbers, races, race_vo.MakeDebut),
 	)
 
-	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records))
+	spreadSheetMonthlySummary := spreadsheet_entity.NewSpreadSheetMonthlySummary(a.summarizer.GetMonthlySummaryMap(records, racingNumbers, races))
 
 	spreadSheetCourseCategorySummary := spreadsheet_entity.NewSpreadSheetCourseCategorySummary(
 		a.summarizer.GetCourseCategorySummaryMap(records, racingNumbers, races),
@@ -87,10 +91,17 @@ func (a *Aggregator) GetSummary(
 	)
 }
 
-func (a *Aggregator) GetyMonthlyBettingTicketSummary(
+func (a *Aggregator) GetMonthlyBettingTicketSummary(
 	records []*betting_ticket_entity.CsvEntity,
 	racingNumbers []*race_entity.RacingNumber,
 	races []*race_entity.Race,
 ) *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary {
-	return spreadsheet_entity.NewSpreadSheetMonthlyBettingTicketSummary(a.summarizer.GetMonthlyBettingTicketSummary(records, racingNumbers, races))
+	return spreadsheet_entity.NewSpreadSheetMonthlyBettingTicketSummary(
+		a.summarizer.GetMonthlyBettingTicketSummary(records, racingNumbers, races))
+}
+
+func (a *Aggregator) GetHitBettingTicketSummary(
+	records []*betting_ticket_entity.CsvEntity,
+) {
+	// TODO
 }

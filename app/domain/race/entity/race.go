@@ -3,10 +3,10 @@ package entity
 import race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 
 type Race struct {
-	raceId         string
+	raceId         race_vo.RaceId
 	raceDate       int
 	raceNumber     int
-	raceCourseId   int
+	raceCourseId   race_vo.RaceCourse
 	raceName       string
 	url            string
 	time           string
@@ -21,10 +21,10 @@ type Race struct {
 }
 
 func NewRace(
-	raceId string,
+	rawRaceId string,
 	raceDate int,
 	raceNumber int,
-	raceCourseId int,
+	rawRaceCourseId int,
 	raceName string,
 	url string,
 	time string,
@@ -37,8 +37,15 @@ func NewRace(
 	raceResults []*RaceResult,
 	payoutResults []*PayoutResult,
 ) *Race {
+	var raceCourseId race_vo.RaceCourse
+	if rawRaceCourseId > 0 && rawRaceCourseId <= 99 {
+		raceCourseId = race_vo.RaceCourse(rawRaceCourseId)
+	} else {
+		raceCourseId = race_vo.UnknownPlace
+	}
+
 	return &Race{
-		raceId:         raceId,
+		raceId:         race_vo.RaceId(rawRaceId),
 		raceDate:       raceDate,
 		raceNumber:     raceNumber,
 		raceCourseId:   raceCourseId,
@@ -57,7 +64,7 @@ func NewRace(
 }
 
 func (r *Race) RaceId() race_vo.RaceId {
-	return race_vo.RaceId(r.raceId)
+	return r.raceId
 }
 
 func (r *Race) RaceDate() race_vo.RaceDate {
@@ -69,7 +76,7 @@ func (r *Race) RaceNumber() int {
 }
 
 func (r *Race) RaceCourseId() race_vo.RaceCourse {
-	return race_vo.RaceCourse(r.raceCourseId)
+	return r.raceCourseId
 }
 
 func (r *Race) RaceName() string {

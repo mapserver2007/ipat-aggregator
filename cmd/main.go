@@ -18,17 +18,17 @@ func main() {
 	log.Println(ctx, "start")
 
 	dataCacheUseCase := di.DataCacheInit()
-	records, raceNumberInfo, raceInfo, jockeyInfo, err := dataCacheUseCase.ReadAndUpdate(ctx)
+	records, raceNumbers, races, jockeys, err := dataCacheUseCase.ReadAndUpdate(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	aggregator := di.AggregatorInit()
-	summary := aggregator.GetSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
-	monthlyBettingTicketSummary := aggregator.GetyMonthlyBettingTicketSummary(records, raceNumberInfo.RacingNumbers(), raceInfo.Races())
+	summary := aggregator.GetSummary(records, raceNumbers, races)
+	monthlyBettingTicketSummary := aggregator.GetMonthlyBettingTicketSummary(records, raceNumbers, races)
 
 	predictor := di.PredictInit()
-	predictResults, err := predictor.Predict(records, raceNumberInfo.RacingNumbers(), raceInfo.Races(), jockeyInfo.Jockeys())
+	predictResults, err := predictor.Predict(records, raceNumbers, races, jockeys)
 	if err != nil {
 		panic(err)
 	}
@@ -43,6 +43,10 @@ func main() {
 		panic(err)
 	}
 	err = spreadSheetUseCase.WriteMonthlyBettingTicketSummary(ctx, monthlyBettingTicketSummary)
+	if err != nil {
+		panic(err)
+	}
+	err = spreadSheetUseCase.WriteStyleMonthlyBettingTicketSummary(ctx, monthlyBettingTicketSummary)
 	if err != nil {
 		panic(err)
 	}

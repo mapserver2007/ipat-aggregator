@@ -160,35 +160,47 @@ func (s *SpreadSheetBettingTicketSummary) GetTotalSummary() result_summary_entit
 }
 
 type SpreadSheetClassSummary struct {
-	grade1Summary        result_summary_entity.DetailSummary
-	grade2Summary        result_summary_entity.DetailSummary
-	grade3Summary        result_summary_entity.DetailSummary
-	openClassSummary     result_summary_entity.DetailSummary
-	threeWinClassSummary result_summary_entity.DetailSummary
-	twoWinClassSummary   result_summary_entity.DetailSummary
-	oneWinClassSummary   result_summary_entity.DetailSummary
-	maidenClassSummary   result_summary_entity.DetailSummary
+	grade1Summary         result_summary_entity.DetailSummary
+	grade2Summary         result_summary_entity.DetailSummary
+	grade3Summary         result_summary_entity.DetailSummary
+	jpn1Summary           result_summary_entity.DetailSummary
+	jpn2Summary           result_summary_entity.DetailSummary
+	jpn3Summary           result_summary_entity.DetailSummary
+	openClassSummary      result_summary_entity.DetailSummary
+	threeWinClassSummary  result_summary_entity.DetailSummary
+	twoWinClassSummary    result_summary_entity.DetailSummary
+	oneWinClassSummary    result_summary_entity.DetailSummary
+	maidenClassSummary    result_summary_entity.DetailSummary
+	makeDebutClassSummary result_summary_entity.DetailSummary
 }
 
 func NewSpreadSheetClassSummary(
-	grade1Summary result_summary_entity.DetailSummary,
-	grade2Summary result_summary_entity.DetailSummary,
-	grade3Summary result_summary_entity.DetailSummary,
-	openClassSummary result_summary_entity.DetailSummary,
-	threeWinClassSummary result_summary_entity.DetailSummary,
-	twoWinClassSummary result_summary_entity.DetailSummary,
-	oneWinClassSummary result_summary_entity.DetailSummary,
-	maidenClassSummary result_summary_entity.DetailSummary,
+	grade1Summary,
+	grade2Summary,
+	grade3Summary,
+	jpn1Summary,
+	jpn2Summary,
+	jpn3Summary,
+	openClassSummary,
+	threeWinClassSummary,
+	twoWinClassSummary,
+	oneWinClassSummary,
+	maidenClassSummary,
+	makeDebutClassSummary result_summary_entity.DetailSummary,
 ) *SpreadSheetClassSummary {
 	return &SpreadSheetClassSummary{
-		grade1Summary:        grade1Summary,
-		grade2Summary:        grade2Summary,
-		grade3Summary:        grade3Summary,
-		openClassSummary:     openClassSummary,
-		threeWinClassSummary: threeWinClassSummary,
-		twoWinClassSummary:   twoWinClassSummary,
-		oneWinClassSummary:   oneWinClassSummary,
-		maidenClassSummary:   maidenClassSummary,
+		grade1Summary:         grade1Summary,
+		grade2Summary:         grade2Summary,
+		grade3Summary:         grade3Summary,
+		jpn1Summary:           jpn1Summary,
+		jpn2Summary:           jpn2Summary,
+		jpn3Summary:           jpn3Summary,
+		openClassSummary:      openClassSummary,
+		threeWinClassSummary:  threeWinClassSummary,
+		twoWinClassSummary:    twoWinClassSummary,
+		oneWinClassSummary:    oneWinClassSummary,
+		maidenClassSummary:    maidenClassSummary,
+		makeDebutClassSummary: makeDebutClassSummary,
 	}
 }
 
@@ -202,6 +214,18 @@ func (s *SpreadSheetClassSummary) GetGrade2Summary() result_summary_entity.Detai
 
 func (s *SpreadSheetClassSummary) GetGrade3Summary() result_summary_entity.DetailSummary {
 	return s.grade3Summary
+}
+
+func (s *SpreadSheetClassSummary) GetJpn1Summary() result_summary_entity.DetailSummary {
+	return s.jpn1Summary
+}
+
+func (s *SpreadSheetClassSummary) GetJpn2Summary() result_summary_entity.DetailSummary {
+	return s.jpn2Summary
+}
+
+func (s *SpreadSheetClassSummary) GetJpn3Summary() result_summary_entity.DetailSummary {
+	return s.jpn3Summary
 }
 
 func (s *SpreadSheetClassSummary) GetOpenClassSummary() result_summary_entity.DetailSummary {
@@ -222,6 +246,10 @@ func (s *SpreadSheetClassSummary) GetOneWinClassSummary() result_summary_entity.
 
 func (s *SpreadSheetClassSummary) GetMaidenClassSummary() result_summary_entity.DetailSummary {
 	return s.maidenClassSummary
+}
+
+func (s *SpreadSheetClassSummary) GetMakeDebutClassSummary() result_summary_entity.DetailSummary {
+	return s.makeDebutClassSummary
 }
 
 type SpreadSheetMonthlySummary struct {

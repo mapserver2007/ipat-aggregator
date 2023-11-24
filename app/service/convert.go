@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	betting_ticket_vo "github.com/mapserver2007/ipat-aggregator/app/domain/betting_ticket/value_object"
-	race_vo "github.com/mapserver2007/ipat-aggregator/app/domain/race/value_object"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,10 +22,6 @@ func ConvertToSliceMap[T comparable, V comparable](elms []T, fn func(T) V) map[V
 		outputSliceMap[fn(elm)] = append(outputSliceMap[fn(elm)], elm)
 	}
 	return outputSliceMap
-}
-
-func ConvertToRaceDate(v string) race_vo.RaceDate {
-	return race_vo.NewRaceDate(v)
 }
 
 func ConvertToIntValue(v string) int {

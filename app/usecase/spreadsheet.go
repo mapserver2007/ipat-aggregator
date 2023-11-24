@@ -36,7 +36,11 @@ func (s *SpreadSheet) WriteSummary(
 	summary *spreadsheet_entity.SpreadSheetSummary,
 ) error {
 	log.Println(ctx, "writing spreadsheet for summary")
-	err := s.spreadSheetClient.WriteForTotalSummary(ctx, summary.GetShortSummary().GetShortSummaryForAll())
+	err := s.spreadSheetClient.Clear(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.spreadSheetClient.WriteForTotalSummary(ctx, summary.GetShortSummary().GetShortSummaryForAll())
 	if err != nil {
 		return err
 	}
@@ -84,20 +88,6 @@ func (s *SpreadSheet) WriteSummary(
 	return nil
 }
 
-func (s *SpreadSheet) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle, error) {
-	err := s.spreadSheetListClient.Clear(ctx)
-	if err != nil {
-		return nil, err
-	}
-	log.Println(ctx, "writing spreadsheet for list")
-	styleMap, err := s.spreadSheetListClient.WriteList(ctx, records)
-	if err != nil {
-		return nil, err
-	}
-
-	return styleMap, nil
-}
-
 func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadsheet_entity.SpreadSheetSummary) error {
 	err := s.spreadSheetClient.WriteStyleForTotalSummary(ctx)
 	if err != nil {
@@ -139,12 +129,27 @@ func (s *SpreadSheet) WriteStyleSummary(ctx context.Context, summary *spreadshee
 		return err
 	}
 
-	err = s.spreadSheetClient.WriteStyleForMonthlyRateSummary(ctx, summary.GetMonthlySummary())
+	rowCount := len(summary.GetMonthlySummary().GetMonthlySummaryMap())
+	err = s.spreadSheetClient.WriteStyleForMonthlyRateSummary(ctx, rowCount)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (s *SpreadSheet) WriteList(ctx context.Context, records []*predict_entity.PredictEntity) (map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle, error) {
+	err := s.spreadSheetListClient.Clear(ctx)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(ctx, "writing spreadsheet for list")
+	styleMap, err := s.spreadSheetListClient.WriteList(ctx, records)
+	if err != nil {
+		return nil, err
+	}
+
+	return styleMap, nil
 }
 
 func (s *SpreadSheet) WriteStyleList(ctx context.Context, records []*predict_entity.PredictEntity, styleMap map[race_vo.RaceId]*spreadsheet_entity.SpreadSheetStyle) error {
@@ -160,8 +165,25 @@ func (s *SpreadSheet) WriteMonthlyBettingTicketSummary(
 	ctx context.Context,
 	summary *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary,
 ) error {
+	err := s.spreadSheetMonthlyBettingTicketClient.Clear(ctx)
+	if err != nil {
+		return err
+	}
 	log.Println(ctx, "writing spreadsheet for monthly betting ticket summary")
-	err := s.spreadSheetMonthlyBettingTicketClient.Write(ctx, summary)
+	err = s.spreadSheetMonthlyBettingTicketClient.Write(ctx, summary)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SpreadSheet) WriteStyleMonthlyBettingTicketSummary(
+	ctx context.Context,
+	summary *spreadsheet_entity.SpreadSheetMonthlyBettingTicketSummary,
+) error {
+	rowCount := len(summary.GetMonthlyBettingTicketSummaryMap())
+	err := s.spreadSheetMonthlyBettingTicketClient.WriteStyle(ctx, rowCount)
 	if err != nil {
 		return err
 	}

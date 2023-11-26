@@ -18,6 +18,8 @@ func DataCacheInit() *usecase.DataCache {
 		service.NewRaceConverter,
 		infrastructure.NewRaceDB,
 		infrastructure.NewRaceClient,
+
+		service.NewBettingTicketConverter,
 	)
 	return nil
 }

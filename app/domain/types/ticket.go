@@ -8,6 +8,36 @@ import (
 	"time"
 )
 
+type Payment int
+
+type Payout int
+
+type BetCount int
+
+type HitCount int
+
+type RaceCount int
+
+func (p Payment) Value() int {
+	return int(p)
+}
+
+func (p Payout) Value() int {
+	return int(p)
+}
+
+func (b BetCount) Value() int {
+	return int(b)
+}
+
+func (h HitCount) Value() int {
+	return int(h)
+}
+
+func (r RaceCount) Value() int {
+	return int(r)
+}
+
 type RaceDate int
 
 func NewRaceDate(s string) (RaceDate, error) {
@@ -132,6 +162,39 @@ func NewRaceCourse(s string) RaceCourse {
 	}
 
 	return raceCourse
+}
+
+func (r RaceCourse) Name() string {
+	if v, ok := raceCourseMap[r]; ok {
+		return v
+	}
+	return ""
+}
+
+func (r RaceCourse) Value() int {
+	return int(r)
+}
+
+type Organizer int
+
+const (
+	UnknownOrganizer Organizer = iota
+	JRA
+	NAR
+	OverseaOrganizer
+)
+
+func (r RaceCourse) Organizer() Organizer {
+	switch r {
+	case Tokyo, Nakayama, Hanshin, Kyoto, Chukyo, Kokura, Niigata, Hakodate, Sapporo, Fukushima:
+		return JRA
+	case Monbetsu, Morioka, Ooi, Kawasaki, Urawa, Hunabashi, Kanazawa, Nagoya, Sonoda, Kouchi, Saga:
+		return NAR
+	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark:
+		return OverseaOrganizer
+	}
+
+	return UnknownOrganizer
 }
 
 type TicketType int

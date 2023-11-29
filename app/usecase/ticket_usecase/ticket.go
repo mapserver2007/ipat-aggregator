@@ -3,6 +3,7 @@ package ticket_usecase
 import (
 	"context"
 	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"os"
 	"path/filepath"
@@ -20,32 +21,35 @@ func NewTicket(
 	}
 }
 
-func (t *ticket) Read(ctx context.Context) error {
+func (t *ticket) Read(ctx context.Context) ([]*ticket_csv_entity.Ticket, error) {
 	rootPath, err := os.Getwd()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	dirPath, err := filepath.Abs(rootPath + "/csv")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	//var results []*ticket_csv_entity.Ticket
+	var allTickets []*ticket_csv_entity.Ticket
 	for _, file := range files {
 		filePath := fmt.Sprintf("%s/%s", dirPath, file.Name())
 		if filepath.Ext(filePath) != ".csv" {
 			continue
 		}
-		t.csvRepository.Read(ctx, filePath)
-
+		tickets, err := t.csvRepository.Read(ctx, filePath)
+		if err != nil {
+			return nil, err
+		}
+		allTickets = append(allTickets, tickets...)
 	}
 
-	return nil
+	return allTickets, nil
 }
 
 func (t *ticket) Write() error {

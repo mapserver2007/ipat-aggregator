@@ -2,14 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
 )
 
 func main() {
 	ctx := context.Background()
+	sub(ctx)
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx)
 	spreadSheetMonthlyBettingTicketClient := infrastructure.NewSpreadSheetMonthlyBettingTicketClient(ctx)
 	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx)
@@ -72,4 +77,35 @@ func main() {
 	//}
 
 	log.Println(ctx, "end")
+}
+
+func sub(ctx context.Context) {
+	// TODO DI
+
+	betNumberConverter := service.NewBetNumberConverter()
+	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
+	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
+	tickets, err := ticketUseCase.Read(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	raceConverter := service.NewRaceConverter()
+	racingNumberRepository := infrastructure.NewRacingNumberDataRepository(raceConverter)
+	raceDataRepository := infrastructure.NewRaceDataRepository()
+	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
+	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository)
+	racingNumbers, races, jockeys, excludeJockeyIds, err := dataCacheUseCase.Read(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds)
+
+	_ = racingNumbers
+	_ = races
+	_ = excludeJockeyIds
+	_ = jockeys
+
+	fmt.Print(tickets)
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/service/ticket_csv_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
@@ -16,11 +16,11 @@ import (
 )
 
 type ticketCsvRepository struct {
-	betNumberConverter ticket_csv_service.BetNumberConverter
+	betNumberConverter service.BetNumberConverter
 }
 
 func NewTicketCsvRepository(
-	betNumberConverter ticket_csv_service.BetNumberConverter,
+	betNumberConverter service.BetNumberConverter,
 ) repository.TicketCsvRepository {
 	return &ticketCsvRepository{
 		betNumberConverter: betNumberConverter,

@@ -1,4 +1,4 @@
-package ticket_csv_service
+package service
 
 import (
 	"context"

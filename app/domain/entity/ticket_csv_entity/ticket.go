@@ -59,9 +59,12 @@ func NewTicket(
 		return nil, err
 	}
 
-	payout, err := strconv.Atoi(rawPayout)
-	if err != nil {
-		return nil, err
+	payout := 0
+	if rawPayout != "" {
+		payout, err = strconv.Atoi(rawPayout)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Ticket{

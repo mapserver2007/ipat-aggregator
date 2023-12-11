@@ -5,8 +5,8 @@ type RacingNumberInfo struct {
 }
 
 type RacingNumber struct {
-	Date         int `json:"date"`
-	Round        int `json:"round"`
-	Day          int `json:"day"`
-	RaceCourseId int `json:"race_course_id"`
+	Date         int    `json:"date"`
+	Round        int    `json:"round"`
+	Day          int    `json:"day"`
+	RaceCourseId string `json:"race_course_id"`
 }

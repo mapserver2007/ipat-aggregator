@@ -8,7 +8,7 @@ type Race struct {
 	RaceId         string          `json:"race_id"`
 	RaceDate       int             `json:"race_date"`
 	RaceNumber     int             `json:"race_number"`
-	RaceCourseId   int             `json:"race_course_id"`
+	RaceCourseId   string          `json:"race_course_id"`
 	RaceName       string          `json:"race_name"`
 	Url            string          `json:"url"`
 	Time           string          `json:"time"`

@@ -13,8 +13,8 @@ type Ticket struct {
 	betNumber    types.BetNumber
 	ticketType   types.TicketType
 	ticketResult types.TicketResult
-	payment      int
-	payout       int
+	payment      types.Payment
+	payout       types.Payout
 }
 
 func NewTicket(
@@ -75,7 +75,43 @@ func NewTicket(
 		betNumber:    betNumber,
 		ticketType:   ticketType,
 		ticketResult: ticketResult,
-		payment:      payment,
-		payout:       payout,
+		payment:      types.Payment(payment),
+		payout:       types.Payout(payout),
 	}, nil
+}
+
+func (t *Ticket) RaceDate() types.RaceDate {
+	return t.raceDate
+}
+
+func (t *Ticket) EntryNo() int {
+	return t.entryNo
+}
+
+func (t *Ticket) RaceCourse() types.RaceCourse {
+	return t.raceCourse
+}
+
+func (t *Ticket) RaceNo() int {
+	return t.raceNo
+}
+
+func (t *Ticket) BetNumber() types.BetNumber {
+	return t.betNumber
+}
+
+func (t *Ticket) TicketType() types.TicketType {
+	return t.ticketType
+}
+
+func (t *Ticket) TicketResult() types.TicketResult {
+	return t.ticketResult
+}
+
+func (t *Ticket) Payment() types.Payment {
+	return t.payment
+}
+
+func (t *Ticket) Payout() types.Payout {
+	return t.payout
 }

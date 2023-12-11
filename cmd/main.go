@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
@@ -14,7 +13,9 @@ import (
 
 func main() {
 	ctx := context.Background()
-	sub(ctx)
+	if sub(ctx) {
+		return
+	}
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx)
 	spreadSheetMonthlyBettingTicketClient := infrastructure.NewSpreadSheetMonthlyBettingTicketClient(ctx)
 	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx)
@@ -79,7 +80,7 @@ func main() {
 	log.Println(ctx, "end")
 }
 
-func sub(ctx context.Context) {
+func sub(ctx context.Context) bool {
 	// TODO DI
 
 	betNumberConverter := service.NewBetNumberConverter()
@@ -91,21 +92,32 @@ func sub(ctx context.Context) {
 	}
 
 	raceConverter := service.NewRaceConverter()
-	racingNumberRepository := infrastructure.NewRacingNumberDataRepository(raceConverter)
+	netKeibaService := service.NewNetKeibaService(raceConverter)
+	racingNumberRepository := infrastructure.NewRacingNumberDataRepository()
 	raceDataRepository := infrastructure.NewRaceDataRepository()
 	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
-	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository)
+	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter)
+
 	racingNumbers, races, jockeys, excludeJockeyIds, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds)
+	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds)
+	if err != nil {
+		panic(err)
+	}
+
+	racingNumbers, races, jockeys, excludeJockeyIds, err = dataCacheUseCase.Read(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	_ = racingNumbers
 	_ = races
 	_ = excludeJockeyIds
 	_ = jockeys
 
-	fmt.Print(tickets)
+	return true
+
 }

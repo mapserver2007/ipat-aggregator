@@ -9,6 +9,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -459,7 +460,18 @@ func (r *raceDataRepository) Fetch(
 		return nil, err
 	}
 
+	parsedUrl, err := neturl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	queryParams, err := neturl.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+	raceId := queryParams.Get("race_id")
+
 	return netkeiba_entity.NewRace(
+		raceId,
 		raceName,
 		url,
 		raceTimes[0],

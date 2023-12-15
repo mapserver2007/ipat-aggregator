@@ -6,7 +6,7 @@ import (
 
 type Race struct {
 	raceId         types.RaceId
-	raceDate       int
+	raceDate       types.RaceDate
 	raceNumber     int
 	raceCourseId   types.RaceCourse
 	raceName       string
@@ -15,8 +15,8 @@ type Race struct {
 	startTime      string
 	entries        int
 	distance       int
-	class          int
-	courseCategory int
+	class          types.GradeClass
+	courseCategory types.CourseCategory
 	trackCondition string
 	raceResults    []*RaceResult
 	payoutResults  []*PayoutResult
@@ -24,24 +24,96 @@ type Race struct {
 
 func NewRace(
 	raceId string,
-
-) Race {
-
-	return Race{
-		raceId:         "",
-		raceDate:       0,
-		raceNumber:     0,
-		raceCourseId:   0,
-		raceName:       "",
-		url:            "",
-		time:           "",
-		startTime:      "",
-		entries:        0,
-		distance:       0,
-		class:          0,
-		courseCategory: 0,
-		trackCondition: "",
-		raceResults:    nil,
-		payoutResults:  nil,
+	raceDate int,
+	raceNumber int,
+	raceCourseId string,
+	raceName string,
+	url string,
+	time string,
+	startTime string,
+	entries int,
+	distance int,
+	class int,
+	courseCategory int,
+	trackCondition string,
+	raceResults []*RaceResult,
+	payoutResults []*PayoutResult,
+) *Race {
+	return &Race{
+		raceId:         types.RaceId(raceId),
+		raceDate:       types.RaceDate(raceDate),
+		raceNumber:     raceNumber,
+		raceCourseId:   types.RaceCourse(raceCourseId),
+		raceName:       raceName,
+		url:            url,
+		time:           time,
+		startTime:      startTime,
+		entries:        entries,
+		distance:       distance,
+		class:          types.GradeClass(class),
+		courseCategory: types.CourseCategory(courseCategory),
+		trackCondition: trackCondition,
+		raceResults:    raceResults,
+		payoutResults:  payoutResults,
 	}
+}
+
+func (r *Race) RaceId() types.RaceId {
+	return r.raceId
+}
+
+func (r *Race) RaceDate() types.RaceDate {
+	return r.raceDate
+}
+
+func (r *Race) RaceNumber() int {
+	return r.raceNumber
+}
+
+func (r *Race) RaceCourseId() types.RaceCourse {
+	return r.raceCourseId
+}
+
+func (r *Race) RaceName() string {
+	return r.raceName
+}
+
+func (r *Race) Url() string {
+	return r.url
+}
+
+func (r *Race) Time() string {
+	return r.time
+}
+
+func (r *Race) StartTime() string {
+	return r.startTime
+}
+
+func (r *Race) Entries() int {
+	return r.entries
+}
+
+func (r *Race) Distance() int {
+	return r.distance
+}
+
+func (r *Race) Class() types.GradeClass {
+	return r.class
+}
+
+func (r *Race) CourseCategory() types.CourseCategory {
+	return r.courseCategory
+}
+
+func (r *Race) TrackCondition() string {
+	return r.trackCondition
+}
+
+func (r *Race) RaceResults() []*RaceResult {
+	return r.raceResults
+}
+
+func (r *Race) PayoutResults() []*PayoutResult {
+	return r.payoutResults
 }

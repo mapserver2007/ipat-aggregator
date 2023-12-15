@@ -40,6 +40,10 @@ func (r RaceCount) Value() int {
 
 type RaceId string
 
+func (r RaceId) String() string {
+	return string(r)
+}
+
 func NewRaceIdForJRA(
 	year int,
 	day int,
@@ -412,6 +416,10 @@ var gradeClassMap = map[GradeClass]string{
 	NonGradeClass:  "平場",
 }
 
+func (g GradeClass) Value() int {
+	return int(g)
+}
+
 func (g GradeClass) String() string {
 	gradeClassName, _ := gradeClassMap[g]
 	return gradeClassName
@@ -445,6 +453,10 @@ func NewCourseCategory(name string) CourseCategory {
 	}
 
 	return courseCategory
+}
+
+func (c CourseCategory) Value() int {
+	return int(c)
 }
 
 func (c CourseCategory) String() string {

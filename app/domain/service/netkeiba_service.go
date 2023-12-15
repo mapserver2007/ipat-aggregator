@@ -3,16 +3,16 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	jockey_vo "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 type NetKeibaService interface {
-	CreateRacingNumberUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, rawRacingNumbers []*raw_entity.RacingNumber) ([]string, error)
-	CreateRaceUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, rawRaces []*raw_entity.Race, rawRacingNumbers []*raw_entity.RacingNumber) ([]string, error)
-	CreateJockeyUrls(ctx context.Context, rawJockeys []*raw_entity.Jockey, excludeJockeyIds []int) ([]string, error)
+	CreateRacingNumberUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
+	CreateRaceUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, races []*data_cache_entity.Race, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
+	CreateJockeyUrls(ctx context.Context, jockeys []*data_cache_entity.Jockey, excludeJockeyIds []int) ([]string, error)
 }
 
 const (
@@ -38,9 +38,9 @@ func NewNetKeibaService(
 func (n *netKeibaService) CreateRacingNumberUrls(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.Ticket,
-	rawRacingNumbers []*raw_entity.RacingNumber,
+	racingNumbers []*data_cache_entity.RacingNumber,
 ) ([]string, error) {
-	racingNumberMap := n.raceConverter.ConvertToRawRacingNumberMap(ctx, rawRacingNumbers)
+	racingNumberMap := n.raceConverter.ConvertToRawRacingNumberMap(ctx, racingNumbers)
 	racingNumberUrlCache := map[types.RaceDate]string{}
 	for _, ticket := range tickets {
 		// JRA以外は日付からレース番号の特定が可能のため処理しない
@@ -71,11 +71,11 @@ func (n *netKeibaService) CreateRacingNumberUrls(
 func (n *netKeibaService) CreateRaceUrls(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.Ticket,
-	rawRaces []*raw_entity.Race,
-	rawRacingNumbers []*raw_entity.RacingNumber,
+	races []*data_cache_entity.Race,
+	racingNumbers []*data_cache_entity.RacingNumber,
 ) ([]string, error) {
-	raceMap := n.raceConverter.ConvertToRawRaceMap(ctx, rawRaces)
-	ticketMap := n.raceConverter.ConvertToTicketMap(ctx, tickets, rawRacingNumbers)
+	raceMap := n.raceConverter.ConvertToRawRaceMap(ctx, races)
+	ticketMap := n.raceConverter.ConvertToTicketMap(ctx, tickets, racingNumbers)
 	raceUrlCache := map[types.RaceId]string{}
 
 	for raceId, ticket := range ticketMap {
@@ -109,7 +109,7 @@ func (n *netKeibaService) CreateRaceUrls(
 
 func (n *netKeibaService) CreateJockeyUrls(
 	ctx context.Context,
-	rawJockeys []*raw_entity.Jockey,
+	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []int,
 ) ([]string, error) {
 	beginIdForJRA := 422
@@ -118,8 +118,8 @@ func (n *netKeibaService) CreateJockeyUrls(
 	endIdForNARandOversea := 5999
 
 	jockeysMap := map[int]bool{}
-	for _, jockey := range rawJockeys {
-		jockeysMap[jockey.JockeyId] = true
+	for _, jockey := range jockeys {
+		jockeysMap[jockey.JockeyId().Value()] = true
 	}
 
 	excludeJockeyIdsMap := map[int]jockey_vo.JockeyId{}

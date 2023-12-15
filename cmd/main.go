@@ -6,6 +6,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
@@ -92,11 +93,19 @@ func sub(ctx context.Context) bool {
 	}
 
 	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter()
+	ticketAggregator := service.NewTicketAggregator(ticketConverter)
 	netKeibaService := service.NewNetKeibaService(raceConverter)
+	summaryService := service.NewSummaryService(ticketAggregator)
+	racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
+	raceEntityConverter := service.NewRaceEntityConverter()
+	jockeyEntityConverter := service.NewJockeyEntityConverter()
 	racingNumberRepository := infrastructure.NewRacingNumberDataRepository()
 	raceDataRepository := infrastructure.NewRaceDataRepository()
 	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
-	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter)
+	spreadSheetRepository := infrastructure.NewSpreadSheetSummaryRepository()
+	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
+	summaryUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
 
 	racingNumbers, races, jockeys, excludeJockeyIds, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
@@ -109,6 +118,11 @@ func sub(ctx context.Context) bool {
 	}
 
 	racingNumbers, races, jockeys, excludeJockeyIds, err = dataCacheUseCase.Read(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	err = summaryUseCase.Write(ctx, tickets)
 	if err != nil {
 		panic(err)
 	}

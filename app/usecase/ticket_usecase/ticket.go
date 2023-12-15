@@ -51,8 +51,3 @@ func (t *ticket) Read(ctx context.Context) ([]*ticket_csv_entity.Ticket, error) 
 
 	return allTickets, nil
 }
-
-func (t *ticket) Write() error {
-	//TODO implement me
-	panic("implement me")
-}

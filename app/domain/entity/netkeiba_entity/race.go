@@ -1,6 +1,7 @@
 package netkeiba_entity
 
 type Race struct {
+	raceId         string
 	raceName       string
 	url            string
 	time           string
@@ -15,6 +16,7 @@ type Race struct {
 }
 
 func NewRace(
+	raceId string,
 	raceName string,
 	url string,
 	time string,
@@ -28,6 +30,7 @@ func NewRace(
 	payoutResults []*PayoutResult,
 ) *Race {
 	return &Race{
+		raceId:         raceId,
 		raceName:       raceName,
 		url:            url,
 		time:           time,
@@ -40,6 +43,10 @@ func NewRace(
 		raceResults:    raceResults,
 		payoutResults:  payoutResults,
 	}
+}
+
+func (r *Race) RaceId() string {
+	return r.raceId
 }
 
 func (r *Race) RaceName() string {

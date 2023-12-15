@@ -6,22 +6,26 @@ import (
 
 type PayoutResult struct {
 	ticketType types.TicketType
-	number     types.BetNumber
-	odds       string
-	popular    int
+	numbers    []types.BetNumber
+	odds       []string
+	populars   []int
 }
 
 func NewPayoutResult(
-	rawTicketType string,
-	rawNumber string,
-	odds string,
-	popular int,
+	rawTicketType int,
+	rawNumbers []string,
+	odds []string,
+	populars []int,
 ) *PayoutResult {
+	numbers := make([]types.BetNumber, 0, len(rawNumbers))
+	for _, rawNumber := range rawNumbers {
+		numbers = append(numbers, types.NewBetNumber(rawNumber))
+	}
 	return &PayoutResult{
-		ticketType: types.NewTicketType(rawTicketType),
-		number:     types.NewBetNumber(rawNumber),
+		ticketType: types.TicketType(rawTicketType),
+		numbers:    numbers,
 		odds:       odds,
-		popular:    popular,
+		populars:   populars,
 	}
 }
 
@@ -29,14 +33,14 @@ func (p *PayoutResult) TicketType() types.TicketType {
 	return p.ticketType
 }
 
-func (p *PayoutResult) Number() types.BetNumber {
-	return p.number
+func (p *PayoutResult) Number() []types.BetNumber {
+	return p.numbers
 }
 
-func (p *PayoutResult) Odds() string {
+func (p *PayoutResult) Odds() []string {
 	return p.odds
 }
 
-func (p *PayoutResult) Popular() int {
-	return p.popular
+func (p *PayoutResult) Populars() []int {
+	return p.populars
 }

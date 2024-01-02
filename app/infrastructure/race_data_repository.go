@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -59,7 +60,10 @@ func (r *raceDataRepository) Write(
 	fileName string,
 	raceInfo *raw_entity.RaceInfo,
 ) error {
-	bytes, err := json.Marshal(raceInfo)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
+	enc.SetEscapeHTML(false)
+	err := enc.Encode(raceInfo)
 	if err != nil {
 		return err
 	}
@@ -74,7 +78,7 @@ func (r *raceDataRepository) Write(
 		return err
 	}
 
-	err = os.WriteFile(filePath, bytes, 0644)
+	err = os.WriteFile(filePath, buffer.Bytes(), 0644)
 	if err != nil {
 		return err
 	}

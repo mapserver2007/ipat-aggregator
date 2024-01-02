@@ -2,7 +2,7 @@ package spreadsheet_usecase
 
 import (
 	"context"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
@@ -26,9 +26,10 @@ func NewSummaryUseCase(
 func (s *summaryUseCase) Write(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.Ticket,
+	racingNumbers []*data_cache_entity.RacingNumber,
+	races []*data_cache_entity.Race,
 ) error {
-	all, month, year := s.summaryService.CreateShortSummary(ctx, tickets)
-	summary := spreadsheet_entity.NewSummary(all, month, year) // TODO 拡張する
+	summary := s.summaryService.CreateSummary(ctx, tickets, racingNumbers, races)
 
 	s.spreadSheetSummaryRepository.Write(ctx, summary)
 

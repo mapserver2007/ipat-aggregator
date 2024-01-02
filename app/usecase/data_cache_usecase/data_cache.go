@@ -20,14 +20,14 @@ const (
 )
 
 type dataCacheUseCase struct {
-	racingNumberDataRepository repository.RacingNumberDataRepository
-	raceDataRepository         repository.RaceDataRepository
-	jockeyDataRepository       repository.JockeyDataRepository
-	netKeibaService            service.NetKeibaService
-	raceConverter              service.RaceConverter
-	racingNumberConverter      service.RacingNumberEntityConverter
-	raceEntityConverter        service.RaceEntityConverter
-	jockeyEntityConverter      service.JockeyEntityConverter
+	racingNumberDataRepository  repository.RacingNumberDataRepository
+	raceDataRepository          repository.RaceDataRepository
+	jockeyDataRepository        repository.JockeyDataRepository
+	netKeibaService             service.NetKeibaService
+	raceConverter               service.RaceConverter
+	racingNumberEntityConverter service.RacingNumberEntityConverter
+	raceEntityConverter         service.RaceEntityConverter
+	jockeyEntityConverter       service.JockeyEntityConverter
 }
 
 func NewDataCacheUseCase(
@@ -41,14 +41,14 @@ func NewDataCacheUseCase(
 	jockeyEntityConverter service.JockeyEntityConverter,
 ) *dataCacheUseCase {
 	return &dataCacheUseCase{
-		racingNumberDataRepository: racingNumberRepository,
-		raceDataRepository:         raceDataRepository,
-		jockeyDataRepository:       jockeyDataRepository,
-		netKeibaService:            netKeibaService,
-		raceConverter:              raceConverter,
-		racingNumberConverter:      racingNumberConverter,
-		raceEntityConverter:        raceEntityConverter,
-		jockeyEntityConverter:      jockeyEntityConverter,
+		racingNumberDataRepository:  racingNumberRepository,
+		raceDataRepository:          raceDataRepository,
+		jockeyDataRepository:        jockeyDataRepository,
+		netKeibaService:             netKeibaService,
+		raceConverter:               raceConverter,
+		racingNumberEntityConverter: racingNumberConverter,
+		raceEntityConverter:         raceEntityConverter,
+		jockeyEntityConverter:       jockeyEntityConverter,
 	}
 }
 
@@ -59,7 +59,7 @@ func (d *dataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.Racin
 	}
 	racingNumbers := make([]*data_cache_entity.RacingNumber, 0, len(rawRacingNumbers))
 	for _, rawRacingNumber := range rawRacingNumbers {
-		racingNumbers = append(racingNumbers, d.racingNumberConverter.RawToDataCache(rawRacingNumber))
+		racingNumbers = append(racingNumbers, d.racingNumberEntityConverter.RawToDataCache(rawRacingNumber))
 	}
 
 	rawRaces, err := d.raceDataRepository.Read(ctx, raceResultFileName)
@@ -94,7 +94,7 @@ func (d *dataCacheUseCase) Write(
 	urls, _ := d.netKeibaService.CreateRacingNumberUrls(ctx, tickets, racingNumbers)
 	newRawRacingNumbers := make([]*raw_entity.RacingNumber, 0, len(racingNumbers)+len(urls))
 	for _, racingNumber := range racingNumbers {
-		newRawRacingNumbers = append(newRawRacingNumbers, d.racingNumberConverter.DataCacheToRaw(racingNumber))
+		newRawRacingNumbers = append(newRawRacingNumbers, d.racingNumberEntityConverter.DataCacheToRaw(racingNumber))
 	}
 	for _, url := range urls {
 		time.Sleep(time.Second * 1)
@@ -104,7 +104,9 @@ func (d *dataCacheUseCase) Write(
 			return err
 		}
 		for _, fetchRacingNumber := range fetchRacingNumbers {
-			newRawRacingNumbers = append(newRawRacingNumbers, d.racingNumberConverter.NetKeibaToRaw(fetchRacingNumber))
+			newRawRacingNumber := d.racingNumberEntityConverter.NetKeibaToRaw(fetchRacingNumber)
+			racingNumbers = append(racingNumbers, d.racingNumberEntityConverter.RawToDataCache(newRawRacingNumber))
+			newRawRacingNumbers = append(newRawRacingNumbers, newRawRacingNumber)
 		}
 	}
 
@@ -129,17 +131,19 @@ func (d *dataCacheUseCase) Write(
 	for _, url := range urls {
 		time.Sleep(time.Second * 1)
 		log.Println(ctx, "fetch from "+url)
-		race, err := d.raceDataRepository.Fetch(ctx, url)
+		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
 			return err
 		}
 
-		ticket, ok := ticketMap[types.RaceId(race.RaceId())]
+		ticket, ok := ticketMap[types.RaceId(fetchRace.RaceId())]
 		if !ok {
-			return fmt.Errorf("undefind raceId: %v", race.RaceId())
+			return fmt.Errorf("undefind raceId: %v", fetchRace.RaceId())
 		}
 
-		newRaces = append(newRaces, d.raceEntityConverter.NetKeibaToRaw(race, ticket))
+		newRace := d.raceEntityConverter.NetKeibaToRaw(fetchRace, ticket)
+		newRaces = append(newRaces, newRace)
+		races = append(races, d.raceEntityConverter.RawToDataCache(newRace))
 	}
 
 	raceInfo := raw_entity.RaceInfo{
@@ -170,7 +174,9 @@ func (d *dataCacheUseCase) Write(
 		if jockey.Name() == "" {
 			newExcludeJockeyIds = append(newExcludeJockeyIds, jockey.Id())
 		} else {
-			newJockeys = append(newJockeys, d.jockeyEntityConverter.NetKeibaToRaw(jockey))
+			newJockey := d.jockeyEntityConverter.NetKeibaToRaw(jockey)
+			newJockeys = append(newJockeys, newJockey)
+			jockeys = append(jockeys, d.jockeyEntityConverter.RawToDataCache(newJockey))
 		}
 	}
 	excludeJockeyIds = append(excludeJockeyIds, newExcludeJockeyIds...)

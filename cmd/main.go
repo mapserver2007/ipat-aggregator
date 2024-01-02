@@ -93,7 +93,7 @@ func sub(ctx context.Context) bool {
 	}
 
 	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
 	ticketAggregator := service.NewTicketAggregator(ticketConverter)
 	netKeibaService := service.NewNetKeibaService(raceConverter)
 	summaryService := service.NewSummaryService(ticketAggregator)
@@ -122,7 +122,7 @@ func sub(ctx context.Context) bool {
 		panic(err)
 	}
 
-	err = summaryUseCase.Write(ctx, tickets)
+	err = summaryUseCase.Write(ctx, tickets, racingNumbers, races)
 	if err != nil {
 		panic(err)
 	}

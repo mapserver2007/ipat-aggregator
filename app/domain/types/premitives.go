@@ -102,22 +102,22 @@ func (d RaceDate) Value() int {
 }
 
 func (d RaceDate) Year() int {
-	return toDate(d).Year()
+	return d.Date().Year()
 }
 
 func (d RaceDate) Month() int {
-	return int(toDate(d).Month())
+	return int(d.Date().Month())
 }
 
 func (d RaceDate) Day() int {
-	return toDate(d).Day()
+	return d.Date().Day()
 }
 
 func (d RaceDate) Format(layout string) string {
-	return toDate(d).Format(layout)
+	return d.Date().Format(layout)
 }
 
-func toDate(d RaceDate) time.Time {
+func (d RaceDate) Date() time.Time {
 	date, err := time.Parse("20060102", strconv.Itoa(int(d)))
 	if err != nil {
 		panic(err)
@@ -254,7 +254,7 @@ const (
 type TicketType int
 
 const (
-	UnknownTicket TicketType = iota
+	UnknownTicketType TicketType = iota
 	Win
 	Place
 	BracketQuinella
@@ -270,6 +270,7 @@ const (
 	TrifectaFormation
 	TrifectaWheelOfFirst
 	TrifectaWheelOfSecondMulti
+	AllTicketType
 )
 
 var ticketTypeMap = map[TicketType]string{
@@ -288,7 +289,8 @@ var ticketTypeMap = map[TicketType]string{
 	TrifectaFormation:          "3連単フォーメーション",
 	TrifectaWheelOfFirst:       "3連単1着ながし",
 	TrifectaWheelOfSecondMulti: "3連単軸2頭ながしマルチ",
-	UnknownTicket:              "不明",
+	AllTicketType:              "全券種合計",
+	UnknownTicketType:          "不明",
 }
 
 func NewTicketType(name string) TicketType {
@@ -298,7 +300,7 @@ func NewTicketType(name string) TicketType {
 		}
 	}
 
-	return UnknownTicket
+	return UnknownTicketType
 }
 
 func (b TicketType) Name() string {
@@ -472,4 +474,81 @@ func (j JockeyId) Format() string {
 
 func (j JockeyId) Value() int {
 	return int(j)
+}
+
+type DistanceCategory int
+
+const (
+	UndefinedDistanceCategory DistanceCategory = iota
+	TurfSprint
+	TurfMile
+	TurfIntermediate
+	TurfLong
+	TurfExtended
+	DirtSprint
+	DirtMile
+	DirtIntermediate
+	DirtLong
+	DirtExtended
+	JumpAllDistance
+)
+
+// SMILE定義は米国方式
+var distanceCategoryMap = map[DistanceCategory]string{
+	UndefinedDistanceCategory: "未定義距離",
+	TurfSprint:                "芝1000~1300",
+	TurfMile:                  "芝1301~1899",
+	TurfIntermediate:          "芝1900~2100",
+	TurfLong:                  "芝2101~2700",
+	TurfExtended:              "芝2701~",
+	DirtSprint:                "ダ1000~1300",
+	DirtMile:                  "ダ1301~1899",
+	DirtIntermediate:          "ダ1900~2100",
+	DirtLong:                  "ダ2101~2700",
+	DirtExtended:              "ダ2701~", // レースとしては存在しない
+	JumpAllDistance:           "障害全距離",
+}
+
+func NewDistanceCategory(distance int, courseCategory CourseCategory) DistanceCategory {
+	if courseCategory == Jump {
+		return JumpAllDistance
+	}
+	if distance >= 1000 && distance <= 1300 {
+		if courseCategory == Turf {
+			return TurfSprint
+		} else if courseCategory == Dirt {
+			return DirtSprint
+		}
+	} else if distance >= 1301 && distance <= 1899 {
+		if courseCategory == Turf {
+			return TurfMile
+		} else if courseCategory == Dirt {
+			return DirtMile
+		}
+	} else if distance >= 1900 && distance <= 2100 {
+		if courseCategory == Turf {
+			return TurfIntermediate
+		} else if courseCategory == Dirt {
+			return DirtIntermediate
+		}
+	} else if distance >= 2101 && distance <= 2700 {
+		if courseCategory == Turf {
+			return TurfLong
+		} else if courseCategory == Dirt {
+			return DirtLong
+		}
+	} else if distance >= 2701 {
+		if courseCategory == Turf {
+			return TurfExtended
+		} else if courseCategory == Dirt {
+			return DirtExtended
+		}
+	}
+
+	return UndefinedDistanceCategory
+}
+
+func (d DistanceCategory) String() string {
+	distanceCategoryName, _ := distanceCategoryMap[d]
+	return distanceCategoryName
 }

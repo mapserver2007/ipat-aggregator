@@ -30,8 +30,14 @@ func (s *summaryUseCase) Write(
 	races []*data_cache_entity.Race,
 ) error {
 	summary := s.summaryService.CreateSummary(ctx, tickets, racingNumbers, races)
-
-	s.spreadSheetSummaryRepository.Write(ctx, summary)
+	err := s.spreadSheetSummaryRepository.Write(ctx, summary)
+	if err != nil {
+		return err
+	}
+	err = s.spreadSheetSummaryRepository.Style(ctx, summary)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

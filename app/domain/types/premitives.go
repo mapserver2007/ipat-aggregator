@@ -548,6 +548,10 @@ func NewDistanceCategory(distance int, courseCategory CourseCategory) DistanceCa
 	return UndefinedDistanceCategory
 }
 
+func (d DistanceCategory) Value() int {
+	return int(d)
+}
+
 func (d DistanceCategory) String() string {
 	distanceCategoryName, _ := distanceCategoryMap[d]
 	return distanceCategoryName

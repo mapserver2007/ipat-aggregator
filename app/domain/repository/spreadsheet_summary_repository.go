@@ -7,5 +7,6 @@ import (
 
 type SpreadSheetSummaryRepository interface {
 	Write(ctx context.Context, summary *spreadsheet_entity.Summary) error
-	Style(ctx context.Context) error
+	Style(ctx context.Context, summary *spreadsheet_entity.Summary) error
+	Clear(ctx context.Context) error
 }

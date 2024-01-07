@@ -103,7 +103,10 @@ func sub(ctx context.Context) bool {
 	racingNumberRepository := infrastructure.NewRacingNumberDataRepository()
 	raceDataRepository := infrastructure.NewRaceDataRepository()
 	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
-	spreadSheetRepository := infrastructure.NewSpreadSheetSummaryRepository()
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetSummaryRepository()
+	if err != nil {
+		panic(err)
+	}
 	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
 	summaryUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
 

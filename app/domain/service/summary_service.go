@@ -52,11 +52,11 @@ func (s *summaryService) CreateSummary(
 	ticketResultMap[types.Exacta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Exacta, types.ExactaWheelOfFirst)
 	ticketResultMap[types.QuinellaPlace] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.QuinellaPlace, types.QuinellaPlaceWheel)
 	ticketResultMap[types.Trio] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trio, types.TrioFormation, types.TrifectaWheelOfFirst)
-	ticketResultMap[types.Trifecta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecondMulti)
+	ticketResultMap[types.Trifecta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 	ticketResultMap[types.AllTicketType] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Win, types.Place, types.Quinella,
 		types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel,
 		types.Trio, types.TrioFormation, types.TrifectaWheelOfFirst,
-		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecondMulti) // TODO 3連単軸1頭ながしマルチ
+		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 
 	gradeClassResultMap := map[types.GradeClass]*spreadsheet_entity.TicketResult{}
 	gradeClassResultMap[types.Grade1] = s.ticketAggregator.GradeClassResult(ctx, tickets, races, racingNumbers, types.Grade1, types.JumpGrade1)

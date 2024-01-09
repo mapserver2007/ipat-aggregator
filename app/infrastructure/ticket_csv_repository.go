@@ -115,7 +115,7 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 		return t.betNumberConverter.TrifectaFormationToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaWheelOfFirst:
 		return t.betNumberConverter.TrifectaWheelOfFirstToTrifectaBetNumbers(ctx, rawBetNumber)
-	case types.TrifectaWheelOfSecondMulti:
+	case types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti:
 		return t.betNumberConverter.TrifectaWheelMultiToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.UnknownTicketType:
 		return nil, fmt.Errorf("unknown betting ticket")
@@ -132,6 +132,7 @@ func (t *ticketCsvRepository) extractPayment(rawTicketType, rawPayment string) s
 		types.TrioWheelOfFirst == ticketType ||
 		types.TrifectaFormation == ticketType ||
 		types.TrifectaWheelOfFirst == ticketType ||
+		types.TrifectaWheelOfFirstMulti == ticketType ||
 		types.TrifectaWheelOfSecondMulti == ticketType {
 		// 3連複軸1頭ながし, 馬単、3連単1着流し:
 		// (1点あたりの購入金額)／(合計金額)

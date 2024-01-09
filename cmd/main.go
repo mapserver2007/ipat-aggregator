@@ -14,9 +14,9 @@ import (
 
 func main() {
 	ctx := context.Background()
-	//if sub(ctx) {
-	//	return
-	//}
+	if sub(ctx) {
+		return
+	}
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx)
 	spreadSheetMonthlyBettingTicketClient := infrastructure.NewSpreadSheetMonthlyBettingTicketClient(ctx)
 	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx)

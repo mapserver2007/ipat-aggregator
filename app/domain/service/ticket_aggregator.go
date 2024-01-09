@@ -30,7 +30,7 @@ func (t *ticketAggregator) MonthlyResult(ctx context.Context, tickets []*ticket_
 		ticketResultMap[month] = t.TicketResult(ctx, monthTickets, races, racingNumbers, types.Win, types.Place, types.Quinella,
 			types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel,
 			types.Trio, types.TrioFormation, types.TrifectaWheelOfFirst,
-			types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecondMulti)
+			types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 	}
 	return ticketResultMap
 }

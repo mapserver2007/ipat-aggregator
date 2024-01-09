@@ -269,6 +269,7 @@ const (
 	Trifecta
 	TrifectaFormation
 	TrifectaWheelOfFirst
+	TrifectaWheelOfFirstMulti
 	TrifectaWheelOfSecondMulti
 	AllTicketType
 )
@@ -288,6 +289,7 @@ var ticketTypeMap = map[TicketType]string{
 	Trifecta:                   "3連単",
 	TrifectaFormation:          "3連単フォーメーション",
 	TrifectaWheelOfFirst:       "3連単1着ながし",
+	TrifectaWheelOfFirstMulti:  "3連単軸1頭ながしマルチ",
 	TrifectaWheelOfSecondMulti: "3連単軸2頭ながしマルチ",
 	AllTicketType:              "全券種合計",
 	UnknownTicketType:          "不明",
@@ -316,7 +318,7 @@ func (b TicketType) OriginTicketType() TicketType {
 		return QuinellaPlace
 	case TrioFormation, TrioWheelOfFirst:
 		return Trio
-	case TrifectaFormation, TrifectaWheelOfFirst, TrifectaWheelOfSecondMulti:
+	case TrifectaFormation, TrifectaWheelOfFirst, TrifectaWheelOfFirstMulti, TrifectaWheelOfSecondMulti:
 		return Trifecta
 	}
 	return b

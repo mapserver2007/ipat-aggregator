@@ -116,7 +116,7 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 	case types.TrifectaWheelOfFirst:
 		return t.betNumberConverter.TrifectaWheelOfFirstToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaWheelOfSecondMulti:
-		return t.betNumberConverter.TrifectaWheelOfSecondMultiToTrifectaBetNumbers(ctx, rawBetNumber)
+		return t.betNumberConverter.TrifectaWheelMultiToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.UnknownTicketType:
 		return nil, fmt.Errorf("unknown betting ticket")
 	}

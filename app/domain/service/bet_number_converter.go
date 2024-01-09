@@ -16,7 +16,7 @@ type BetNumberConverter interface {
 	TrioWheelOfFirstToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 	TrifectaFormationToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 	TrifectaWheelOfFirstToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
-	TrifectaWheelOfSecondMultiToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
+	TrifectaWheelMultiToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 }
 
 type betNumberConverter struct{}
@@ -264,8 +264,8 @@ func (b *betNumberConverter) TrifectaWheelOfFirstToTrifectaBetNumbers(ctx contex
 	return rawBetNumbers, nil
 }
 
-// TrifectaWheelOfSecondMultiToTrifectaBetNumbers 3連単軸2頭ながしマルチ変換
-func (b *betNumberConverter) TrifectaWheelOfSecondMultiToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error) {
+// TrifectaWheelMultiToTrifectaBetNumbers 3連単軸1,2頭ながしマルチ変換
+func (b *betNumberConverter) TrifectaWheelMultiToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error) {
 	// 複数の買い目がまとめられてるものをバラす
 	separator1 := "／"
 	separator2 := "；"
@@ -296,10 +296,7 @@ func (b *betNumberConverter) TrifectaWheelOfSecondMultiToTrifectaBetNumbers(ctx 
 				}
 
 				combinations = append(combinations, [3]int{pivotalNumber, challengerNumber1, challengerNumber2})
-				combinations = append(combinations, [3]int{pivotalNumber, challengerNumber2, challengerNumber1})
 				combinations = append(combinations, [3]int{challengerNumber1, pivotalNumber, challengerNumber2})
-				combinations = append(combinations, [3]int{challengerNumber1, challengerNumber2, pivotalNumber})
-				combinations = append(combinations, [3]int{challengerNumber2, pivotalNumber, challengerNumber1})
 				combinations = append(combinations, [3]int{challengerNumber2, challengerNumber1, pivotalNumber})
 			}
 		}

@@ -19,7 +19,7 @@ const (
 	jockeyFileName       = "jockey.json"
 )
 
-type dataCacheUseCase struct {
+type DataCacheUseCase struct {
 	racingNumberDataRepository  repository.RacingNumberDataRepository
 	raceDataRepository          repository.RaceDataRepository
 	jockeyDataRepository        repository.JockeyDataRepository
@@ -39,8 +39,8 @@ func NewDataCacheUseCase(
 	racingNumberConverter service.RacingNumberEntityConverter,
 	raceEntityConverter service.RaceEntityConverter,
 	jockeyEntityConverter service.JockeyEntityConverter,
-) *dataCacheUseCase {
-	return &dataCacheUseCase{
+) *DataCacheUseCase {
+	return &DataCacheUseCase{
 		racingNumberDataRepository:  racingNumberRepository,
 		raceDataRepository:          raceDataRepository,
 		jockeyDataRepository:        jockeyDataRepository,
@@ -52,7 +52,7 @@ func NewDataCacheUseCase(
 	}
 }
 
-func (d *dataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.RacingNumber, []*data_cache_entity.Race, []*data_cache_entity.Jockey, []int, error) {
+func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.RacingNumber, []*data_cache_entity.Race, []*data_cache_entity.Jockey, []int, error) {
 	rawRacingNumbers, err := d.racingNumberDataRepository.Read(ctx, racingNumberFileName)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -83,7 +83,7 @@ func (d *dataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.Racin
 	return racingNumbers, races, jockeys, excludeJockeyIds, nil
 }
 
-func (d *dataCacheUseCase) Write(
+func (d *DataCacheUseCase) Write(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,

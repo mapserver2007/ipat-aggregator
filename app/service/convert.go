@@ -259,10 +259,7 @@ func ConvertToBetNumbersForTrifectaMulti(value string) []betting_ticket_vo.BetNu
 				pivotalNumber, _ := strconv.Atoi(strPivotalNumbers[0])
 
 				combinations = append(combinations, [3]int{pivotalNumber, challengerNumber1, challengerNumber2})
-				combinations = append(combinations, [3]int{pivotalNumber, challengerNumber2, challengerNumber1})
 				combinations = append(combinations, [3]int{challengerNumber1, pivotalNumber, challengerNumber2})
-				combinations = append(combinations, [3]int{challengerNumber1, challengerNumber2, pivotalNumber})
-				combinations = append(combinations, [3]int{challengerNumber2, pivotalNumber, challengerNumber1})
 				combinations = append(combinations, [3]int{challengerNumber2, challengerNumber1, pivotalNumber})
 			}
 		}

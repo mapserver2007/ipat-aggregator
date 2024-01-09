@@ -56,7 +56,7 @@ func (s *summaryService) CreateSummary(
 	ticketResultMap[types.AllTicketType] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Win, types.Place, types.Quinella,
 		types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel,
 		types.Trio, types.TrioFormation, types.TrifectaWheelOfFirst,
-		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecondMulti)
+		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecondMulti) // TODO 3連単軸1頭ながしマルチ
 
 	gradeClassResultMap := map[types.GradeClass]*spreadsheet_entity.TicketResult{}
 	gradeClassResultMap[types.Grade1] = s.ticketAggregator.GradeClassResult(ctx, tickets, races, racingNumbers, types.Grade1, types.JumpGrade1)

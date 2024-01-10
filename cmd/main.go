@@ -5,7 +5,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
@@ -95,19 +94,21 @@ func sub(ctx context.Context) bool {
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
 	ticketAggregator := service.NewTicketAggregator(ticketConverter)
-	netKeibaService := service.NewNetKeibaService(raceConverter)
+	//netKeibaService := service.NewNetKeibaService(raceConverter)
 	summaryService := service.NewSummaryService(ticketAggregator)
-	racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
-	raceEntityConverter := service.NewRaceEntityConverter()
-	jockeyEntityConverter := service.NewJockeyEntityConverter()
-	racingNumberRepository := infrastructure.NewRacingNumberDataRepository()
-	raceDataRepository := infrastructure.NewRaceDataRepository()
-	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
+	//racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
+	//raceEntityConverter := service.NewRaceEntityConverter()
+	//jockeyEntityConverter := service.NewJockeyEntityConverter()
+	//racingNumberRepository := infrastructure.NewRacingNumberDataRepository()
+	//raceDataRepository := infrastructure.NewRaceDataRepository()
+	//jockeyDataRepository := infrastructure.NewJockeyDataRepository()
 	spreadSheetRepository, err := infrastructure.NewSpreadSheetSummaryRepository()
 	if err != nil {
 		panic(err)
 	}
-	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
+
+	dataCacheUseCase := di.InitializeDataCacheUseCase()
+	//dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
 	summaryUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
 
 	racingNumbers, races, jockeys, excludeJockeyIds, err := dataCacheUseCase.Read(ctx)

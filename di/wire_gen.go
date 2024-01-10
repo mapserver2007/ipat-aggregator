@@ -7,41 +7,56 @@
 package di
 
 import (
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
-	"github.com/mapserver2007/ipat-aggregator/app/service"
+	service2 "github.com/mapserver2007/ipat-aggregator/app/service"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 )
 
 // Injectors from wire.go:
 
+func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
+	racingNumberDataRepository := infrastructure.NewRacingNumberDataRepository()
+	raceDataRepository := infrastructure.NewRaceDataRepository()
+	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
+	raceConverter := service.NewRaceConverter()
+	netKeibaService := service.NewNetKeibaService(raceConverter)
+	racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
+	raceEntityConverter := service.NewRaceEntityConverter()
+	jockeyEntityConverter := service.NewJockeyEntityConverter()
+	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberDataRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
+	return dataCacheUseCase
+}
+
 func DataCacheInit() *usecase.DataCache {
-	csvReader := service.NewCsvReader()
+	csvReader := service2.NewCsvReader()
 	raceClient := infrastructure.NewRaceClient()
 	raceDB := infrastructure.NewRaceDB(raceClient)
-	raceFetcher := service.NewRaceFetcher(raceClient)
-	raceConverter := service.NewRaceConverter()
+	raceFetcher := service2.NewRaceFetcher(raceClient)
+	raceConverter := service2.NewRaceConverter()
 	dataCache := usecase.NewDataCache(csvReader, raceDB, raceFetcher, raceConverter)
 	return dataCache
 }
 
-func AggregatorInit() *service.Aggregator {
-	raceConverter := service.NewRaceConverter()
-	bettingTicketConverter := service.NewBettingTicketConverter(raceConverter)
-	summarizer := service.NewSummarizer(raceConverter, bettingTicketConverter)
-	aggregator := service.NewAggregator(raceConverter, bettingTicketConverter, summarizer)
+func AggregatorInit() *service2.Aggregator {
+	raceConverter := service2.NewRaceConverter()
+	bettingTicketConverter := service2.NewBettingTicketConverter(raceConverter)
+	summarizer := service2.NewSummarizer(raceConverter, bettingTicketConverter)
+	aggregator := service2.NewAggregator(raceConverter, bettingTicketConverter, summarizer)
 	return aggregator
 }
 
-func PredictInit() *service.Predictor {
-	raceConverter := service.NewRaceConverter()
-	bettingTicketConverter := service.NewBettingTicketConverter(raceConverter)
-	predictor := service.NewPredictor(raceConverter, bettingTicketConverter)
+func PredictInit() *service2.Predictor {
+	raceConverter := service2.NewRaceConverter()
+	bettingTicketConverter := service2.NewBettingTicketConverter(raceConverter)
+	predictor := service2.NewPredictor(raceConverter, bettingTicketConverter)
 	return predictor
 }
 
 func AnalyzerInit() *usecase.Analyzer {
-	raceConverter := service.NewRaceConverter()
-	analyzer := service.NewAnalyzer(raceConverter)
+	raceConverter := service2.NewRaceConverter()
+	analyzer := service2.NewAnalyzer(raceConverter)
 	usecaseAnalyzer := usecase.NewAnalyzer(analyzer)
 	return usecaseAnalyzer
 }

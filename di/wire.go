@@ -12,7 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 )
 
-func DataCacheInject() *data_cache_usecase.DataCacheUseCase {
+func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 	wire.Build(
 		data_cache_usecase.NewDataCacheUseCase,
 		service.NewRaceConverter,
@@ -27,6 +27,18 @@ func DataCacheInject() *data_cache_usecase.DataCacheUseCase {
 	return nil
 }
 
+//func InitializeSummaryUseCase() *spreadsheet_usecase.SummaryUseCase {
+//	wire.Build(
+//		spreadsheet_usecase.NewSummaryUseCase,
+//		service.NewSummaryService,
+//		service.NewTicketAggregator,
+//		service.NewTicketConverter,
+//		service.NewRaceConverter,
+//		infrastructure.NewSpreadSheetSummaryRepository,
+//	)
+//	return nil
+//}
+
 // 以下古い
 
 func DataCacheInit() *usecase.DataCache {
@@ -37,12 +49,12 @@ func DataCacheInit() *usecase.DataCache {
 		service2.NewRaceConverter,
 		infrastructure.NewRaceDB,
 		infrastructure.NewRaceClient,
-		service2.NewBettingTicketConverter,
+		//service2.NewBettingTicketConverter,
 	)
 	return nil
 }
 
-func AggregatorInit() *service.Aggregator {
+func AggregatorInit() *service2.Aggregator {
 	wire.Build(
 		service2.NewAggregator,
 		service2.NewRaceConverter,
@@ -52,7 +64,7 @@ func AggregatorInit() *service.Aggregator {
 	return nil
 }
 
-func PredictInit() *service.Predictor {
+func PredictInit() *service2.Predictor {
 	wire.Build(
 		service2.NewPredictor,
 		service2.NewRaceConverter,

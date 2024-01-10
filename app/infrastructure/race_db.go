@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	racingNumberFileName = "racing_number.json"
-	raceResultFileName   = "race_result.json"
+	racingNumberFileName = "racing_number_old.json"
+	raceResultFileName   = "race_result_old.json"
 	jockeyFileName       = "jockey.json"
 )
 

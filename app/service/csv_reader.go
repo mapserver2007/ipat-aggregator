@@ -67,6 +67,9 @@ func (c *CsvReader) Read(ctx context.Context, filePath string) ([]*entity.CsvEnt
 		case betting_ticket_vo.TrifectaWheelOfFirst:
 			betNumbers = ConvertToBetNumbersForTrifecta(record[7])
 			payment = ConvertToPaymentForWheel(record[8])[0]
+		case betting_ticket_vo.TrifectaWheelOfFirstMulti:
+			betNumbers = ConvertToBetNumbersForTrifectaMulti(record[7])
+			payment = ConvertToPaymentForWheel(record[8])[0]
 		case betting_ticket_vo.TrifectaWheelOfSecondMulti:
 			betNumbers = ConvertToBetNumbersForTrifectaMulti(record[7])
 			payment = ConvertToPaymentForWheel(record[8])[0]

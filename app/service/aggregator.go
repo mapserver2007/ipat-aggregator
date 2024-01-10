@@ -44,11 +44,11 @@ func (a *Aggregator) GetSummary(
 		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst),
 		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel),
 		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst),
-		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst, betting_ticket_vo.TrifectaWheelOfSecondMulti),
+		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst, betting_ticket_vo.TrifectaWheelOfFirstMulti, betting_ticket_vo.TrifectaWheelOfSecondMulti),
 		a.summarizer.GetBettingTicketSummary(records, racingNumbers, races, betting_ticket_vo.Win, betting_ticket_vo.Place, betting_ticket_vo.Quinella,
 			betting_ticket_vo.Exacta, betting_ticket_vo.ExactaWheelOfFirst, betting_ticket_vo.QuinellaPlace, betting_ticket_vo.QuinellaPlaceWheel,
 			betting_ticket_vo.Trio, betting_ticket_vo.TrioFormation, betting_ticket_vo.TrioWheelOfFirst,
-			betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst, betting_ticket_vo.TrifectaWheelOfSecondMulti),
+			betting_ticket_vo.Trifecta, betting_ticket_vo.TrifectaFormation, betting_ticket_vo.TrifectaWheelOfFirst, betting_ticket_vo.TrifectaWheelOfFirstMulti, betting_ticket_vo.TrifectaWheelOfSecondMulti),
 	)
 
 	spreadSheetGradeClassSummary := spreadsheet_entity.NewSpreadSheetClassSummary(

@@ -486,6 +486,7 @@ func getSortedBettingTickets() []betting_ticket_vo.BettingTicket {
 		betting_ticket_vo.Trifecta,
 		betting_ticket_vo.TrifectaWheelOfFirst,
 		betting_ticket_vo.TrifectaFormation,
+		betting_ticket_vo.TrifectaWheelOfFirstMulti,
 		betting_ticket_vo.TrifectaWheelOfSecondMulti,
 		betting_ticket_vo.QuinellaPlaceWheel,
 		betting_ticket_vo.Quinella,

@@ -558,3 +558,41 @@ func (d DistanceCategory) String() string {
 	distanceCategoryName, _ := distanceCategoryMap[d]
 	return distanceCategoryName
 }
+
+type Marker int
+
+const (
+	Favorite      Marker = iota + 1 // ◎
+	Rival                           // ◯
+	BrackTriangle                   // ▲
+	WhiteTriangle                   // △
+	Star                            // ☆
+	Check                           // ✓
+)
+
+var markerMap = map[Marker]string{
+	Favorite:      "◎",
+	Rival:         "◯",
+	BrackTriangle: "▲",
+	WhiteTriangle: "△",
+	Star:          "☆",
+	Check:         "✓",
+}
+
+func NewMarker(value int) (Marker, error) {
+	for mark := range markerMap {
+		if int(mark) == value {
+			return Marker(value), nil
+		}
+	}
+	return 0, fmt.Errorf("invalid marker value: %d", value)
+}
+
+func (m Marker) Value() int {
+	return int(m)
+}
+
+func (m Marker) String() string {
+	marker, _ := markerMap[m]
+	return marker
+}

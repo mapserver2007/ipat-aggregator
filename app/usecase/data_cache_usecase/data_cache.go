@@ -10,6 +10,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"log"
+	net_url "net/url"
 	"time"
 )
 
@@ -17,12 +18,16 @@ const (
 	racingNumberFileName = "racing_number.json"
 	raceResultFileName   = "race_result.json"
 	jockeyFileName       = "jockey.json"
+	raceIdFileName       = "race_id.json"
+	startDate            = "20240101"
+	endDate              = "20240110"
 )
 
 type DataCacheUseCase struct {
 	racingNumberDataRepository  repository.RacingNumberDataRepository
 	raceDataRepository          repository.RaceDataRepository
 	jockeyDataRepository        repository.JockeyDataRepository
+	raceIdDataRepository        repository.RaceIdDataRepository
 	netKeibaService             service.NetKeibaService
 	raceConverter               service.RaceConverter
 	racingNumberEntityConverter service.RacingNumberEntityConverter
@@ -34,6 +39,7 @@ func NewDataCacheUseCase(
 	racingNumberRepository repository.RacingNumberDataRepository,
 	raceDataRepository repository.RaceDataRepository,
 	jockeyDataRepository repository.JockeyDataRepository,
+	raceIdDataRepository repository.RaceIdDataRepository,
 	netKeibaService service.NetKeibaService,
 	raceConverter service.RaceConverter,
 	racingNumberConverter service.RacingNumberEntityConverter,
@@ -44,6 +50,7 @@ func NewDataCacheUseCase(
 		racingNumberDataRepository:  racingNumberRepository,
 		raceDataRepository:          raceDataRepository,
 		jockeyDataRepository:        jockeyDataRepository,
+		raceIdDataRepository:        raceIdDataRepository,
 		netKeibaService:             netKeibaService,
 		raceConverter:               raceConverter,
 		racingNumberEntityConverter: racingNumberConverter,
@@ -52,10 +59,10 @@ func NewDataCacheUseCase(
 	}
 }
 
-func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.RacingNumber, []*data_cache_entity.Race, []*data_cache_entity.Jockey, []int, error) {
+func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.RacingNumber, []*data_cache_entity.Race, []*data_cache_entity.Jockey, []int, map[string][]types.RaceId, []string, error) {
 	rawRacingNumbers, err := d.racingNumberDataRepository.Read(ctx, racingNumberFileName)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	racingNumbers := make([]*data_cache_entity.RacingNumber, 0, len(rawRacingNumbers))
 	for _, rawRacingNumber := range rawRacingNumbers {
@@ -64,7 +71,7 @@ func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.Racin
 
 	rawRaces, err := d.raceDataRepository.Read(ctx, raceResultFileName)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	races := make([]*data_cache_entity.Race, 0, len(rawRaces))
 	for _, rawRace := range rawRaces {
@@ -73,14 +80,27 @@ func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.Racin
 
 	rawJockeys, excludeJockeyIds, err := d.jockeyDataRepository.Read(ctx, jockeyFileName)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	jockeys := make([]*data_cache_entity.Jockey, 0, len(rawJockeys))
 	for _, rawJockey := range rawJockeys {
 		jockeys = append(jockeys, d.jockeyEntityConverter.RawToDataCache(rawJockey))
 	}
 
-	return racingNumbers, races, jockeys, excludeJockeyIds, nil
+	rawRaceDates, excludeDates, err := d.raceIdDataRepository.Read(ctx, raceIdFileName)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	raceIdMap := map[string][]types.RaceId{}
+	for _, rawRaceDate := range rawRaceDates {
+		var raceIds []types.RaceId
+		for _, rawRaceId := range rawRaceDate.RaceIds {
+			raceIds = append(raceIds, types.RaceId(rawRaceId))
+		}
+		raceIdMap[rawRaceDate.RaceDate] = raceIds
+	}
+
+	return racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, nil
 }
 
 func (d *DataCacheUseCase) Write(
@@ -90,6 +110,8 @@ func (d *DataCacheUseCase) Write(
 	races []*data_cache_entity.Race,
 	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []int,
+	raceIdMap map[string][]types.RaceId,
+	excludeDates []string,
 ) error {
 	urls, _ := d.netKeibaService.CreateRacingNumberUrls(ctx, tickets, racingNumbers)
 	newRawRacingNumbers := make([]*raw_entity.RacingNumber, 0, len(racingNumbers)+len(urls))
@@ -187,6 +209,48 @@ func (d *DataCacheUseCase) Write(
 	}
 
 	err = d.jockeyDataRepository.Write(ctx, jockeyFileName, &jockeyInfo)
+	if err != nil {
+		return err
+	}
+
+	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, raceIdMap, excludeDates, startDate, endDate)
+	if err != nil {
+		return err
+	}
+	var newRawRaceDates []*raw_entity.RaceDate
+	var newExcludeDates []string
+	for _, url := range urls {
+		time.Sleep(time.Second * 1)
+		u, err := net_url.Parse(url)
+		if err != nil {
+			return err
+		}
+		date := u.Query().Get("kaisai_date")
+		rawRaceIds, err := d.raceIdDataRepository.Fetch(ctx, url)
+		if err != nil {
+			return err
+		}
+		if len(rawRaceIds) == 0 {
+			newExcludeDates = append(newExcludeDates, date)
+			continue
+		}
+		log.Println(ctx, "fetch from "+url)
+
+		rawRaceDate := raw_entity.RaceDate{
+			RaceDate: date,
+			RaceIds:  rawRaceIds,
+		}
+		newRawRaceDates = append(newRawRaceDates, &rawRaceDate)
+	}
+
+	newExcludeDates = append(excludeDates, newExcludeDates...)
+
+	raceIdInfo := raw_entity.RaceIdInfo{
+		RaceDates:    newRawRaceDates,
+		ExcludeDates: newExcludeDates,
+	}
+
+	err = d.raceIdDataRepository.Write(ctx, raceIdFileName, &raceIdInfo)
 	if err != nil {
 		return err
 	}

@@ -7,16 +7,18 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	jockey_vo "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"time"
 )
 
 type NetKeibaService interface {
 	CreateRacingNumberUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateRaceUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, races []*data_cache_entity.Race, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateJockeyUrls(ctx context.Context, jockeys []*data_cache_entity.Jockey, excludeJockeyIds []int) ([]string, error)
+	CreateRaceIdUrls(ctx context.Context, raceIdMap map[string][]types.RaceId, excludeDates []string, dateFrom, dateTo string) ([]string, error)
 }
 
 const (
-	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%d"
+	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%s"
 	raceResultUrlForJRA     = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
 	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
 	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
@@ -151,6 +153,33 @@ func (n *netKeibaService) CreateJockeyUrls(
 		}
 		jockeyId := jockey_vo.JockeyId(i)
 		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Format()))
+	}
+
+	return urls, nil
+}
+
+func (n *netKeibaService) CreateRaceIdUrls(
+	ctx context.Context,
+	raceIdMap map[string][]types.RaceId,
+	excludeDates []string,
+	dateFrom, dateTo string,
+) ([]string, error) {
+	var urls []string
+	excludeDateMap := map[string]bool{}
+	for _, excludeDate := range excludeDates {
+		excludeDateMap[excludeDate] = true
+	}
+
+	startTime, _ := time.Parse("20060102", dateFrom)
+	endTime, _ := time.Parse("20060102", dateTo)
+	for d := startTime; d.Before(endTime) || d.Equal(endTime); d = d.AddDate(0, 0, 1) {
+		date := d.Format("20060102")
+		if _, ok := excludeDateMap[date]; ok {
+			continue
+		}
+		if _, ok := raceIdMap[date]; !ok {
+			urls = append(urls, fmt.Sprintf(raceListUrlForJRA, date))
+		}
 	}
 
 	return urls, nil

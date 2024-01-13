@@ -59,7 +59,7 @@ func NewDataCacheUseCase(
 	}
 }
 
-func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.RacingNumber, []*data_cache_entity.Race, []*data_cache_entity.Jockey, []int, map[string][]types.RaceId, []string, error) {
+func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.RacingNumber, []*data_cache_entity.Race, []*data_cache_entity.Jockey, []int, map[types.RaceDate][]types.RaceId, []types.RaceDate, error) {
 	rawRacingNumbers, err := d.racingNumberDataRepository.Read(ctx, racingNumberFileName)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
@@ -87,17 +87,25 @@ func (d *DataCacheUseCase) Read(ctx context.Context) ([]*data_cache_entity.Racin
 		jockeys = append(jockeys, d.jockeyEntityConverter.RawToDataCache(rawJockey))
 	}
 
-	rawRaceDates, excludeDates, err := d.raceIdDataRepository.Read(ctx, raceIdFileName)
+	rawRaceDates, rawExcludeDates, err := d.raceIdDataRepository.Read(ctx, raceIdFileName)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	raceIdMap := map[string][]types.RaceId{}
+	raceIdMap := map[types.RaceDate][]types.RaceId{}
 	for _, rawRaceDate := range rawRaceDates {
 		var raceIds []types.RaceId
 		for _, rawRaceId := range rawRaceDate.RaceIds {
 			raceIds = append(raceIds, types.RaceId(rawRaceId))
 		}
-		raceIdMap[rawRaceDate.RaceDate] = raceIds
+		raceDate := types.RaceDate(rawRaceDate.RaceDate)
+		raceIdMap[raceDate] = raceIds
+	}
+	excludeDates := make([]types.RaceDate, 0, len(rawExcludeDates))
+	for _, rawExcludeDate := range rawExcludeDates {
+		if err != nil {
+			return nil, nil, nil, nil, nil, nil, err
+		}
+		excludeDates = append(excludeDates, types.RaceDate(rawExcludeDate))
 	}
 
 	return racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, nil
@@ -110,8 +118,8 @@ func (d *DataCacheUseCase) Write(
 	races []*data_cache_entity.Race,
 	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []int,
-	raceIdMap map[string][]types.RaceId,
-	excludeDates []string,
+	raceIdMap map[types.RaceDate][]types.RaceId,
+	excludeDates []types.RaceDate,
 ) error {
 	urls, _ := d.netKeibaService.CreateRacingNumberUrls(ctx, tickets, racingNumbers)
 	newRawRacingNumbers := make([]*raw_entity.RacingNumber, 0, len(racingNumbers)+len(urls))
@@ -218,36 +226,42 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 	var newRawRaceDates []*raw_entity.RaceDate
-	var newExcludeDates []string
+	var newRawExcludeDates []int
+	for _, excludeDate := range excludeDates {
+		newRawExcludeDates = append(newRawExcludeDates, excludeDate.Value())
+	}
+
 	for _, url := range urls {
 		time.Sleep(time.Second * 1)
 		u, err := net_url.Parse(url)
 		if err != nil {
 			return err
 		}
-		date := u.Query().Get("kaisai_date")
+		date, err := types.NewRaceDate(u.Query().Get("kaisai_date"))
+		if err != nil {
+			return err
+		}
 		rawRaceIds, err := d.raceIdDataRepository.Fetch(ctx, url)
 		if err != nil {
 			return err
 		}
 		if len(rawRaceIds) == 0 {
-			newExcludeDates = append(newExcludeDates, date)
+
+			newRawExcludeDates = append(newRawExcludeDates, date.Value())
 			continue
 		}
 		log.Println(ctx, "fetch from "+url)
 
 		rawRaceDate := raw_entity.RaceDate{
-			RaceDate: date,
+			RaceDate: date.Value(),
 			RaceIds:  rawRaceIds,
 		}
 		newRawRaceDates = append(newRawRaceDates, &rawRaceDate)
 	}
 
-	newExcludeDates = append(excludeDates, newExcludeDates...)
-
 	raceIdInfo := raw_entity.RaceIdInfo{
 		RaceDates:    newRawRaceDates,
-		ExcludeDates: newExcludeDates,
+		ExcludeDates: newRawExcludeDates,
 	}
 
 	err = d.raceIdDataRepository.Write(ctx, raceIdFileName, &raceIdInfo)

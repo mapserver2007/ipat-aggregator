@@ -14,11 +14,11 @@ type NetKeibaService interface {
 	CreateRacingNumberUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateRaceUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, races []*data_cache_entity.Race, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateJockeyUrls(ctx context.Context, jockeys []*data_cache_entity.Jockey, excludeJockeyIds []int) ([]string, error)
-	CreateRaceIdUrls(ctx context.Context, raceIdMap map[string][]types.RaceId, excludeDates []string, dateFrom, dateTo string) ([]string, error)
+	CreateRaceIdUrls(ctx context.Context, raceIdMap map[types.RaceDate][]types.RaceId, excludeDates []types.RaceDate, dateFrom, dateTo string) ([]string, error)
 }
 
 const (
-	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%s"
+	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%d"
 	raceResultUrlForJRA     = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
 	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
 	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
@@ -160,12 +160,12 @@ func (n *netKeibaService) CreateJockeyUrls(
 
 func (n *netKeibaService) CreateRaceIdUrls(
 	ctx context.Context,
-	raceIdMap map[string][]types.RaceId,
-	excludeDates []string,
+	raceIdMap map[types.RaceDate][]types.RaceId,
+	excludeDates []types.RaceDate,
 	dateFrom, dateTo string,
 ) ([]string, error) {
 	var urls []string
-	excludeDateMap := map[string]bool{}
+	excludeDateMap := map[types.RaceDate]bool{}
 	for _, excludeDate := range excludeDates {
 		excludeDateMap[excludeDate] = true
 	}
@@ -173,7 +173,10 @@ func (n *netKeibaService) CreateRaceIdUrls(
 	startTime, _ := time.Parse("20060102", dateFrom)
 	endTime, _ := time.Parse("20060102", dateTo)
 	for d := startTime; d.Before(endTime) || d.Equal(endTime); d = d.AddDate(0, 0, 1) {
-		date := d.Format("20060102")
+		date, err := types.NewRaceDate(d.Format("20060102"))
+		if err != nil {
+			return nil, err
+		}
 		if _, ok := excludeDateMap[date]; ok {
 			continue
 		}

@@ -22,9 +22,9 @@ func NewRaceIdDataRepository() repository.RaceIdDataRepository {
 	}
 }
 
-func (r *raceIdDataRepository) Read(ctx context.Context, fileName string) ([]*raw_entity.RaceDate, []string, error) {
+func (r *raceIdDataRepository) Read(ctx context.Context, fileName string) ([]*raw_entity.RaceDate, []int, error) {
 	raceDates := make([]*raw_entity.RaceDate, 0)
-	excludeDates := make([]string, 0)
+	excludeDates := make([]int, 0)
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, nil, err

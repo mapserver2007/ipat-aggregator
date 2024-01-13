@@ -10,6 +10,7 @@ type Race struct {
 	RaceNumber     int             `json:"race_number"`
 	RaceCourseId   string          `json:"race_course_id"`
 	RaceName       string          `json:"race_name"`
+	Organizer      int             `json:"organizer"`
 	Url            string          `json:"url"`
 	Time           string          `json:"time"`
 	StartTime      string          `json:"start_time"`

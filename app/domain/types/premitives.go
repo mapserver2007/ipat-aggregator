@@ -251,6 +251,18 @@ const (
 	OverseaOrganizer
 )
 
+func NewOrganizer(value int) Organizer {
+	switch value {
+	case 1:
+		return JRA
+	case 2:
+		return NAR
+	case 3:
+		return OverseaOrganizer
+	}
+	return UnknownOrganizer
+}
+
 type TicketType int
 
 const (

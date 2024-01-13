@@ -2,7 +2,6 @@ package data_cache_usecase
 
 import (
 	"context"
-	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
@@ -128,7 +127,7 @@ func (d *DataCacheUseCase) Write(
 	}
 	for _, url := range urls {
 		time.Sleep(time.Second * 1)
-		log.Println(ctx, "fetch from "+url)
+		log.Println(ctx, "fetch racingNumber from "+url)
 		fetchRacingNumbers, err := d.racingNumberDataRepository.Fetch(ctx, url)
 		if err != nil {
 			return err
@@ -157,21 +156,14 @@ func (d *DataCacheUseCase) Write(
 	for _, race := range races {
 		newRaces = append(newRaces, d.raceEntityConverter.DataCacheToRaw(race))
 	}
-	ticketMap := d.raceConverter.ConvertToTicketMap(ctx, tickets, racingNumbers)
 	for _, url := range urls {
 		time.Sleep(time.Second * 1)
-		log.Println(ctx, "fetch from "+url)
+		log.Println(ctx, "fetch race from "+url)
 		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
 			return err
 		}
-
-		ticket, ok := ticketMap[types.RaceId(fetchRace.RaceId())]
-		if !ok {
-			return fmt.Errorf("undefind raceId: %v", fetchRace.RaceId())
-		}
-
-		newRace := d.raceEntityConverter.NetKeibaToRaw(fetchRace, ticket)
+		newRace := d.raceEntityConverter.NetKeibaToRaw(fetchRace)
 		newRaces = append(newRaces, newRace)
 		races = append(races, d.raceEntityConverter.RawToDataCache(newRace))
 	}
@@ -196,7 +188,7 @@ func (d *DataCacheUseCase) Write(
 	var newExcludeJockeyIds []int
 	for _, url := range urls {
 		time.Sleep(time.Second * 1)
-		log.Println(ctx, "fetch from "+url)
+		log.Println(ctx, "fetch jockey from "+url)
 		jockey, err := d.jockeyDataRepository.Fetch(ctx, url)
 		if err != nil {
 			return err
@@ -250,7 +242,7 @@ func (d *DataCacheUseCase) Write(
 			newRawExcludeDates = append(newRawExcludeDates, date.Value())
 			continue
 		}
-		log.Println(ctx, "fetch from "+url)
+		log.Println(ctx, "fetch raceId from "+url)
 
 		rawRaceDate := raw_entity.RaceDate{
 			RaceDate: date.Value(),
@@ -267,6 +259,24 @@ func (d *DataCacheUseCase) Write(
 	err = d.raceIdDataRepository.Write(ctx, raceIdFileName, &raceIdInfo)
 	if err != nil {
 		return err
+	}
+
+	// TODO キャッシュ分は除く
+	var raceIds []types.RaceId
+	for _, raceId := range raceIdMap {
+		raceIds = append(raceIds, raceId...)
+	}
+	urls, err = d.netKeibaService.CreatePredictRaceUrls(ctx, raceIds)
+	if err != nil {
+		return err
+	}
+	for _, url := range urls {
+		time.Sleep(time.Second * 1)
+		log.Println(ctx, "fetch predictRace from "+url)
+		_, err := d.raceDataRepository.Fetch(ctx, url)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

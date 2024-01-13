@@ -1,8 +1,16 @@
 package netkeiba_entity
 
+import (
+	"strconv"
+)
+
 type Race struct {
 	raceId         string
+	raceDate       int
 	raceName       string
+	raceCourseId   string
+	raceNumber     int
+	organizer      int
 	url            string
 	time           string
 	startTime      string
@@ -17,7 +25,9 @@ type Race struct {
 
 func NewRace(
 	raceId string,
+	raceDate int,
 	raceName string,
+	organizer int,
 	url string,
 	time string,
 	startTime string,
@@ -29,9 +39,15 @@ func NewRace(
 	raceResults []*RaceResult,
 	payoutResults []*PayoutResult,
 ) *Race {
+	raceCourseId := raceId[4:6]
+	raceNumber, _ := strconv.Atoi(raceId[10:])
 	return &Race{
 		raceId:         raceId,
+		raceDate:       raceDate,
 		raceName:       raceName,
+		raceCourseId:   raceCourseId,
+		raceNumber:     raceNumber,
+		organizer:      organizer,
 		url:            url,
 		time:           time,
 		startTime:      startTime,
@@ -49,8 +65,24 @@ func (r *Race) RaceId() string {
 	return r.raceId
 }
 
+func (r *Race) RaceDate() int {
+	return r.raceDate
+}
+
 func (r *Race) RaceName() string {
 	return r.raceName
+}
+
+func (r *Race) RaceCourseId() string {
+	return r.raceCourseId
+}
+
+func (r *Race) RaceNumber() int {
+	return r.raceNumber
+}
+
+func (r *Race) Organizer() int {
+	return r.organizer
 }
 
 func (r *Race) Url() string {

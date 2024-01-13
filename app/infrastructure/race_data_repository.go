@@ -106,7 +106,7 @@ func (r *raceDataRepository) Fetch(
 			var oddsList []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
-			currentOrganizer := types.Organizer(rawCurrentOrganizer)
+			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
 
 			if currentOrganizer == types.JRA {
 				ce.ForEach(".Num > div", func(j int, ce2 *colly.HTMLElement) {
@@ -171,7 +171,7 @@ func (r *raceDataRepository) Fetch(
 			var oddsList []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
-			currentOrganizer := types.Organizer(rawCurrentOrganizer)
+			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
 
 			if currentOrganizer == types.NAR {
 				ce.ForEach(".Num > div", func(j int, ce2 *colly.HTMLElement) {
@@ -209,7 +209,7 @@ func (r *raceDataRepository) Fetch(
 		e.ForEach("div", func(i int, ce *colly.HTMLElement) {
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
-			currentOrganizer := types.Organizer(rawCurrentOrganizer)
+			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
 			if currentOrganizer == types.JRA || currentOrganizer == types.NAR {
 				switch i {
 				case 0:
@@ -459,11 +459,6 @@ func (r *raceDataRepository) Fetch(
 		})
 	})
 
-	err := r.client.Visit(url)
-	if err != nil {
-		return nil, err
-	}
-
 	parsedUrl, err := neturl.Parse(url)
 	if err != nil {
 		return nil, err
@@ -473,10 +468,25 @@ func (r *raceDataRepository) Fetch(
 		return nil, err
 	}
 	raceId := queryParams.Get("race_id")
+	organizer, err := strconv.Atoi(queryParams.Get("organizer"))
+	if err != nil {
+		return nil, err
+	}
+	raceDate, err := strconv.Atoi(queryParams.Get("race_date"))
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.client.Visit(url)
+	if err != nil {
+		return nil, err
+	}
 
 	return netkeiba_entity.NewRace(
 		raceId,
+		raceDate,
 		raceName,
+		organizer,
 		url,
 		raceTimes[0],
 		startTime,

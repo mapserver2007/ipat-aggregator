@@ -15,13 +15,14 @@ type NetKeibaService interface {
 	CreateRaceUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, races []*data_cache_entity.Race, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateJockeyUrls(ctx context.Context, jockeys []*data_cache_entity.Jockey, excludeJockeyIds []int) ([]string, error)
 	CreateRaceIdUrls(ctx context.Context, raceIdMap map[types.RaceDate][]types.RaceId, excludeDates []types.RaceDate, dateFrom, dateTo string) ([]string, error)
+	CreatePredictRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, error)
 }
 
 const (
 	raceListUrlForJRA       = "https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=%d"
-	raceResultUrlForJRA     = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
-	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d"
+	raceResultUrlForJRA     = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d&race_date=%d"
+	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d&race_date=%d"
+	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d&race_date=%d"
 	jockeyUrl               = "https://db.netkeiba.com/jockey/%s/"
 )
 
@@ -35,6 +36,17 @@ func NewNetKeibaService(
 	return &netKeibaService{
 		raceConverter: raceConverter,
 	}
+}
+
+func (n *netKeibaService) CreatePredictRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, error) {
+	// 予想用URLはJRAのみ
+	//raceUrls := make([]string, 0, len(raceIds))
+	//for _, raceId := range raceIds {
+	//	raceUrls = append(raceUrls, fmt.Sprintf(raceResultUrlForJRA, raceId, types.JRA))
+	//}
+	//return raceUrls, nil
+
+	return nil, nil
 }
 
 func (n *netKeibaService) CreateRacingNumberUrls(
@@ -89,11 +101,11 @@ func (n *netKeibaService) CreateRaceUrls(
 			continue
 		}
 		if ticket.RaceCourse().JRA() {
-			url = fmt.Sprintf(raceResultUrlForJRA, raceId, types.JRA)
+			url = fmt.Sprintf(raceResultUrlForJRA, raceId, types.JRA, ticket.RaceDate())
 		} else if ticket.RaceCourse().NAR() {
-			url = fmt.Sprintf(raceResultUrlForNAR, raceId, types.NAR)
+			url = fmt.Sprintf(raceResultUrlForNAR, raceId, types.NAR, ticket.RaceDate())
 		} else if ticket.RaceCourse().Oversea() {
-			url = fmt.Sprintf(raceResultUrlForOversea, raceId, types.OverseaOrganizer)
+			url = fmt.Sprintf(raceResultUrlForOversea, raceId, types.OverseaOrganizer, ticket.RaceDate())
 		} else {
 			return nil, fmt.Errorf("undefined organizer: race_date %d, race_no %d", ticket.RaceDate(), ticket.RaceNo())
 		}

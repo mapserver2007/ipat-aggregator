@@ -24,6 +24,7 @@ const (
 	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d&race_date=%d"
 	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d&race_date=%d"
 	jockeyUrl               = "https://db.netkeiba.com/jockey/%s/"
+	predictRaceResultUrl    = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%d&type=predict"
 )
 
 type netKeibaService struct {
@@ -204,13 +205,13 @@ func (n *netKeibaService) CreatePredictRaceUrls(
 	}
 	for raceId, raceDate := range raceIdMap {
 		if _, ok := raceMap[raceId]; !ok {
-			raceUrls = append(raceUrls, fmt.Sprintf(raceResultUrlForJRA, raceId, types.JRA, raceDate))
+			raceUrls = append(raceUrls, fmt.Sprintf(predictRaceResultUrl, raceId, raceDate))
 		}
 	}
 
 	for _, race := range races {
 		if _, ok := raceIdMap[race.RaceId()]; !ok {
-			raceUrls = append(raceUrls, fmt.Sprintf(raceResultUrlForJRA, race.RaceId(), types.JRA, race.RaceDate()))
+			raceUrls = append(raceUrls, fmt.Sprintf(predictRaceResultUrl, race.RaceId(), race.RaceDate()))
 		}
 	}
 	return raceUrls, nil

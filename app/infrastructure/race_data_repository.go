@@ -100,6 +100,9 @@ func (r *raceDataRepository) Fetch(
 		distance, entries        int
 		gradeClass               types.GradeClass
 	)
+	raceSexCondition := types.NoRaceSexCondition
+	raceWeightCondition := types.FixedWeight
+
 	r.client.OnHTML("#All_Result_Table", func(e *colly.HTMLElement) {
 		e.ForEach("tr.HorseList", func(i int, ce *colly.HTMLElement) {
 			var numbers []int
@@ -278,10 +281,31 @@ func (r *raceDataRepository) Fetch(
 					distance, _ = strconv.Atoi(matches[0][3])
 					trackCondition = matches[0][4]
 				case 2:
-					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
-					regex := regexp.MustCompile(`(\d+)頭`)
-					matches := regex.FindAllStringSubmatch(text, -1)
-					entries, _ = strconv.Atoi(matches[0][1])
+					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
+						switch j {
+						case 5:
+							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+							if strings.Contains(text, "牝") {
+								raceSexCondition = types.FillyAndMareLimited
+							}
+						case 6:
+							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+							if text == types.AgeWeight.String() {
+								raceWeightCondition = types.AgeWeight
+							} else if text == types.FixedWeight.String() {
+								raceWeightCondition = types.FixedWeight
+							} else if text == types.SpecialWeight.String() {
+								raceWeightCondition = types.SpecialWeight
+							} else if text == types.HandicapWeight.String() {
+								raceWeightCondition = types.HandicapWeight
+							}
+						case 7:
+							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+							regex := regexp.MustCompile(`(\d+)頭`)
+							matches := regex.FindAllStringSubmatch(text, -1)
+							entries, _ = strconv.Atoi(matches[0][1])
+						}
+					})
 				}
 			} else if currentOrganizer == types.OverseaOrganizer {
 				switch i {
@@ -492,9 +516,11 @@ func (r *raceDataRepository) Fetch(
 		startTime,
 		entries,
 		distance,
-		int(gradeClass),
-		int(courseCategory),
+		gradeClass.Value(),
+		courseCategory.Value(),
 		trackCondition,
+		raceSexCondition.Value(),
+		raceWeightCondition.Value(),
 		raceResults,
 		payoutResults,
 	), nil

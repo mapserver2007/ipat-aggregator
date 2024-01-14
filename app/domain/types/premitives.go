@@ -571,6 +571,56 @@ func (d DistanceCategory) String() string {
 	return distanceCategoryName
 }
 
+type RaceWeightCondition int
+
+const (
+	UndefinedRaceWeightCondition RaceWeightCondition = iota
+	AgeWeight
+	FixedWeight
+	SpecialWeight
+	HandicapWeight
+)
+
+var raceWeightConditionMap = map[RaceWeightCondition]string{
+	UndefinedRaceWeightCondition: "未定義重量条件",
+	AgeWeight:                    "馬齢",
+	FixedWeight:                  "定量",
+	SpecialWeight:                "別定",
+	HandicapWeight:               "ハンデ",
+}
+
+func (r RaceWeightCondition) Value() int {
+	return int(r)
+}
+
+func (r RaceWeightCondition) String() string {
+	raceWeightConditionName, _ := raceWeightConditionMap[r]
+	return raceWeightConditionName
+}
+
+type RaceSexCondition int
+
+const (
+	UndefinedRaceSexCondition RaceSexCondition = iota
+	NoRaceSexCondition
+	FillyAndMareLimited
+)
+
+var raceSexConditionMap = map[RaceSexCondition]string{
+	UndefinedRaceSexCondition: "未定義性別条件",
+	NoRaceSexCondition:        "混合",
+	FillyAndMareLimited:       "牝馬限定",
+}
+
+func (r RaceSexCondition) Value() int {
+	return int(r)
+}
+
+func (r RaceSexCondition) String() string {
+	raceSexConditionName, _ := raceSexConditionMap[r]
+	return raceSexConditionName
+}
+
 type Marker int
 
 const (

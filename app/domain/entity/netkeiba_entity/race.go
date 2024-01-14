@@ -5,22 +5,24 @@ import (
 )
 
 type Race struct {
-	raceId         string
-	raceDate       int
-	raceName       string
-	raceCourseId   string
-	raceNumber     int
-	organizer      int
-	url            string
-	time           string
-	startTime      string
-	entries        int
-	distance       int
-	class          int
-	courseCategory int
-	trackCondition string
-	raceResults    []*RaceResult
-	payoutResults  []*PayoutResult
+	raceId              string
+	raceDate            int
+	raceName            string
+	raceCourseId        string
+	raceNumber          int
+	organizer           int
+	url                 string
+	time                string
+	startTime           string
+	entries             int
+	distance            int
+	class               int
+	courseCategory      int
+	trackCondition      string
+	raceSexCondition    int
+	raceWeightCondition int
+	raceResults         []*RaceResult
+	payoutResults       []*PayoutResult
 }
 
 func NewRace(
@@ -36,28 +38,32 @@ func NewRace(
 	class int,
 	courseCategory int,
 	trackCondition string,
+	raceSexCondition int,
+	raceWeightCondition int,
 	raceResults []*RaceResult,
 	payoutResults []*PayoutResult,
 ) *Race {
 	raceCourseId := raceId[4:6]
 	raceNumber, _ := strconv.Atoi(raceId[10:])
 	return &Race{
-		raceId:         raceId,
-		raceDate:       raceDate,
-		raceName:       raceName,
-		raceCourseId:   raceCourseId,
-		raceNumber:     raceNumber,
-		organizer:      organizer,
-		url:            url,
-		time:           time,
-		startTime:      startTime,
-		entries:        entries,
-		distance:       distance,
-		class:          class,
-		courseCategory: courseCategory,
-		trackCondition: trackCondition,
-		raceResults:    raceResults,
-		payoutResults:  payoutResults,
+		raceId:              raceId,
+		raceDate:            raceDate,
+		raceName:            raceName,
+		raceCourseId:        raceCourseId,
+		raceNumber:          raceNumber,
+		organizer:           organizer,
+		url:                 url,
+		time:                time,
+		startTime:           startTime,
+		entries:             entries,
+		distance:            distance,
+		class:               class,
+		courseCategory:      courseCategory,
+		trackCondition:      trackCondition,
+		raceSexCondition:    raceSexCondition,
+		raceWeightCondition: raceWeightCondition,
+		raceResults:         raceResults,
+		payoutResults:       payoutResults,
 	}
 }
 
@@ -115,6 +121,14 @@ func (r *Race) CourseCategory() int {
 
 func (r *Race) TrackCondition() string {
 	return r.trackCondition
+}
+
+func (r *Race) RaceSexCondition() int {
+	return r.raceSexCondition
+}
+
+func (r *Race) RaceWeightCondition() int {
+	return r.raceWeightCondition
 }
 
 func (r *Race) RaceResults() []*RaceResult {

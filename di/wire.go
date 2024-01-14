@@ -20,10 +20,12 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 		service.NewRacingNumberEntityConverter,
 		service.NewRaceEntityConverter,
 		service.NewJockeyEntityConverter,
+		service.NewPredictEntityConverter,
 		infrastructure.NewRaceDataRepository,
 		infrastructure.NewRacingNumberDataRepository,
 		infrastructure.NewJockeyDataRepository,
 		infrastructure.NewRaceIdDataRepository,
+		infrastructure.NewPredictDataRepository,
 	)
 	return nil
 }

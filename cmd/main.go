@@ -5,7 +5,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
@@ -21,8 +20,9 @@ func main() {
 	ctx := context.Background()
 
 	if newProc {
-		tickets2, racingNumbers2, races2, jockeys2, raceIdMap, err := masterFile(ctx)
-		_ = raceIdMap
+		tickets2, racingNumbers2, races2, jockeys2, predictRaces, predicts, err := masterFile(ctx)
+		_ = predictRaces
+		_ = predicts
 		if err != nil {
 			panic(err)
 		}
@@ -103,33 +103,43 @@ func main() {
 	log.Println(ctx, "end")
 }
 
-func masterFile(ctx context.Context) ([]*ticket_csv_entity.Ticket, []*data_cache_entity.RacingNumber, []*data_cache_entity.Race, []*data_cache_entity.Jockey, map[types.RaceDate][]types.RaceId, error) {
+func masterFile(
+	ctx context.Context,
+) (
+	[]*ticket_csv_entity.Ticket,
+	[]*data_cache_entity.RacingNumber,
+	[]*data_cache_entity.Race,
+	[]*data_cache_entity.Jockey,
+	[]*data_cache_entity.Race,
+	[]*data_cache_entity.Predict,
+	error,
+) {
 	betNumberConverter := service.NewBetNumberConverter()
 	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
 	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
 
-	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, err := dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, _, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
 	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, err = dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, _, _, _, predictRaces, predicts, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	return tickets, racingNumbers, races, jockeys, raceIdMap, nil
+	return tickets, racingNumbers, races, jockeys, predictRaces, predicts, nil
 }
 
 func predict(ctx context.Context) {

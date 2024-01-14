@@ -114,17 +114,17 @@ func masterFile(ctx context.Context) ([]*ticket_csv_entity.Ticket, []*data_cache
 
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
 
-	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, err := dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
 
-	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates)
+	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
 
-	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, err = dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, err = dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}

@@ -28,14 +28,14 @@ func NewRaceDataRepository() repository.RaceDataRepository {
 	}
 }
 
-func (r *raceDataRepository) Read(ctx context.Context, fileName string) ([]*raw_entity.Race, error) {
+func (r *raceDataRepository) Read(ctx context.Context, filePath string) ([]*raw_entity.Race, error) {
 	races := make([]*raw_entity.Race, 0)
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, fileName))
+	path, err := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, filePath))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (r *raceDataRepository) Read(ctx context.Context, fileName string) ([]*raw_
 
 func (r *raceDataRepository) Write(
 	ctx context.Context,
-	fileName string,
+	filePath string,
 	raceInfo *raw_entity.RaceInfo,
 ) error {
 	var buffer bytes.Buffer
@@ -73,7 +73,7 @@ func (r *raceDataRepository) Write(
 		return err
 	}
 
-	filePath, err := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, fileName))
+	filePath, err = filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, filePath))
 	if err != nil {
 		return err
 	}

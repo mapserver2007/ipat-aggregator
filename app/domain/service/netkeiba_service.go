@@ -15,7 +15,7 @@ type NetKeibaService interface {
 	CreateRaceUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, races []*data_cache_entity.Race, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateJockeyUrls(ctx context.Context, jockeys []*data_cache_entity.Jockey, excludeJockeyIds []int) ([]string, error)
 	CreateRaceIdUrls(ctx context.Context, raceIdMap map[types.RaceDate][]types.RaceId, excludeDates []types.RaceDate, dateFrom, dateTo string) ([]string, error)
-	CreatePredictRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, error)
+	CreatePredictRaceUrls(ctx context.Context, races []*data_cache_entity.Race, raceIdMap map[types.RaceId]types.RaceDate) ([]string, error)
 }
 
 const (
@@ -36,17 +36,6 @@ func NewNetKeibaService(
 	return &netKeibaService{
 		raceConverter: raceConverter,
 	}
-}
-
-func (n *netKeibaService) CreatePredictRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, error) {
-	// 予想用URLはJRAのみ
-	//raceUrls := make([]string, 0, len(raceIds))
-	//for _, raceId := range raceIds {
-	//	raceUrls = append(raceUrls, fmt.Sprintf(raceResultUrlForJRA, raceId, types.JRA))
-	//}
-	//return raceUrls, nil
-
-	return nil, nil
 }
 
 func (n *netKeibaService) CreateRacingNumberUrls(
@@ -176,7 +165,7 @@ func (n *netKeibaService) CreateRaceIdUrls(
 	excludeDates []types.RaceDate,
 	dateFrom, dateTo string,
 ) ([]string, error) {
-	var urls []string
+	urls := make([]string, 0)
 	excludeDateMap := map[types.RaceDate]bool{}
 	for _, excludeDate := range excludeDates {
 		excludeDateMap[excludeDate] = true
@@ -198,4 +187,31 @@ func (n *netKeibaService) CreateRaceIdUrls(
 	}
 
 	return urls, nil
+}
+
+func (n *netKeibaService) CreatePredictRaceUrls(
+	ctx context.Context,
+	races []*data_cache_entity.Race,
+	raceIdMap map[types.RaceId]types.RaceDate,
+) ([]string, error) {
+	var (
+		raceUrls []string
+		raceMap  = map[types.RaceId]*data_cache_entity.Race{}
+	)
+
+	for _, race := range races {
+		raceMap[race.RaceId()] = race
+	}
+	for raceId, raceDate := range raceIdMap {
+		if _, ok := raceMap[raceId]; !ok {
+			raceUrls = append(raceUrls, fmt.Sprintf(raceResultUrlForJRA, raceId, types.JRA, raceDate))
+		}
+	}
+
+	for _, race := range races {
+		if _, ok := raceIdMap[race.RaceId()]; !ok {
+			raceUrls = append(raceUrls, fmt.Sprintf(raceResultUrlForJRA, race.RaceId(), types.JRA, race.RaceDate()))
+		}
+	}
+	return raceUrls, nil
 }

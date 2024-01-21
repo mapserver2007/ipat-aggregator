@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/predict_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/yamato_predict_usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
 )
@@ -111,20 +112,25 @@ func masterFile(
 	[]*data_cache_entity.Race,
 	[]*data_cache_entity.Jockey,
 	[]*data_cache_entity.Race,
-	[]*data_cache_entity.Predict,
+	[]*predict_csv_entity.Yamato,
 	error,
 ) {
 	betNumberConverter := service.NewBetNumberConverter()
 	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
+	predictDataRepository := infrastructure.NewPredictDataRepository()
 	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
+	predictUseCase := predict_usecase.NewPredict(predictDataRepository)
+
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
+	predicts, err := predictUseCase.Read(ctx) // TODO いまはファイルを読んでるだけだが、予想の全リストを返すようにする
+
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
 
-	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, _, err := dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
@@ -134,7 +140,7 @@ func masterFile(
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	racingNumbers, races, jockeys, _, _, _, predictRaces, predicts, err := dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, _, _, _, predictRaces, err = dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
@@ -143,11 +149,10 @@ func masterFile(
 }
 
 func predict(ctx context.Context) {
-	raceConverter := service.NewRaceConverter()
-	netKeibaService := service.NewNetKeibaService(raceConverter)
-	raceIdRepository := infrastructure.NewRaceIdDataRepository()
-	predictUseCase := yamato_predict_usecase.NewPredict(netKeibaService, raceIdRepository)
-	_ = predictUseCase.Fetch(ctx)
+	//raceConverter := service.NewRaceConverter()
+	//netKeibaService := service.NewNetKeibaService(raceConverter)
+	//raceIdRepository := infrastructure.NewRaceIdDataRepository()
+	//predictUseCase := predict_usecase.NewPredict(netKeibaService, raceIdRepository)
 
 	//dataCacheUseCase := di.InitializeDataCacheUseCase()
 }

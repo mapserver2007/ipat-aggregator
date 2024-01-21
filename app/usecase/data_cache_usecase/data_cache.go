@@ -19,8 +19,8 @@ const (
 	raceResultFileName        = "race_result.json"
 	jockeyFileName            = "jockey.json"
 	raceIdFileName            = "race_id.json"
-	predictRaceResultFilePath = "predict/races/race_result_%d.json"
-	predictFilePath           = "predict/markers/yamato_%d.json"
+	predictRaceResultFilePath = "predict_races/race_result_%d.json"
+	predictFilePath           = "csv/markers/yamato_predict.json"
 	startDate                 = "20240101"
 	endDate                   = "20240110"
 )
@@ -36,7 +36,6 @@ type DataCacheUseCase struct {
 	racingNumberEntityConverter service.RacingNumberEntityConverter
 	raceEntityConverter         service.RaceEntityConverter
 	jockeyEntityConverter       service.JockeyEntityConverter
-	predictEntityConverter      service.PredictEntityConverter
 }
 
 func NewDataCacheUseCase(
@@ -50,7 +49,6 @@ func NewDataCacheUseCase(
 	racingNumberConverter service.RacingNumberEntityConverter,
 	raceEntityConverter service.RaceEntityConverter,
 	jockeyEntityConverter service.JockeyEntityConverter,
-	predictEntityConverter service.PredictEntityConverter,
 ) *DataCacheUseCase {
 	return &DataCacheUseCase{
 		racingNumberDataRepository:  racingNumberRepository,
@@ -63,7 +61,6 @@ func NewDataCacheUseCase(
 		racingNumberEntityConverter: racingNumberConverter,
 		raceEntityConverter:         raceEntityConverter,
 		jockeyEntityConverter:       jockeyEntityConverter,
-		predictEntityConverter:      predictEntityConverter,
 	}
 }
 
@@ -77,12 +74,11 @@ func (d *DataCacheUseCase) Read(
 	map[types.RaceDate][]types.RaceId,
 	[]types.RaceDate,
 	[]*data_cache_entity.Race,
-	[]*data_cache_entity.Predict,
 	error,
 ) {
 	rawRacingNumbers, err := d.racingNumberDataRepository.Read(ctx, racingNumberFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, err
 	}
 	racingNumbers := make([]*data_cache_entity.RacingNumber, 0, len(rawRacingNumbers))
 	for _, rawRacingNumber := range rawRacingNumbers {
@@ -91,7 +87,7 @@ func (d *DataCacheUseCase) Read(
 
 	rawRaces, err := d.raceDataRepository.Read(ctx, raceResultFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, err
 	}
 	races := make([]*data_cache_entity.Race, 0, len(rawRaces))
 	for _, rawRace := range rawRaces {
@@ -100,7 +96,7 @@ func (d *DataCacheUseCase) Read(
 
 	rawJockeys, excludeJockeyIds, err := d.jockeyDataRepository.Read(ctx, jockeyFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, err
 	}
 	jockeys := make([]*data_cache_entity.Jockey, 0, len(rawJockeys))
 	for _, rawJockey := range rawJockeys {
@@ -109,7 +105,7 @@ func (d *DataCacheUseCase) Read(
 
 	rawRaceDates, rawExcludeDates, err := d.raceIdDataRepository.Read(ctx, raceIdFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, err
 	}
 	raceIdMap := map[types.RaceDate][]types.RaceId{}
 	for _, rawRaceDate := range rawRaceDates {
@@ -123,31 +119,23 @@ func (d *DataCacheUseCase) Read(
 	excludeDates := make([]types.RaceDate, 0, len(rawExcludeDates))
 	for _, rawExcludeDate := range rawExcludeDates {
 		if err != nil {
-			return nil, nil, nil, nil, nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, nil, nil, err
 		}
 		excludeDates = append(excludeDates, types.RaceDate(rawExcludeDate))
 	}
 
 	predictRaces := make([]*data_cache_entity.Race, 0)
-	predicts := make([]*data_cache_entity.Predict, 0)
 	for raceDate := range raceIdMap {
 		rawPredictRaces, err := d.raceDataRepository.Read(ctx, fmt.Sprintf(predictRaceResultFilePath, raceDate.Value()))
 		if err != nil {
-			return nil, nil, nil, nil, nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, nil, nil, err
 		}
 		for _, rawPredictRace := range rawPredictRaces {
 			predictRaces = append(predictRaces, d.raceEntityConverter.RawToDataCache(rawPredictRace))
 		}
-		rawPredicts, err := d.predictDataRepository.Read(ctx, fmt.Sprintf(predictFilePath, raceDate.Value()))
-		if err != nil {
-			return nil, nil, nil, nil, nil, nil, nil, nil, err
-		}
-		for _, rawPredict := range rawPredicts {
-			predicts = append(predicts, d.predictEntityConverter.RawToDataCache(rawPredict))
-		}
 	}
 
-	return racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, predicts, nil
+	return racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, nil
 }
 
 func (d *DataCacheUseCase) Write(

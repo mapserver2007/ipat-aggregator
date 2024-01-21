@@ -230,28 +230,3 @@ func (j *jockeyEntityConverter) RawToDataCache(input *raw_entity.Jockey) *data_c
 		input.JockeyName,
 	)
 }
-
-type PredictEntityConverter interface {
-	RawToDataCache(input *raw_entity.Predict) *data_cache_entity.Predict
-}
-
-type predictEntityConverter struct{}
-
-func NewPredictEntityConverter() PredictEntityConverter {
-	return &predictEntityConverter{}
-}
-
-func (p *predictEntityConverter) RawToDataCache(input *raw_entity.Predict) *data_cache_entity.Predict {
-	markers := make([]*data_cache_entity.Marker, 0, len(input.Markers))
-	for _, rawMarker := range input.Markers {
-		marker, _ := data_cache_entity.NewMarker(
-			rawMarker.Marker,
-			rawMarker.HorseNumber,
-		)
-		markers = append(markers, marker)
-	}
-	return data_cache_entity.NewPredict(
-		input.RaceId,
-		markers,
-	)
-}

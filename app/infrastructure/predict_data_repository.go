@@ -2,12 +2,11 @@ package infrastructure
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"encoding/csv"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"io"
 	"os"
-	"path/filepath"
 )
 
 type predictDataRepository struct{}
@@ -16,29 +15,44 @@ func NewPredictDataRepository() repository.PredictDataRepository {
 	return &predictDataRepository{}
 }
 
-func (p predictDataRepository) Read(ctx context.Context, filePath string) ([]*raw_entity.Predict, error) {
-	predicts := make([]*raw_entity.Predict, 0)
-	rootPath, err := os.Getwd()
+func (p predictDataRepository) Read(ctx context.Context, filePath string) ([]*predict_csv_entity.Yamato, error) {
+	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
-	path, err := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, filePath))
-	if err != nil {
-		return nil, err
-	}
+	var predicts []*predict_csv_entity.Yamato
+	reader := csv.NewReader(f)
+	rowNum := 0
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
 
-	// ファイルが存在しない場合はエラーは返さず処理を継続する
-	bytes, err := os.ReadFile(path)
-	if err != nil {
-		return predicts, nil
-	}
+		if rowNum == 0 {
+			rowNum++
+			continue
+		}
 
-	var predictInfo *raw_entity.PredictInfo
-	if err := json.Unmarshal(bytes, &predictInfo); err != nil {
-		return nil, err
+		predict, err := predict_csv_entity.NewYamato(
+			record[0],
+			record[1],
+			record[2],
+			record[3],
+			record[4],
+			record[5],
+			record[6],
+			record[7],
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		predicts = append(predicts, predict)
+		rowNum++
 	}
-	predicts = predictInfo.Predicts
 
 	return predicts, nil
 }

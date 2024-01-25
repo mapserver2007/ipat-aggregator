@@ -108,3 +108,7 @@ func (y *Yamato) Check() int {
 	}
 	return horseNumber
 }
+
+func (y *Yamato) MarkerMap() map[types.Marker]int {
+	return y.markerMap
+}

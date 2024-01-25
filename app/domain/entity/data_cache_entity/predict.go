@@ -30,25 +30,25 @@ func (p *Predict) Markers() []*Marker {
 	return p.markers
 }
 
-func NewMarker(
-	rawMarker int,
-	horseNumber int,
-) (*Marker, error) {
-	marker, err := types.NewMarker(rawMarker)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Marker{
-		marker:      marker,
-		horseNumber: horseNumber,
-	}, nil
-}
-
-func (m *Marker) Marker() types.Marker {
-	return m.marker
-}
-
-func (m *Marker) HorseNumber() int {
-	return m.horseNumber
-}
+//func NewMarker(
+//	rawMarker int,
+//	horseNumber int,
+//) (*Marker, error) {
+//	marker, err := types.NewMarker(rawMarker)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return &Marker{
+//		marker:      marker,
+//		horseNumber: horseNumber,
+//	}, nil
+//}
+//
+//func (m *Marker) Marker() types.Marker {
+//	return m.marker
+//}
+//
+//func (m *Marker) HorseNumber() int {
+//	return m.horseNumber
+//}

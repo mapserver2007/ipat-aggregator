@@ -72,8 +72,8 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 	}
 	payoutResults := make([]*raw_entity.PayoutResult, 0, len(input.PayoutResults()))
 	for _, payoutResult := range input.PayoutResults() {
-		rawNumbers := make([]string, 0, len(payoutResult.Number()))
-		for _, number := range payoutResult.Number() {
+		rawNumbers := make([]string, 0, len(payoutResult.Numbers()))
+		for _, number := range payoutResult.Numbers() {
 			rawNumbers = append(rawNumbers, number.String())
 		}
 		payoutResults = append(payoutResults, &raw_entity.PayoutResult{

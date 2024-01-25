@@ -276,6 +276,9 @@ func (r *raceDataRepository) Fetch(
 					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
+					if len(matches) == 0 {
+						fmt.Println("owata")
+					}
 					startTime = matches[0][1]
 					courseCategory = types.NewCourseCategory(matches[0][2])
 					distance, _ = strconv.Atoi(matches[0][3])

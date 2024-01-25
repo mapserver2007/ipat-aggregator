@@ -630,7 +630,7 @@ const (
 	WhiteTriangle                   // △
 	Star                            // ☆
 	Check                           // ✓
-	NoMarker                        // 無
+	NoMarker      Marker = 9        // 無
 )
 
 var markerMap = map[Marker]string{
@@ -663,11 +663,101 @@ func (m Marker) String() string {
 
 type MarkerCombinationId int
 
-var markerCombinationIds = []MarkerCombinationId{
-	11, 12, 13, 14, 15, 16, 19, // 単勝
-	21, 22, 23, 24, 25, 26, 29, // 複勝
-	312, 313, 314, 315, 316, 319, 323, 324, 325, 326, 329, 334, 335, 336, 339, 345, 346, 349, 356, 359, 399, // ワイド
-	412, 413, 414, 415, 416, 419, 423, 424, 425, 426, 429, 434, 435, 436, 439, 445, 446, 449, 456, 459, 499, // 馬連
-	512, 513, 514, 515, 516, 519, 521, 523, 524, 525, 526, 529, 531, 532, 534, 535, 536, 539, 541, 542, 543, 545, 546, 549, 551, 552, 553, 554, 556, 559, 599, 561, 562, 563, 564, 565, 569, 591, 592, 593, 594, 595, 596, 599, // 馬単
-	6123, 6124, 6125, 6126, 6129, 6134, 6135, 6136, 6139, 6145, 6146, 6149, 6156, 6159, 6169, 6199, 6234, 6235, 6236, 6239, 6245, 6246, 6249, 6256, 6259, 6269, 6299, 6345, 6346, 6349, 6356, 6359, 6369, 6399, 6456, 6459, 6469, 6499, 6569, 6599, 6699, 6999, // 3連複
+func NewMarkerCombinationId(rawMarkerCombinationId int) (MarkerCombinationId, error) {
+	digits := len(strconv.Itoa(rawMarkerCombinationId))
+	if digits <= 1 || rawMarkerCombinationId <= 0 {
+		return 0, fmt.Errorf("invalid marker combination id: %d", rawMarkerCombinationId)
+	}
+
+	ticketTypeId, _ := strconv.Atoi(string(strconv.Itoa(rawMarkerCombinationId)[0]))
+	if ticketTypeId <= 0 || ticketTypeId > 7 {
+		return 0, fmt.Errorf("invalid marker combination id: %d", ticketTypeId)
+	}
+
+	return MarkerCombinationId(rawMarkerCombinationId), nil
 }
+
+func (m MarkerCombinationId) Value() int {
+	return int(m)
+}
+
+func (m MarkerCombinationId) String() string {
+	rawMarkerCombinationId := m.Value()
+	var rawMarkerCombinationIds []int
+	for rawMarkerCombinationId > 0 {
+		rawMarkerCombinationIds = append([]int{rawMarkerCombinationId % 10}, rawMarkerCombinationIds...)
+		rawMarkerCombinationId = rawMarkerCombinationId / 10
+	}
+
+	var (
+		ticketType TicketType
+		markers    []string
+	)
+	for idx, rawMarkerId := range rawMarkerCombinationIds {
+		if idx == 0 {
+			switch rawMarkerId {
+			case 1:
+				ticketType = Win
+			case 2:
+				ticketType = Place
+			case 3:
+				ticketType = QuinellaPlace
+			case 4:
+				ticketType = Quinella
+			case 5:
+				ticketType = Exacta
+			case 6:
+				ticketType = Trio
+			case 7:
+				ticketType = Trifecta
+			}
+			continue
+		}
+
+		markerId, err := NewMarker(rawMarkerId)
+		if err != nil {
+			return ""
+		}
+		markers = append(markers, markerId.String())
+	}
+
+	switch ticketType {
+	case Win, Place:
+		return markers[0]
+	case QuinellaPlace, Quinella, Trio:
+		return strings.Join(markers, QuinellaSeparator)
+	case Exacta, Trifecta:
+		return strings.Join(markers, ExactaSeparator)
+	}
+
+	return ""
+}
+
+func (m MarkerCombinationId) TicketType() TicketType {
+	ticketTypeId, _ := strconv.Atoi(string(strconv.Itoa(m.Value())[0]))
+	switch ticketTypeId {
+	case 1:
+		return Win
+	case 2:
+		return Place
+	case 3:
+		return QuinellaPlace
+	case 4:
+		return Quinella
+	case 5:
+		return Exacta
+	case 6:
+		return Trio
+	case 7:
+		return Trifecta
+	}
+
+	return UnknownTicketType
+}
+
+type AnalysisFilterId byte
+
+const (
+	GradeClassFilter     AnalysisFilterId = 0x01
+	CourseCategoryFilter AnalysisFilterId = 0x02
+)

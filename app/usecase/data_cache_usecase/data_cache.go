@@ -22,7 +22,7 @@ const (
 	predictRaceResultFilePath = "predict_races/race_result_%d.json"
 	predictFilePath           = "csv/markers/yamato_predict.json"
 	startDate                 = "20240101"
-	endDate                   = "20240110"
+	endDate                   = "20240121"
 )
 
 type DataCacheUseCase struct {

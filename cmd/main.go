@@ -116,17 +116,18 @@ func masterFile(
 	error,
 ) {
 	betNumberConverter := service.NewBetNumberConverter()
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	predictAnalysisService := service.NewPredictAnalysisService()
 	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
 	predictDataRepository := infrastructure.NewPredictDataRepository()
 	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
-	predictUseCase := predict_usecase.NewPredict(predictDataRepository)
+	predictUseCase := predict_usecase.NewPredict(predictDataRepository, predictAnalysisService, ticketConverter)
 
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
-
-	predicts, err := predictUseCase.Read(ctx) // TODO いまはファイルを読んでるだけだが、予想の全リストを返すようにする
 
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
 
@@ -144,6 +145,12 @@ func masterFile(
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
+
+	predicts, err := predictUseCase.Read(ctx) // TODO いまはファイルを読んでるだけだが、予想の全リストを返すようにする
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	predictUseCase.Predict(ctx, predicts, predictRaces, tickets, racingNumbers)
 
 	return tickets, racingNumbers, races, jockeys, predictRaces, predicts, nil
 }

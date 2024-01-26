@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/predict_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
@@ -111,17 +111,17 @@ func masterFile(
 	[]*data_cache_entity.Race,
 	[]*data_cache_entity.Jockey,
 	[]*data_cache_entity.Race,
-	[]*predict_csv_entity.Yamato,
+	[]*marker_csv_entity.Yamato,
 	error,
 ) {
 	betNumberConverter := service.NewBetNumberConverter()
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
-	predictAnalysisService := service.NewPredictAnalysisService()
+	predictAnalysisService := service.NewAnalysisService()
 	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
-	predictDataRepository := infrastructure.NewPredictDataRepository()
+	markerDataRepository := infrastructure.NewMarkerDataRepository()
 	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
-	predictUseCase := predict_usecase.NewPredict(predictDataRepository, predictAnalysisService, ticketConverter)
+	predictUseCase := analysis_usecase.NewAnalysis(markerDataRepository, predictAnalysisService, ticketConverter)
 
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
@@ -159,17 +159,17 @@ func masterFile(
 
 func predict(
 	ctx context.Context,
-	predicts []*predict_csv_entity.Yamato,
+	predicts []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
 ) error {
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
-	predictAnalysisService := service.NewPredictAnalysisService()
-	predictDataRepository := infrastructure.NewPredictDataRepository()
-	predictUseCase := predict_usecase.NewPredict(predictDataRepository, predictAnalysisService, ticketConverter)
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetSummaryRepository()
+	predictAnalysisService := service.NewAnalysisService()
+	markerDataRepository := infrastructure.NewMarkerDataRepository()
+	predictUseCase := analysis_usecase.NewAnalysis(markerDataRepository, predictAnalysisService, ticketConverter)
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository()
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func predict(
 		return err
 	}
 
-	spreadSheetUseCase := spreadsheet_usecase.NewPredictUseCase(spreadSheetRepository, predictAnalysisService)
+	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, predictAnalysisService)
 	spreadSheetUseCase.Write(ctx, analysisData)
 
 	fmt.Println(analysisData)

@@ -1,11 +1,11 @@
-package predict_usecase
+package analysis_usecase
 
 import (
 	"context"
 	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_analysis_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
@@ -15,25 +15,25 @@ import (
 	"path/filepath"
 )
 
-type predict struct {
-	predictDataRepository  repository.PredictDataRepository
-	predictAnalysisService service.PredictAnalysisService
+type analysis struct {
+	markerDataRepository   repository.MarkerDataRepository
+	predictAnalysisService service.AnalysisService
 	ticketConverter        service.TicketConverter
 }
 
-func NewPredict(
-	predictDataRepository repository.PredictDataRepository,
-	predictAnalysisService service.PredictAnalysisService,
+func NewAnalysis(
+	markerDataRepository repository.MarkerDataRepository,
+	predictAnalysisService service.AnalysisService,
 	ticketConverter service.TicketConverter,
-) *predict {
-	return &predict{
-		predictDataRepository:  predictDataRepository,
+) *analysis {
+	return &analysis{
+		markerDataRepository:   markerDataRepository,
 		predictAnalysisService: predictAnalysisService,
 		ticketConverter:        ticketConverter,
 	}
 }
 
-func (p *predict) Read(ctx context.Context) ([]*predict_csv_entity.Yamato, error) {
+func (p *analysis) Read(ctx context.Context) ([]*marker_csv_entity.Yamato, error) {
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (p *predict) Read(ctx context.Context) ([]*predict_csv_entity.Yamato, error
 	}
 
 	filePath := fmt.Sprintf("%s/%s", dirPath, "yamato_predict.csv")
-	predicts, err := p.predictDataRepository.Read(ctx, filePath)
+	predicts, err := p.markerDataRepository.Read(ctx, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -52,13 +52,13 @@ func (p *predict) Read(ctx context.Context) ([]*predict_csv_entity.Yamato, error
 	return predicts, nil
 }
 
-func (p *predict) CreateAnalysisData(
+func (p *analysis) CreateAnalysisData(
 	ctx context.Context,
-	records []*predict_csv_entity.Yamato,
+	records []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
-) (*predict_analysis_entity.Layer1, error) {
+) (*analysis_entity.Layer1, error) {
 	ticketsMap := p.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers, races)
 	raceMap := map[types.RaceId]*data_cache_entity.Race{}
 	for _, race := range races {
@@ -91,7 +91,7 @@ func (p *predict) CreateAnalysisData(
 						break
 					}
 				}
-				numerical := predict_analysis_entity.NewCalculable(
+				numerical := analysis_entity.NewCalculable(
 					payment,
 					payout,
 					payoutResult.Odds()[idx],

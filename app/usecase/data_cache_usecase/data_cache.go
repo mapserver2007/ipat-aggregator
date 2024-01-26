@@ -30,7 +30,7 @@ type DataCacheUseCase struct {
 	raceDataRepository          repository.RaceDataRepository
 	jockeyDataRepository        repository.JockeyDataRepository
 	raceIdDataRepository        repository.RaceIdDataRepository
-	predictDataRepository       repository.PredictDataRepository
+	markerDataRepository        repository.MarkerDataRepository
 	netKeibaService             service.NetKeibaService
 	raceConverter               service.RaceConverter
 	racingNumberEntityConverter service.RacingNumberEntityConverter
@@ -43,7 +43,7 @@ func NewDataCacheUseCase(
 	raceDataRepository repository.RaceDataRepository,
 	jockeyDataRepository repository.JockeyDataRepository,
 	raceIdDataRepository repository.RaceIdDataRepository,
-	predictDataRepository repository.PredictDataRepository,
+	markerDataRepository repository.MarkerDataRepository,
 	netKeibaService service.NetKeibaService,
 	raceConverter service.RaceConverter,
 	racingNumberConverter service.RacingNumberEntityConverter,
@@ -55,7 +55,7 @@ func NewDataCacheUseCase(
 		raceDataRepository:          raceDataRepository,
 		jockeyDataRepository:        jockeyDataRepository,
 		raceIdDataRepository:        raceIdDataRepository,
-		predictDataRepository:       predictDataRepository,
+		markerDataRepository:        markerDataRepository,
 		netKeibaService:             netKeibaService,
 		raceConverter:               raceConverter,
 		racingNumberEntityConverter: racingNumberConverter,

@@ -1,4 +1,4 @@
-package predict_analysis_entity
+package analysis_entity
 
 type Result struct {
 	calculable *Calculable

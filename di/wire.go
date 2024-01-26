@@ -24,7 +24,7 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 		infrastructure.NewRacingNumberDataRepository,
 		infrastructure.NewJockeyDataRepository,
 		infrastructure.NewRaceIdDataRepository,
-		infrastructure.NewPredictDataRepository,
+		infrastructure.NewMarkerDataRepository,
 	)
 	return nil
 }

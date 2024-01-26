@@ -21,13 +21,13 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 	raceDataRepository := infrastructure.NewRaceDataRepository()
 	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
 	raceIdDataRepository := infrastructure.NewRaceIdDataRepository()
-	predictDataRepository := infrastructure.NewPredictDataRepository()
+	markerDataRepository := infrastructure.NewMarkerDataRepository()
 	raceConverter := service.NewRaceConverter()
 	netKeibaService := service.NewNetKeibaService(raceConverter)
 	racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
 	raceEntityConverter := service.NewRaceEntityConverter()
 	jockeyEntityConverter := service.NewJockeyEntityConverter()
-	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberDataRepository, raceDataRepository, jockeyDataRepository, raceIdDataRepository, predictDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
+	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberDataRepository, raceDataRepository, jockeyDataRepository, raceIdDataRepository, markerDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
 	return dataCacheUseCase
 }
 

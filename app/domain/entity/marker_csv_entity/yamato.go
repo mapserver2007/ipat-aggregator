@@ -1,4 +1,4 @@
-package predict_csv_entity
+package marker_csv_entity
 
 import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"

@@ -1,22 +1,22 @@
 package predict_analysis_entity
 
 type Result struct {
-	numerical *Numerical
-	filters   []IFilter
+	calculable *Calculable
+	filters    []IFilter
 }
 
 func NewResult(
-	numerical *Numerical,
+	calculable *Calculable,
 	filters []IFilter,
 ) *Result {
 	return &Result{
-		numerical: numerical,
-		filters:   filters,
+		calculable: calculable,
+		filters:    filters,
 	}
 }
 
-func (r *Result) Numerical() *Numerical {
-	return r.numerical
+func (r *Result) Calculable() *Calculable {
+	return r.calculable
 }
 func (r *Result) Filters() []IFilter {
 	return r.filters

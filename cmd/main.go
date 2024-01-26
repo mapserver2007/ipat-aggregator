@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
@@ -22,14 +23,12 @@ func main() {
 
 	if newProc {
 		tickets2, racingNumbers2, races2, jockeys2, predictRaces, predicts, err := masterFile(ctx)
-		_ = predictRaces
-		_ = predicts
 		if err != nil {
 			panic(err)
 		}
 
 		// 実験中
-		predict(ctx)
+		predict(ctx, predicts, predictRaces, tickets2, racingNumbers2)
 
 		err = summary(ctx, tickets2, racingNumbers2, races2, jockeys2)
 		if err != nil {
@@ -146,22 +145,46 @@ func masterFile(
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	predicts, err := predictUseCase.Read(ctx) // TODO いまはファイルを読んでるだけだが、予想の全リストを返すようにする
+	predicts, err := predictUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	predictUseCase.Predict(ctx, predicts, predictRaces, tickets, racingNumbers)
+	//analysisData, err := predictUseCase.Predict(ctx, predicts, predictRaces, tickets, racingNumbers)
+	//if err != nil {
+	//	return nil, nil, nil, nil, nil, nil, err
+	//}
 
 	return tickets, racingNumbers, races, jockeys, predictRaces, predicts, nil
 }
 
-func predict(ctx context.Context) {
-	//raceConverter := service.NewRaceConverter()
-	//netKeibaService := service.NewNetKeibaService(raceConverter)
-	//raceIdRepository := infrastructure.NewRaceIdDataRepository()
-	//predictUseCase := predict_usecase.NewPredict(netKeibaService, raceIdRepository)
+func predict(
+	ctx context.Context,
+	predicts []*predict_csv_entity.Yamato,
+	races []*data_cache_entity.Race,
+	tickets []*ticket_csv_entity.Ticket,
+	racingNumbers []*data_cache_entity.RacingNumber,
+) error {
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	predictAnalysisService := service.NewPredictAnalysisService()
+	predictDataRepository := infrastructure.NewPredictDataRepository()
+	predictUseCase := predict_usecase.NewPredict(predictDataRepository, predictAnalysisService, ticketConverter)
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetSummaryRepository()
+	if err != nil {
+		return err
+	}
 
-	//dataCacheUseCase := di.InitializeDataCacheUseCase()
+	analysisData, err := predictUseCase.CreateAnalysisData(ctx, predicts, races, tickets, racingNumbers)
+	if err != nil {
+		return err
+	}
+
+	spreadSheetUseCase := spreadsheet_usecase.NewPredictUseCase(spreadSheetRepository, predictAnalysisService)
+	spreadSheetUseCase.Write(ctx, analysisData)
+
+	fmt.Println(analysisData)
+
+	return nil
 }
 
 func summary(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race, jockeys []*data_cache_entity.Jockey) error {
@@ -174,9 +197,8 @@ func summary(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNum
 		return err
 	}
 
-	summaryUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
-
-	err = summaryUseCase.Write(ctx, tickets, racingNumbers, races)
+	spreadSheetUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
+	err = spreadSheetUseCase.Write(ctx, tickets, racingNumbers, races)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type Numerical struct {
+type Calculable struct {
 	payment   types.Payment
 	payout    types.Payout
 	voteCount int
@@ -14,15 +14,15 @@ type Numerical struct {
 	popular   int
 }
 
-func NewNumerical(
+func NewCalculable(
 	payment types.Payment,
 	payout types.Payout,
 	odds string,
 	number types.BetNumber,
 	popular int,
-) *Numerical {
+) *Calculable {
 	decimalOdds, _ := decimal.NewFromString(odds)
-	return &Numerical{
+	return &Calculable{
 		payment: payment,
 		payout:  payout,
 		odds:    decimalOdds,
@@ -31,22 +31,22 @@ func NewNumerical(
 	}
 }
 
-func (n *Numerical) Payment() types.Payment {
+func (n *Calculable) Payment() types.Payment {
 	return n.payment
 }
 
-func (n *Numerical) Payout() types.Payout {
+func (n *Calculable) Payout() types.Payout {
 	return n.payout
 }
 
-func (n *Numerical) Odds() decimal.Decimal {
+func (n *Calculable) Odds() decimal.Decimal {
 	return n.odds
 }
 
-func (n *Numerical) Number() types.BetNumber {
+func (n *Calculable) Number() types.BetNumber {
 	return n.number
 }
 
-func (n *Numerical) Popular() int {
+func (n *Calculable) Popular() int {
 	return n.popular
 }

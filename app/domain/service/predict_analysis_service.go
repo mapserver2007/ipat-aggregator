@@ -5,14 +5,16 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/predict_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"sort"
 )
 
 type PredictAnalysisService interface {
-	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *predict_analysis_entity.Numerical) error
+	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *predict_analysis_entity.Calculable) error
 	GetAnalysisData() *predict_analysis_entity.Layer1
 	GetMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, predict *predict_csv_entity.Yamato) []types.MarkerCombinationId
+	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *predict_analysis_entity.Layer1) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerAnalysis
 }
 
 type predictAnalysisService struct {
@@ -33,7 +35,7 @@ func (p *predictAnalysisService) AddAnalysisData(
 	ctx context.Context,
 	markerCombinationId types.MarkerCombinationId,
 	race *data_cache_entity.Race,
-	numerical *predict_analysis_entity.Numerical,
+	numerical *predict_analysis_entity.Calculable,
 ) error {
 	layer1 := p.analysisData.MarkerCombination
 	if _, ok := layer1[markerCombinationId]; !ok {
@@ -1161,6 +1163,40 @@ func (p *predictAnalysisService) GetMarkerCombinationIds(
 	}
 
 	return markerCombinationIds
+}
+
+func (p *predictAnalysisService) CreateSpreadSheetAnalysisData(
+	ctx context.Context,
+	analysisData *predict_analysis_entity.Layer1,
+) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerAnalysis {
+	markerCombinationMap := make(map[types.MarkerCombinationId]*spreadsheet_entity.MarkerAnalysis)
+
+	// 印単位での集計をかける
+	for markerCombinationId, data := range analysisData.MarkerCombination {
+		if _, ok := markerCombinationMap[markerCombinationId]; !ok {
+			markerCombinationMap[markerCombinationId] = spreadsheet_entity.NewMarkerAnalysis()
+		}
+		for _, data2 := range data.RaceDate {
+			for _, data3 := range data2.RaceId {
+				for _, data4 := range data3 {
+					markerCombinationMap[markerCombinationId].AddRaceCount()
+					markerCombinationMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
+					markerCombinationMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
+
+					if data4.Calculable().Payment() > 0 {
+						markerCombinationMap[markerCombinationId].AddVoteCount()
+						markerCombinationMap[markerCombinationId].AddPayment(data4.Calculable().Payment().Value())
+					}
+					if data4.Calculable().Payout() > 0 {
+						markerCombinationMap[markerCombinationId].AddHitCount()
+						markerCombinationMap[markerCombinationId].AddPayout(data4.Calculable().Payout().Value())
+					}
+				}
+			}
+		}
+	}
+
+	return markerCombinationMap
 }
 
 func (p *predictAnalysisService) createFilters(

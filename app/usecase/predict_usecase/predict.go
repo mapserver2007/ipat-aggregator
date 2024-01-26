@@ -52,13 +52,13 @@ func (p *predict) Read(ctx context.Context) ([]*predict_csv_entity.Yamato, error
 	return predicts, nil
 }
 
-func (p *predict) Predict(
+func (p *predict) CreateAnalysisData(
 	ctx context.Context,
 	records []*predict_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
-) error {
+) (*predict_analysis_entity.Layer1, error) {
 	ticketsMap := p.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers, races)
 	raceMap := map[types.RaceId]*data_cache_entity.Race{}
 	for _, race := range races {
@@ -91,7 +91,7 @@ func (p *predict) Predict(
 						break
 					}
 				}
-				numerical := predict_analysis_entity.NewNumerical(
+				numerical := predict_analysis_entity.NewCalculable(
 					payment,
 					payout,
 					payoutResult.Odds()[idx],
@@ -100,16 +100,11 @@ func (p *predict) Predict(
 				)
 				err := p.predictAnalysisService.AddAnalysisData(ctx, markerCombinationId, race, numerical)
 				if err != nil {
-					return err
+					return nil, err
 				}
 			}
 		}
 	}
 
-	ttt := p.predictAnalysisService.GetAnalysisData()
-	fmt.Println(ttt)
-
-	// 次にフィルタサービスで条件によって絞り込みする
-
-	return nil
+	return p.predictAnalysisService.GetAnalysisData(), nil
 }

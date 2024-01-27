@@ -14,7 +14,7 @@ type AnalysisService interface {
 	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable) error
 	GetAnalysisData() *analysis_entity.Layer1
 	GetMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
-	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerAnalysis
+	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1) *spreadsheet_entity.AnalysisData
 }
 
 type analysisService struct {
@@ -85,23 +85,25 @@ func (p *analysisService) GetMarkerCombinationIds(
 		}
 		markerCombinationIds = append(markerCombinationIds, markerCombinationId)
 	case types.Place:
-		rawHorseNumber := result.Numbers()[0].List()[0]
-		markerCombinationId, _ := types.NewMarkerCombinationId(29)
-		switch rawHorseNumber {
-		case marker.Favorite():
-			markerCombinationId, _ = types.NewMarkerCombinationId(21)
-		case marker.Rival():
-			markerCombinationId, _ = types.NewMarkerCombinationId(22)
-		case marker.BrackTriangle():
-			markerCombinationId, _ = types.NewMarkerCombinationId(23)
-		case marker.WhiteTriangle():
-			markerCombinationId, _ = types.NewMarkerCombinationId(24)
-		case marker.Star():
-			markerCombinationId, _ = types.NewMarkerCombinationId(25)
-		case marker.Check():
-			markerCombinationId, _ = types.NewMarkerCombinationId(26)
+		for _, number := range result.Numbers() {
+			rawHorseNumber := number.List()[0]
+			markerCombinationId, _ := types.NewMarkerCombinationId(29)
+			switch rawHorseNumber {
+			case marker.Favorite():
+				markerCombinationId, _ = types.NewMarkerCombinationId(21)
+			case marker.Rival():
+				markerCombinationId, _ = types.NewMarkerCombinationId(22)
+			case marker.BrackTriangle():
+				markerCombinationId, _ = types.NewMarkerCombinationId(23)
+			case marker.WhiteTriangle():
+				markerCombinationId, _ = types.NewMarkerCombinationId(24)
+			case marker.Star():
+				markerCombinationId, _ = types.NewMarkerCombinationId(25)
+			case marker.Check():
+				markerCombinationId, _ = types.NewMarkerCombinationId(26)
+			}
+			markerCombinationIds = append(markerCombinationIds, markerCombinationId)
 		}
-		markerCombinationIds = append(markerCombinationIds, markerCombinationId)
 	case types.QuinellaPlace:
 		for _, horseNumber := range result.Numbers() {
 			// 馬番に対する印の昇順ソート
@@ -1168,35 +1170,123 @@ func (p *analysisService) GetMarkerCombinationIds(
 func (p *analysisService) CreateSpreadSheetAnalysisData(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
-) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerAnalysis {
-	markerCombinationMap := make(map[types.MarkerCombinationId]*spreadsheet_entity.MarkerAnalysis)
+) *spreadsheet_entity.AnalysisData {
+	analysisDataMap := make(map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis)
+
+	// レース数をカウント
+	raceMap := map[types.RaceId]bool{}
+	for _, data := range analysisData.MarkerCombination {
+		for _, data2 := range data.RaceDate {
+			for raceId := range data2.RaceId {
+				if _, ok := raceMap[raceId]; !ok {
+					raceMap[raceId] = true
+				}
+			}
+		}
+	}
+	raceCount := len(raceMap)
 
 	// 印単位での集計をかける
 	for markerCombinationId, data := range analysisData.MarkerCombination {
-		if _, ok := markerCombinationMap[markerCombinationId]; !ok {
-			markerCombinationMap[markerCombinationId] = spreadsheet_entity.NewMarkerAnalysis()
+		if _, ok := analysisDataMap[markerCombinationId]; !ok {
+			analysisDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCount)
 		}
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
 				for _, data4 := range data3 {
-					markerCombinationMap[markerCombinationId].AddRaceCount()
-					markerCombinationMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
-					markerCombinationMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
+					analysisDataMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
+					analysisDataMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
 
-					if data4.Calculable().Payment() > 0 {
-						markerCombinationMap[markerCombinationId].AddVoteCount()
-						markerCombinationMap[markerCombinationId].AddPayment(data4.Calculable().Payment().Value())
-					}
-					if data4.Calculable().Payout() > 0 {
-						markerCombinationMap[markerCombinationId].AddHitCount()
-						markerCombinationMap[markerCombinationId].AddPayout(data4.Calculable().Payout().Value())
-					}
+					//if data4.Calculable().Payment() > 0 {
+					//	markerCombinationMap[markerCombinationId].AddVoteCount()
+					//	markerCombinationMap[markerCombinationId].AddPayment(data4.Calculable().Payment().Value())
+					//}
+					//if data4.Calculable().Payout() > 0 {
+					//	markerCombinationMap[markerCombinationId].AddHitCount()
+					//	markerCombinationMap[markerCombinationId].AddPayout(data4.Calculable().Payout().Value())
+					//}
 				}
 			}
 		}
 	}
 
-	return markerCombinationMap
+	return spreadsheet_entity.NewAnalysisData(
+		analysisDataMap,
+		nil,
+		p.createAllMarkerCombinations(),
+		raceCount,
+	)
+}
+
+func (p *analysisService) createAllMarkerCombinations() []types.MarkerCombinationId {
+	var markerCombinationIds []types.MarkerCombinationId
+	for _, rawTicketType := range []int{1, 2, 3, 4, 5, 6, 7} {
+		switch rawTicketType {
+		case 1, 2:
+			for _, rawMakerId := range []int{1, 2, 3, 4, 5, 6, 9} {
+				markerCombinationId, _ := types.NewMarkerCombinationId(rawTicketType*10 + rawMakerId)
+				markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+			}
+		case 3, 4:
+			for _, rawMakerId := range []int{1, 2, 3, 4, 5, 6, 9} {
+				for _, rawMakerId2 := range []int{1, 2, 3, 4, 5, 6, 9} {
+					if rawMakerId >= rawMakerId2 {
+						continue
+					}
+					markerCombinationId, _ := types.NewMarkerCombinationId(rawTicketType*100 + rawMakerId*10 + rawMakerId2)
+					markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+				}
+			}
+			markerCombinationId, _ := types.NewMarkerCombinationId(rawTicketType*100 + 99)
+			markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+		case 5:
+			for _, rawMakerId := range []int{1, 2, 3, 4, 5, 6, 9} {
+				for _, rawMakerId2 := range []int{1, 2, 3, 4, 5, 6, 9} {
+					if rawMakerId == rawMakerId2 {
+						continue
+					}
+					markerCombinationId, _ := types.NewMarkerCombinationId(rawTicketType*100 + rawMakerId*10 + rawMakerId2)
+					markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+				}
+			}
+		case 6:
+			for _, rawMakerId := range []int{1, 2, 3, 4, 5, 6, 9} {
+				for _, rawMakerId2 := range []int{1, 2, 3, 4, 5, 6, 9} {
+					if rawMakerId >= rawMakerId2 {
+						continue
+					}
+					for _, rawMakerId3 := range []int{1, 2, 3, 4, 5, 6, 9} {
+						if rawMakerId2 >= rawMakerId3 {
+							continue
+						}
+						markerCombinationId, _ := types.NewMarkerCombinationId(rawTicketType*1000 + rawMakerId*100 + rawMakerId2*10 + rawMakerId3)
+						markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+					}
+				}
+			}
+			markerCombinationId, _ := types.NewMarkerCombinationId(6999)
+			markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+		case 7:
+			for _, rawMakerId := range []int{1, 2, 3, 4, 5, 6, 9} {
+				for _, rawMakerId2 := range []int{1, 2, 3, 4, 5, 6, 9} {
+					if rawMakerId == rawMakerId2 {
+						continue
+					}
+					for _, rawMakerId3 := range []int{1, 2, 3, 4, 5, 6, 9} {
+						if rawMakerId == rawMakerId3 || rawMakerId2 == rawMakerId3 {
+							continue
+						}
+						markerCombinationId, _ := types.NewMarkerCombinationId(rawTicketType*1000 + rawMakerId*100 + rawMakerId2*10 + rawMakerId3)
+						markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+					}
+				}
+			}
+			markerCombinationId, _ := types.NewMarkerCombinationId(7999)
+			markerCombinationIds = append(markerCombinationIds, markerCombinationId)
+		}
+	}
+
+	return markerCombinationIds
 }
 
 func (p *analysisService) createFilters(

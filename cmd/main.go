@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
@@ -28,7 +27,7 @@ func main() {
 		}
 
 		// 実験中
-		predict(ctx, predicts, predictRaces, tickets2, racingNumbers2)
+		analysis(ctx, predicts, predictRaces, tickets2, racingNumbers2)
 
 		err = summary(ctx, tickets2, racingNumbers2, races2, jockeys2)
 		if err != nil {
@@ -121,7 +120,7 @@ func masterFile(
 	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
 	markerDataRepository := infrastructure.NewMarkerDataRepository()
 	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
-	predictUseCase := analysis_usecase.NewAnalysis(markerDataRepository, predictAnalysisService, ticketConverter)
+	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, predictAnalysisService, ticketConverter)
 
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
@@ -145,19 +144,15 @@ func masterFile(
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	predicts, err := predictUseCase.Read(ctx)
+	markers, err := analysisUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	//analysisData, err := predictUseCase.Predict(ctx, predicts, predictRaces, tickets, racingNumbers)
-	//if err != nil {
-	//	return nil, nil, nil, nil, nil, nil, err
-	//}
 
-	return tickets, racingNumbers, races, jockeys, predictRaces, predicts, nil
+	return tickets, racingNumbers, races, jockeys, predictRaces, markers, nil
 }
 
-func predict(
+func analysis(
 	ctx context.Context,
 	predicts []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
@@ -181,8 +176,6 @@ func predict(
 
 	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, predictAnalysisService)
 	spreadSheetUseCase.Write(ctx, analysisData)
-
-	fmt.Println(analysisData)
 
 	return nil
 }

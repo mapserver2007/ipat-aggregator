@@ -2,139 +2,99 @@ package spreadsheet_entity
 
 import (
 	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
 	"strconv"
 )
 
-type MarkerAnalysis struct {
-	hitCount  int
-	voteCount int
-	raceCount int
-	payments  []int
-	payouts   []int
+type AnalysisData struct {
+	markerCombinationAnalysisMap map[types.MarkerCombinationId]*MarkerCombinationAnalysis
+	ticketAnalysis               *TicketAnalysis
+	allMarkerCombinationIds      []types.MarkerCombinationId
+	raceCount                    int
+}
+
+func NewAnalysisData(
+	markerCombinationAnalysisMap map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
+	ticketAnalysis *TicketAnalysis,
+	allMarkerCombinationIds []types.MarkerCombinationId,
+	raceCount int,
+) *AnalysisData {
+	return &AnalysisData{
+		markerCombinationAnalysisMap: markerCombinationAnalysisMap,
+		ticketAnalysis:               ticketAnalysis,
+		allMarkerCombinationIds:      allMarkerCombinationIds,
+		raceCount:                    raceCount,
+	}
+}
+
+func (a *AnalysisData) MarkerCombinationAnalysisMap() map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
+	return a.markerCombinationAnalysisMap
+}
+
+func (a *AnalysisData) TicketAnalysis() *TicketAnalysis {
+	return a.ticketAnalysis
+}
+
+func (a *AnalysisData) AllMarkerCombinationIds() []types.MarkerCombinationId {
+	return a.allMarkerCombinationIds
+}
+
+func (a *AnalysisData) RaceCount() int {
+	return a.raceCount
+}
+
+type MarkerCombinationAnalysis struct {
+	raceCount int // 予想したレース数
 	populars  []int
 	odds      []decimal.Decimal
 }
 
-func NewMarkerAnalysis() *MarkerAnalysis {
-	return &MarkerAnalysis{
-		hitCount:  0,
-		voteCount: 0,
-		raceCount: 0,
-		payments:  make([]int, 0),
-		payouts:   make([]int, 0),
+func NewMarkerCombinationAnalysis(
+	raceCount int,
+) *MarkerCombinationAnalysis {
+	return &MarkerCombinationAnalysis{
+		raceCount: raceCount,
 		populars:  make([]int, 0),
 		odds:      make([]decimal.Decimal, 0),
 	}
 }
 
-func (m *MarkerAnalysis) AddHitCount() {
-	m.hitCount += 1
+func (m *MarkerCombinationAnalysis) HitRate() float64 {
+	return (float64(len(m.odds)) * float64(100)) / float64(m.raceCount)
 }
 
-func (m *MarkerAnalysis) AddVoteCount() {
-	m.voteCount += 1
+func (m *MarkerCombinationAnalysis) HitRateFormat() string {
+	return rateFormat(m.HitRate())
 }
 
-func (m *MarkerAnalysis) AddRaceCount() {
-	m.raceCount += 1
+func (m *MarkerCombinationAnalysis) HitCount() int {
+	return len(m.odds)
 }
 
-func (m *MarkerAnalysis) AddPayment(payment int) {
-	m.payments = append(m.payments, payment)
-}
-
-func (m *MarkerAnalysis) AddPayout(payout int) {
-	m.payouts = append(m.payouts, payout)
-}
-
-func (m *MarkerAnalysis) HitRate() float64 {
-	if m.voteCount == 0 {
-		return 0
-	}
-	return (float64(m.hitCount) * float64(100)) / float64(m.voteCount)
-}
-
-func (m *MarkerAnalysis) HitRateFormat() string {
-	return fmt.Sprintf("%s%s", strconv.FormatFloat(m.HitRate(), 'f', 1, 64), "%")
-}
-
-func (m *MarkerAnalysis) HitCount() int {
-	return m.hitCount
-}
-
-func (m *MarkerAnalysis) VoteCount() int {
-	return m.voteCount
-}
-
-func (m *MarkerAnalysis) PayoutRate() float64 {
-	totalPayment := sum(m.payments)
-	totalPayout := sum(m.payouts)
-	if totalPayment == 0 {
-		return 0
-	}
-	return (float64(totalPayout) * float64(100)) / float64(totalPayment)
-}
-
-func (m *MarkerAnalysis) PayoutRateFormat() string {
-	return rateFormat(m.PayoutRate())
-}
-
-func (m *MarkerAnalysis) AveragePayoutRate() float64 {
-	totalPayout := sum(m.payouts)
-	if m.voteCount == 0 {
-		return 0
-	}
-	return (float64(totalPayout) * float64(100)) / float64(m.voteCount)
-}
-
-func (m *MarkerAnalysis) AveragePayoutRateFormat() string {
-	return rateFormat(m.AveragePayoutRate())
-}
-
-func (m *MarkerAnalysis) MedianPayout() int {
-	if len(m.payouts) == 0 {
-		return 0
-	}
-	return m.payouts[len(m.payouts)/2]
-}
-
-func (m *MarkerAnalysis) MaxPayout() int {
-	maxPayout := 0
-	for _, payout := range m.payouts {
-		if maxPayout < payout {
-			maxPayout = payout
-		}
-	}
-	return maxPayout
-}
-
-func (m *MarkerAnalysis) MinPayout() int {
-	minPayout := 0
-	for _, payout := range m.payouts {
-		if minPayout > payout {
-			minPayout = payout
-		}
-	}
-	return minPayout
-}
-
-func (m *MarkerAnalysis) AddPopular(popular int) {
+func (m *MarkerCombinationAnalysis) AddPopular(popular int) {
 	m.populars = append(m.populars, popular)
 }
 
-func (m *MarkerAnalysis) AveragePopular() float64 {
-	if m.voteCount == 0 {
+func (m *MarkerCombinationAnalysis) AveragePopular() float64 {
+	if len(m.populars) == 0 {
 		return 0
 	}
-	return float64(sum(m.populars)) / float64(m.voteCount)
+	return float64(sum(m.populars)) / float64(len(m.populars))
 }
 
-func (m *MarkerAnalysis) AveragePopularFormat() string {
+func (m *MarkerCombinationAnalysis) AveragePopularFormat() string {
 	return rateFormat(m.AveragePopular())
 }
 
-func (m *MarkerAnalysis) MaxPopular() int {
+func (m *MarkerCombinationAnalysis) MedianPopular() int {
+	if len(m.populars) == 0 {
+		return 0
+	}
+	return m.populars[len(m.populars)/2]
+}
+
+func (m *MarkerCombinationAnalysis) MaxPopular() int {
 	maxPopular := 0
 	for _, popular := range m.populars {
 		if maxPopular < popular {
@@ -144,7 +104,7 @@ func (m *MarkerAnalysis) MaxPopular() int {
 	return maxPopular
 }
 
-func (m *MarkerAnalysis) MinPopular() int {
+func (m *MarkerCombinationAnalysis) MinPopular() int {
 	minPopular := 0
 	for _, popular := range m.populars {
 		if minPopular > popular {
@@ -154,47 +114,149 @@ func (m *MarkerAnalysis) MinPopular() int {
 	return minPopular
 }
 
-func (m *MarkerAnalysis) AddOdds(odds decimal.Decimal) {
+func (m *MarkerCombinationAnalysis) AddOdds(odds decimal.Decimal) {
 	m.odds = append(m.odds, odds)
 }
 
-func (m *MarkerAnalysis) AverageOdds() float64 {
-	if m.voteCount == 0 {
+func (m *MarkerCombinationAnalysis) AverageOdds() float64 {
+	if len(m.odds) == 0 {
 		return 0
 	}
-	totalOdds := decimal.NewFromFloat(0)
-	for _, odds := range m.odds {
-		totalOdds = totalOdds.Add(odds)
-	}
-	return totalOdds.InexactFloat64() / float64(m.voteCount)
+	return decimal.Sum(decimal.Zero, m.odds...).InexactFloat64() / float64(len(m.odds))
 }
 
-func (m *MarkerAnalysis) AverageOddsFormat() string {
+func (m *MarkerCombinationAnalysis) AverageOddsFormat() string {
 	return rateFormat(m.AverageOdds())
 }
 
-func (m *MarkerAnalysis) MaxOdds() float64 {
-	maxOdds := decimal.NewFromFloat(0)
+func (m *MarkerCombinationAnalysis) MedianOdds() decimal.Decimal {
+	if len(m.odds) == 0 {
+		return decimal.Zero
+	}
+	return m.odds[len(m.odds)/2]
+}
+
+func (m *MarkerCombinationAnalysis) MaxOdds() decimal.Decimal {
+	maxOdds := decimal.Zero
 	for _, odds := range m.odds {
 		if maxOdds.LessThan(odds) {
 			maxOdds = odds
 		}
 	}
-	return maxOdds.InexactFloat64()
+	return maxOdds
 }
 
-func (m *MarkerAnalysis) MinOdds() float64 {
-	minOdds := decimal.NewFromFloat(0)
+func (m *MarkerCombinationAnalysis) MinOdds() decimal.Decimal {
+	minOdds := decimal.Zero
 	for _, odds := range m.odds {
 		if minOdds.GreaterThan(odds) {
 			minOdds = odds
 		}
 	}
-	return minOdds.InexactFloat64()
+	return minOdds
+}
+
+type TicketAnalysis struct {
+	raceCount int // 投票したレース数
+	payments  []int
+	payouts   []int
+}
+
+func NewTicketAnalysis(
+	raceCount int,
+) *TicketAnalysis {
+	return &TicketAnalysis{
+		raceCount: raceCount,
+		payments:  make([]int, 0),
+		payouts:   make([]int, 0),
+	}
+}
+
+func (t *TicketAnalysis) AddPayment(payment int) {
+	t.payments = append(t.payments, payment)
+}
+
+func (t *TicketAnalysis) AddPayout(payout int) {
+	t.payouts = append(t.payouts, payout)
+}
+
+func (t *TicketAnalysis) HitCount() int {
+	return len(t.payouts)
+}
+
+func (t *TicketAnalysis) HitRate() float64 {
+	if len(t.payments) == 0 {
+		return 0
+	}
+	return (float64(len(t.payouts)) * float64(100)) / float64(len(t.payments))
+}
+
+func (t *TicketAnalysis) HitRateFormat() string {
+	return rateFormat(t.HitRate())
+}
+
+func (t *TicketAnalysis) VoteCount() int {
+	return len(t.payments)
+}
+
+func (t *TicketAnalysis) RaceCount() int {
+	return t.raceCount
+}
+
+func (t *TicketAnalysis) PayoutRate() float64 {
+	totalPayment := sum(t.payments)
+	totalPayout := sum(t.payouts)
+	if totalPayment == 0 {
+		return 0
+	}
+	return (float64(totalPayout) * float64(100)) / float64(totalPayment)
+}
+
+func (t *TicketAnalysis) PayoutRateFormat() string {
+	return rateFormat(t.PayoutRate())
+}
+
+func (t *TicketAnalysis) AveragePayoutRate() float64 {
+	totalPayout := sum(t.payouts)
+	if len(t.payments) == 0 {
+		return 0
+	}
+	return (float64(totalPayout) * float64(100)) / float64(len(t.payments))
+}
+
+func (t *TicketAnalysis) AveragePayoutRateFormat() string {
+	return rateFormat(t.AveragePayoutRate())
+}
+
+func (t *TicketAnalysis) MedianPayout() int {
+	if len(t.payouts) == 0 {
+		return 0
+	}
+	return t.payouts[len(t.payouts)/2]
+}
+
+func (t *TicketAnalysis) MaxPayout() int {
+	maxPayout := 0
+	for _, payout := range t.payouts {
+		if maxPayout < payout {
+			maxPayout = payout
+		}
+	}
+	return maxPayout
+}
+
+func (t *TicketAnalysis) MinPayout() int {
+	minPayout := 0
+	for _, payout := range t.payouts {
+		if minPayout > payout {
+			minPayout = payout
+		}
+	}
+	return minPayout
 }
 
 func rateFormat(rate float64) string {
-	return fmt.Sprintf("%s%s", strconv.FormatFloat(rate, 'f', 1, 64), "%")
+	return fmt.Sprintf("%s%s", strconv.FormatFloat(rate, 'f', 2, 64), "%")
 }
 
 func sum(nums []int) int {

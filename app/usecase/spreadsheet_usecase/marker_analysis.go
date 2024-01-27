@@ -8,17 +8,17 @@ import (
 )
 
 type markerAnalysisUseCase struct {
-	spreadSheetRepository  repository.SpreadSheetMarkerAnalysisRepository
-	predictAnalysisService service.AnalysisService
+	spreadSheetRepository repository.SpreadSheetMarkerAnalysisRepository
+	analysisService       service.AnalysisService
 }
 
 func NewMarkerAnalysisUseCase(
 	spreadSheetRepository repository.SpreadSheetMarkerAnalysisRepository,
-	predictAnalysisService service.AnalysisService,
+	analysisService service.AnalysisService,
 ) *markerAnalysisUseCase {
 	return &markerAnalysisUseCase{
-		spreadSheetRepository:  spreadSheetRepository,
-		predictAnalysisService: predictAnalysisService,
+		spreadSheetRepository: spreadSheetRepository,
+		analysisService:       analysisService,
 	}
 }
 
@@ -26,9 +26,19 @@ func (p *markerAnalysisUseCase) Write(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
 ) error {
-	spreadSheetAnalysisData := p.predictAnalysisService.CreateSpreadSheetAnalysisData(ctx, analysisData)
-	_ = spreadSheetAnalysisData
+	err := p.spreadSheetRepository.Clear(ctx)
+	if err != nil {
+		return err
+	}
+	spreadSheetAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData)
+	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData)
+	if err != nil {
+		return err
+	}
+	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData)
+	if err != nil {
+		return err
+	}
 
-	// TODO いろいろ集計データを作る処理
 	return nil
 }

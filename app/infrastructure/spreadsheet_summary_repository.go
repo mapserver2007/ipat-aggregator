@@ -1356,6 +1356,28 @@ func (s *spreadSheetSummaryRepository) writeStyleRaceCourseResult(ctx context.Co
 }
 
 func (s *spreadSheetSummaryRepository) Clear(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.spreadSheetConfig.SheetId(),
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   16,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

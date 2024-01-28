@@ -22,7 +22,7 @@ func (p *markerDataRepository) Read(ctx context.Context, filePath string) ([]*ma
 	}
 	defer f.Close()
 
-	var predicts []*marker_csv_entity.Yamato
+	var markers []*marker_csv_entity.Yamato
 	reader := csv.NewReader(f)
 	rowNum := 0
 	for {
@@ -50,9 +50,9 @@ func (p *markerDataRepository) Read(ctx context.Context, filePath string) ([]*ma
 			return nil, err
 		}
 
-		predicts = append(predicts, predict)
+		markers = append(markers, predict)
 		rowNum++
 	}
 
-	return predicts, nil
+	return markers, nil
 }

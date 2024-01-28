@@ -54,7 +54,7 @@ func (p *analysis) Read(ctx context.Context) ([]*marker_csv_entity.Yamato, error
 
 func (p *analysis) CreateAnalysisData(
 	ctx context.Context,
-	records []*marker_csv_entity.Yamato,
+	markers []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
@@ -65,30 +65,29 @@ func (p *analysis) CreateAnalysisData(
 		raceMap[race.RaceId()] = race
 	}
 
-	for _, record := range records {
-		race, ok := raceMap[record.RaceId()]
+	for _, marker := range markers {
+		race, ok := raceMap[marker.RaceId()]
 		if !ok {
-			log.Println(ctx, fmt.Sprintf("raceId: %s is not found in predict_races", record.RaceId()))
+			log.Println(ctx, fmt.Sprintf("raceId: %s is not found in predict_races", marker.RaceId()))
 			continue
 		}
-		ticketsByRaceId, ok := ticketsMap[record.RaceId()]
-		if !ok {
-			log.Println(ctx, fmt.Sprintf("raceId: %s is not found in tickets", record.RaceId()))
-			continue
-		}
+		// 馬券購入がない場合はnilになる
+		ticketsByRaceId := ticketsMap[marker.RaceId()]
 
 		for _, payoutResult := range race.PayoutResults() {
-			markerCombinationIds := p.predictAnalysisService.GetMarkerCombinationIds(ctx, payoutResult, record)
+			markerCombinationIds := p.predictAnalysisService.GetMarkerCombinationIds(ctx, payoutResult, marker)
 			for idx, markerCombinationId := range markerCombinationIds {
 				var (
 					payment types.Payment
 					payout  types.Payout
 				)
-				for _, ticket := range ticketsByRaceId {
-					if ticket.TicketType() == markerCombinationId.TicketType() && ticket.BetNumber() == payoutResult.Numbers()[idx] {
-						payment = ticket.Payment()
-						payout = ticket.Payout()
-						break
+				if ticketsByRaceId != nil {
+					for _, ticket := range ticketsByRaceId {
+						if ticket.TicketType() == markerCombinationId.TicketType() && ticket.BetNumber() == payoutResult.Numbers()[idx] {
+							payment = ticket.Payment()
+							payout = ticket.Payout()
+							break
+						}
 					}
 				}
 				numerical := analysis_entity.NewCalculable(

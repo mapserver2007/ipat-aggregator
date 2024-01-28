@@ -21,13 +21,13 @@ func main() {
 	ctx := context.Background()
 
 	if newProc {
-		tickets2, racingNumbers2, races2, jockeys2, predictRaces, predicts, err := masterFile(ctx)
+		tickets2, racingNumbers2, races2, jockeys2, predictRaces, markers, err := masterFile(ctx)
 		if err != nil {
 			panic(err)
 		}
 
 		// 実験中
-		analysis(ctx, predicts, predictRaces, tickets2, racingNumbers2)
+		analysis(ctx, markers, predictRaces, tickets2, racingNumbers2)
 
 		err = summary(ctx, tickets2, racingNumbers2, races2, jockeys2)
 		if err != nil {
@@ -154,7 +154,7 @@ func masterFile(
 
 func analysis(
 	ctx context.Context,
-	predicts []*marker_csv_entity.Yamato,
+	markers []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
@@ -169,7 +169,7 @@ func analysis(
 		return err
 	}
 
-	analysisData, err := predictUseCase.CreateAnalysisData(ctx, predicts, races, tickets, racingNumbers)
+	analysisData, err := predictUseCase.CreateAnalysisData(ctx, markers, races, tickets, racingNumbers)
 	if err != nil {
 		return err
 	}

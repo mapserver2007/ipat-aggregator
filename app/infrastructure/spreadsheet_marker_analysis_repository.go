@@ -86,6 +86,47 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 	return nil
 }
 
+func (s *spreadSheetMarkerAnalysisRepository) writeWinAnalysis(
+	ctx context.Context,
+	markerCombinationAnalysis *spreadsheet_entity.MarkerCombinationAnalysis,
+) error {
+	log.Println(ctx, "write marker win analysis start")
+
+	oddsRangeMap := map[string]int{
+		"1.0-1.5":   0,
+		"1.6-2.0":   0,
+		"2.1-2.9":   0,
+		"3.0-4.9":   0,
+		"5.0-9.9":   0,
+		"10.0-19.9": 0,
+		"20.0-49.9": 0,
+		"50-":       0,
+	}
+
+	for _, decimalOdds := range markerCombinationAnalysis.Odds() {
+		odds := decimalOdds.InexactFloat64()
+		if odds >= 1.0 && odds <= 1.5 {
+			oddsRangeMap["1.0-1.5"]++
+		} else if odds >= 1.6 && odds <= 2.0 {
+			oddsRangeMap["1.6-2.0"]++
+		} else if odds >= 2.1 && odds <= 2.9 {
+			oddsRangeMap["2.1-2.9"]++
+		} else if odds >= 3.0 && odds <= 4.9 {
+			oddsRangeMap["3.0-4.9"]++
+		} else if odds >= 5.0 && odds <= 9.9 {
+			oddsRangeMap["5.0-9.9"]++
+		} else if odds >= 10.0 && odds <= 19.9 {
+			oddsRangeMap["10.0-19.9"]++
+		} else if odds >= 20.0 && odds <= 49.9 {
+			oddsRangeMap["20.0-49.9"]++
+		} else if odds >= 50.0 {
+			oddsRangeMap["50-"]++
+		}
+	}
+
+	return nil
+}
+
 func (s *spreadSheetMarkerAnalysisRepository) Style(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,

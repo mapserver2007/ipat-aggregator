@@ -114,6 +114,10 @@ func (m *MarkerCombinationAnalysis) MinPopular() int {
 	return minPopular
 }
 
+func (m *MarkerCombinationAnalysis) Odds() []decimal.Decimal {
+	return m.odds
+}
+
 func (m *MarkerCombinationAnalysis) AddOdds(odds decimal.Decimal) {
 	m.odds = append(m.odds, odds)
 }

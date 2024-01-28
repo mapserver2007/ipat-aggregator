@@ -21,7 +21,7 @@ const (
 	raceIdFileName            = "race_id.json"
 	predictRaceResultFilePath = "predict_races/race_result_%d.json"
 	predictFilePath           = "csv/markers/yamato_predict.json"
-	startDate                 = "20240101"
+	startDate                 = "20231210"
 	endDate                   = "20240121"
 )
 

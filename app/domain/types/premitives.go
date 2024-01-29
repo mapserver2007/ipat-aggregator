@@ -761,3 +761,37 @@ const (
 	GradeClassFilter     AnalysisFilterId = 0x01
 	CourseCategoryFilter AnalysisFilterId = 0x02
 )
+
+type OddsRangeType int
+
+const (
+	UnknownOddsRangeType OddsRangeType = iota
+	WinOddsRange1
+	WinOddsRange2
+	WinOddsRange3
+	WinOddsRange4
+	WinOddsRange5
+	WinOddsRange6
+	WinOddsRange7
+	WinOddsRange8
+)
+
+var oddsRangeMap = map[OddsRangeType]string{
+	WinOddsRange1: "1.0~1.5",
+	WinOddsRange2: "1.6-2.0",
+	WinOddsRange3: "2.1-2.9",
+	WinOddsRange4: "3.0-4.9",
+	WinOddsRange5: "5.0-9.9",
+	WinOddsRange6: "10.0-19.9",
+	WinOddsRange7: "20.0-49.9",
+	WinOddsRange8: "50.0-",
+}
+
+func (m OddsRangeType) Value() int {
+	return int(m)
+}
+
+func (m OddsRangeType) String() string {
+	oddsRange, _ := oddsRangeMap[m]
+	return oddsRange
+}

@@ -35,10 +35,10 @@ func (p *markerAnalysisUseCase) Write(
 	if err != nil {
 		return err
 	}
-	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData)
-	if err != nil {
-		return err
-	}
+	//err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }

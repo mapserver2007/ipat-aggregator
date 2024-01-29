@@ -11,9 +11,10 @@ import (
 )
 
 type AnalysisService interface {
-	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable) error
+	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable, hitMarker bool) error
 	GetAnalysisData() *analysis_entity.Layer1
-	GetMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
+	GetHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
+	GetUnHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
 	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1) *spreadsheet_entity.AnalysisData
 }
 
@@ -36,6 +37,7 @@ func (p *analysisService) AddAnalysisData(
 	markerCombinationId types.MarkerCombinationId,
 	race *data_cache_entity.Race,
 	numerical *analysis_entity.Calculable,
+	hitMarker bool,
 ) error {
 	layer1 := p.analysisData.MarkerCombination
 	if _, ok := layer1[markerCombinationId]; !ok {
@@ -49,7 +51,7 @@ func (p *analysisService) AddAnalysisData(
 			RaceId: make(map[types.RaceId][]*analysis_entity.Result),
 		}
 	}
-	result := analysis_entity.NewResult(numerical, p.createFilters(race))
+	result := analysis_entity.NewResult(numerical, p.createFilters(race), hitMarker)
 	layer2[race.RaceDate()].RaceId[race.RaceId()] = append(layer2[race.RaceDate()].RaceId[race.RaceId()], result)
 
 	return nil
@@ -59,7 +61,7 @@ func (p *analysisService) GetAnalysisData() *analysis_entity.Layer1 {
 	return p.analysisData
 }
 
-func (p *analysisService) GetMarkerCombinationIds(
+func (p *analysisService) GetHitMarkerCombinationIds(
 	ctx context.Context,
 	result *data_cache_entity.PayoutResult,
 	marker *marker_csv_entity.Yamato,
@@ -1167,6 +1169,52 @@ func (p *analysisService) GetMarkerCombinationIds(
 	return markerCombinationIds
 }
 
+func (p *analysisService) GetUnHitMarkerCombinationIds(
+	ctx context.Context,
+	result *data_cache_entity.PayoutResult,
+	marker *marker_csv_entity.Yamato,
+) []types.MarkerCombinationId {
+	var (
+		unHitMarkerCombinationIds   []types.MarkerCombinationId
+		unHitMarkerCombinationIdMap map[types.MarkerCombinationId]bool
+	)
+	switch result.TicketType() {
+	case types.Win:
+		rawHorseNumber := result.Numbers()[0].List()[0]
+		unHitMarkerCombinationIdMap = map[types.MarkerCombinationId]bool{
+			types.MarkerCombinationId(11): true,
+			types.MarkerCombinationId(12): true,
+			types.MarkerCombinationId(13): true,
+			types.MarkerCombinationId(14): true,
+			types.MarkerCombinationId(15): true,
+			types.MarkerCombinationId(16): true,
+			types.MarkerCombinationId(19): true,
+		}
+		switch rawHorseNumber {
+		case marker.Favorite():
+			unHitMarkerCombinationIdMap[types.MarkerCombinationId(11)] = false
+		case marker.Rival():
+			unHitMarkerCombinationIdMap[types.MarkerCombinationId(12)] = false
+		case marker.BrackTriangle():
+			unHitMarkerCombinationIdMap[types.MarkerCombinationId(13)] = false
+		case marker.WhiteTriangle():
+			unHitMarkerCombinationIdMap[types.MarkerCombinationId(14)] = false
+		case marker.Star():
+			unHitMarkerCombinationIdMap[types.MarkerCombinationId(15)] = false
+		case marker.Check():
+			unHitMarkerCombinationIdMap[types.MarkerCombinationId(16)] = false
+		}
+	}
+
+	for markerCombinationId, unHit := range unHitMarkerCombinationIdMap {
+		if unHit {
+			unHitMarkerCombinationIds = append(unHitMarkerCombinationIds, markerCombinationId)
+		}
+	}
+
+	return unHitMarkerCombinationIds
+}
+
 func (p *analysisService) CreateSpreadSheetAnalysisData(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
@@ -1194,8 +1242,11 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
 				for _, data4 := range data3 {
-					analysisDataMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
-					analysisDataMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
+					// TODO 不的中の集計もやる
+					if data4.Hit() {
+						analysisDataMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
+						analysisDataMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
+					}
 
 					//if data4.Calculable().Payment() > 0 {
 					//	markerCombinationMap[markerCombinationId].AddVoteCount()

@@ -8,28 +8,39 @@ import (
 )
 
 type AnalysisData struct {
-	markerCombinationAnalysisMap map[types.MarkerCombinationId]*MarkerCombinationAnalysis
-	ticketAnalysis               *TicketAnalysis
-	allMarkerCombinationIds      []types.MarkerCombinationId
-	raceCount                    int
+	hitMarkerCombinationAnalysisMap   map[types.MarkerCombinationId]*MarkerCombinationAnalysis
+	unHitMarkerCombinationAnalysisMap map[types.MarkerCombinationId]*MarkerCombinationAnalysis
+	raceCount                         int
+	ticketAnalysis                    *TicketAnalysis
+	allMarkerCombinationIds           []types.MarkerCombinationId
 }
 
 func NewAnalysisData(
-	markerCombinationAnalysisMap map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
+	hitMarkerCombinationAnalysisMap map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
+	unHitMarkerCombinationAnalysisMap map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
+	raceCount int,
 	ticketAnalysis *TicketAnalysis,
 	allMarkerCombinationIds []types.MarkerCombinationId,
-	raceCount int,
 ) *AnalysisData {
 	return &AnalysisData{
-		markerCombinationAnalysisMap: markerCombinationAnalysisMap,
-		ticketAnalysis:               ticketAnalysis,
-		allMarkerCombinationIds:      allMarkerCombinationIds,
-		raceCount:                    raceCount,
+		hitMarkerCombinationAnalysisMap:   hitMarkerCombinationAnalysisMap,
+		unHitMarkerCombinationAnalysisMap: unHitMarkerCombinationAnalysisMap,
+		raceCount:                         raceCount,
+		ticketAnalysis:                    ticketAnalysis,
+		allMarkerCombinationIds:           allMarkerCombinationIds,
 	}
 }
 
-func (a *AnalysisData) MarkerCombinationAnalysisMap() map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
-	return a.markerCombinationAnalysisMap
+func (a *AnalysisData) HitMarkerCombinationAnalysisMap() map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
+	return a.hitMarkerCombinationAnalysisMap
+}
+
+func (a *AnalysisData) UnHitMarkerCombinationAnalysisMap() map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
+	return a.unHitMarkerCombinationAnalysisMap
+}
+
+func (a *AnalysisData) RaceCount() int {
+	return a.raceCount
 }
 
 func (a *AnalysisData) TicketAnalysis() *TicketAnalysis {
@@ -38,10 +49,6 @@ func (a *AnalysisData) TicketAnalysis() *TicketAnalysis {
 
 func (a *AnalysisData) AllMarkerCombinationIds() []types.MarkerCombinationId {
 	return a.allMarkerCombinationIds
-}
-
-func (a *AnalysisData) RaceCount() int {
-	return a.raceCount
 }
 
 type MarkerCombinationAnalysis struct {
@@ -60,15 +67,15 @@ func NewMarkerCombinationAnalysis(
 	}
 }
 
-func (m *MarkerCombinationAnalysis) HitRate() float64 {
+func (m *MarkerCombinationAnalysis) MatchRate() float64 {
 	return (float64(len(m.odds)) * float64(100)) / float64(m.raceCount)
 }
 
-func (m *MarkerCombinationAnalysis) HitRateFormat() string {
-	return rateFormat(m.HitRate())
+func (m *MarkerCombinationAnalysis) MatchRateFormat() string {
+	return rateFormat(m.MatchRate())
 }
 
-func (m *MarkerCombinationAnalysis) HitCount() int {
+func (m *MarkerCombinationAnalysis) MatchCount() int {
 	return len(m.odds)
 }
 

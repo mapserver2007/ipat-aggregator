@@ -102,6 +102,7 @@ func (p *analysis) CreateAnalysisData(
 					payoutResult.Odds()[idx],
 					payoutResult.Numbers()[idx],
 					payoutResult.Populars()[idx],
+					1,
 				)
 				err := p.predictAnalysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, true)
 				if err != nil {
@@ -113,7 +114,14 @@ func (p *analysis) CreateAnalysisData(
 			for _, markerCombinationId := range unHitMarkerCombinationIds {
 				// 不的中の集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
 				if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
-					horseNumber := markerCombinationId.Value() % 10
+					unHitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
+					if err != nil {
+						return nil, err
+					}
+					horseNumber, ok := marker.MarkerMap()[unHitMarker]
+					if !ok && unHitMarker != types.NoMarker {
+						return nil, fmt.Errorf("marker %s is not found in markerMap", unHitMarker.String())
+					}
 					if raceResult, ok := raceResultMap[horseNumber]; ok {
 						var (
 							payment types.Payment
@@ -135,6 +143,7 @@ func (p *analysis) CreateAnalysisData(
 							raceResult.Odds(),
 							types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
 							raceResult.PopularNumber(),
+							raceResult.OrderNo(),
 						)
 
 						err := p.predictAnalysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, false)

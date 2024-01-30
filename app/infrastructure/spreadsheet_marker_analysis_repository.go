@@ -8,7 +8,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"google.golang.org/api/sheets/v4"
 	"log"
-	"strconv"
 )
 
 const (
@@ -38,27 +37,35 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 	analysisData *spreadsheet_entity.AnalysisData,
 ) error {
 	log.Println(ctx, "write marker analysis start")
-	values := [][]interface{}{
-		{
-			fmt.Sprintf("レース数: %d, フィルタ条件: %s", analysisData.RaceCount(), "なし"),
-		},
+	var valuesList [4][][]interface{}
+	rateFormatFunc := func(matchCount int, raceCount int) string {
+		return fmt.Sprintf("%.2f%%", float64(matchCount)*100/float64(raceCount))
 	}
 
-	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds() // TODO 多分いらなくなる
-	markerCombinationAnalysisMap := analysisData.MarkerCombinationAnalysisMap()
-	currentTicketType := types.UnknownTicketType
+	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
+	hitMarkerCombinationAnalysisMap := analysisData.HitMarkerCombinationAnalysisMap()
+	unHitMarkerCombinationAnalysisMap := analysisData.UnHitMarkerCombinationAnalysisMap()
 	for _, markerCombinationId := range allMarkerCombinationIds {
-		if currentTicketType != markerCombinationId.TicketType() {
-			currentTicketType = markerCombinationId.TicketType()
-			switch currentTicketType {
+
+		data, ok := hitMarkerCombinationAnalysisMap[markerCombinationId]
+		if ok {
+			switch markerCombinationId.TicketType() {
 			case types.Win:
-				values = append(values, [][]interface{}{
+				marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+				if err != nil {
+					return err
+				}
+				if marker != types.Favorite {
+					continue
+				}
+
+				oddsRangeMap := s.createWinOddsRangeMap(ctx, data)
+				// TODO フィルタ条件でvaluesの行を作っていく。フィルタの条件の個数だけforループまわす
+				valuesList[0] = append(valuesList[0], [][]interface{}{
 					{
-						"印組合せ",
+						markerCombinationId.String(),
+						"対象レース数",
 						"印的中率",
-						"印的中回数",
-						"投票回数",
-						"回収率",
 						types.WinOddsRange1.String(),
 						types.WinOddsRange2.String(),
 						types.WinOddsRange3.String(),
@@ -68,89 +75,133 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 						types.WinOddsRange7.String(),
 						types.WinOddsRange8.String(),
 					},
+					{
+						"条件なし",
+						analysisData.RaceCount(),
+						data.MatchRateFormat(),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange1], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange2], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange3], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange4], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange5], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange6], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange7], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange8], data.MatchCount()),
+					},
 				}...)
-			default:
-				// TODO 単勝だけにとりあえず注力するので塞いでおく
-				//values = append(values, [][]interface{}{
-				//	{
-				//		"印組合せ",
-				//		"印的中率",
-				//		"印的中回数",
-				//		"投票回数",
-				//		"回収率",
-				//		"払戻平均値",
-				//		"払戻中央値",
-				//		"払戻最大値",
-				//		"払戻最小値",
-				//		"平均人気",
-				//		"最大人気",
-				//		"最小人気",
-				//		"平均オッズ",
-				//		"最大オッズ",
-				//		"最小オッズ",
-				//	},
-				//}...)
+
+				valuesList[1] = append(valuesList[1], [][]interface{}{
+					{
+						"",
+						"対象レース数",
+						"印的中率",
+						types.WinOddsRange1.String(),
+						types.WinOddsRange2.String(),
+						types.WinOddsRange3.String(),
+						types.WinOddsRange4.String(),
+						types.WinOddsRange5.String(),
+						types.WinOddsRange6.String(),
+						types.WinOddsRange7.String(),
+						types.WinOddsRange8.String(),
+					},
+					{
+						"条件なし",
+						analysisData.RaceCount(),
+						data.MatchCount(),
+						oddsRangeMap[types.WinOddsRange1],
+						oddsRangeMap[types.WinOddsRange2],
+						oddsRangeMap[types.WinOddsRange3],
+						oddsRangeMap[types.WinOddsRange4],
+						oddsRangeMap[types.WinOddsRange5],
+						oddsRangeMap[types.WinOddsRange6],
+						oddsRangeMap[types.WinOddsRange7],
+						oddsRangeMap[types.WinOddsRange8],
+					},
+				}...)
 			}
 		}
-		log.Println(ctx, fmt.Sprintf("write marker %s", markerCombinationId.String()))
-		data, ok := markerCombinationAnalysisMap[markerCombinationId]
+		data, ok = unHitMarkerCombinationAnalysisMap[markerCombinationId]
+		if ok {
+			switch markerCombinationId.TicketType() {
+			case types.Win:
+				marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+				if err != nil {
+					return err
+				}
+				if marker != types.Favorite {
+					continue
+				}
 
-		switch markerCombinationId.TicketType() {
-		case types.Win:
-			oddsRangeMap := s.createWinOddsRangeMap(ctx, data)
-			if ok {
-				values = append(values, []interface{}{
-					fmt.Sprintf("%s(%d)", markerCombinationId.String(), markerCombinationId.Value()),
-					data.HitRateFormat(),
-					data.HitCount(),
-					"",
-					"",
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange1])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange2])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange3])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange4])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange5])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange6])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange7])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-					fmt.Sprintf("%s%s", strconv.FormatFloat(float64(oddsRangeMap[types.WinOddsRange8])*float64(100)/float64(analysisData.RaceCount()), 'f', 2, 64), "%"),
-				})
-			} else {
-				values = append(values, []interface{}{
-					fmt.Sprintf("%s(%d)", markerCombinationId.String(), markerCombinationId.Value()),
-					0,
-					0,
-					"",
-					"",
-				})
+				oddsRangeMap := s.createWinOddsRangeMap(ctx, data)
+				valuesList[2] = append(valuesList[2], [][]interface{}{
+					{
+						"",
+						"対象レース数",
+						"印不的中率",
+						types.WinOddsRange1.String(),
+						types.WinOddsRange2.String(),
+						types.WinOddsRange3.String(),
+						types.WinOddsRange4.String(),
+						types.WinOddsRange5.String(),
+						types.WinOddsRange6.String(),
+						types.WinOddsRange7.String(),
+						types.WinOddsRange8.String(),
+					},
+					{
+						"条件なし",
+						analysisData.RaceCount(),
+						data.MatchRateFormat(),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange1], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange2], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange3], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange4], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange5], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange6], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange7], data.MatchCount()),
+						rateFormatFunc(oddsRangeMap[types.WinOddsRange8], data.MatchCount()),
+					},
+				}...)
+
+				valuesList[3] = append(valuesList[3], [][]interface{}{
+					{
+						"",
+						"対象レース数",
+						"印不的中率",
+						types.WinOddsRange1.String(),
+						types.WinOddsRange2.String(),
+						types.WinOddsRange3.String(),
+						types.WinOddsRange4.String(),
+						types.WinOddsRange5.String(),
+						types.WinOddsRange6.String(),
+						types.WinOddsRange7.String(),
+						types.WinOddsRange8.String(),
+					},
+					{
+						"条件なし",
+						analysisData.RaceCount(),
+						data.MatchCount(),
+						oddsRangeMap[types.WinOddsRange1],
+						oddsRangeMap[types.WinOddsRange2],
+						oddsRangeMap[types.WinOddsRange3],
+						oddsRangeMap[types.WinOddsRange4],
+						oddsRangeMap[types.WinOddsRange5],
+						oddsRangeMap[types.WinOddsRange6],
+						oddsRangeMap[types.WinOddsRange7],
+						oddsRangeMap[types.WinOddsRange8],
+					},
+				}...)
 			}
-		default:
-			// TODO 単勝だけにとりあえず注力するので塞いでおく
-			//if ok {
-			//	values = append(values, []interface{}{
-			//		fmt.Sprintf("%s(%d)", markerCombinationId.String(), markerCombinationId.Value()),
-			//		data.HitRateFormat(),
-			//		data.HitCount(),
-			//		"",
-			//		"",
-			//	})
-			//} else {
-			//	values = append(values, []interface{}{
-			//		fmt.Sprintf("%s(%d)", markerCombinationId.String(), markerCombinationId.Value()),
-			//		0,
-			//		0,
-			//		"",
-			//		"",
-			//	})
-			//}
 		}
 	}
 
-	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("A1"))
-	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
-		Values: values,
-	}).ValueInputOption("USER_ENTERED").Do()
-	if err != nil {
-		return err
+	for idx, values := range valuesList {
+		writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("A%d", idx*2+1))
+		_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+			Values: values,
+		}).ValueInputOption("USER_ENTERED").Do()
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Println(ctx, "write marker analysis end")
@@ -202,144 +253,160 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 	analysisData *spreadsheet_entity.AnalysisData,
 ) error {
 	log.Println(ctx, "write style marker analysis start")
-	rowNo := 2
+	rowNum := 2 // 分析項目の種類
 	currentTicketType := types.UnknownTicketType
 	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
 	for _, markerCombinationId := range allMarkerCombinationIds {
 		if currentTicketType != markerCombinationId.TicketType() {
 			currentTicketType = markerCombinationId.TicketType()
-			colNo := 0
 			switch currentTicketType {
 			case types.Win:
-				colNo = 13
-			default:
-				continue // TODO 単勝だけにとりあえず注力するので塞いでおく
-				colNo = 15
-			}
-			_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
-				Requests: []*sheets.Request{
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.textFormat.foregroundColor",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 0,
-								StartRowIndex:    int64(rowNo - 1),
-								EndColumnIndex:   1,
-								EndRowIndex:      int64(rowNo),
+				marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+				if err != nil {
+					return err
+				}
+				if marker != types.Favorite {
+					continue
+				}
+
+				for i := 0; i < 4; i++ {
+					_, err = s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+						Requests: []*sheets.Request{
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.textFormat.foregroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 3,
+										StartRowIndex:    int64(i * rowNum),
+										EndColumnIndex:   11,
+										EndRowIndex:      int64(i*rowNum) + 1,
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											TextFormat: &sheets.TextFormat{
+												ForegroundColor: &sheets.Color{
+													Red:   1.0,
+													Green: 1.0,
+													Blue:  1.0,
+												},
+											},
+										},
+									},
+								},
 							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									TextFormat: &sheets.TextFormat{
-										ForegroundColor: &sheets.Color{
-											Red:   1.0,
-											Green: 1.0,
-											Blue:  1.0,
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.backgroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 1,
+										StartRowIndex:    int64(i * rowNum),
+										EndColumnIndex:   4,
+										EndRowIndex:      int64(i*rowNum) + 1,
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											BackgroundColor: &sheets.Color{
+												Red:   1.0,
+												Blue:  0.0,
+												Green: 1.0,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.backgroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 3,
+										StartRowIndex:    int64(i * rowNum),
+										EndColumnIndex:   11,
+										EndRowIndex:      int64(i*rowNum) + 1,
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											BackgroundColor: &sheets.Color{
+												Red:   1.0,
+												Blue:  0.0,
+												Green: 0.0,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.textFormat.bold",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 1,
+										StartRowIndex:    int64(i * rowNum),
+										EndColumnIndex:   11,
+										EndRowIndex:      int64(i*rowNum) + 1,
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											TextFormat: &sheets.TextFormat{
+												Bold: true,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.backgroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 0,
+										StartRowIndex:    int64(i*rowNum) + 1,
+										EndColumnIndex:   1,
+										EndRowIndex:      int64(i*rowNum) + 2,
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											BackgroundColor: &sheets.Color{
+												Red:   1.0,
+												Blue:  0.0,
+												Green: 1.0,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.textFormat.bold",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 0,
+										StartRowIndex:    int64(i*rowNum) + 1,
+										EndColumnIndex:   1,
+										EndRowIndex:      int64(i*rowNum) + 2,
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											TextFormat: &sheets.TextFormat{
+												Bold: true,
+											},
 										},
 									},
 								},
 							},
 						},
-					},
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.backgroundColor",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 0,
-								StartRowIndex:    int64(rowNo - 1),
-								EndColumnIndex:   1,
-								EndRowIndex:      int64(rowNo),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									BackgroundColor: &sheets.Color{
-										Red:   0.0,
-										Blue:  1.0,
-										Green: 0.0,
-									},
-								},
-							},
-						},
-					},
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.backgroundColor",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 1,
-								StartRowIndex:    int64(rowNo - 1),
-								EndColumnIndex:   int64(colNo),
-								EndRowIndex:      int64(rowNo),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									BackgroundColor: &sheets.Color{
-										Red:   1.0,
-										Blue:  0.0,
-										Green: 1.0,
-									},
-								},
-							},
-						},
-					},
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.textFormat.bold",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 0,
-								StartRowIndex:    int64(rowNo - 1),
-								EndColumnIndex:   int64(colNo),
-								EndRowIndex:      int64(rowNo),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									TextFormat: &sheets.TextFormat{
-										Bold: true,
-									},
-								},
-							},
-						},
-					},
-					{
-						UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
-							Range: &sheets.DimensionRange{
-								Dimension:  "COLUMNS",
-								EndIndex:   1,
-								SheetId:    s.spreadSheetConfig.SheetId(),
-								StartIndex: 0,
-							},
-							Properties: &sheets.DimensionProperties{
-								PixelSize: 120,
-							},
-							Fields: "pixelSize",
-						},
-					},
-					{
-						UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
-							Range: &sheets.DimensionRange{
-								Dimension:  "COLUMNS",
-								EndIndex:   int64(colNo),
-								SheetId:    s.spreadSheetConfig.SheetId(),
-								StartIndex: 1,
-							},
-							Properties: &sheets.DimensionProperties{
-								PixelSize: 80,
-							},
-							Fields: "pixelSize",
-						},
-					},
-				},
-			}).Do()
+					}).Do()
+					if err != nil {
+						return err
+					}
+				}
 
-			if err != nil {
-				return err
+			default:
+				continue // TODO 単勝だけにとりあえず注力するので塞いでおく
 			}
-
-			rowNo++
 		}
-		rowNo++
 	}
 
 	return nil

@@ -1219,10 +1219,11 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
 ) *spreadsheet_entity.AnalysisData {
-	analysisDataMap := make(map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis)
-
-	// レース数をカウント
+	hitMarkerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
+	unHitMarkerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
 	raceMap := map[types.RaceId]bool{}
+
+	// 券種ごとにレース数をカウント
 	for _, data := range analysisData.MarkerCombination {
 		for _, data2 := range data.RaceDate {
 			for raceId := range data2.RaceId {
@@ -1232,22 +1233,27 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 			}
 		}
 	}
+
 	raceCount := len(raceMap)
 
 	// 印単位での集計をかける
 	for markerCombinationId, data := range analysisData.MarkerCombination {
-		if _, ok := analysisDataMap[markerCombinationId]; !ok {
-			analysisDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCount)
-		}
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
 				for _, data4 := range data3 {
-					// TODO 不的中の集計もやる
 					if data4.Hit() {
-						analysisDataMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
-						analysisDataMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
+						if _, ok := hitMarkerCombinationDataMap[markerCombinationId]; !ok {
+							hitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCount)
+						}
+						hitMarkerCombinationDataMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
+						hitMarkerCombinationDataMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
+					} else {
+						if _, ok := unHitMarkerCombinationDataMap[markerCombinationId]; !ok {
+							unHitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCount)
+						}
+						unHitMarkerCombinationDataMap[markerCombinationId].AddPopular(data4.Calculable().Popular())
+						unHitMarkerCombinationDataMap[markerCombinationId].AddOdds(data4.Calculable().Odds())
 					}
-
 					//if data4.Calculable().Payment() > 0 {
 					//	markerCombinationMap[markerCombinationId].AddVoteCount()
 					//	markerCombinationMap[markerCombinationId].AddPayment(data4.Calculable().Payment().Value())
@@ -1262,10 +1268,11 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 	}
 
 	return spreadsheet_entity.NewAnalysisData(
-		analysisDataMap,
+		hitMarkerCombinationDataMap,
+		unHitMarkerCombinationDataMap,
+		raceCount,
 		nil,
 		p.createAllMarkerCombinations(),
-		raceCount,
 	)
 }
 

@@ -2,6 +2,7 @@ package analysis_entity
 
 import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
 )
 
@@ -13,6 +14,7 @@ type Calculable struct {
 	number    types.BetNumber
 	popular   int
 	orderNo   int
+	filters   []filter.Id
 }
 
 func NewCalculable(
@@ -22,6 +24,7 @@ func NewCalculable(
 	number types.BetNumber,
 	popular int,
 	orderNo int,
+	filters []filter.Id,
 ) *Calculable {
 	decimalOdds, _ := decimal.NewFromString(odds)
 	return &Calculable{
@@ -31,6 +34,7 @@ func NewCalculable(
 		number:  number,
 		popular: popular,
 		orderNo: orderNo,
+		filters: filters,
 	}
 }
 
@@ -56,4 +60,8 @@ func (n *Calculable) Popular() int {
 
 func (n *Calculable) OrderNo() int {
 	return n.orderNo
+}
+
+func (n *Calculable) Filters() []filter.Id {
+	return n.filters
 }

@@ -755,13 +755,6 @@ func (m MarkerCombinationId) TicketType() TicketType {
 	return UnknownTicketType
 }
 
-type AnalysisFilterId byte
-
-const (
-	GradeClassFilter     AnalysisFilterId = 0x01
-	CourseCategoryFilter AnalysisFilterId = 0x02
-)
-
 type OddsRangeType int
 
 const (

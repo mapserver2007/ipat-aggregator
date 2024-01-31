@@ -80,6 +80,7 @@ func (p *analysis) CreateAnalysisData(
 			raceResultMap[raceResult.HorseNumber()] = raceResult
 		}
 
+		filters := p.predictAnalysisService.CreateAnalysisFilters(ctx, race)
 		for _, payoutResult := range race.PayoutResults() {
 			hitMarkerCombinationIds := p.predictAnalysisService.GetHitMarkerCombinationIds(ctx, payoutResult, marker)
 			for idx, markerCombinationId := range hitMarkerCombinationIds {
@@ -103,6 +104,7 @@ func (p *analysis) CreateAnalysisData(
 					payoutResult.Numbers()[idx],
 					payoutResult.Populars()[idx],
 					1,
+					filters,
 				)
 				err := p.predictAnalysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, true)
 				if err != nil {
@@ -144,6 +146,7 @@ func (p *analysis) CreateAnalysisData(
 							types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
 							raceResult.PopularNumber(),
 							raceResult.OrderNo(),
+							filters,
 						)
 
 						err := p.predictAnalysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, false)

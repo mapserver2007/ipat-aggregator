@@ -5,6 +5,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 )
 
 type markerAnalysisUseCase struct {
@@ -30,12 +31,13 @@ func (p *markerAnalysisUseCase) Write(
 	if err != nil {
 		return err
 	}
+	filters := []filter.Id{filter.All, filter.Turf, filter.Dirt}
 	spreadSheetAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData)
-	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData)
+	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData, filters)
 	if err != nil {
 		return err
 	}
-	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData)
+	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData, filters)
 	if err != nil {
 		return err
 	}

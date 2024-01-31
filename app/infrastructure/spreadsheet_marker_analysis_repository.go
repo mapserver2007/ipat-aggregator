@@ -36,6 +36,7 @@ func NewSpreadSheetMarkerAnalysisRepository() (repository.SpreadSheetMarkerAnaly
 func (s *spreadSheetMarkerAnalysisRepository) Write(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,
+	filters []filter.Id,
 ) error {
 	log.Println(ctx, "write marker analysis start")
 	var valuesList [4][][]interface{}
@@ -109,8 +110,6 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 	unHitDataMap := analysisData.UnHitDataMapByFilter()
 	raceCountMap := analysisData.RaceCountByFilter()
 
-	// TODO 関数化してループでフィルタ条件を回す
-	filters := []filter.Id{filter.All, filter.Turf}
 	for _, f := range filters {
 		for _, markerCombinationId := range allMarkerCombinationIds {
 			data, ok := hitDataMap[f][markerCombinationId]
@@ -126,7 +125,6 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 					}
 
 					oddsRangeMap := s.createWinOddsRangeMap(ctx, data)
-					// TODO フィルタ条件でvaluesの行を作っていく。フィルタの条件の個数だけforループまわす
 					valuesList[0] = append(valuesList[0], [][]interface{}{
 						{
 							f.String(),
@@ -266,9 +264,9 @@ func (s *spreadSheetMarkerAnalysisRepository) createWinOddsRangeMap(
 func (s *spreadSheetMarkerAnalysisRepository) Style(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,
+	filters []filter.Id,
 ) error {
 	log.Println(ctx, "write style marker analysis start")
-	rowNum := 3
 	currentTicketType := types.UnknownTicketType
 	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
 	for _, markerCombinationId := range allMarkerCombinationIds {
@@ -293,9 +291,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 3,
-										StartRowIndex:    int64(i * rowNum),
+										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   11,
-										EndRowIndex:      int64(i*rowNum) + 1,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
 									},
 									Cell: &sheets.CellData{
 										UserEnteredFormat: &sheets.CellFormat{
@@ -316,9 +314,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 1,
-										StartRowIndex:    int64(i * rowNum),
+										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   4,
-										EndRowIndex:      int64(i*rowNum) + 1,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
 									},
 									Cell: &sheets.CellData{
 										UserEnteredFormat: &sheets.CellFormat{
@@ -337,9 +335,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 3,
-										StartRowIndex:    int64(i * rowNum),
+										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   11,
-										EndRowIndex:      int64(i*rowNum) + 1,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
 									},
 									Cell: &sheets.CellData{
 										UserEnteredFormat: &sheets.CellFormat{
@@ -358,9 +356,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 1,
-										StartRowIndex:    int64(i * rowNum),
+										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   11,
-										EndRowIndex:      int64(i*rowNum) + 1,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
 									},
 									Cell: &sheets.CellData{
 										UserEnteredFormat: &sheets.CellFormat{
@@ -377,9 +375,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 0,
-										StartRowIndex:    int64(i*rowNum) + 1,
+										StartRowIndex:    int64(i*(1+len(filters)) + 1),
 										EndColumnIndex:   1,
-										EndRowIndex:      int64((i + 1) * rowNum),
+										EndRowIndex:      int64((i + 1) * (1 + len(filters))),
 									},
 									Cell: &sheets.CellData{
 										UserEnteredFormat: &sheets.CellFormat{
@@ -398,9 +396,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 0,
-										StartRowIndex:    int64(i*rowNum) + 1,
+										StartRowIndex:    int64(i*(1+len(filters)) + 1),
 										EndColumnIndex:   1,
-										EndRowIndex:      int64((i + 1) * rowNum),
+										EndRowIndex:      int64((i + 1) * (1 + len(filters))),
 									},
 									Cell: &sheets.CellData{
 										UserEnteredFormat: &sheets.CellFormat{
@@ -423,14 +421,6 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 			}
 		}
 	}
-
-	return nil
-}
-
-func (s *spreadSheetMarkerAnalysisRepository) writeFilter(
-	ctx context.Context,
-) error {
-	log.Println(ctx, "writing spreadsheet writeFilter in marker analysis")
 
 	return nil
 }

@@ -36,6 +36,10 @@ func NewAnalysisService() AnalysisService {
 		filter.TurfLongDistance,
 		filter.DirtShortDistance,
 		filter.DirtLongDistance,
+		filter.TurfSmallNumberStarters,
+		filter.TurfLargeNumberStarters,
+		filter.DirtSmallNumberStarters,
+		filter.DirtLargeNumberStarters,
 	}
 
 	return &analysisService{
@@ -1434,13 +1438,16 @@ func (p *analysisService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.Turf)
 	case types.Dirt:
 		filterIds = append(filterIds, filter.Dirt)
-	case types.Jump:
-		filterIds = append(filterIds, filter.Jump)
 	}
 	if race.Distance() >= 1000 && race.Distance() <= 1899 {
 		filterIds = append(filterIds, filter.ShortDistance)
 	} else if race.Distance() >= 1900 {
 		filterIds = append(filterIds, filter.LongDistance)
+	}
+	if race.Entries() <= 10 {
+		filterIds = append(filterIds, filter.SmallNumberStarters)
+	} else if race.Entries() >= 11 {
+		filterIds = append(filterIds, filter.LargeNumberStarters)
 	}
 
 	return filterIds

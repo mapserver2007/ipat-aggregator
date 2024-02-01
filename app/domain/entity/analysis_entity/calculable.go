@@ -14,6 +14,7 @@ type Calculable struct {
 	number    types.BetNumber
 	popular   int
 	orderNo   int
+	entries   int
 	filters   []filter.Id
 }
 
@@ -24,6 +25,7 @@ func NewCalculable(
 	number types.BetNumber,
 	popular int,
 	orderNo int,
+	entries int,
 	filters []filter.Id,
 ) *Calculable {
 	decimalOdds, _ := decimal.NewFromString(odds)
@@ -34,6 +36,7 @@ func NewCalculable(
 		number:  number,
 		popular: popular,
 		orderNo: orderNo,
+		entries: entries,
 		filters: filters,
 	}
 }
@@ -60,6 +63,10 @@ func (n *Calculable) Popular() int {
 
 func (n *Calculable) OrderNo() int {
 	return n.orderNo
+}
+
+func (n *Calculable) Entries() int {
+	return n.entries
 }
 
 func (n *Calculable) Filters() []filter.Id {

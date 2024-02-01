@@ -105,6 +105,7 @@ func (p *analysis) CreateAnalysisData(
 					payoutResult.Numbers()[idx],
 					payoutResult.Populars()[idx],
 					1,
+					race.Entries(),
 					filters,
 				)
 				err := p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, true)
@@ -147,6 +148,7 @@ func (p *analysis) CreateAnalysisData(
 							types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
 							raceResult.PopularNumber(),
 							raceResult.OrderNo(),
+							race.Entries(),
 							filters,
 						)
 

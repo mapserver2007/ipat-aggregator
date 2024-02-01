@@ -10,6 +10,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,20 +18,20 @@ import (
 )
 
 type analysis struct {
-	markerDataRepository   repository.MarkerDataRepository
-	predictAnalysisService service.AnalysisService
-	ticketConverter        service.TicketConverter
+	markerDataRepository repository.MarkerDataRepository
+	analysisService      service.AnalysisService
+	ticketConverter      service.TicketConverter
 }
 
 func NewAnalysis(
 	markerDataRepository repository.MarkerDataRepository,
-	predictAnalysisService service.AnalysisService,
+	analysisService service.AnalysisService,
 	ticketConverter service.TicketConverter,
 ) *analysis {
 	return &analysis{
-		markerDataRepository:   markerDataRepository,
-		predictAnalysisService: predictAnalysisService,
-		ticketConverter:        ticketConverter,
+		markerDataRepository: markerDataRepository,
+		analysisService:      analysisService,
+		ticketConverter:      ticketConverter,
 	}
 }
 
@@ -59,7 +60,7 @@ func (p *analysis) CreateAnalysisData(
 	races []*data_cache_entity.Race,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
-) (*analysis_entity.Layer1, error) {
+) (*analysis_entity.Layer1, []filter.Id, error) {
 	ticketsMap := p.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers, races)
 	raceMap := map[types.RaceId]*data_cache_entity.Race{}
 	for _, race := range races {
@@ -80,9 +81,9 @@ func (p *analysis) CreateAnalysisData(
 			raceResultMap[raceResult.HorseNumber()] = raceResult
 		}
 
-		filters := p.predictAnalysisService.CreateAnalysisFilters(ctx, race)
+		filters := p.analysisService.CreateAnalysisFilters(ctx, race)
 		for _, payoutResult := range race.PayoutResults() {
-			hitMarkerCombinationIds := p.predictAnalysisService.GetHitMarkerCombinationIds(ctx, payoutResult, marker)
+			hitMarkerCombinationIds := p.analysisService.GetHitMarkerCombinationIds(ctx, payoutResult, marker)
 			for idx, markerCombinationId := range hitMarkerCombinationIds {
 				var (
 					payment types.Payment
@@ -106,23 +107,23 @@ func (p *analysis) CreateAnalysisData(
 					1,
 					filters,
 				)
-				err := p.predictAnalysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, true)
+				err := p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, true)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 
-			unHitMarkerCombinationIds := p.predictAnalysisService.GetUnHitMarkerCombinationIds(ctx, payoutResult, marker)
+			unHitMarkerCombinationIds := p.analysisService.GetUnHitMarkerCombinationIds(ctx, payoutResult, marker)
 			for _, markerCombinationId := range unHitMarkerCombinationIds {
 				// 不的中の集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
 				if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
 					unHitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
 					if err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 					horseNumber, ok := marker.MarkerMap()[unHitMarker]
 					if !ok && unHitMarker != types.NoMarker {
-						return nil, fmt.Errorf("marker %s is not found in markerMap", unHitMarker.String())
+						return nil, nil, fmt.Errorf("marker %s is not found in markerMap", unHitMarker.String())
 					}
 					if raceResult, ok := raceResultMap[horseNumber]; ok {
 						var (
@@ -149,9 +150,9 @@ func (p *analysis) CreateAnalysisData(
 							filters,
 						)
 
-						err := p.predictAnalysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, false)
+						err := p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable, false)
 						if err != nil {
-							return nil, err
+							return nil, nil, err
 						}
 					}
 				}
@@ -159,5 +160,5 @@ func (p *analysis) CreateAnalysisData(
 		}
 	}
 
-	return p.predictAnalysisService.GetAnalysisData(), nil
+	return p.analysisService.GetAnalysisData(), p.analysisService.GetSearchFilters(), nil
 }

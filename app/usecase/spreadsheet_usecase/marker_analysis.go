@@ -26,18 +26,18 @@ func NewMarkerAnalysisUseCase(
 func (p *markerAnalysisUseCase) Write(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
+	searchFilters []filter.Id,
 ) error {
 	err := p.spreadSheetRepository.Clear(ctx)
 	if err != nil {
 		return err
 	}
-	filters := []filter.Id{filter.All, filter.Turf, filter.Dirt}
 	spreadSheetAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData)
-	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData, filters)
+	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData, searchFilters)
 	if err != nil {
 		return err
 	}
-	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData, filters)
+	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData, searchFilters)
 	if err != nil {
 		return err
 	}

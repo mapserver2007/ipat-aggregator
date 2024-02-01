@@ -14,6 +14,7 @@ import (
 type AnalysisService interface {
 	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable, hitMarker bool) error
 	GetAnalysisData() *analysis_entity.Layer1
+	GetSearchFilters() []filter.Id
 	GetHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
 	GetUnHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
 	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1) *spreadsheet_entity.AnalysisData
@@ -21,16 +22,25 @@ type AnalysisService interface {
 }
 
 type analysisService struct {
-	analysisData *analysis_entity.Layer1
+	analysisData  *analysis_entity.Layer1
+	searchFilters []filter.Id
 }
 
 func NewAnalysisService() AnalysisService {
 	analysisData := analysis_entity.Layer1{
 		MarkerCombination: make(map[types.MarkerCombinationId]*analysis_entity.Layer2),
 	}
+	searchFilters := []filter.Id{
+		filter.All,
+		filter.TurfShortDistance,
+		filter.TurfLongDistance,
+		filter.DirtShortDistance,
+		filter.DirtLongDistance,
+	}
 
 	return &analysisService{
-		analysisData: &analysisData,
+		analysisData:  &analysisData,
+		searchFilters: searchFilters,
 	}
 }
 
@@ -61,6 +71,10 @@ func (p *analysisService) AddAnalysisData(
 
 func (p *analysisService) GetAnalysisData() *analysis_entity.Layer1 {
 	return p.analysisData
+}
+
+func (p *analysisService) GetSearchFilters() []filter.Id {
+	return p.searchFilters
 }
 
 func (p *analysisService) GetHitMarkerCombinationIds(
@@ -1226,7 +1240,7 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 	unHitDataMapByFilter := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
 	raceCountByFilter := map[filter.Id]int{}
 
-	for _, f := range []filter.Id{filter.All, filter.Turf, filter.Dirt} {
+	for _, f := range p.searchFilters {
 		raceCount := p.calcMarkerCombinationRaceCountByFilter(analysisData, f)
 		hitData, unHitData := p.createMarkerCombinationDataByFilter(analysisData, f)
 		hitDataMapByFilter[f] = hitData
@@ -1391,6 +1405,16 @@ func (p *analysisService) createAllMarkerCombinations() []types.MarkerCombinatio
 	return markerCombinationIds
 }
 
+func (p *analysisService) defineSearchFilters() []filter.Id {
+	return []filter.Id{
+		filter.All,
+		filter.TurfShortDistance,
+		filter.TurfLongDistance,
+		filter.DirtShortDistance,
+		filter.DirtLongDistance,
+	}
+}
+
 func (p *analysisService) CreateAnalysisFilters(
 	ctx context.Context,
 	race *data_cache_entity.Race,
@@ -1403,6 +1427,11 @@ func (p *analysisService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.Dirt)
 	case types.Jump:
 		filterIds = append(filterIds, filter.Jump)
+	}
+	if race.Distance() >= 1000 && race.Distance() <= 1899 {
+		filterIds = append(filterIds, filter.ShortDistance)
+	} else if race.Distance() >= 1900 {
+		filterIds = append(filterIds, filter.LongDistance)
 	}
 
 	return filterIds

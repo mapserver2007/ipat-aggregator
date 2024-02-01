@@ -116,11 +116,11 @@ func masterFile(
 	betNumberConverter := service.NewBetNumberConverter()
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
-	predictAnalysisService := service.NewAnalysisService()
+	analysisService := service.NewAnalysisService()
 	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
 	markerDataRepository := infrastructure.NewMarkerDataRepository()
 	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
-	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, predictAnalysisService, ticketConverter)
+	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, analysisService, ticketConverter)
 
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
@@ -161,21 +161,21 @@ func analysis(
 ) error {
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
-	predictAnalysisService := service.NewAnalysisService()
+	analysisService := service.NewAnalysisService()
 	markerDataRepository := infrastructure.NewMarkerDataRepository()
-	predictUseCase := analysis_usecase.NewAnalysis(markerDataRepository, predictAnalysisService, ticketConverter)
+	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, analysisService, ticketConverter)
 	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository()
 	if err != nil {
 		return err
 	}
 
-	analysisData, err := predictUseCase.CreateAnalysisData(ctx, markers, races, tickets, racingNumbers)
+	analysisData, searchFilters, err := analysisUseCase.CreateAnalysisData(ctx, markers, races, tickets, racingNumbers)
 	if err != nil {
 		return err
 	}
 
-	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, predictAnalysisService)
-	spreadSheetUseCase.Write(ctx, analysisData)
+	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, analysisService)
+	spreadSheetUseCase.Write(ctx, analysisData, searchFilters)
 
 	return nil
 }

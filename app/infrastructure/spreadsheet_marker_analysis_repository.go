@@ -39,7 +39,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 	filters []filter.Id,
 ) error {
 	log.Println(ctx, "write marker analysis start")
-	var valuesList [4][][]interface{}
+	var valuesList [3][][]interface{}
 	valuesList[0] = [][]interface{}{
 		{
 			"",
@@ -74,21 +74,6 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 		{
 			"",
 			"対象レース数",
-			"印不的中率",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-		},
-	}
-	valuesList[3] = [][]interface{}{
-		{
-			"",
-			"対象レース数",
 			"印不的中数",
 			types.WinOddsRange1.String(),
 			types.WinOddsRange2.String(),
@@ -102,13 +87,27 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 	}
 
 	rateFormatFunc := func(matchCount int, raceCount int) string {
+		if raceCount == 0 {
+			return "-"
+		}
 		return fmt.Sprintf("%.2f%%", float64(matchCount)*100/float64(raceCount))
 	}
 
 	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
 	hitDataMap := analysisData.HitDataMapByFilter()
 	unHitDataMap := analysisData.UnHitDataMapByFilter()
-	raceCountMap := analysisData.RaceCountByFilter()
+	raceCountMap := analysisData.RaceCountMapByFilter()
+
+	oddsRanges := []types.OddsRangeType{
+		types.WinOddsRange1,
+		types.WinOddsRange2,
+		types.WinOddsRange3,
+		types.WinOddsRange4,
+		types.WinOddsRange5,
+		types.WinOddsRange6,
+		types.WinOddsRange7,
+		types.WinOddsRange8,
+	}
 
 	for _, f := range filters {
 		for _, markerCombinationId := range allMarkerCombinationIds {
@@ -125,26 +124,34 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 					}
 
 					oddsRangeMap := s.createWinOddsRangeMap(ctx, data)
+					oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+					raceCount := 0
+					for _, oddsRange := range oddsRanges {
+						if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
+							raceCount += n
+						}
+					}
+
 					valuesList[0] = append(valuesList[0], [][]interface{}{
 						{
 							f.String(),
-							raceCountMap[f],
-							data.MatchRateFormat(),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange1], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange2], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange3], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange4], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange5], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange6], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange7], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange8], data.MatchCount()),
+							raceCount,
+							rateFormatFunc(data.MatchCount(), raceCount),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+							rateFormatFunc(oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
 						},
 					}...)
 
 					valuesList[1] = append(valuesList[1], [][]interface{}{
 						{
 							f.String(),
-							raceCountMap[f],
+							raceCount,
 							data.MatchCount(),
 							oddsRangeMap[types.WinOddsRange1],
 							oddsRangeMap[types.WinOddsRange2],
@@ -171,26 +178,18 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 					}
 
 					oddsRangeMap := s.createWinOddsRangeMap(ctx, data)
+					oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+					raceCount := 0
+					for _, oddsRange := range oddsRanges {
+						if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
+							raceCount += n
+						}
+					}
+
 					valuesList[2] = append(valuesList[2], [][]interface{}{
 						{
 							f.String(),
-							raceCountMap[f],
-							data.MatchRateFormat(),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange1], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange2], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange3], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange4], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange5], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange6], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange7], data.MatchCount()),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange8], data.MatchCount()),
-						},
-					}...)
-
-					valuesList[3] = append(valuesList[3], [][]interface{}{
-						{
-							f.String(),
-							raceCountMap[f],
+							raceCount,
 							data.MatchCount(),
 							oddsRangeMap[types.WinOddsRange1],
 							oddsRangeMap[types.WinOddsRange2],
@@ -282,7 +281,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 					continue
 				}
 
-				for i := 0; i < 4; i++ {
+				for i := 0; i < 3; i++ {
 					_, err = s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 						Requests: []*sheets.Request{
 							{

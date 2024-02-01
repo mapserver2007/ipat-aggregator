@@ -12,20 +12,20 @@ import (
 type AnalysisData struct {
 	hitDataMapByFilter      map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
 	unHitDataMapByFilter    map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
-	raceCountByFilter       map[filter.Id]int
+	raceCountMapByFilter    map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int
 	allMarkerCombinationIds []types.MarkerCombinationId
 }
 
 func NewAnalysisData(
 	hitDataMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
 	unHitDataMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
-	raceCountByFilter map[filter.Id]int,
+	raceCountMapByFilter map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int,
 	allMarkerCombinationIds []types.MarkerCombinationId,
 ) *AnalysisData {
 	return &AnalysisData{
 		hitDataMapByFilter:      hitDataMapByFilter,
 		unHitDataMapByFilter:    unHitDataMapByFilter,
-		raceCountByFilter:       raceCountByFilter,
+		raceCountMapByFilter:    raceCountMapByFilter,
 		allMarkerCombinationIds: allMarkerCombinationIds,
 	}
 }
@@ -38,8 +38,8 @@ func (a *AnalysisData) UnHitDataMapByFilter() map[filter.Id]map[types.MarkerComb
 	return a.unHitDataMapByFilter
 }
 
-func (a *AnalysisData) RaceCountByFilter() map[filter.Id]int {
-	return a.raceCountByFilter
+func (a *AnalysisData) RaceCountMapByFilter() map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int {
+	return a.raceCountMapByFilter
 }
 
 func (a *AnalysisData) AllMarkerCombinationIds() []types.MarkerCombinationId {
@@ -47,14 +47,14 @@ func (a *AnalysisData) AllMarkerCombinationIds() []types.MarkerCombinationId {
 }
 
 type MarkerCombinationAnalysis struct {
-	raceCount   int
-	calculables []*analysis_entity.Calculable
+	raceCountOddsRangeMap map[types.OddsRangeType]int
+	calculables           []*analysis_entity.Calculable
 }
 
-func NewMarkerCombinationAnalysis(raceCount int) *MarkerCombinationAnalysis {
+func NewMarkerCombinationAnalysis(raceCountOddsRangeMap map[types.OddsRangeType]int) *MarkerCombinationAnalysis {
 	return &MarkerCombinationAnalysis{
-		raceCount:   raceCount,
-		calculables: make([]*analysis_entity.Calculable, 0),
+		raceCountOddsRangeMap: raceCountOddsRangeMap,
+		calculables:           make([]*analysis_entity.Calculable, 0),
 	}
 }
 
@@ -62,13 +62,21 @@ func (m *MarkerCombinationAnalysis) AddCalculable(calculable *analysis_entity.Ca
 	m.calculables = append(m.calculables, calculable)
 }
 
-func (m *MarkerCombinationAnalysis) MatchRate() float64 {
-	return (float64(m.MatchCount()) * float64(100)) / float64(m.raceCount)
+func (m *MarkerCombinationAnalysis) Calculables() []*analysis_entity.Calculable {
+	return m.calculables
 }
 
-func (m *MarkerCombinationAnalysis) MatchRateFormat() string {
-	return rateFormat(m.MatchRate())
-}
+//func (m *MarkerCombinationAnalysis) MatchRate(oddsRangeType types.OddsRangeType) float64 {
+//	raceCount, ok := m.raceCountOddsRangeMap[oddsRangeType]
+//	if !ok {
+//		return 0
+//	}
+//	return (float64(m.MatchCount()) * float64(100)) / float64(raceCount)
+//}
+//
+//func (m *MarkerCombinationAnalysis) MatchRateFormat(oddsRangeType types.OddsRangeType) string {
+//	return rateFormat(m.MatchRate(oddsRangeType))
+//}
 
 func (m *MarkerCombinationAnalysis) MatchCount() int {
 	var odds []decimal.Decimal

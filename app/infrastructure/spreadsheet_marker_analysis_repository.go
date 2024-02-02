@@ -268,6 +268,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 	log.Println(ctx, "write style marker analysis start")
 	currentTicketType := types.UnknownTicketType
 	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
+
 	for _, markerCombinationId := range allMarkerCombinationIds {
 		if currentTicketType != markerCombinationId.TicketType() {
 			currentTicketType = markerCombinationId.TicketType()

@@ -18,7 +18,7 @@ type AnalysisService interface {
 	GetHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
 	GetUnHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
 	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1) *spreadsheet_entity.AnalysisData
-	CreateAnalysisFilters(ctx context.Context, race *data_cache_entity.Race) []filter.Id
+	CreateAnalysisFilters(ctx context.Context, race *data_cache_entity.Race, raceResultByMarker *data_cache_entity.RaceResult) []filter.Id
 }
 
 type analysisService struct {
@@ -33,13 +33,25 @@ func NewAnalysisService() AnalysisService {
 	searchFilters := []filter.Id{
 		filter.All,
 		filter.TurfShortDistance,
+		filter.TurfMiddleDistance,
 		filter.TurfLongDistance,
 		filter.DirtShortDistance,
 		filter.DirtLongDistance,
-		filter.TurfSmallNumberStarters,
-		filter.TurfLargeNumberStarters,
-		filter.DirtSmallNumberStarters,
-		filter.DirtLargeNumberStarters,
+		filter.TurfShortDistanceJockeyTop1,
+		filter.TurfMiddleDistanceJockeyTop1,
+		filter.TurfLongDistanceJockeyTop1,
+		filter.DirtShortDistanceJockeyTop1,
+		filter.DirtLongDistanceJockeyTop1,
+		filter.TurfShortDistanceJockeyTop2,
+		filter.TurfMiddleDistanceJockeyTop2,
+		filter.TurfLongDistanceJockeyTop2,
+		filter.DirtShortDistanceJockeyTop2,
+		filter.DirtLongDistanceJockeyTop2,
+		filter.TurfShortDistanceJockeyOther,
+		filter.TurfMiddleDistanceJockeyOther,
+		filter.TurfLongDistanceJockeyOther,
+		filter.DirtShortDistanceJockeyOther,
+		filter.DirtLongDistanceJockeyOther,
 	}
 
 	return &analysisService{
@@ -1431,6 +1443,7 @@ func (p *analysisService) createAllMarkerCombinations() []types.MarkerCombinatio
 func (p *analysisService) CreateAnalysisFilters(
 	ctx context.Context,
 	race *data_cache_entity.Race,
+	raceResultByMarker *data_cache_entity.RaceResult,
 ) []filter.Id {
 	var filterIds []filter.Id
 	switch race.CourseCategory() {
@@ -1439,15 +1452,20 @@ func (p *analysisService) CreateAnalysisFilters(
 	case types.Dirt:
 		filterIds = append(filterIds, filter.Dirt)
 	}
-	if race.Distance() >= 1000 && race.Distance() <= 1899 {
+	if race.Distance() >= 1000 && race.Distance() <= 1600 {
 		filterIds = append(filterIds, filter.ShortDistance)
-	} else if race.Distance() >= 1900 {
+	} else if race.Distance() >= 1601 && race.Distance() <= 2000 {
+		filterIds = append(filterIds, filter.MiddleDistance)
+	} else if race.Distance() >= 2001 {
 		filterIds = append(filterIds, filter.LongDistance)
 	}
-	if race.Entries() <= 10 {
-		filterIds = append(filterIds, filter.SmallNumberStarters)
-	} else if race.Entries() >= 11 {
-		filterIds = append(filterIds, filter.LargeNumberStarters)
+	switch raceResultByMarker.JockeyId() {
+	case 5339: // C.ルメール
+		filterIds = append(filterIds, filter.JokeyTop1)
+	case 1088: // 川田将雅
+		filterIds = append(filterIds, filter.JokeyTop2)
+	default:
+		filterIds = append(filterIds, filter.JokeyOther)
 	}
 
 	return filterIds

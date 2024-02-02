@@ -81,13 +81,15 @@ func (p *analysis) CreateAnalysisData(
 			raceResultMap[raceResult.HorseNumber()] = raceResult
 		}
 
-		filters := p.analysisService.CreateAnalysisFilters(ctx, race)
+		race.RaceResults()
+
 		for _, payoutResult := range race.PayoutResults() {
 			hitMarkerCombinationIds := p.analysisService.GetHitMarkerCombinationIds(ctx, payoutResult, marker)
 			for idx, markerCombinationId := range hitMarkerCombinationIds {
 				var (
 					payment types.Payment
 					payout  types.Payout
+					filters []filter.Id
 				)
 				if ticketsByRaceId != nil {
 					for _, ticket := range ticketsByRaceId {
@@ -98,6 +100,18 @@ func (p *analysis) CreateAnalysisData(
 						}
 					}
 				}
+
+				for _, raceResult := range race.RaceResults() {
+					switch markerCombinationId.TicketType() {
+					case types.Win:
+						if raceResult.HorseNumber() == marker.Favorite() {
+							filters = p.analysisService.CreateAnalysisFilters(ctx, race, raceResult)
+						}
+					case types.Place:
+						// TODO
+					}
+				}
+
 				calculable := analysis_entity.NewCalculable(
 					payment,
 					payout,
@@ -130,6 +144,7 @@ func (p *analysis) CreateAnalysisData(
 						var (
 							payment types.Payment
 							payout  types.Payout
+							filters []filter.Id
 						)
 						if ticketsByRaceId != nil {
 							for _, ticket := range ticketsByRaceId {
@@ -141,6 +156,18 @@ func (p *analysis) CreateAnalysisData(
 								}
 							}
 						}
+
+						for _, raceResult := range race.RaceResults() {
+							switch markerCombinationId.TicketType() {
+							case types.Win:
+								if raceResult.HorseNumber() == marker.Favorite() {
+									filters = p.analysisService.CreateAnalysisFilters(ctx, race, raceResult)
+								}
+							case types.Place:
+								// TODO
+							}
+						}
+
 						calculable := analysis_entity.NewCalculable(
 							payment,
 							payout,

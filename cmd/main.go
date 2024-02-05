@@ -169,7 +169,7 @@ func analysis(
 		return err
 	}
 
-	analysisData, searchFilters, err := analysisUseCase.CreateAnalysisData(ctx, markers, races, tickets, racingNumbers)
+	analysisData, searchFilters, err := analysisUseCase.CreateAnalysisData(ctx, markers, races)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 type AnalysisService interface {
-	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable, hitMarker bool) error
+	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable) error
 	GetAnalysisData() *analysis_entity.Layer1
 	GetSearchFilters() []filter.Id
 	GetHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
@@ -65,7 +65,6 @@ func (p *analysisService) AddAnalysisData(
 	markerCombinationId types.MarkerCombinationId,
 	race *data_cache_entity.Race,
 	calculable *analysis_entity.Calculable,
-	hitMarker bool,
 ) error {
 	layer1 := p.analysisData.MarkerCombination
 	if _, ok := layer1[markerCombinationId]; !ok {
@@ -76,11 +75,10 @@ func (p *analysisService) AddAnalysisData(
 	layer2 := layer1[markerCombinationId].RaceDate
 	if _, ok := layer2[race.RaceDate()]; !ok {
 		layer2[race.RaceDate()] = &analysis_entity.Layer3{
-			RaceId: make(map[types.RaceId][]*analysis_entity.Result),
+			RaceId: make(map[types.RaceId][]*analysis_entity.Calculable),
 		}
 	}
-	result := analysis_entity.NewResult(calculable, hitMarker)
-	layer2[race.RaceDate()].RaceId[race.RaceId()] = append(layer2[race.RaceDate()].RaceId[race.RaceId()], result)
+	layer2[race.RaceDate()].RaceId[race.RaceId()] = append(layer2[race.RaceDate()].RaceId[race.RaceId()], calculable)
 
 	return nil
 }
@@ -1236,6 +1234,36 @@ func (p *analysisService) GetUnHitMarkerCombinationIds(
 		case marker.Check():
 			unHitMarkerCombinationIdMap[types.MarkerCombinationId(16)] = false
 		}
+	case types.Place:
+		var rawHorseNumbers []int
+		for _, numbers := range result.Numbers() {
+			rawHorseNumbers = append(rawHorseNumbers, numbers.List()[0])
+		}
+		unHitMarkerCombinationIdMap = map[types.MarkerCombinationId]bool{
+			types.MarkerCombinationId(21): true,
+			types.MarkerCombinationId(22): true,
+			types.MarkerCombinationId(23): true,
+			types.MarkerCombinationId(24): true,
+			types.MarkerCombinationId(25): true,
+			types.MarkerCombinationId(26): true,
+			types.MarkerCombinationId(29): true,
+		}
+		for _, rawHorseNumber := range rawHorseNumbers {
+			switch rawHorseNumber {
+			case marker.Favorite():
+				unHitMarkerCombinationIdMap[types.MarkerCombinationId(21)] = false
+			case marker.Rival():
+				unHitMarkerCombinationIdMap[types.MarkerCombinationId(22)] = false
+			case marker.BrackTriangle():
+				unHitMarkerCombinationIdMap[types.MarkerCombinationId(23)] = false
+			case marker.WhiteTriangle():
+				unHitMarkerCombinationIdMap[types.MarkerCombinationId(24)] = false
+			case marker.Star():
+				unHitMarkerCombinationIdMap[types.MarkerCombinationId(25)] = false
+			case marker.Check():
+				unHitMarkerCombinationIdMap[types.MarkerCombinationId(26)] = false
+			}
+		}
 	}
 
 	for markerCombinationId, unHit := range unHitMarkerCombinationIdMap {
@@ -1282,34 +1310,68 @@ func (p *analysisService) createMarkerCombinationDataByFilter(
 	for markerCombinationId, data := range analysisData.MarkerCombination {
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
-				for _, data4 := range data3 {
-					if data4.Hit() {
-						if _, ok := hitMarkerCombinationDataMap[markerCombinationId]; !ok {
-							hitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-						}
-						match := true
-						for _, f := range data4.Calculable().Filters() {
-							if f&searchFilter == 0 {
-								match = false
-								break
+				for _, calculable := range data3 {
+					orderNo := calculable.OrderNo()
+					switch markerCombinationId.TicketType() {
+					case types.Win:
+						if orderNo == 1 {
+							if _, ok := hitMarkerCombinationDataMap[markerCombinationId]; !ok {
+								hitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
+							}
+							match := true
+							for _, f := range calculable.Filters() {
+								if f&searchFilter == 0 {
+									match = false
+									break
+								}
+							}
+							if match {
+								hitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
+							}
+						} else {
+							if _, ok := unHitMarkerCombinationDataMap[markerCombinationId]; !ok {
+								unHitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
+							}
+							match := true
+							for _, f := range calculable.Filters() {
+								if f&searchFilter == 0 {
+									match = false
+									break
+								}
+							}
+							if match {
+								unHitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
 							}
 						}
-						if match {
-							hitMarkerCombinationDataMap[markerCombinationId].AddCalculable(data4.Calculable())
-						}
-					} else {
-						if _, ok := unHitMarkerCombinationDataMap[markerCombinationId]; !ok {
-							unHitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-						}
-						match := true
-						for _, f := range data4.Calculable().Filters() {
-							if f&searchFilter == 0 {
-								match = false
-								break
+					case types.Place:
+						if orderNo <= 3 {
+							if _, ok := hitMarkerCombinationDataMap[markerCombinationId]; !ok {
+								hitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
 							}
-						}
-						if match {
-							unHitMarkerCombinationDataMap[markerCombinationId].AddCalculable(data4.Calculable())
+							match := true
+							for _, f := range calculable.Filters() {
+								if f&searchFilter == 0 {
+									match = false
+									break
+								}
+							}
+							if match {
+								hitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
+							}
+						} else {
+							if _, ok := unHitMarkerCombinationDataMap[markerCombinationId]; !ok {
+								unHitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
+							}
+							match := true
+							for _, f := range calculable.Filters() {
+								if f&searchFilter == 0 {
+									match = false
+									break
+								}
+							}
+							if match {
+								unHitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
+							}
 						}
 					}
 				}
@@ -1329,20 +1391,22 @@ func (p *analysisService) calcMarkerCombinationRaceCountByFilter(
 		if _, ok := markerCombinationOddsRangeCountMap[markerCombinationId]; !ok {
 			markerCombinationOddsRangeCountMap[markerCombinationId] = map[types.OddsRangeType]int{}
 		}
+
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
 				match := true
-				for _, data4 := range data3 {
+				for _, calculable := range data3 {
 					// レースIDに対して複数の結果があるケースは、複勝ワイド、同着のケース
-					for _, f := range data4.Calculable().Filters() {
+					for _, f := range calculable.Filters() {
 						// フィルタマッチ条件は同一レースになるため、ループを回さなくても1件目のチェックとおなじになるはず
 						// だが一応全部チェックして1つでもマッチしなければフィルタマッチしないとする
 						if f&searchFilter == 0 {
 							match = false
+							break
 						}
 					}
 					if match {
-						odds := data4.Calculable().Odds().InexactFloat64()
+						odds := calculable.Odds().InexactFloat64()
 						if odds >= 1.0 && odds <= 1.5 {
 							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange1]++
 						} else if odds >= 1.6 && odds <= 2.0 {

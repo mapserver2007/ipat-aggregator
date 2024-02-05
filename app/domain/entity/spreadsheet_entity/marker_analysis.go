@@ -1,12 +1,10 @@
 package spreadsheet_entity
 
 import (
-	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
-	"strconv"
 )
 
 type AnalysisData struct {
@@ -66,18 +64,6 @@ func (m *MarkerCombinationAnalysis) Calculables() []*analysis_entity.Calculable 
 	return m.calculables
 }
 
-//func (m *MarkerCombinationAnalysis) MatchRate(oddsRangeType types.OddsRangeType) float64 {
-//	raceCount, ok := m.raceCountOddsRangeMap[oddsRangeType]
-//	if !ok {
-//		return 0
-//	}
-//	return (float64(m.MatchCount()) * float64(100)) / float64(raceCount)
-//}
-//
-//func (m *MarkerCombinationAnalysis) MatchRateFormat(oddsRangeType types.OddsRangeType) string {
-//	return rateFormat(m.MatchRate(oddsRangeType))
-//}
-
 func (m *MarkerCombinationAnalysis) MatchCount() int {
 	var odds []decimal.Decimal
 	for _, calculable := range m.calculables {
@@ -92,8 +78,4 @@ func (m *MarkerCombinationAnalysis) Odds() []decimal.Decimal {
 		odds = append(odds, calculable.Odds())
 	}
 	return odds
-}
-
-func rateFormat(rate float64) string {
-	return fmt.Sprintf("%s%s", strconv.FormatFloat(rate, 'f', 2, 64), "%")
 }

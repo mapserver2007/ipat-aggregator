@@ -7,20 +7,15 @@ import (
 )
 
 type Calculable struct {
-	payment   types.Payment
-	payout    types.Payout
-	voteCount int
-	odds      decimal.Decimal
-	number    types.BetNumber
-	popular   int
-	orderNo   int
-	entries   int
-	filters   []filter.Id
+	odds    decimal.Decimal
+	number  types.BetNumber
+	popular int
+	orderNo int
+	entries int
+	filters []filter.Id
 }
 
 func NewCalculable(
-	payment types.Payment,
-	payout types.Payout,
 	odds string,
 	number types.BetNumber,
 	popular int,
@@ -30,8 +25,6 @@ func NewCalculable(
 ) *Calculable {
 	decimalOdds, _ := decimal.NewFromString(odds)
 	return &Calculable{
-		payment: payment,
-		payout:  payout,
 		odds:    decimalOdds,
 		number:  number,
 		popular: popular,
@@ -39,14 +32,6 @@ func NewCalculable(
 		entries: entries,
 		filters: filters,
 	}
-}
-
-func (n *Calculable) Payment() types.Payment {
-	return n.payment
-}
-
-func (n *Calculable) Payout() types.Payout {
-	return n.payout
 }
 
 func (n *Calculable) Odds() decimal.Decimal {

@@ -16,20 +16,20 @@ const (
 )
 
 type spreadSheetMarkerAnalysisRepository struct {
-	client            *sheets.Service
-	spreadSheetConfig *spreadsheet_entity.SpreadSheetConfig
+	client             *sheets.Service
+	spreadSheetConfigs []*spreadsheet_entity.SpreadSheetConfig
 }
 
 func NewSpreadSheetMarkerAnalysisRepository() (repository.SpreadSheetMarkerAnalysisRepository, error) {
 	ctx := context.Background()
-	client, spreadSheetConfig, err := getSpreadSheetConfig(ctx, spreadSheetMarkerAnalysisFileName)
+	client, spreadSheetConfigs, err := getSpreadSheetConfigs(ctx, spreadSheetMarkerAnalysisFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &spreadSheetMarkerAnalysisRepository{
-		client:            client,
-		spreadSheetConfig: spreadSheetConfig,
+		client:             client,
+		spreadSheetConfigs: spreadSheetConfigs,
 	}, nil
 }
 
@@ -38,374 +38,392 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 	analysisData *spreadsheet_entity.AnalysisData,
 	filters []filter.Id,
 ) error {
-	log.Println(ctx, "write marker analysis start")
-	var valuesList [3][][]interface{}
-	valuesList[0] = [][]interface{}{
-		{
-			"",
-			"レース数",
-			"1着率",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-			"2着以内率",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-			"3着以内率",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-		},
-	}
-	valuesList[1] = [][]interface{}{
-		{
-			"",
-			"レース数",
-			"1着数",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-			"2着以内率",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-			"3着以内率",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-		},
-	}
-	valuesList[2] = [][]interface{}{
-		{
-			"",
-			"レース数",
-			"2着以下数",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-			"3着以下数",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-			"4着以下数",
-			types.WinOddsRange1.String(),
-			types.WinOddsRange2.String(),
-			types.WinOddsRange3.String(),
-			types.WinOddsRange4.String(),
-			types.WinOddsRange5.String(),
-			types.WinOddsRange6.String(),
-			types.WinOddsRange7.String(),
-			types.WinOddsRange8.String(),
-		},
-	}
-
-	rateFormatFunc := func(matchCount int, raceCount int) string {
-		if raceCount == 0 {
-			return "-"
+	for _, spreadSheetConfig := range s.spreadSheetConfigs {
+		var sheetMarker types.Marker
+		switch spreadSheetConfig.SheetName() {
+		case types.Favorite.String():
+			sheetMarker = types.Favorite
+		case types.Rival.String():
+			sheetMarker = types.Rival
+		case types.BrackTriangle.String():
+			sheetMarker = types.BrackTriangle
+		case types.WhiteTriangle.String():
+			sheetMarker = types.WhiteTriangle
+		case types.Star.String():
+			sheetMarker = types.Star
+		case types.Check.String():
+			sheetMarker = types.Check
+		default:
+			return fmt.Errorf("invalid sheet name: %s", spreadSheetConfig.SheetName())
 		}
-		return fmt.Sprintf("%.2f%%", float64(matchCount)*100/float64(raceCount))
-	}
 
-	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
-	hitDataMap := analysisData.HitDataMapByFilter()
-	unHitDataMap := analysisData.UnHitDataMapByFilter()
-	raceCountMap := analysisData.RaceCountMapByFilter()
+		log.Println(ctx, fmt.Sprintf("write marker %s analysis start", sheetMarker.String()))
+		var valuesList [3][][]interface{}
+		valuesList[0] = [][]interface{}{
+			{
+				"",
+				"レース数",
+				"1着率",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+				"2着以内率",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+				"3着以内率",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+			},
+		}
+		valuesList[1] = [][]interface{}{
+			{
+				"",
+				"レース数",
+				"1着数",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+				"2着以内率",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+				"3着以内率",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+			},
+		}
+		valuesList[2] = [][]interface{}{
+			{
+				"",
+				"レース数",
+				"2着以下数",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+				"3着以下数",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+				"4着以下数",
+				types.WinOddsRange1.String(),
+				types.WinOddsRange2.String(),
+				types.WinOddsRange3.String(),
+				types.WinOddsRange4.String(),
+				types.WinOddsRange5.String(),
+				types.WinOddsRange6.String(),
+				types.WinOddsRange7.String(),
+				types.WinOddsRange8.String(),
+			},
+		}
 
-	oddsRanges := []types.OddsRangeType{
-		types.WinOddsRange1,
-		types.WinOddsRange2,
-		types.WinOddsRange3,
-		types.WinOddsRange4,
-		types.WinOddsRange5,
-		types.WinOddsRange6,
-		types.WinOddsRange7,
-		types.WinOddsRange8,
-	}
+		rateFormatFunc := func(matchCount int, raceCount int) string {
+			if raceCount == 0 {
+				return "-"
+			}
+			return fmt.Sprintf("%.2f%%", float64(matchCount)*100/float64(raceCount))
+		}
 
-	for idx, f := range filters {
-		rowPosition := idx + 1
-		for _, markerCombinationId := range allMarkerCombinationIds {
-			data, ok := hitDataMap[f][markerCombinationId]
-			if ok {
-				switch markerCombinationId.TicketType() {
-				case types.Win:
-					marker, err := types.NewMarker(markerCombinationId.Value() % 10)
-					if err != nil {
-						return err
-					}
-					if marker != types.Favorite {
-						// FIXME
-						continue
-					}
+		allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
+		hitDataMap := analysisData.HitDataMapByFilter()
+		unHitDataMap := analysisData.UnHitDataMapByFilter()
+		raceCountMap := analysisData.RaceCountMapByFilter()
 
-					oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 1)
-					oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-					raceCount := 0
-					for _, oddsRange := range oddsRanges {
-						if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
-							raceCount += n
+		oddsRanges := []types.OddsRangeType{
+			types.WinOddsRange1,
+			types.WinOddsRange2,
+			types.WinOddsRange3,
+			types.WinOddsRange4,
+			types.WinOddsRange5,
+			types.WinOddsRange6,
+			types.WinOddsRange7,
+			types.WinOddsRange8,
+		}
+
+		for idx, f := range filters {
+			rowPosition := idx + 1
+			for _, markerCombinationId := range allMarkerCombinationIds {
+				data, ok := hitDataMap[f][markerCombinationId]
+				if ok {
+					switch markerCombinationId.TicketType() {
+					case types.Win:
+						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+						if err != nil {
+							return err
 						}
-					}
-
-					matchCount := 0
-					for _, calculable := range data.Calculables() {
-						if calculable.OrderNo() == 1 {
-							matchCount++
+						if marker != sheetMarker {
+							continue
 						}
-					}
 
-					valuesList[0] = append(valuesList[0], [][]interface{}{
-						{
-							f.String(),
-							raceCount,
-							rateFormatFunc(matchCount, raceCount),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
-							rateFormatFunc(oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
-						},
-					}...)
-					valuesList[1] = append(valuesList[1], [][]interface{}{
-						{
-							f.String(),
-							raceCount,
-							matchCount,
-							oddsRangeMap[types.WinOddsRange1],
-							oddsRangeMap[types.WinOddsRange2],
-							oddsRangeMap[types.WinOddsRange3],
-							oddsRangeMap[types.WinOddsRange4],
-							oddsRangeMap[types.WinOddsRange5],
-							oddsRangeMap[types.WinOddsRange6],
-							oddsRangeMap[types.WinOddsRange7],
-							oddsRangeMap[types.WinOddsRange8],
-						},
-					}...)
-				case types.Place:
-					marker, err := types.NewMarker(markerCombinationId.Value() % 10)
-					if err != nil {
-						return err
-					}
-					if marker != types.Favorite {
-						// FIXME
-						continue
-					}
-
-					inOrder2oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 2)
-					inOrder3oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 3)
-					oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-					raceCount := 0
-					for _, oddsRange := range oddsRanges {
-						if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
-							raceCount += n
+						oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 1)
+						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+						raceCount := 0
+						for _, oddsRange := range oddsRanges {
+							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
+								raceCount += n
+							}
 						}
-					}
 
-					orderNo2MatchCount := 0
-					orderNo3MatchCount := 0
-					for _, calculable := range data.Calculables() {
-						if calculable.OrderNo() <= 2 {
-							orderNo2MatchCount++
+						matchCount := 0
+						for _, calculable := range data.Calculables() {
+							if calculable.OrderNo() == 1 {
+								matchCount++
+							}
 						}
-						if calculable.OrderNo() <= 3 {
-							orderNo3MatchCount++
-						}
-					}
 
-					valuesList[0][rowPosition] = append(valuesList[0][rowPosition], []interface{}{
-						rateFormatFunc(orderNo2MatchCount, raceCount),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
-						rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
-						rateFormatFunc(orderNo3MatchCount, raceCount),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
-						rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
-					}...)
-					valuesList[1][rowPosition] = append(valuesList[1][rowPosition], []interface{}{
-						orderNo2MatchCount,
-						inOrder2oddsRangeMap[types.WinOddsRange1],
-						inOrder2oddsRangeMap[types.WinOddsRange2],
-						inOrder2oddsRangeMap[types.WinOddsRange3],
-						inOrder2oddsRangeMap[types.WinOddsRange4],
-						inOrder2oddsRangeMap[types.WinOddsRange5],
-						inOrder2oddsRangeMap[types.WinOddsRange6],
-						inOrder2oddsRangeMap[types.WinOddsRange7],
-						inOrder2oddsRangeMap[types.WinOddsRange8],
-						orderNo3MatchCount,
-						inOrder3oddsRangeMap[types.WinOddsRange1],
-						inOrder3oddsRangeMap[types.WinOddsRange2],
-						inOrder3oddsRangeMap[types.WinOddsRange3],
-						inOrder3oddsRangeMap[types.WinOddsRange4],
-						inOrder3oddsRangeMap[types.WinOddsRange5],
-						inOrder3oddsRangeMap[types.WinOddsRange6],
-						inOrder3oddsRangeMap[types.WinOddsRange7],
-						inOrder3oddsRangeMap[types.WinOddsRange8],
-					}...)
+						valuesList[0] = append(valuesList[0], [][]interface{}{
+							{
+								f.String(),
+								raceCount,
+								rateFormatFunc(matchCount, raceCount),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+								rateFormatFunc(oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+							},
+						}...)
+						valuesList[1] = append(valuesList[1], [][]interface{}{
+							{
+								f.String(),
+								raceCount,
+								matchCount,
+								oddsRangeMap[types.WinOddsRange1],
+								oddsRangeMap[types.WinOddsRange2],
+								oddsRangeMap[types.WinOddsRange3],
+								oddsRangeMap[types.WinOddsRange4],
+								oddsRangeMap[types.WinOddsRange5],
+								oddsRangeMap[types.WinOddsRange6],
+								oddsRangeMap[types.WinOddsRange7],
+								oddsRangeMap[types.WinOddsRange8],
+							},
+						}...)
+					case types.Place:
+						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+						if err != nil {
+							return err
+						}
+						if marker != sheetMarker {
+							continue
+						}
+
+						inOrder2oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 2)
+						inOrder3oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 3)
+						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+						raceCount := 0
+						for _, oddsRange := range oddsRanges {
+							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
+								raceCount += n
+							}
+						}
+
+						orderNo2MatchCount := 0
+						orderNo3MatchCount := 0
+						for _, calculable := range data.Calculables() {
+							if calculable.OrderNo() <= 2 {
+								orderNo2MatchCount++
+							}
+							if calculable.OrderNo() <= 3 {
+								orderNo3MatchCount++
+							}
+						}
+
+						valuesList[0][rowPosition] = append(valuesList[0][rowPosition], []interface{}{
+							rateFormatFunc(orderNo2MatchCount, raceCount),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+							rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+							rateFormatFunc(orderNo3MatchCount, raceCount),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+							rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+						}...)
+						valuesList[1][rowPosition] = append(valuesList[1][rowPosition], []interface{}{
+							orderNo2MatchCount,
+							inOrder2oddsRangeMap[types.WinOddsRange1],
+							inOrder2oddsRangeMap[types.WinOddsRange2],
+							inOrder2oddsRangeMap[types.WinOddsRange3],
+							inOrder2oddsRangeMap[types.WinOddsRange4],
+							inOrder2oddsRangeMap[types.WinOddsRange5],
+							inOrder2oddsRangeMap[types.WinOddsRange6],
+							inOrder2oddsRangeMap[types.WinOddsRange7],
+							inOrder2oddsRangeMap[types.WinOddsRange8],
+							orderNo3MatchCount,
+							inOrder3oddsRangeMap[types.WinOddsRange1],
+							inOrder3oddsRangeMap[types.WinOddsRange2],
+							inOrder3oddsRangeMap[types.WinOddsRange3],
+							inOrder3oddsRangeMap[types.WinOddsRange4],
+							inOrder3oddsRangeMap[types.WinOddsRange5],
+							inOrder3oddsRangeMap[types.WinOddsRange6],
+							inOrder3oddsRangeMap[types.WinOddsRange7],
+							inOrder3oddsRangeMap[types.WinOddsRange8],
+						}...)
+					}
+				}
+				data, ok = unHitDataMap[f][markerCombinationId]
+				if ok {
+					switch markerCombinationId.TicketType() {
+					case types.Win:
+						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+						if err != nil {
+							return err
+						}
+						if marker != sheetMarker {
+							continue
+						}
+
+						oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 1)
+						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+						raceCount := 0
+						for _, oddsRange := range oddsRanges {
+							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
+								raceCount += n
+							}
+						}
+						matchCount := 0
+						for _, calculable := range data.Calculables() {
+							if calculable.OrderNo() > 1 {
+								matchCount++
+							}
+						}
+
+						valuesList[2] = append(valuesList[2], [][]interface{}{
+							{
+								f.String(),
+								raceCount,
+								matchCount,
+								oddsRangeMap[types.WinOddsRange1],
+								oddsRangeMap[types.WinOddsRange2],
+								oddsRangeMap[types.WinOddsRange3],
+								oddsRangeMap[types.WinOddsRange4],
+								oddsRangeMap[types.WinOddsRange5],
+								oddsRangeMap[types.WinOddsRange6],
+								oddsRangeMap[types.WinOddsRange7],
+								oddsRangeMap[types.WinOddsRange8],
+							},
+						}...)
+					case types.Place:
+						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+						if err != nil {
+							return err
+						}
+						if marker != sheetMarker {
+							continue
+						}
+
+						inOrder2oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 2)
+						inOrder3oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 3)
+						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+						raceCount := 0
+						for _, oddsRange := range oddsRanges {
+							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
+								raceCount += n
+							}
+						}
+
+						orderNo2UnMatchCount := 0
+						orderNo3UnMatchCount := 0
+						for _, calculable := range data.Calculables() {
+							if calculable.OrderNo() > 2 {
+								orderNo2UnMatchCount++
+							}
+							if calculable.OrderNo() > 3 {
+								orderNo3UnMatchCount++
+							}
+						}
+
+						valuesList[2][rowPosition] = append(valuesList[2][rowPosition], []interface{}{
+							orderNo2UnMatchCount,
+							inOrder2oddsRangeMap[types.WinOddsRange1],
+							inOrder2oddsRangeMap[types.WinOddsRange2],
+							inOrder2oddsRangeMap[types.WinOddsRange3],
+							inOrder2oddsRangeMap[types.WinOddsRange4],
+							inOrder2oddsRangeMap[types.WinOddsRange5],
+							inOrder2oddsRangeMap[types.WinOddsRange6],
+							inOrder2oddsRangeMap[types.WinOddsRange7],
+							inOrder2oddsRangeMap[types.WinOddsRange8],
+							orderNo3UnMatchCount,
+							inOrder3oddsRangeMap[types.WinOddsRange1],
+							inOrder3oddsRangeMap[types.WinOddsRange2],
+							inOrder3oddsRangeMap[types.WinOddsRange3],
+							inOrder3oddsRangeMap[types.WinOddsRange4],
+							inOrder3oddsRangeMap[types.WinOddsRange5],
+							inOrder3oddsRangeMap[types.WinOddsRange6],
+							inOrder3oddsRangeMap[types.WinOddsRange7],
+							inOrder3oddsRangeMap[types.WinOddsRange8],
+						}...)
+					}
 				}
 			}
-			data, ok = unHitDataMap[f][markerCombinationId]
-			if ok {
-				switch markerCombinationId.TicketType() {
-				case types.Win:
-					marker, err := types.NewMarker(markerCombinationId.Value() % 10)
-					if err != nil {
-						return err
-					}
-					if marker != types.Favorite {
-						continue
-					}
+		}
 
-					oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 1)
-					oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-					raceCount := 0
-					for _, oddsRange := range oddsRanges {
-						if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
-							raceCount += n
-						}
-					}
-					matchCount := 0
-					for _, calculable := range data.Calculables() {
-						if calculable.OrderNo() > 1 {
-							matchCount++
-						}
-					}
-
-					valuesList[2] = append(valuesList[2], [][]interface{}{
-						{
-							f.String(),
-							raceCount,
-							matchCount,
-							oddsRangeMap[types.WinOddsRange1],
-							oddsRangeMap[types.WinOddsRange2],
-							oddsRangeMap[types.WinOddsRange3],
-							oddsRangeMap[types.WinOddsRange4],
-							oddsRangeMap[types.WinOddsRange5],
-							oddsRangeMap[types.WinOddsRange6],
-							oddsRangeMap[types.WinOddsRange7],
-							oddsRangeMap[types.WinOddsRange8],
-						},
-					}...)
-				case types.Place:
-					marker, err := types.NewMarker(markerCombinationId.Value() % 10)
-					if err != nil {
-						return err
-					}
-					if marker != types.Favorite {
-						continue
-					}
-
-					inOrder2oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 2)
-					inOrder3oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 3)
-					oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-					raceCount := 0
-					for _, oddsRange := range oddsRanges {
-						if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
-							raceCount += n
-						}
-					}
-
-					orderNo2UnMatchCount := 0
-					orderNo3UnMatchCount := 0
-					for _, calculable := range data.Calculables() {
-						if calculable.OrderNo() > 2 {
-							orderNo2UnMatchCount++
-						}
-						if calculable.OrderNo() > 3 {
-							orderNo3UnMatchCount++
-						}
-					}
-
-					valuesList[2][rowPosition] = append(valuesList[2][rowPosition], []interface{}{
-						orderNo2UnMatchCount,
-						inOrder2oddsRangeMap[types.WinOddsRange1],
-						inOrder2oddsRangeMap[types.WinOddsRange2],
-						inOrder2oddsRangeMap[types.WinOddsRange3],
-						inOrder2oddsRangeMap[types.WinOddsRange4],
-						inOrder2oddsRangeMap[types.WinOddsRange5],
-						inOrder2oddsRangeMap[types.WinOddsRange6],
-						inOrder2oddsRangeMap[types.WinOddsRange7],
-						inOrder2oddsRangeMap[types.WinOddsRange8],
-						orderNo3UnMatchCount,
-						inOrder3oddsRangeMap[types.WinOddsRange1],
-						inOrder3oddsRangeMap[types.WinOddsRange2],
-						inOrder3oddsRangeMap[types.WinOddsRange3],
-						inOrder3oddsRangeMap[types.WinOddsRange4],
-						inOrder3oddsRangeMap[types.WinOddsRange5],
-						inOrder3oddsRangeMap[types.WinOddsRange6],
-						inOrder3oddsRangeMap[types.WinOddsRange7],
-						inOrder3oddsRangeMap[types.WinOddsRange8],
-					}...)
-				}
+		for idx, values := range valuesList {
+			writeRange := fmt.Sprintf("%s!%s", spreadSheetConfig.SheetName(), fmt.Sprintf("A%d", idx*(len(filters)+1)+1))
+			_, err := s.client.Spreadsheets.Values.Update(spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+				Values: values,
+			}).ValueInputOption("USER_ENTERED").Do()
+			if err != nil {
+				return err
 			}
 		}
-	}
 
-	for idx, values := range valuesList {
-		writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("A%d", idx*(len(filters)+1)+1))
-		_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
-			Values: values,
-		}).ValueInputOption("USER_ENTERED").Do()
-		if err != nil {
-			return err
-		}
+		log.Println(ctx, fmt.Sprintf("write marker %s analysis end", sheetMarker.String()))
 	}
-
-	log.Println(ctx, "write marker analysis end")
 
 	return nil
 }
@@ -499,31 +517,46 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 	analysisData *spreadsheet_entity.AnalysisData,
 	filters []filter.Id,
 ) error {
-	log.Println(ctx, "write style marker analysis start")
-	currentTicketType := types.UnknownTicketType
-	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
+	for _, spreadSheetConfig := range s.spreadSheetConfigs {
+		var sheetMarker types.Marker
+		switch spreadSheetConfig.SheetName() {
+		case types.Favorite.String():
+			sheetMarker = types.Favorite
+		case types.Rival.String():
+			sheetMarker = types.Rival
+		case types.BrackTriangle.String():
+			sheetMarker = types.BrackTriangle
+		case types.WhiteTriangle.String():
+			sheetMarker = types.WhiteTriangle
+		case types.Star.String():
+			sheetMarker = types.Star
+		case types.Check.String():
+			sheetMarker = types.Check
+		default:
+			return fmt.Errorf("invalid sheet name: %s", spreadSheetConfig.SheetName())
+		}
 
-	for _, markerCombinationId := range allMarkerCombinationIds {
-		if currentTicketType != markerCombinationId.TicketType() {
-			currentTicketType = markerCombinationId.TicketType()
-			switch currentTicketType {
+		log.Println(ctx, fmt.Sprintf("write style marker %s analysis start", sheetMarker.String()))
+		allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
+
+		for _, markerCombinationId := range allMarkerCombinationIds {
+			switch markerCombinationId.TicketType() {
 			case types.Win:
 				marker, err := types.NewMarker(markerCombinationId.Value() % 10)
 				if err != nil {
 					return err
 				}
-				if marker != types.Favorite {
+				if marker != sheetMarker {
 					continue
 				}
-
 				for i := 0; i < 3; i++ {
-					_, err = s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+					_, err = s.client.Spreadsheets.BatchUpdate(spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 						Requests: []*sheets.Request{
 							{
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.textFormat.foregroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 3,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   11,
@@ -546,7 +579,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.textFormat.foregroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 12,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   20,
@@ -569,7 +602,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.textFormat.foregroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 21,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   29,
@@ -592,7 +625,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 1,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   4,
@@ -613,7 +646,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 11,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   12,
@@ -634,7 +667,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 20,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   21,
@@ -655,7 +688,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 3,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   11,
@@ -676,7 +709,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 12,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   20,
@@ -697,7 +730,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 21,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   29,
@@ -718,7 +751,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.textFormat.bold",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 1,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   29,
@@ -737,7 +770,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 0,
 										StartRowIndex:    int64(i*(1+len(filters)) + 1),
 										EndColumnIndex:   1,
@@ -758,7 +791,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.textFormat.bold",
 									Range: &sheets.GridRange{
-										SheetId:          s.spreadSheetConfig.SheetId(),
+										SheetId:          spreadSheetConfig.SheetId(),
 										StartColumnIndex: 0,
 										StartRowIndex:    int64(i*(1+len(filters)) + 1),
 										EndColumnIndex:   1,
@@ -779,38 +812,39 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 						return err
 					}
 				}
-
-			default:
-				continue // TODO 単勝だけにとりあえず注力するので塞いでおく
 			}
 		}
+
+		log.Println(ctx, fmt.Sprintf("write style marker %s analysis end", sheetMarker.String()))
 	}
 
 	return nil
 }
 
 func (s *spreadSheetMarkerAnalysisRepository) Clear(ctx context.Context) error {
-	requests := []*sheets.Request{
-		{
-			RepeatCell: &sheets.RepeatCellRequest{
-				Fields: "*",
-				Range: &sheets.GridRange{
-					SheetId:          s.spreadSheetConfig.SheetId(),
-					StartColumnIndex: 0,
-					StartRowIndex:    0,
-					EndColumnIndex:   40,
-					EndRowIndex:      9999,
+	for _, spreadSheetConfig := range s.spreadSheetConfigs {
+		requests := []*sheets.Request{
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "*",
+					Range: &sheets.GridRange{
+						SheetId:          spreadSheetConfig.SheetId(),
+						StartColumnIndex: 0,
+						StartRowIndex:    0,
+						EndColumnIndex:   40,
+						EndRowIndex:      9999,
+					},
+					Cell: &sheets.CellData{},
 				},
-				Cell: &sheets.CellData{},
 			},
-		},
-	}
-	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
-		Requests: requests,
-	}).Do()
+		}
+		_, err := s.client.Spreadsheets.BatchUpdate(spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+			Requests: requests,
+		}).Do()
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

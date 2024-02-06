@@ -32,26 +32,20 @@ func NewAnalysisService() AnalysisService {
 	}
 	searchFilters := []filter.Id{
 		filter.All,
-		filter.TurfShortDistance,
+		filter.TurfSprintDistance,
+		filter.TurfMileDistance,
 		filter.TurfMiddleDistance,
 		filter.TurfLongDistance,
-		filter.DirtShortDistance,
-		filter.DirtLongDistance,
-		filter.TurfShortDistanceJockeyTop1,
-		filter.TurfMiddleDistanceJockeyTop1,
-		filter.TurfLongDistanceJockeyTop1,
-		filter.DirtShortDistanceJockeyTop1,
-		filter.DirtLongDistanceJockeyTop1,
-		filter.TurfShortDistanceJockeyTop2,
-		filter.TurfMiddleDistanceJockeyTop2,
-		filter.TurfLongDistanceJockeyTop2,
-		filter.DirtShortDistanceJockeyTop2,
-		filter.DirtLongDistanceJockeyTop2,
-		filter.TurfShortDistanceJockeyOther,
-		filter.TurfMiddleDistanceJockeyOther,
-		filter.TurfLongDistanceJockeyOther,
-		filter.DirtShortDistanceJockeyOther,
-		filter.DirtLongDistanceJockeyOther,
+		filter.DirtSprintDistance,
+		filter.DirtMileDistance,
+		filter.DirtMiddleDistance,
+		filter.TurfSprintDistanceTopJockey,
+		filter.TurfMileDistanceTopJockey,
+		filter.TurfMiddleDistanceTopJockey,
+		filter.TurfLongDistanceTopJockey,
+		filter.DirtSprintDistanceTopJockey,
+		filter.DirtMileDistanceTopJockey,
+		filter.DirtMiddleDistanceTopJockey,
 	}
 
 	return &analysisService{
@@ -1516,20 +1510,20 @@ func (p *analysisService) CreateAnalysisFilters(
 	case types.Dirt:
 		filterIds = append(filterIds, filter.Dirt)
 	}
-	if race.Distance() >= 1000 && race.Distance() <= 1600 {
-		filterIds = append(filterIds, filter.ShortDistance)
+	if race.Distance() >= 1000 && race.Distance() <= 1200 {
+		filterIds = append(filterIds, filter.Sprint)
+	} else if race.Distance() >= 1201 && race.Distance() <= 1600 {
+		filterIds = append(filterIds, filter.Mile)
 	} else if race.Distance() >= 1601 && race.Distance() <= 2000 {
 		filterIds = append(filterIds, filter.MiddleDistance)
 	} else if race.Distance() >= 2001 {
 		filterIds = append(filterIds, filter.LongDistance)
 	}
 	switch raceResultByMarker.JockeyId() {
-	case 5339: // C.ルメール
-		filterIds = append(filterIds, filter.JokeyTop1)
-	case 1088: // 川田将雅
-		filterIds = append(filterIds, filter.JokeyTop2)
+	case 5339, 1088, 5366, 5509, 5585: // C.ルメール, 川田将雅, R.ムーア, J.モレイラ, D.レーン
+		filterIds = append(filterIds, filter.TopJockey)
 	default:
-		filterIds = append(filterIds, filter.JokeyOther)
+		filterIds = append(filterIds, filter.OtherJockey)
 	}
 
 	return filterIds

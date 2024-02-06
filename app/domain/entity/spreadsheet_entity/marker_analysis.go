@@ -4,7 +4,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
-	"github.com/shopspring/decimal"
 )
 
 type AnalysisData struct {
@@ -62,20 +61,4 @@ func (m *MarkerCombinationAnalysis) AddCalculable(calculable *analysis_entity.Ca
 
 func (m *MarkerCombinationAnalysis) Calculables() []*analysis_entity.Calculable {
 	return m.calculables
-}
-
-func (m *MarkerCombinationAnalysis) MatchCount() int {
-	var odds []decimal.Decimal
-	for _, calculable := range m.calculables {
-		odds = append(odds, calculable.Odds())
-	}
-	return len(odds)
-}
-
-func (m *MarkerCombinationAnalysis) Odds() []decimal.Decimal {
-	var odds []decimal.Decimal
-	for _, calculable := range m.calculables {
-		odds = append(odds, calculable.Odds())
-	}
-	return odds
 }

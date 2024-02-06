@@ -7,32 +7,25 @@ import (
 )
 
 type AnalysisData struct {
-	hitDataMapByFilter      map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
-	unHitDataMapByFilter    map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
-	raceCountMapByFilter    map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int
-	allMarkerCombinationIds []types.MarkerCombinationId
+	markerCombinationMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
+	raceCountMapByFilter         map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int
+	allMarkerCombinationIds      []types.MarkerCombinationId
 }
 
 func NewAnalysisData(
-	hitDataMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
-	unHitDataMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
+	markerCombinationMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
 	raceCountMapByFilter map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int,
 	allMarkerCombinationIds []types.MarkerCombinationId,
 ) *AnalysisData {
 	return &AnalysisData{
-		hitDataMapByFilter:      hitDataMapByFilter,
-		unHitDataMapByFilter:    unHitDataMapByFilter,
-		raceCountMapByFilter:    raceCountMapByFilter,
-		allMarkerCombinationIds: allMarkerCombinationIds,
+		markerCombinationMapByFilter: markerCombinationMapByFilter,
+		raceCountMapByFilter:         raceCountMapByFilter,
+		allMarkerCombinationIds:      allMarkerCombinationIds,
 	}
 }
 
-func (a *AnalysisData) HitDataMapByFilter() map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
-	return a.hitDataMapByFilter
-}
-
-func (a *AnalysisData) UnHitDataMapByFilter() map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
-	return a.unHitDataMapByFilter
+func (a *AnalysisData) MarkerCombinationMapByFilter() map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
+	return a.markerCombinationMapByFilter
 }
 
 func (a *AnalysisData) RaceCountMapByFilter() map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int {

@@ -167,8 +167,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 		}
 
 		allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
-		hitDataMap := analysisData.HitDataMapByFilter()
-		unHitDataMap := analysisData.UnHitDataMapByFilter()
+		markerCombinationMap := analysisData.MarkerCombinationMapByFilter()
 		raceCountMap := analysisData.RaceCountMapByFilter()
 
 		oddsRanges := []types.OddsRangeType{
@@ -185,7 +184,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 		for idx, f := range filters {
 			rowPosition := idx + 1
 			for _, markerCombinationId := range allMarkerCombinationIds {
-				data, ok := hitDataMap[f][markerCombinationId]
+				data, ok := markerCombinationMap[f][markerCombinationId]
 				if ok {
 					switch markerCombinationId.TicketType() {
 					case types.Win:
@@ -315,7 +314,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 						}...)
 					}
 				}
-				data, ok = unHitDataMap[f][markerCombinationId]
+				data, ok = markerCombinationMap[f][markerCombinationId]
 				if ok {
 					switch markerCombinationId.TicketType() {
 					case types.Win:

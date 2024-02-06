@@ -1273,21 +1273,16 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
 ) *spreadsheet_entity.AnalysisData {
-	// TODO entityにしたほうがいいかもしれない。データ構造が複雑になってきた
-	hitDataMapByFilter := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	unHitDataMapByFilter := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
+	markerCombinationMapByFilter := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
 	raceCountMapByFilter := map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
 
 	for _, f := range p.searchFilters {
 		raceCountMapByFilter[f] = p.calcMarkerCombinationRaceCountByFilter(analysisData, f)
-		hitData, unHitData := p.createMarkerCombinationDataByFilter(analysisData, f)
-		hitDataMapByFilter[f] = hitData
-		unHitDataMapByFilter[f] = unHitData
+		markerCombinationMapByFilter[f] = p.createMarkerCombinationDataByFilter(analysisData, f)
 	}
 
 	return spreadsheet_entity.NewAnalysisData(
-		hitDataMapByFilter,
-		unHitDataMapByFilter,
+		markerCombinationMapByFilter,
 		raceCountMapByFilter,
 		p.createAllMarkerCombinations(),
 	)
@@ -1296,76 +1291,27 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 func (p *analysisService) createMarkerCombinationDataByFilter(
 	analysisData *analysis_entity.Layer1,
 	searchFilter filter.Id,
-) (map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis, map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis) {
-	hitMarkerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	unHitMarkerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-
+) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis {
+	markerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
 	raceCountMap := p.calcMarkerCombinationRaceCountByFilter(analysisData, searchFilter)
 	for markerCombinationId, data := range analysisData.MarkerCombination {
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
 				for _, calculable := range data3 {
-					orderNo := calculable.OrderNo()
 					switch markerCombinationId.TicketType() {
-					case types.Win:
-						if orderNo == 1 {
-							if _, ok := hitMarkerCombinationDataMap[markerCombinationId]; !ok {
-								hitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-							}
-							match := true
-							for _, f := range calculable.Filters() {
-								if f&searchFilter == 0 {
-									match = false
-									break
-								}
-							}
-							if match {
-								hitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
-							}
-						} else {
-							if _, ok := unHitMarkerCombinationDataMap[markerCombinationId]; !ok {
-								unHitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-							}
-							match := true
-							for _, f := range calculable.Filters() {
-								if f&searchFilter == 0 {
-									match = false
-									break
-								}
-							}
-							if match {
-								unHitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
+					case types.Win, types.Place:
+						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
+							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
+						}
+						match := true
+						for _, f := range calculable.Filters() {
+							if f&searchFilter == 0 {
+								match = false
+								break
 							}
 						}
-					case types.Place:
-						if orderNo <= 3 {
-							if _, ok := hitMarkerCombinationDataMap[markerCombinationId]; !ok {
-								hitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-							}
-							match := true
-							for _, f := range calculable.Filters() {
-								if f&searchFilter == 0 {
-									match = false
-									break
-								}
-							}
-							if match {
-								hitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
-							}
-						} else {
-							if _, ok := unHitMarkerCombinationDataMap[markerCombinationId]; !ok {
-								unHitMarkerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-							}
-							match := true
-							for _, f := range calculable.Filters() {
-								if f&searchFilter == 0 {
-									match = false
-									break
-								}
-							}
-							if match {
-								unHitMarkerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
-							}
+						if match {
+							markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
 						}
 					}
 				}
@@ -1373,7 +1319,7 @@ func (p *analysisService) createMarkerCombinationDataByFilter(
 		}
 	}
 
-	return hitMarkerCombinationDataMap, unHitMarkerCombinationDataMap
+	return markerCombinationDataMap
 }
 
 func (p *analysisService) calcMarkerCombinationRaceCountByFilter(

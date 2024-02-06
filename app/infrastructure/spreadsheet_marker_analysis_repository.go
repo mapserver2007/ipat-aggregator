@@ -544,12 +544,100 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 							},
 							{
 								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.textFormat.foregroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 12,
+										StartRowIndex:    int64(i * (1 + len(filters))),
+										EndColumnIndex:   20,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											TextFormat: &sheets.TextFormat{
+												ForegroundColor: &sheets.Color{
+													Red:   1.0,
+													Green: 1.0,
+													Blue:  1.0,
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.textFormat.foregroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 21,
+										StartRowIndex:    int64(i * (1 + len(filters))),
+										EndColumnIndex:   29,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											TextFormat: &sheets.TextFormat{
+												ForegroundColor: &sheets.Color{
+													Red:   1.0,
+													Green: 1.0,
+													Blue:  1.0,
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 1,
 										StartRowIndex:    int64(i * (1 + len(filters))),
 										EndColumnIndex:   4,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											BackgroundColor: &sheets.Color{
+												Red:   1.0,
+												Blue:  0.0,
+												Green: 1.0,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.backgroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 11,
+										StartRowIndex:    int64(i * (1 + len(filters))),
+										EndColumnIndex:   12,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											BackgroundColor: &sheets.Color{
+												Red:   1.0,
+												Blue:  0.0,
+												Green: 1.0,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.backgroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 20,
+										StartRowIndex:    int64(i * (1 + len(filters))),
+										EndColumnIndex:   21,
 										EndRowIndex:      int64(i*(1+len(filters)) + 1),
 									},
 									Cell: &sheets.CellData{
@@ -586,12 +674,54 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 							},
 							{
 								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.backgroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 12,
+										StartRowIndex:    int64(i * (1 + len(filters))),
+										EndColumnIndex:   20,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											BackgroundColor: &sheets.Color{
+												Red:   1.0,
+												Blue:  0.0,
+												Green: 0.0,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
+									Fields: "userEnteredFormat.backgroundColor",
+									Range: &sheets.GridRange{
+										SheetId:          s.spreadSheetConfig.SheetId(),
+										StartColumnIndex: 21,
+										StartRowIndex:    int64(i * (1 + len(filters))),
+										EndColumnIndex:   29,
+										EndRowIndex:      int64(i*(1+len(filters)) + 1),
+									},
+									Cell: &sheets.CellData{
+										UserEnteredFormat: &sheets.CellFormat{
+											BackgroundColor: &sheets.Color{
+												Red:   1.0,
+												Blue:  0.0,
+												Green: 0.0,
+											},
+										},
+									},
+								},
+							},
+							{
+								RepeatCell: &sheets.RepeatCellRequest{
 									Fields: "userEnteredFormat.textFormat.bold",
 									Range: &sheets.GridRange{
 										SheetId:          s.spreadSheetConfig.SheetId(),
 										StartColumnIndex: 1,
 										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   11,
+										EndColumnIndex:   29,
 										EndRowIndex:      int64(i*(1+len(filters)) + 1),
 									},
 									Cell: &sheets.CellData{

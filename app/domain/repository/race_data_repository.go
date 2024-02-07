@@ -7,7 +7,7 @@ import (
 )
 
 type RaceDataRepository interface {
-	Read(ctx context.Context, fileName string) ([]*raw_entity.Race, error)
-	Write(ctx context.Context, fileName string, raceInfo *raw_entity.RaceInfo) error
+	Read(ctx context.Context, filePath string) ([]*raw_entity.Race, error)
+	Write(ctx context.Context, filePath string, raceInfo *raw_entity.RaceInfo) error
 	Fetch(ctx context.Context, url string) (*netkeiba_entity.Race, error)
 }

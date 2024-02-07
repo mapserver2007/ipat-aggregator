@@ -9,17 +9,17 @@ import (
 )
 
 type summaryUseCase struct {
-	summaryService               service.SummaryService
-	spreadSheetSummaryRepository repository.SpreadSheetSummaryRepository
+	summaryService        service.SummaryService
+	spreadSheetRepository repository.SpreadSheetSummaryRepository
 }
 
 func NewSummaryUseCase(
 	summaryService service.SummaryService,
-	spreadSheetSummaryRepository repository.SpreadSheetSummaryRepository,
+	spreadSheetSRepository repository.SpreadSheetSummaryRepository,
 ) *summaryUseCase {
 	return &summaryUseCase{
-		summaryService:               summaryService,
-		spreadSheetSummaryRepository: spreadSheetSummaryRepository,
+		summaryService:        summaryService,
+		spreadSheetRepository: spreadSheetSRepository,
 	}
 }
 
@@ -29,12 +29,16 @@ func (s *summaryUseCase) Write(
 	racingNumbers []*data_cache_entity.RacingNumber,
 	races []*data_cache_entity.Race,
 ) error {
-	summary := s.summaryService.CreateSummary(ctx, tickets, racingNumbers, races)
-	err := s.spreadSheetSummaryRepository.Write(ctx, summary)
+	err := s.spreadSheetRepository.Clear(ctx)
 	if err != nil {
 		return err
 	}
-	err = s.spreadSheetSummaryRepository.Style(ctx, summary)
+	summary := s.summaryService.CreateSummary(ctx, tickets, racingNumbers, races)
+	err = s.spreadSheetRepository.Write(ctx, summary)
+	if err != nil {
+		return err
+	}
+	err = s.spreadSheetRepository.Style(ctx, summary)
 	if err != nil {
 		return err
 	}

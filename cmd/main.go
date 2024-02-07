@@ -2,20 +2,42 @@ package main
 
 import (
 	"context"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
 )
 
+const newProc = true
+
 func main() {
 	ctx := context.Background()
-	if sub(ctx) {
+
+	if newProc {
+		tickets2, racingNumbers2, races2, jockeys2, predictRaces, markers, err := masterFile(ctx)
+		if err != nil {
+			panic(err)
+		}
+
+		// 実験中
+		analysis(ctx, markers, predictRaces, tickets2, racingNumbers2)
+
+		err = summary(ctx, tickets2, racingNumbers2, races2, jockeys2)
+		if err != nil {
+			panic(err)
+		}
+
 		return
 	}
+
+	// 以下旧処理
 	spreadSheetClient := infrastructure.NewSpreadSheetClient(ctx)
 	spreadSheetMonthlyBettingTicketClient := infrastructure.NewSpreadSheetMonthlyBettingTicketClient(ctx)
 	spreadSheetListClient := infrastructure.NewSpreadSheetListClient(ctx)
@@ -80,62 +102,99 @@ func main() {
 	log.Println(ctx, "end")
 }
 
-func sub(ctx context.Context) bool {
-	// TODO DI
-
+func masterFile(
+	ctx context.Context,
+) (
+	[]*ticket_csv_entity.Ticket,
+	[]*data_cache_entity.RacingNumber,
+	[]*data_cache_entity.Race,
+	[]*data_cache_entity.Jockey,
+	[]*data_cache_entity.Race,
+	[]*marker_csv_entity.Yamato,
+	error,
+) {
 	betNumberConverter := service.NewBetNumberConverter()
-	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
-	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
-	tickets, err := ticketUseCase.Read(ctx)
-	if err != nil {
-		panic(err)
-	}
-
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
-	ticketAggregator := service.NewTicketAggregator(ticketConverter)
-	//netKeibaService := service.NewNetKeibaService(raceConverter)
-	summaryService := service.NewSummaryService(ticketAggregator)
-	//racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
-	//raceEntityConverter := service.NewRaceEntityConverter()
-	//jockeyEntityConverter := service.NewJockeyEntityConverter()
-	//racingNumberRepository := infrastructure.NewRacingNumberDataRepository()
-	//raceDataRepository := infrastructure.NewRaceDataRepository()
-	//jockeyDataRepository := infrastructure.NewJockeyDataRepository()
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetSummaryRepository()
+	analysisService := service.NewAnalysisService()
+	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
+	markerDataRepository := infrastructure.NewMarkerDataRepository()
+	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
+	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, analysisService, ticketConverter)
+
+	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
-		panic(err)
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
-	//dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberRepository, raceDataRepository, jockeyDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
-	summaryUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
 
-	racingNumbers, races, jockeys, excludeJockeyIds, err := dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
-		panic(err)
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds)
+	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces)
 	if err != nil {
-		panic(err)
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	racingNumbers, races, jockeys, excludeJockeyIds, err = dataCacheUseCase.Read(ctx)
+	racingNumbers, races, jockeys, _, _, _, predictRaces, err = dataCacheUseCase.Read(ctx)
 	if err != nil {
-		panic(err)
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	err = summaryUseCase.Write(ctx, tickets, racingNumbers, races)
+	markers, err := analysisUseCase.Read(ctx)
 	if err != nil {
-		panic(err)
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	_ = racingNumbers
-	_ = races
-	_ = excludeJockeyIds
-	_ = jockeys
+	return tickets, racingNumbers, races, jockeys, predictRaces, markers, nil
+}
 
-	return true
+func analysis(
+	ctx context.Context,
+	markers []*marker_csv_entity.Yamato,
+	races []*data_cache_entity.Race,
+	tickets []*ticket_csv_entity.Ticket,
+	racingNumbers []*data_cache_entity.RacingNumber,
+) error {
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	analysisService := service.NewAnalysisService()
+	markerDataRepository := infrastructure.NewMarkerDataRepository()
+	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, analysisService, ticketConverter)
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository()
+	if err != nil {
+		return err
+	}
 
+	analysisData, searchFilters, err := analysisUseCase.CreateAnalysisData(ctx, markers, races)
+	if err != nil {
+		return err
+	}
+
+	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, analysisService)
+	spreadSheetUseCase.Write(ctx, analysisData, searchFilters)
+
+	return nil
+}
+
+func summary(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race, jockeys []*data_cache_entity.Jockey) error {
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	ticketAggregator := service.NewTicketAggregator(ticketConverter)
+	summaryService := service.NewSummaryService(ticketAggregator)
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetSummaryRepository()
+	if err != nil {
+		return err
+	}
+
+	spreadSheetUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
+	err = spreadSheetUseCase.Write(ctx, tickets, racingNumbers, races)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 )
 
 type RacingNumberEntityConverter interface {
@@ -48,7 +47,7 @@ func (r *racingNumberEntityConverter) RawToDataCache(input *raw_entity.RacingNum
 
 type RaceEntityConverter interface {
 	DataCacheToRaw(input *data_cache_entity.Race) *raw_entity.Race
-	NetKeibaToRaw(input1 *netkeiba_entity.Race, input2 *ticket_csv_entity.Ticket) *raw_entity.Race
+	NetKeibaToRaw(input *netkeiba_entity.Race) *raw_entity.Race
 	RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race
 }
 
@@ -73,8 +72,8 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 	}
 	payoutResults := make([]*raw_entity.PayoutResult, 0, len(input.PayoutResults()))
 	for _, payoutResult := range input.PayoutResults() {
-		rawNumbers := make([]string, 0, len(payoutResult.Number()))
-		for _, number := range payoutResult.Number() {
+		rawNumbers := make([]string, 0, len(payoutResult.Numbers()))
+		for _, number := range payoutResult.Numbers() {
 			rawNumbers = append(rawNumbers, number.String())
 		}
 		payoutResults = append(payoutResults, &raw_entity.PayoutResult{
@@ -86,27 +85,29 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 	}
 
 	return &raw_entity.Race{
-		RaceId:         input.RaceId().String(),
-		RaceDate:       input.RaceDate().Value(),
-		RaceNumber:     input.RaceNumber(),
-		RaceCourseId:   input.RaceCourseId().Value(),
-		RaceName:       input.RaceName(),
-		Url:            input.Url(),
-		Time:           input.Time(),
-		StartTime:      input.StartTime(),
-		Entries:        input.Entries(),
-		Distance:       input.Distance(),
-		Class:          input.Class().Value(),
-		CourseCategory: input.CourseCategory().Value(),
-		TrackCondition: input.TrackCondition(),
-		RaceResults:    raceResults,
-		PayoutResults:  payoutResults,
+		RaceId:              input.RaceId().String(),
+		RaceDate:            input.RaceDate().Value(),
+		RaceNumber:          input.RaceNumber(),
+		RaceCourseId:        input.RaceCourseId().Value(),
+		RaceName:            input.RaceName(),
+		Url:                 input.Url(),
+		Time:                input.Time(),
+		StartTime:           input.StartTime(),
+		Entries:             input.Entries(),
+		Distance:            input.Distance(),
+		Class:               input.Class().Value(),
+		CourseCategory:      input.CourseCategory().Value(),
+		TrackCondition:      input.TrackCondition(),
+		RaceSexCondition:    input.RaceSexCondition().Value(),
+		RaceWeightCondition: input.RaceWeightCondition().Value(),
+		RaceResults:         raceResults,
+		PayoutResults:       payoutResults,
 	}
 }
 
-func (r *raceEntityConverter) NetKeibaToRaw(input1 *netkeiba_entity.Race, input2 *ticket_csv_entity.Ticket) *raw_entity.Race {
-	raceResults := make([]*raw_entity.RaceResult, 0, len(input1.RaceResults()))
-	for _, raceResult := range input1.RaceResults() {
+func (r *raceEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Race) *raw_entity.Race {
+	raceResults := make([]*raw_entity.RaceResult, 0, len(input.RaceResults()))
+	for _, raceResult := range input.RaceResults() {
 		raceResults = append(raceResults, &raw_entity.RaceResult{
 			OrderNo:       raceResult.OrderNo(),
 			HorseName:     raceResult.HorseName(),
@@ -117,8 +118,8 @@ func (r *raceEntityConverter) NetKeibaToRaw(input1 *netkeiba_entity.Race, input2
 			PopularNumber: raceResult.PopularNumber(),
 		})
 	}
-	payoutResults := make([]*raw_entity.PayoutResult, 0, len(input1.PayoutResults()))
-	for _, payoutResult := range input1.PayoutResults() {
+	payoutResults := make([]*raw_entity.PayoutResult, 0, len(input.PayoutResults()))
+	for _, payoutResult := range input.PayoutResults() {
 		rawNumbers := make([]string, 0, len(payoutResult.Numbers()))
 		for _, number := range payoutResult.Numbers() {
 			rawNumbers = append(rawNumbers, number)
@@ -132,21 +133,24 @@ func (r *raceEntityConverter) NetKeibaToRaw(input1 *netkeiba_entity.Race, input2
 	}
 
 	return &raw_entity.Race{
-		RaceId:         input1.RaceId(),
-		RaceDate:       input2.RaceDate().Value(),
-		RaceNumber:     input2.RaceNo(),
-		RaceCourseId:   input2.RaceCourse().Value(),
-		RaceName:       input1.RaceName(),
-		Url:            input1.Url(),
-		Time:           input1.Time(),
-		StartTime:      input1.StartTime(),
-		Entries:        input1.Entries(),
-		Distance:       input1.Distance(),
-		Class:          input1.Class(),
-		CourseCategory: input1.CourseCategory(),
-		TrackCondition: input1.TrackCondition(),
-		RaceResults:    raceResults,
-		PayoutResults:  payoutResults,
+		RaceId:              input.RaceId(),
+		RaceDate:            input.RaceDate(),
+		RaceNumber:          input.RaceNumber(),
+		RaceCourseId:        input.RaceCourseId(),
+		RaceName:            input.RaceName(),
+		Organizer:           input.Organizer(),
+		Url:                 input.Url(),
+		Time:                input.Time(),
+		StartTime:           input.StartTime(),
+		Entries:             input.Entries(),
+		Distance:            input.Distance(),
+		Class:               input.Class(),
+		CourseCategory:      input.CourseCategory(),
+		TrackCondition:      input.TrackCondition(),
+		RaceSexCondition:    input.RaceSexCondition(),
+		RaceWeightCondition: input.RaceWeightCondition(),
+		RaceResults:         raceResults,
+		PayoutResults:       payoutResults,
 	}
 }
 
@@ -187,6 +191,8 @@ func (r *raceEntityConverter) RawToDataCache(input *raw_entity.Race) *data_cache
 		input.Class,
 		input.CourseCategory,
 		input.TrackCondition,
+		input.RaceSexCondition,
+		input.RaceWeightCondition,
 		raceResults,
 		payoutResults,
 	)

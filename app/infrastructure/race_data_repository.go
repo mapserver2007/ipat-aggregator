@@ -28,14 +28,14 @@ func NewRaceDataRepository() repository.RaceDataRepository {
 	}
 }
 
-func (r *raceDataRepository) Read(ctx context.Context, fileName string) ([]*raw_entity.Race, error) {
+func (r *raceDataRepository) Read(ctx context.Context, filePath string) ([]*raw_entity.Race, error) {
 	races := make([]*raw_entity.Race, 0)
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, fileName))
+	path, err := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, filePath))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (r *raceDataRepository) Read(ctx context.Context, fileName string) ([]*raw_
 
 func (r *raceDataRepository) Write(
 	ctx context.Context,
-	fileName string,
+	filePath string,
 	raceInfo *raw_entity.RaceInfo,
 ) error {
 	var buffer bytes.Buffer
@@ -73,7 +73,7 @@ func (r *raceDataRepository) Write(
 		return err
 	}
 
-	filePath, err := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, fileName))
+	filePath, err = filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, filePath))
 	if err != nil {
 		return err
 	}
@@ -100,13 +100,16 @@ func (r *raceDataRepository) Fetch(
 		distance, entries        int
 		gradeClass               types.GradeClass
 	)
+	raceSexCondition := types.NoRaceSexCondition
+	raceWeightCondition := types.FixedWeight
+
 	r.client.OnHTML("#All_Result_Table", func(e *colly.HTMLElement) {
 		e.ForEach("tr.HorseList", func(i int, ce *colly.HTMLElement) {
 			var numbers []int
 			var oddsList []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
-			currentOrganizer := types.Organizer(rawCurrentOrganizer)
+			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
 
 			if currentOrganizer == types.JRA {
 				ce.ForEach(".Num > div", func(j int, ce2 *colly.HTMLElement) {
@@ -171,7 +174,7 @@ func (r *raceDataRepository) Fetch(
 			var oddsList []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
-			currentOrganizer := types.Organizer(rawCurrentOrganizer)
+			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
 
 			if currentOrganizer == types.NAR {
 				ce.ForEach(".Num > div", func(j int, ce2 *colly.HTMLElement) {
@@ -209,7 +212,7 @@ func (r *raceDataRepository) Fetch(
 		e.ForEach("div", func(i int, ce *colly.HTMLElement) {
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
-			currentOrganizer := types.Organizer(rawCurrentOrganizer)
+			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
 			if currentOrganizer == types.JRA || currentOrganizer == types.NAR {
 				switch i {
 				case 0:
@@ -273,15 +276,39 @@ func (r *raceDataRepository) Fetch(
 					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
+					if len(matches) == 0 {
+						fmt.Println("owata")
+					}
 					startTime = matches[0][1]
 					courseCategory = types.NewCourseCategory(matches[0][2])
 					distance, _ = strconv.Atoi(matches[0][3])
 					trackCondition = matches[0][4]
 				case 2:
-					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
-					regex := regexp.MustCompile(`(\d+)頭`)
-					matches := regex.FindAllStringSubmatch(text, -1)
-					entries, _ = strconv.Atoi(matches[0][1])
+					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
+						switch j {
+						case 5:
+							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+							if strings.Contains(text, "牝") {
+								raceSexCondition = types.FillyAndMareLimited
+							}
+						case 6:
+							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+							if text == types.AgeWeight.String() {
+								raceWeightCondition = types.AgeWeight
+							} else if text == types.FixedWeight.String() {
+								raceWeightCondition = types.FixedWeight
+							} else if text == types.SpecialWeight.String() {
+								raceWeightCondition = types.SpecialWeight
+							} else if text == types.HandicapWeight.String() {
+								raceWeightCondition = types.HandicapWeight
+							}
+						case 7:
+							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+							regex := regexp.MustCompile(`(\d+)頭`)
+							matches := regex.FindAllStringSubmatch(text, -1)
+							entries, _ = strconv.Atoi(matches[0][1])
+						}
+					})
 				}
 			} else if currentOrganizer == types.OverseaOrganizer {
 				switch i {
@@ -459,11 +486,6 @@ func (r *raceDataRepository) Fetch(
 		})
 	})
 
-	err := r.client.Visit(url)
-	if err != nil {
-		return nil, err
-	}
-
 	parsedUrl, err := neturl.Parse(url)
 	if err != nil {
 		return nil, err
@@ -473,18 +495,35 @@ func (r *raceDataRepository) Fetch(
 		return nil, err
 	}
 	raceId := queryParams.Get("race_id")
+	organizer, err := strconv.Atoi(queryParams.Get("organizer"))
+	if err != nil {
+		return nil, err
+	}
+	raceDate, err := strconv.Atoi(queryParams.Get("race_date"))
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.client.Visit(url)
+	if err != nil {
+		return nil, err
+	}
 
 	return netkeiba_entity.NewRace(
 		raceId,
+		raceDate,
 		raceName,
+		organizer,
 		url,
 		raceTimes[0],
 		startTime,
 		entries,
 		distance,
-		int(gradeClass),
-		int(courseCategory),
+		gradeClass.Value(),
+		courseCategory.Value(),
 		trackCondition,
+		raceSexCondition.Value(),
+		raceWeightCondition.Value(),
 		raceResults,
 		payoutResults,
 	), nil

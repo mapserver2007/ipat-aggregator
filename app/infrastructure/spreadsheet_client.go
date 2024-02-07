@@ -37,7 +37,7 @@ type SpreadSheetClient struct {
 func NewSpreadSheetClient(
 	ctx context.Context,
 ) repository.SpreadSheetClient {
-	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName)
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfigOld(ctx, spreadSheetSummaryFileName)
 	return &SpreadSheetClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
@@ -54,7 +54,7 @@ type SpreadSheetMonthlyBettingTicketClient struct {
 func NewSpreadSheetMonthlyBettingTicketClient(
 	ctx context.Context,
 ) repository.SpreadSheetMonthlyBettingTicketClient {
-	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetTicketSummaryFileName)
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfigOld(ctx, spreadSheetTicketSummaryFileName)
 	return &SpreadSheetMonthlyBettingTicketClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
@@ -71,7 +71,7 @@ type SpreadSheetListClient struct {
 func NewSpreadSheetListClient(
 	ctx context.Context,
 ) repository.SpreadSheetListClient {
-	service, spreadSheetConfig, sheetId := getSpreadSheetConfig(ctx, spreadSheetListFileName)
+	service, spreadSheetConfig, sheetId := getSpreadSheetConfigOld(ctx, spreadSheetListFileName)
 	return &SpreadSheetListClient{
 		client:            service,
 		spreadSheetConfig: spreadSheetConfig,
@@ -96,7 +96,7 @@ func NewSpreadSheetAnalyzeClient(
 	}
 }
 
-func getSpreadSheetConfig(
+func getSpreadSheetConfigOld(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, spreadsheet_entity.SpreadSheetConfig, int64) {

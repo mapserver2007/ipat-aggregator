@@ -2,17 +2,12 @@ package infrastructure
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 	"log"
-	"os"
-	"path/filepath"
 	"sort"
 )
 
@@ -20,78 +15,29 @@ const (
 	spreadSheetSummaryFileName2 = "spreadsheet_summary.json"
 )
 
-type spreadsheetSummaryRepository struct {
+type spreadSheetSummaryRepository struct {
 	client            *sheets.Service
 	spreadSheetConfig *spreadsheet_entity.SpreadSheetConfig
 }
 
 func NewSpreadSheetSummaryRepository() (repository.SpreadSheetSummaryRepository, error) {
 	ctx := context.Background()
-	client, spreadSheetConfig, err := getSpreadSheetConfig2(ctx, spreadSheetSummaryFileName2)
+	client, spreadSheetConfig, err := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName2)
 	if err != nil {
 		return nil, err
 	}
 
-	return &spreadsheetSummaryRepository{
+	return &spreadSheetSummaryRepository{
 		client:            client,
 		spreadSheetConfig: spreadSheetConfig,
 	}, nil
 }
 
-func getSpreadSheetConfig2(
-	ctx context.Context,
-	spreadSheetConfigFileName string,
-) (*sheets.Service, *spreadsheet_entity.SpreadSheetConfig, error) {
-	rootPath, err := os.Getwd()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	secretFilePath, err := filepath.Abs(fmt.Sprintf("%s/secret/%s", rootPath, secretFileName))
-	if err != nil {
-		return nil, nil, err
-	}
-	spreadSheetConfigFilePath, err := filepath.Abs(fmt.Sprintf("%s/secret/%s", rootPath, spreadSheetConfigFileName))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	credential := option.WithCredentialsFile(secretFilePath)
-	service, err := sheets.NewService(ctx, credential)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	spreadSheetConfigBytes, err := os.ReadFile(spreadSheetConfigFilePath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var rawSpreadSheetConfig raw_entity.SpreadSheetConfig
-	if err = json.Unmarshal(spreadSheetConfigBytes, &rawSpreadSheetConfig); err != nil {
-		return nil, nil, err
-	}
-
-	response, err := service.Spreadsheets.Get(rawSpreadSheetConfig.Id).Do()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var spreadSheetConfig *spreadsheet_entity.SpreadSheetConfig
-	for _, sheet := range response.Sheets {
-		if sheet.Properties.Title == rawSpreadSheetConfig.SheetName {
-			spreadSheetConfig = spreadsheet_entity.NewSpreadSheetConfig(rawSpreadSheetConfig.Id, sheet.Properties.SheetId, sheet.Properties.Title)
-		}
-	}
-
-	return service, spreadSheetConfig, nil
-}
-
-func (s *spreadsheetSummaryRepository) Write(
+func (s *spreadSheetSummaryRepository) Write(
 	ctx context.Context,
 	summary *spreadsheet_entity.Summary,
 ) error {
-	log.Println(ctx, "write spreadsheet start")
+	log.Println(ctx, "write summary start")
 
 	err := s.writeAllResult(ctx, summary.AllTermResult())
 	if err != nil {
@@ -130,11 +76,11 @@ func (s *spreadsheetSummaryRepository) Write(
 		return err
 	}
 
-	log.Println(ctx, "write spreadsheet end")
+	log.Println(ctx, "write summary end")
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeAllResult(
+func (s *spreadSheetSummaryRepository) writeAllResult(
 	ctx context.Context,
 	result *spreadsheet_entity.TicketResult,
 ) error {
@@ -169,7 +115,7 @@ func (s *spreadsheetSummaryRepository) writeAllResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeYearResult(
+func (s *spreadSheetSummaryRepository) writeYearResult(
 	ctx context.Context,
 	result *spreadsheet_entity.TicketResult,
 ) error {
@@ -204,7 +150,7 @@ func (s *spreadsheetSummaryRepository) writeYearResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeMonthResult(
+func (s *spreadSheetSummaryRepository) writeMonthResult(
 	ctx context.Context,
 	result *spreadsheet_entity.TicketResult,
 ) error {
@@ -239,7 +185,7 @@ func (s *spreadsheetSummaryRepository) writeMonthResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeMonthlyResult(
+func (s *spreadSheetSummaryRepository) writeMonthlyResult(
 	ctx context.Context,
 	results map[int]*spreadsheet_entity.TicketResult,
 ) error {
@@ -288,7 +234,7 @@ func (s *spreadsheetSummaryRepository) writeMonthlyResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeTicketResult(
+func (s *spreadSheetSummaryRepository) writeTicketResult(
 	ctx context.Context,
 	results map[types.TicketType]*spreadsheet_entity.TicketResult,
 ) error {
@@ -338,7 +284,7 @@ func (s *spreadsheetSummaryRepository) writeTicketResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeGradeClassResult(
+func (s *spreadSheetSummaryRepository) writeGradeClassResult(
 	ctx context.Context,
 	results map[types.GradeClass]*spreadsheet_entity.TicketResult,
 ) error {
@@ -388,7 +334,7 @@ func (s *spreadsheetSummaryRepository) writeGradeClassResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeCourseCategoryResult(
+func (s *spreadSheetSummaryRepository) writeCourseCategoryResult(
 	ctx context.Context,
 	results map[types.CourseCategory]*spreadsheet_entity.TicketResult,
 ) error {
@@ -438,7 +384,7 @@ func (s *spreadsheetSummaryRepository) writeCourseCategoryResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeDistanceCategoryResult(
+func (s *spreadSheetSummaryRepository) writeDistanceCategoryResult(
 	ctx context.Context,
 	results map[types.DistanceCategory]*spreadsheet_entity.TicketResult,
 ) error {
@@ -488,7 +434,7 @@ func (s *spreadsheetSummaryRepository) writeDistanceCategoryResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeRaceCourseResult(
+func (s *spreadSheetSummaryRepository) writeRaceCourseResult(
 	ctx context.Context,
 	results map[types.RaceCourse]*spreadsheet_entity.TicketResult,
 ) error {
@@ -538,7 +484,7 @@ func (s *spreadsheetSummaryRepository) writeRaceCourseResult(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) Style(
+func (s *spreadSheetSummaryRepository) Style(
 	ctx context.Context,
 	summary *spreadsheet_entity.Summary,
 ) error {
@@ -586,7 +532,7 @@ func (s *spreadsheetSummaryRepository) Style(
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleAllResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleAllResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleAllResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -683,7 +629,7 @@ func (s *spreadsheetSummaryRepository) writeStyleAllResult(ctx context.Context) 
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleYearResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleYearResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleYearResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -764,7 +710,7 @@ func (s *spreadsheetSummaryRepository) writeStyleYearResult(ctx context.Context)
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleMonthResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleMonthResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleMonthResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -845,7 +791,7 @@ func (s *spreadsheetSummaryRepository) writeStyleMonthResult(ctx context.Context
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleTicketResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleTicketResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleTicketResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -939,7 +885,7 @@ func (s *spreadsheetSummaryRepository) writeStyleTicketResult(ctx context.Contex
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleGradeClassResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleGradeClassResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleGradeClassResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -1033,7 +979,7 @@ func (s *spreadsheetSummaryRepository) writeStyleGradeClassResult(ctx context.Co
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleMonthlyResult(ctx context.Context, rowCount int) error {
+func (s *spreadSheetSummaryRepository) writeStyleMonthlyResult(ctx context.Context, rowCount int) error {
 	log.Println(ctx, "writing spreadsheet writeStyleMonthlyResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -1127,7 +1073,7 @@ func (s *spreadsheetSummaryRepository) writeStyleMonthlyResult(ctx context.Conte
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleCourseCategoryResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleCourseCategoryResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleCourseCategoryResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -1221,7 +1167,7 @@ func (s *spreadsheetSummaryRepository) writeStyleCourseCategoryResult(ctx contex
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleDistanceCategoryResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleDistanceCategoryResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleDistanceCategoryResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -1315,7 +1261,7 @@ func (s *spreadsheetSummaryRepository) writeStyleDistanceCategoryResult(ctx cont
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) writeStyleRaceCourseResult(ctx context.Context) error {
+func (s *spreadSheetSummaryRepository) writeStyleRaceCourseResult(ctx context.Context) error {
 	log.Println(ctx, "writing spreadsheet writeStyleRaceCourseResult")
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
@@ -1409,7 +1355,29 @@ func (s *spreadsheetSummaryRepository) writeStyleRaceCourseResult(ctx context.Co
 	return nil
 }
 
-func (s *spreadsheetSummaryRepository) Clear(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+func (s *spreadSheetSummaryRepository) Clear(ctx context.Context) error {
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.spreadSheetConfig.SheetId(),
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   16,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

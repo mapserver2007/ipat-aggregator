@@ -33,7 +33,7 @@ func (p *PayoutResult) TicketType() types.TicketType {
 	return p.ticketType
 }
 
-func (p *PayoutResult) Number() []types.BetNumber {
+func (p *PayoutResult) Numbers() []types.BetNumber {
 	return p.numbers
 }
 

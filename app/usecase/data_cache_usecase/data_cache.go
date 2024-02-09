@@ -20,7 +20,7 @@ const (
 	jockeyFileName            = "jockey.json"
 	raceIdFileName            = "race_id.json"
 	predictRaceResultFilePath = "predict_races/race_result_%d.json"
-	startDate                 = "20231101"
+	startDate                 = "20231001"
 	endDate                   = "20240131"
 )
 

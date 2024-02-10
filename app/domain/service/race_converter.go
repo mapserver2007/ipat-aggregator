@@ -73,6 +73,8 @@ func (r *raceConverter) ConvertToTicketMap(
 				panic(fmt.Sprintf("unknown racingNumberId: %s", string(racingNumberId)))
 			}
 			ticketMap[r.GetRaceId(ctx, ticket, racingNumber)] = ticket
+		} else {
+			ticketMap[r.GetRaceId(ctx, ticket, nil)] = ticket
 		}
 	}
 

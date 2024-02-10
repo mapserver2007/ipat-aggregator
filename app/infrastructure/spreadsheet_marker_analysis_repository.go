@@ -921,9 +921,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 
 		rowSpace := int64(1)
 		for rowIdx, colorTypeRow := range colorTypeList {
-			colSpace := int64(3)
+			colSpace := int64(2)
 			for colIdx, colorType := range colorTypeRow {
-				if colIdx%8 == 7 {
+				if colIdx%8 == 0 {
 					colSpace++
 				}
 				requests = append(requests, []*sheets.Request{

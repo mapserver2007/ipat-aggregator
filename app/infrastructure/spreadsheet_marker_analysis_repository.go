@@ -516,6 +516,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 	analysisData *spreadsheet_entity.AnalysisData,
 	filters []filter.Id,
 ) error {
+	var requests []*sheets.Request
 	for _, spreadSheetConfig := range s.spreadSheetConfigs {
 		var sheetMarker types.Marker
 		switch spreadSheetConfig.SheetName() {
@@ -536,6 +537,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 		}
 
 		log.Println(ctx, fmt.Sprintf("write style marker %s analysis start", sheetMarker.String()))
+		colorTypeList := make([][]int, len(filters))
 		allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
 
 		for _, markerCombinationId := range allMarkerCombinationIds {
@@ -549,269 +551,408 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 					continue
 				}
 				for i := 0; i < 3; i++ {
-					_, err = s.client.Spreadsheets.BatchUpdate(spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
-						Requests: []*sheets.Request{
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.textFormat.foregroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 3,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   11,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											TextFormat: &sheets.TextFormat{
-												ForegroundColor: &sheets.Color{
-													Red:   1.0,
-													Green: 1.0,
-													Blue:  1.0,
-												},
-											},
-										},
-									},
+					requests = append(requests, []*sheets.Request{
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.textFormat.foregroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 3,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   11,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
 								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.textFormat.foregroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 12,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   20,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											TextFormat: &sheets.TextFormat{
-												ForegroundColor: &sheets.Color{
-													Red:   1.0,
-													Green: 1.0,
-													Blue:  1.0,
-												},
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.textFormat.foregroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 21,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   29,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											TextFormat: &sheets.TextFormat{
-												ForegroundColor: &sheets.Color{
-													Red:   1.0,
-													Green: 1.0,
-													Blue:  1.0,
-												},
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.backgroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 1,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   4,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											BackgroundColor: &sheets.Color{
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										TextFormat: &sheets.TextFormat{
+											ForegroundColor: &sheets.Color{
 												Red:   1.0,
-												Blue:  0.0,
 												Green: 1.0,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.backgroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 11,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   12,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											BackgroundColor: &sheets.Color{
-												Red:   1.0,
-												Blue:  0.0,
-												Green: 1.0,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.backgroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 20,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   21,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											BackgroundColor: &sheets.Color{
-												Red:   1.0,
-												Blue:  0.0,
-												Green: 1.0,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.backgroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 3,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   11,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											BackgroundColor: &sheets.Color{
-												Red:   1.0,
-												Blue:  0.0,
-												Green: 0.0,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.backgroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 12,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   20,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											BackgroundColor: &sheets.Color{
-												Red:   1.0,
-												Blue:  0.0,
-												Green: 0.0,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.backgroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 21,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   29,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											BackgroundColor: &sheets.Color{
-												Red:   1.0,
-												Blue:  0.0,
-												Green: 0.0,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.textFormat.bold",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 1,
-										StartRowIndex:    int64(i * (1 + len(filters))),
-										EndColumnIndex:   29,
-										EndRowIndex:      int64(i*(1+len(filters)) + 1),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											TextFormat: &sheets.TextFormat{
-												Bold: true,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.backgroundColor",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 0,
-										StartRowIndex:    int64(i*(1+len(filters)) + 1),
-										EndColumnIndex:   1,
-										EndRowIndex:      int64((i + 1) * (1 + len(filters))),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											BackgroundColor: &sheets.Color{
-												Red:   1.0,
-												Blue:  0.0,
-												Green: 1.0,
-											},
-										},
-									},
-								},
-							},
-							{
-								RepeatCell: &sheets.RepeatCellRequest{
-									Fields: "userEnteredFormat.textFormat.bold",
-									Range: &sheets.GridRange{
-										SheetId:          spreadSheetConfig.SheetId(),
-										StartColumnIndex: 0,
-										StartRowIndex:    int64(i*(1+len(filters)) + 1),
-										EndColumnIndex:   1,
-										EndRowIndex:      int64((i + 1) * (1 + len(filters))),
-									},
-									Cell: &sheets.CellData{
-										UserEnteredFormat: &sheets.CellFormat{
-											TextFormat: &sheets.TextFormat{
-												Bold: true,
+												Blue:  1.0,
 											},
 										},
 									},
 								},
 							},
 						},
-					}).Do()
-					if err != nil {
-						return err
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.textFormat.foregroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 12,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   20,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										TextFormat: &sheets.TextFormat{
+											ForegroundColor: &sheets.Color{
+												Red:   1.0,
+												Green: 1.0,
+												Blue:  1.0,
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.textFormat.foregroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 21,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   29,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										TextFormat: &sheets.TextFormat{
+											ForegroundColor: &sheets.Color{
+												Red:   1.0,
+												Green: 1.0,
+												Blue:  1.0,
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 1,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   4,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 1.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 11,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   12,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 1.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 20,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   21,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 1.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 3,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   11,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 0.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 12,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   20,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 0.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 21,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   29,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 0.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.textFormat.bold",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 1,
+									StartRowIndex:    int64(i * (1 + len(filters))),
+									EndColumnIndex:   29,
+									EndRowIndex:      int64(i*(1+len(filters)) + 1),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										TextFormat: &sheets.TextFormat{
+											Bold: true,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 0,
+									StartRowIndex:    int64(i*(1+len(filters)) + 1),
+									EndColumnIndex:   1,
+									EndRowIndex:      int64((i + 1) * (1 + len(filters))),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 1.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.textFormat.bold",
+								Range: &sheets.GridRange{
+									SheetId:          spreadSheetConfig.SheetId(),
+									StartColumnIndex: 0,
+									StartRowIndex:    int64(i*(1+len(filters)) + 1),
+									EndColumnIndex:   1,
+									EndRowIndex:      int64((i + 1) * (1 + len(filters))),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										TextFormat: &sheets.TextFormat{
+											Bold: true,
+										},
+									},
+								},
+							},
+						},
+					}...)
+				}
+			}
+		}
+
+		rateColorTypeFunc := func(matchCount, raceCount int) int {
+			if raceCount == 0 {
+				return 0
+			}
+			rate := float64(matchCount) / float64(raceCount)
+			if rate >= 0.75 {
+				return 1
+			} else if rate >= 0.50 && rate < 0.75 {
+				return 2
+			} else if rate >= 0.33 && rate < 0.50 {
+				return 3
+			}
+			return 0
+		}
+		markerCombinationMap := analysisData.MarkerCombinationMapByFilter()
+		raceCountMap := analysisData.RaceCountMapByFilter()
+
+		for idx, f := range filters {
+			colorTypeList[idx] = make([]int, 24)
+			for _, markerCombinationId := range allMarkerCombinationIds {
+				data, ok := markerCombinationMap[f][markerCombinationId]
+				if ok {
+					switch markerCombinationId.TicketType() {
+					case types.Win:
+						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+						if err != nil {
+							return err
+						}
+						if marker != sheetMarker {
+							continue
+						}
+
+						oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 1)
+						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+						colorTypeList[idx] = []int{
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+						}
+					case types.Place:
+						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
+						if err != nil {
+							return err
+						}
+						if marker != sheetMarker {
+							continue
+						}
+
+						inOrder2oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 2)
+						inOrder3oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 3)
+						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+
+						colorTypeList[idx] = append(colorTypeList[idx], []int{
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+							rateColorTypeFunc(inOrder3oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+						}...)
 					}
 				}
 			}
+		}
+
+		rgbSettingFunc := func(colorType int) *sheets.Color {
+			switch colorType {
+			case 1:
+				return &sheets.Color{
+					Red:   1.0,
+					Green: 0.937,
+					Blue:  0.498,
+				}
+			case 2:
+				return &sheets.Color{
+					Red:   0.796,
+					Green: 0.871,
+					Blue:  1.0,
+				}
+			case 3:
+				return &sheets.Color{
+					Red:   0.937,
+					Green: 0.78,
+					Blue:  0.624,
+				}
+			}
+			return &sheets.Color{
+				Red:   1.0,
+				Blue:  1.0,
+				Green: 1.0,
+			}
+		}
+
+		rowSpace := int64(1)
+		for rowIdx, colorTypeRow := range colorTypeList {
+			colSpace := int64(3)
+			for colIdx, colorType := range colorTypeRow {
+				if colIdx%8 == 7 {
+					colSpace++
+				}
+				requests = append(requests, []*sheets.Request{
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.backgroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          spreadSheetConfig.SheetId(),
+								StartColumnIndex: colSpace + int64(colIdx),
+								StartRowIndex:    rowSpace + int64(rowIdx),
+								EndColumnIndex:   colSpace + int64(colIdx) + 1,
+								EndRowIndex:      rowSpace + int64(rowIdx) + 1,
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									BackgroundColor: rgbSettingFunc(colorType),
+								},
+							},
+						},
+					},
+				}...)
+			}
+		}
+
+		_, err := s.client.Spreadsheets.BatchUpdate(spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+			Requests: requests,
+		}).Do()
+		if err != nil {
+			return err
 		}
 
 		log.Println(ctx, fmt.Sprintf("write style marker %s analysis end", sheetMarker.String()))

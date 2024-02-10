@@ -39,6 +39,7 @@ func NewAnalysisService() AnalysisService {
 		filter.DirtSprintDistance,
 		filter.DirtMileDistance,
 		filter.DirtMiddleDistance,
+		filter.DirtLongDistance,
 		filter.TurfSprintDistanceTopJockey,
 		filter.TurfMileDistanceTopJockey,
 		filter.TurfMiddleDistanceTopJockey,
@@ -46,6 +47,15 @@ func NewAnalysisService() AnalysisService {
 		filter.DirtSprintDistanceTopJockey,
 		filter.DirtMileDistanceTopJockey,
 		filter.DirtMiddleDistanceTopJockey,
+		filter.DirtLongDistanceTopJockey,
+		filter.TurfClass1,
+		filter.TurfClass2,
+		filter.TurfClass3,
+		filter.TurfClass4,
+		filter.DirtClass1,
+		filter.DirtClass2,
+		filter.DirtClass3,
+		filter.DirtClass4,
 	}
 
 	return &analysisService{
@@ -1460,8 +1470,10 @@ func (p *analysisService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.Sprint)
 	} else if race.Distance() >= 1201 && race.Distance() <= 1600 {
 		filterIds = append(filterIds, filter.Mile)
-	} else if race.Distance() >= 1601 && race.Distance() <= 2000 {
-		filterIds = append(filterIds, filter.MiddleDistance)
+	} else if race.Distance() >= 1601 && race.Distance() <= 1800 {
+		filterIds = append(filterIds, filter.MiddleDistance1)
+	} else if race.Distance() >= 1801 && race.Distance() <= 2000 {
+		filterIds = append(filterIds, filter.MiddleDistance2)
 	} else if race.Distance() >= 2001 {
 		filterIds = append(filterIds, filter.LongDistance)
 	}
@@ -1470,6 +1482,16 @@ func (p *analysisService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.TopJockey)
 	default:
 		filterIds = append(filterIds, filter.OtherJockey)
+	}
+	switch race.Class() {
+	case types.Grade1, types.Grade2, types.Grade3:
+		filterIds = append(filterIds, filter.Class4)
+	case types.OpenClass, types.ListedClass:
+		filterIds = append(filterIds, filter.Class3)
+	case types.OneWinClass, types.TwoWinClass, types.ThreeWinClass:
+		filterIds = append(filterIds, filter.Class2)
+	case types.Maiden, types.MakeDebut:
+		filterIds = append(filterIds, filter.Class1)
 	}
 
 	return filterIds

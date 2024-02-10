@@ -16,6 +16,3 @@ type Layer3 struct {
 	// 同じレースでの印の組み合わせ(ワイド、複勝)がmarkerCombinationIdに対して複数出る場合があるのでsliceで保持
 	RaceId map[types.RaceId][]*Calculable
 }
-
-type MarkerCombinationOrder struct {
-}

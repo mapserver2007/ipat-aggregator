@@ -3,31 +3,33 @@ package filter
 type Id uint64
 
 const (
-	All                         Id = 0xFFFF // 全検索条件に引っ掛けるためのフィルタ
-	TurfSprintDistance          Id = 0x1F85
-	TurfMileDistance            Id = 0x1F89
-	TurfMiddleDistance          Id = 0x1FB1
-	TurfLongDistance            Id = 0x1FC1
-	DirtSprintDistance          Id = 0x1F86
-	DirtMileDistance            Id = 0x1F8A
-	DirtMiddleDistance          Id = 0x1F92
-	DirtLongDistance            Id = 0x1FE2
-	TurfSprintDistanceTopJockey Id = 0x1E85
-	TurfMileDistanceTopJockey   Id = 0x1E89
-	TurfMiddleDistanceTopJockey Id = 0x1EB1
-	TurfLongDistanceTopJockey   Id = 0x1EC1
-	DirtSprintDistanceTopJockey Id = 0x1E86
-	DirtMileDistanceTopJockey   Id = 0x1E8A
-	DirtMiddleDistanceTopJockey Id = 0x1E92
-	DirtLongDistanceTopJockey   Id = 0x1EE2
-	TurfClass1                  Id = 0x3FD
-	TurfClass2                  Id = 0x5FD
-	TurfClass3                  Id = 0x9FD
-	TurfClass4                  Id = 0x11FD
-	DirtClass1                  Id = 0x3FE
-	DirtClass2                  Id = 0x5FE
-	DirtClass3                  Id = 0x9FE
-	DirtClass4                  Id = 0x11FE
+	All                         Id = 0x7FFF // 全検索条件に引っ掛けるためのフィルタ
+	TurfSprintDistance          Id = 0x7F85
+	TurfMileDistance            Id = 0x7F89
+	TurfMiddleDistance          Id = 0x7FB1
+	TurfLongDistance            Id = 0x7FC1
+	DirtSprintDistance          Id = 0x7F86
+	DirtMileDistance            Id = 0x7F8A
+	DirtMiddleDistance          Id = 0x7F92
+	DirtLongDistance            Id = 0x7FE2
+	GoodTrackTurfSprintDistance Id = 0x3F85
+	GoodTrackTurfMileDistance   Id = 0x3F89
+	GoodTrackTurfMiddleDistance Id = 0x3FB1
+	GoodTrackTurfLongDistance   Id = 0x3FC1
+	GoodTrackDirtSprintDistance Id = 0x3F86
+	GoodTrackDirtMileDistance   Id = 0x3F8A
+	GoodTrackDirtMiddleDistance Id = 0x3F92
+	GoodTrackDirtLongDistance   Id = 0x3FE2
+	TurfClass1                  Id = 0x63FD
+	TurfClass2                  Id = 0x65FD
+	TurfClass3                  Id = 0x69FD
+	TurfClass4                  Id = 0x71FD
+	DirtClass1                  Id = 0x63FE
+	DirtClass2                  Id = 0x65FE
+	DirtClass3                  Id = 0x69FE
+	DirtClass4                  Id = 0x71FE
+	// 予想専用
+	Predict1 Id = 0x4586
 )
 
 const (
@@ -44,6 +46,8 @@ const (
 	Class2          Id = 0x400
 	Class3          Id = 0x800
 	Class4          Id = 0x1000
+	GoodTrack       Id = 0x2000
+	BadTrack        Id = 0x4000
 )
 
 var filterIdMap = map[Id]string{
@@ -62,6 +66,8 @@ var filterIdMap = map[Id]string{
 	Class2:          "1~3勝クラス",
 	Class3:          "OP・L",
 	Class4:          "重賞",
+	GoodTrack:       "良馬場",
+	BadTrack:        "良馬場以外",
 
 	// 以下組み合わせフィルタ
 	TurfSprintDistance:          "芝~1200m",
@@ -72,14 +78,14 @@ var filterIdMap = map[Id]string{
 	DirtMileDistance:            "ダ~1600m",
 	DirtMiddleDistance:          "ダ~1800m",
 	DirtLongDistance:            "ダ1801m~",
-	TurfSprintDistanceTopJockey: "芝~1200m,上位騎手",
-	TurfMileDistanceTopJockey:   "芝~1600m,上位騎手",
-	TurfMiddleDistanceTopJockey: "芝~2000m,上位騎手",
-	TurfLongDistanceTopJockey:   "芝2001m~,上位騎手",
-	DirtSprintDistanceTopJockey: "ダ~1200m,上位騎手",
-	DirtMileDistanceTopJockey:   "ダ~1600m,上位騎手",
-	DirtMiddleDistanceTopJockey: "ダ~1800m,上位騎手",
-	DirtLongDistanceTopJockey:   "ダ1801m~,上位騎手",
+	GoodTrackTurfSprintDistance: "芝良~1200m",
+	GoodTrackTurfMileDistance:   "芝良~1600m",
+	GoodTrackTurfMiddleDistance: "芝良~2000m",
+	GoodTrackTurfLongDistance:   "芝良2001m~",
+	GoodTrackDirtSprintDistance: "ダ良~1200m",
+	GoodTrackDirtMileDistance:   "ダ良~1600m",
+	GoodTrackDirtMiddleDistance: "ダ良~1800m",
+	GoodTrackDirtLongDistance:   "ダ良1801m~",
 	TurfClass1:                  "芝新馬・未勝利",
 	TurfClass2:                  "芝1~3勝クラス",
 	TurfClass3:                  "芝OP・L",
@@ -88,6 +94,7 @@ var filterIdMap = map[Id]string{
 	DirtClass2:                  "ダ1~3勝クラス",
 	DirtClass3:                  "ダOP・L",
 	DirtClass4:                  "ダ重賞",
+	Predict1:                    "ダ1400/2勝稍",
 }
 
 func (i Id) Value() int {

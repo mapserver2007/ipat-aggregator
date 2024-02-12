@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
@@ -10,9 +9,9 @@ import (
 
 type RaceConverter interface {
 	GetRaceId(ctx context.Context, ticket *ticket_csv_entity.Ticket, racingNumber *data_cache_entity.RacingNumber) types.RaceId
-	ConvertToTicketMap(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber) map[types.RaceId]*ticket_csv_entity.Ticket
 	ConvertToRawRaceMap(ctx context.Context, races []*data_cache_entity.Race) map[types.RaceId]*data_cache_entity.Race
 	ConvertToRawRacingNumberMap(ctx context.Context, racingNumbers []*data_cache_entity.RacingNumber) map[types.RacingNumberId]*data_cache_entity.RacingNumber
+	ConvertToPayoutResultMap(ctx context.Context, payoutResults []*data_cache_entity.PayoutResult) map[types.TicketType][]*data_cache_entity.PayoutResult
 }
 
 type raceConverter struct{}
@@ -55,32 +54,6 @@ func (r *raceConverter) GetRaceId(
 	return raceId
 }
 
-func (r *raceConverter) ConvertToTicketMap(
-	ctx context.Context,
-	tickets []*ticket_csv_entity.Ticket,
-	racingNumbers []*data_cache_entity.RacingNumber,
-) map[types.RaceId]*ticket_csv_entity.Ticket {
-	racingNumberMap := r.ConvertToRawRacingNumberMap(ctx, racingNumbers)
-	ticketMap := map[types.RaceId]*ticket_csv_entity.Ticket{}
-	for _, ticket := range tickets {
-		if ticket.RaceCourse().JRA() {
-			racingNumberId := types.NewRacingNumberId(
-				ticket.RaceDate(),
-				ticket.RaceCourse(),
-			)
-			racingNumber, ok := racingNumberMap[racingNumberId]
-			if !ok {
-				panic(fmt.Sprintf("unknown racingNumberId: %s", string(racingNumberId)))
-			}
-			ticketMap[r.GetRaceId(ctx, ticket, racingNumber)] = ticket
-		} else {
-			ticketMap[r.GetRaceId(ctx, ticket, nil)] = ticket
-		}
-	}
-
-	return ticketMap
-}
-
 func (r *raceConverter) ConvertToRawRaceMap(ctx context.Context, races []*data_cache_entity.Race) map[types.RaceId]*data_cache_entity.Race {
 	return ConvertToMap(races, func(race *data_cache_entity.Race) types.RaceId {
 		return race.RaceId()
@@ -93,5 +66,11 @@ func (r *raceConverter) ConvertToRawRacingNumberMap(ctx context.Context, racingN
 			racingNumber.RaceDate(),
 			racingNumber.RaceCourse(),
 		)
+	})
+}
+
+func (r *raceConverter) ConvertToPayoutResultMap(ctx context.Context, payoutResults []*data_cache_entity.PayoutResult) map[types.TicketType][]*data_cache_entity.PayoutResult {
+	return ConvertToSliceMap(payoutResults, func(payoutResult *data_cache_entity.PayoutResult) types.TicketType {
+		return payoutResult.TicketType()
 	})
 }

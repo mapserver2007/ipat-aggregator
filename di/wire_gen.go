@@ -12,6 +12,7 @@ import (
 	service2 "github.com/mapserver2007/ipat-aggregator/app/service"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
 )
 
 // Injectors from wire.go:
@@ -23,12 +24,22 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 	raceIdDataRepository := infrastructure.NewRaceIdDataRepository()
 	markerDataRepository := infrastructure.NewMarkerDataRepository()
 	raceConverter := service.NewRaceConverter()
-	netKeibaService := service.NewNetKeibaService(raceConverter)
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	netKeibaService := service.NewNetKeibaService(raceConverter, ticketConverter)
 	racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
 	raceEntityConverter := service.NewRaceEntityConverter()
 	jockeyEntityConverter := service.NewJockeyEntityConverter()
 	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberDataRepository, raceDataRepository, jockeyDataRepository, raceIdDataRepository, markerDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter)
 	return dataCacheUseCase
+}
+
+func InitializeListUseCase() *list_usecase.ListUseCase {
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	raceEntityConverter := service.NewRaceEntityConverter()
+	listService := service.NewListService(raceConverter, ticketConverter, raceEntityConverter)
+	listUseCase := list_usecase.NewListUseCase(listService)
+	return listUseCase
 }
 
 func DataCacheInit() *usecase.DataCache {

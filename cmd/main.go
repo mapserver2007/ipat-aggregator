@@ -26,8 +26,15 @@ func main() {
 			panic(err)
 		}
 
-		// 実験中
-		analysis(ctx, markers, predictRaces, tickets2, racingNumbers2)
+		err = list(ctx, tickets2, racingNumbers2, races2, jockeys2)
+		if err != nil {
+			panic(err)
+		}
+
+		err = analysis(ctx, markers, predictRaces)
+		if err != nil {
+			panic(err)
+		}
 
 		err = summary(ctx, tickets2, racingNumbers2, races2, jockeys2)
 		if err != nil {
@@ -156,8 +163,6 @@ func analysis(
 	ctx context.Context,
 	markers []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
-	tickets []*ticket_csv_entity.Ticket,
-	racingNumbers []*data_cache_entity.RacingNumber,
 ) error {
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
@@ -175,12 +180,45 @@ func analysis(
 	}
 
 	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, analysisService)
-	spreadSheetUseCase.Write(ctx, analysisData, searchFilters)
+	err = spreadSheetUseCase.Write(ctx, analysisData, searchFilters)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func summary(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race, jockeys []*data_cache_entity.Jockey) error {
+func list(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.Ticket,
+	racingNumbers []*data_cache_entity.RacingNumber,
+	races []*data_cache_entity.Race,
+	jockeys []*data_cache_entity.Jockey,
+) error {
+	listUseCase := di.InitializeListUseCase()
+	rows, err := listUseCase.Read(ctx, tickets, racingNumbers, races, jockeys)
+	if err != nil {
+		return err
+	}
+
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	raceEntityConverter := service.NewRaceEntityConverter()
+	listService := service.NewListService(raceConverter, ticketConverter, raceEntityConverter)
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetListRepository()
+	spreadSheetUseCase := spreadsheet_usecase.NewListUseCase(listService, spreadSheetRepository)
+	spreadSheetUseCase.Write(ctx, rows)
+
+	return nil
+}
+
+func summary(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.Ticket,
+	racingNumbers []*data_cache_entity.RacingNumber,
+	races []*data_cache_entity.Race,
+	jockeys []*data_cache_entity.Jockey,
+) error {
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
 	ticketAggregator := service.NewTicketAggregator(ticketConverter)

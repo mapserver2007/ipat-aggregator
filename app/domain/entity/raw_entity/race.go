@@ -18,7 +18,7 @@ type Race struct {
 	Distance            int             `json:"distance"`
 	Class               int             `json:"class"`
 	CourseCategory      int             `json:"course_category"`
-	TrackCondition      string          `json:"track_condition"`
+	TrackCondition      int             `json:"track_condition"`
 	RaceSexCondition    int             `json:"race_sex_condition"`
 	RaceWeightCondition int             `json:"race_weight_condition"`
 	RaceResults         []*RaceResult   `json:"race_results"`

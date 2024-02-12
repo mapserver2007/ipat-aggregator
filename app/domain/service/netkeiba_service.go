@@ -28,14 +28,17 @@ const (
 )
 
 type netKeibaService struct {
-	raceConverter RaceConverter
+	raceConverter   RaceConverter
+	ticketConverter TicketConverter
 }
 
 func NewNetKeibaService(
 	raceConverter RaceConverter,
+	ticketConverter TicketConverter,
 ) NetKeibaService {
 	return &netKeibaService{
-		raceConverter: raceConverter,
+		raceConverter:   raceConverter,
+		ticketConverter: ticketConverter,
 	}
 }
 
@@ -79,10 +82,16 @@ func (n *netKeibaService) CreateRaceUrls(
 	racingNumbers []*data_cache_entity.RacingNumber,
 ) ([]string, error) {
 	raceMap := n.raceConverter.ConvertToRawRaceMap(ctx, races)
-	ticketMap := n.raceConverter.ConvertToTicketMap(ctx, tickets, racingNumbers)
+	ticketsMap := n.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers, races)
 	raceUrlCache := map[types.RaceId]string{}
 
-	for raceId, ticket := range ticketMap {
+	for raceId, ticketsByRaceId := range ticketsMap {
+		// 馬券からレース情報が抜ければ良いので要素1つだけ抜く
+		if len(ticketsByRaceId) == 0 {
+			continue
+		}
+		ticket := ticketsByRaceId[0]
+
 		var url string
 		if _, ok := raceMap[raceId]; ok {
 			continue

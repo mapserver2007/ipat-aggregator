@@ -40,14 +40,14 @@ func NewAnalysisService() AnalysisService {
 		filter.DirtMileDistance,
 		filter.DirtMiddleDistance,
 		filter.DirtLongDistance,
-		filter.TurfSprintDistanceTopJockey,
-		filter.TurfMileDistanceTopJockey,
-		filter.TurfMiddleDistanceTopJockey,
-		filter.TurfLongDistanceTopJockey,
-		filter.DirtSprintDistanceTopJockey,
-		filter.DirtMileDistanceTopJockey,
-		filter.DirtMiddleDistanceTopJockey,
-		filter.DirtLongDistanceTopJockey,
+		filter.GoodTrackTurfSprintDistance,
+		filter.GoodTrackTurfMileDistance,
+		filter.GoodTrackTurfMiddleDistance,
+		filter.GoodTrackTurfLongDistance,
+		filter.GoodTrackDirtSprintDistance,
+		filter.GoodTrackDirtMileDistance,
+		filter.GoodTrackDirtMiddleDistance,
+		filter.GoodTrackDirtLongDistance,
 		filter.TurfClass1,
 		filter.TurfClass2,
 		filter.TurfClass3,
@@ -56,6 +56,7 @@ func NewAnalysisService() AnalysisService {
 		filter.DirtClass2,
 		filter.DirtClass3,
 		filter.DirtClass4,
+		filter.Predict1,
 	}
 
 	return &analysisService{
@@ -1492,6 +1493,12 @@ func (p *analysisService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.Class2)
 	case types.Maiden, types.MakeDebut:
 		filterIds = append(filterIds, filter.Class1)
+	}
+	switch race.TrackCondition() {
+	case types.GoodToFirm:
+		filterIds = append(filterIds, filter.GoodTrack)
+	case types.Good, types.Yielding, types.Soft:
+		filterIds = append(filterIds, filter.BadTrack)
 	}
 
 	return filterIds

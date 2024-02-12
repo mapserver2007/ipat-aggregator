@@ -10,6 +10,7 @@ import (
 	service2 "github.com/mapserver2007/ipat-aggregator/app/service"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
 )
 
 func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
@@ -20,6 +21,7 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 		service.NewRacingNumberEntityConverter,
 		service.NewRaceEntityConverter,
 		service.NewJockeyEntityConverter,
+		service.NewTicketConverter,
 		infrastructure.NewRaceDataRepository,
 		infrastructure.NewRacingNumberDataRepository,
 		infrastructure.NewJockeyDataRepository,
@@ -40,6 +42,17 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 //	)
 //	return nil
 //}
+
+func InitializeListUseCase() *list_usecase.ListUseCase {
+	wire.Build(
+		list_usecase.NewListUseCase,
+		service.NewListService,
+		service.NewRaceConverter,
+		service.NewTicketConverter,
+		service.NewRaceEntityConverter,
+	)
+	return nil
+}
 
 // 以下古い
 

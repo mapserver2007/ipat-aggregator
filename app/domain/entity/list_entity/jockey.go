@@ -1,17 +1,19 @@
 package list_entity
 
+import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
+
 type Jockey struct {
-	jockeyName string
+	jockeyId types.JockeyId
 }
 
 func NewJockey(
-	jockeyName string,
+	rawJockeyId int,
 ) *Jockey {
 	return &Jockey{
-		jockeyName: jockeyName,
+		jockeyId: types.JockeyId(rawJockeyId),
 	}
 }
 
-func (j *Jockey) JockeyName() string {
-	return j.jockeyName
+func (j *Jockey) JockeyId() types.JockeyId {
+	return j.jockeyId
 }

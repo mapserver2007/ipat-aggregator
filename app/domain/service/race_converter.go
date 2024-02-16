@@ -9,9 +9,9 @@ import (
 
 type RaceConverter interface {
 	GetRaceId(ctx context.Context, ticket *ticket_csv_entity.Ticket, racingNumber *data_cache_entity.RacingNumber) types.RaceId
-	ConvertToRawRaceMap(ctx context.Context, races []*data_cache_entity.Race) map[types.RaceId]*data_cache_entity.Race
+	ConvertToRaceMap(ctx context.Context, races []*data_cache_entity.Race) map[types.RaceId]*data_cache_entity.Race
 	ConvertToRawRacingNumberMap(ctx context.Context, racingNumbers []*data_cache_entity.RacingNumber) map[types.RacingNumberId]*data_cache_entity.RacingNumber
-	ConvertToPayoutResultMap(ctx context.Context, payoutResults []*data_cache_entity.PayoutResult) map[types.TicketType][]*data_cache_entity.PayoutResult
+	ConvertToPayoutResultsMap(ctx context.Context, payoutResults []*data_cache_entity.PayoutResult) map[types.TicketType][]*data_cache_entity.PayoutResult
 }
 
 type raceConverter struct{}
@@ -54,7 +54,7 @@ func (r *raceConverter) GetRaceId(
 	return raceId
 }
 
-func (r *raceConverter) ConvertToRawRaceMap(ctx context.Context, races []*data_cache_entity.Race) map[types.RaceId]*data_cache_entity.Race {
+func (r *raceConverter) ConvertToRaceMap(ctx context.Context, races []*data_cache_entity.Race) map[types.RaceId]*data_cache_entity.Race {
 	return ConvertToMap(races, func(race *data_cache_entity.Race) types.RaceId {
 		return race.RaceId()
 	})
@@ -69,7 +69,7 @@ func (r *raceConverter) ConvertToRawRacingNumberMap(ctx context.Context, racingN
 	})
 }
 
-func (r *raceConverter) ConvertToPayoutResultMap(ctx context.Context, payoutResults []*data_cache_entity.PayoutResult) map[types.TicketType][]*data_cache_entity.PayoutResult {
+func (r *raceConverter) ConvertToPayoutResultsMap(ctx context.Context, payoutResults []*data_cache_entity.PayoutResult) map[types.TicketType][]*data_cache_entity.PayoutResult {
 	return ConvertToSliceMap(payoutResults, func(payoutResult *data_cache_entity.PayoutResult) types.TicketType {
 		return payoutResult.TicketType()
 	})

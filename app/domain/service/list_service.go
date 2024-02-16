@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"golang.org/x/exp/slices"
@@ -21,6 +22,7 @@ const (
 
 type ListService interface {
 	Create(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race, jockeys []*data_cache_entity.Jockey) ([]*list_entity.ListRow, error)
+	Convert(ctx context.Context, listRows []*list_entity.ListRow, jockeys []*data_cache_entity.Jockey) error
 }
 
 type listService struct {
@@ -49,7 +51,7 @@ func (l *listService) Create(
 	jockeys []*data_cache_entity.Jockey,
 ) ([]*list_entity.ListRow, error) {
 	var listRows []*list_entity.ListRow
-	raceMap := l.raceConverter.ConvertToRawRaceMap(ctx, races)
+	raceMap := l.raceConverter.ConvertToRaceMap(ctx, races)
 	ticketsMap := l.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers, races)
 	jockeyMap := map[types.JockeyId]*data_cache_entity.Jockey{}
 	for _, jockey := range jockeys {
@@ -79,7 +81,7 @@ func (l *listService) Create(
 		)
 
 		ticketTypeMap := l.ticketConverter.ConvertToTicketTypeMap(ctx, ticketsByRaceId)
-		payoutResultMap := l.raceConverter.ConvertToPayoutResultMap(ctx, race.PayoutResults())
+		payoutResultMap := l.raceConverter.ConvertToPayoutResultsMap(ctx, race.PayoutResults())
 
 		status := types.PredictUncompleted
 		for _, ticketType := range l.ticketSortOrder() {
@@ -193,7 +195,6 @@ func (l *listService) Create(
 					for _, payoutResult := range payoutResults {
 						for idx := range payoutResult.Numbers() {
 							if payoutResult.Numbers()[idx] == ticketByTicketType.BetNumber() {
-
 								hitTickets = append(hitTickets, list_entity.NewTicket(
 									ticketByTicketType,
 									payoutResult.Numbers()[idx],
@@ -215,21 +216,11 @@ func (l *listService) Create(
 		for _, raceResult := range raceResults {
 			if len(favorite) > 0 && raceResult.HorseNumber() == favorite.List()[0] {
 				favoriteHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
-				jockey, ok := jockeyMap[types.JockeyId(raceResult.JockeyId())]
-				if ok {
-					favoriteJockey = list_entity.NewJockey(jockey.JockeyName())
-				} else {
-					favoriteJockey = list_entity.NewJockey("(不明)")
-				}
+				favoriteJockey = list_entity.NewJockey(raceResult.JockeyId())
 			}
 			if len(rival) > 0 && raceResult.HorseNumber() == rival.List()[0] {
 				rivalHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
-				jockey, ok := jockeyMap[types.JockeyId(raceResult.JockeyId())]
-				if ok {
-					rivalJockey = list_entity.NewJockey(jockey.JockeyName())
-				} else {
-					rivalJockey = list_entity.NewJockey("(不明)")
-				}
+				rivalJockey = list_entity.NewJockey(raceResult.JockeyId())
 			}
 		}
 
@@ -251,6 +242,54 @@ func (l *listService) Create(
 	}
 
 	return listRows, nil
+}
+
+func (l *listService) Convert(
+	ctx context.Context,
+	listRows []*list_entity.ListRow,
+	jockeys []*data_cache_entity.Jockey,
+) error {
+	var (
+		rows []*spreadsheet_entity.Row
+		//styles []*spreadsheet_entity.Style
+	)
+
+	jockeyMap := map[types.JockeyId]*data_cache_entity.Jockey{}
+	for _, jockey := range jockeys {
+		jockeyMap[jockey.JockeyId()] = jockey
+	}
+
+	getJockeyName := func(jockeyId types.JockeyId) string {
+		jockey, ok := jockeyMap[jockeyId]
+		if ok {
+			return jockey.JockeyName()
+		}
+		return "(不明)"
+	}
+
+	for _, row := range listRows {
+		rows = append(rows, spreadsheet_entity.NewRow(
+			row.Race().RaceDate(),
+			row.Race().Class(),
+			row.Race().CourseCategory(),
+			row.Race().Distance(),
+			row.Race().TrackCondition(),
+			row.Race().RaceName(),
+			row.Payment(),
+			row.Payout(),
+			row.FavoriteHorse(),
+			getJockeyName(row.FavoriteJockey().JockeyId()),
+			row.RivalHorse(),
+			getJockeyName(row.RivalJockey().JockeyId()),
+			row.Race().RaceResults()[0],
+			getJockeyName(types.JockeyId(row.Race().RaceResults()[0].JockeyId())),
+			row.Race().RaceResults()[1],
+			getJockeyName(types.JockeyId(row.Race().RaceResults()[1].JockeyId())),
+		))
+
+	}
+
+	return nil
 }
 
 func (l *listService) getFavoritesAndRivals(

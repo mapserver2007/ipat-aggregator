@@ -167,9 +167,10 @@ func analysis(
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
 	analysisService := service.NewAnalysisService()
+	spreadSheetService := service.NewSpreadSheetService()
 	markerDataRepository := infrastructure.NewMarkerDataRepository()
 	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, analysisService, ticketConverter)
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository()
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
 	if err != nil {
 		return err
 	}
@@ -204,10 +205,11 @@ func list(
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
 	raceEntityConverter := service.NewRaceEntityConverter()
+	spreadSheetService := service.NewSpreadSheetService()
 	listService := service.NewListService(raceConverter, ticketConverter, raceEntityConverter)
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetListRepository()
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetListRepository(spreadSheetService)
 	spreadSheetUseCase := spreadsheet_usecase.NewListUseCase(listService, spreadSheetRepository)
-	spreadSheetUseCase.Write(ctx, rows)
+	spreadSheetUseCase.Write(ctx, rows, jockeys)
 
 	return nil
 }

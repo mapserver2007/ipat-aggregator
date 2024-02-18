@@ -850,3 +850,12 @@ func (p PredictStatus) Included(target PredictStatus) bool {
 func (p PredictStatus) Matched(target PredictStatus) bool {
 	return p == target
 }
+
+type CellColorType int
+
+const (
+	NoneColor CellColorType = iota
+	FirstColor
+	SecondColor
+	ThirdColor
+)

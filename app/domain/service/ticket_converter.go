@@ -18,7 +18,7 @@ type TicketConverter interface {
 	ConvertToDistanceCategoryMap(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race) map[types.DistanceCategory][]*ticket_csv_entity.Ticket
 	ConvertToRaceCourseMap(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race) map[types.RaceCourse][]*ticket_csv_entity.Ticket
 	ConvertToMonthlyMap(ctx context.Context, tickets []*ticket_csv_entity.Ticket) map[int][]*ticket_csv_entity.Ticket
-	ConvertToRaceIdMap(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race) map[types.RaceId][]*ticket_csv_entity.Ticket
+	ConvertToRaceIdMap(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber) map[types.RaceId][]*ticket_csv_entity.Ticket
 }
 
 type ticketConverter struct {
@@ -190,28 +190,19 @@ func (t *ticketConverter) ConvertToRaceIdMap(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
-	races []*data_cache_entity.Race,
 ) map[types.RaceId][]*ticket_csv_entity.Ticket {
-	raceMap := ConvertToMap(races, func(race *data_cache_entity.Race) types.RaceId {
-		return race.RaceId()
-	})
 	racingNumberMap := ConvertToMap(racingNumbers, func(racingNumber *data_cache_entity.RacingNumber) types.RacingNumberId {
 		return types.NewRacingNumberId(
 			racingNumber.RaceDate(),
 			racingNumber.RaceCourse(),
 		)
 	})
-
 	return ConvertToSliceMap(tickets, func(ticket *ticket_csv_entity.Ticket) types.RaceId {
 		racingNumberId := types.NewRacingNumberId(ticket.RaceDate(), ticket.RaceCourse())
 		racingNumber, ok := racingNumberMap[racingNumberId]
 		if !ok && ticket.RaceCourse().JRA() {
 			panic(fmt.Errorf("unknown racingNumberId: %s", racingNumberId))
 		}
-		raceId := t.raceConverter.GetRaceId(ctx, ticket, racingNumber)
-		if race, ok := raceMap[raceId]; ok {
-			return race.RaceId()
-		}
-		return ""
+		return t.raceConverter.GetRaceId(ctx, ticket, racingNumber)
 	})
 }

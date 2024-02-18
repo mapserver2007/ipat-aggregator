@@ -39,7 +39,7 @@ const (
 	DirtBadConditionClass5      Id = 0x521FE
 	DirtBadConditionClass6      Id = 0x541FE
 	// 予想専用
-	Predict1 Id = 0x4586
+	PredictKyoto12R Id = 0x683B1
 )
 
 const (
@@ -122,8 +122,8 @@ var filterIdMap = map[Id]string{
 	DirtBadConditionClass4:      "ダ稍重不多3勝",
 	DirtBadConditionClass5:      "ダ稍重不多OP・L",
 	DirtBadConditionClass6:      "ダ稍重不多重賞",
-
-	Predict1: "ダ1400/2勝稍",
+	// 予想専用
+	PredictKyoto12R: "京都12R芝1600/123勝良",
 }
 
 func (i Id) Value() int {

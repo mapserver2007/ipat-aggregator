@@ -82,7 +82,7 @@ func (n *netKeibaService) CreateRaceUrls(
 	racingNumbers []*data_cache_entity.RacingNumber,
 ) ([]string, error) {
 	raceMap := n.raceConverter.ConvertToRaceMap(ctx, races)
-	ticketsMap := n.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers, races)
+	ticketsMap := n.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers)
 	raceUrlCache := map[types.RaceId]string{}
 
 	for raceId, ticketsByRaceId := range ticketsMap {

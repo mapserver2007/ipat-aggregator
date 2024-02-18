@@ -2,22 +2,27 @@ package infrastructure
 
 import (
 	"context"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
+	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"google.golang.org/api/sheets/v4"
+	"log"
 )
 
 const (
-	spreadSheetListFileName2 = "spreadsheet_list.json"
+	spreadSheetListFileName2 = "spreadsheet_list2.json"
 )
 
 type spreadSheetListRepository struct {
-	client            *sheets.Service
-	spreadSheetConfig *spreadsheet_entity.SpreadSheetConfig
+	client             *sheets.Service
+	spreadSheetConfig  *spreadsheet_entity.SpreadSheetConfig
+	spreadSheetService service.SpreadSheetService
 }
 
-func NewSpreadSheetListRepository() (repository.SpreadsheetListRepository, error) {
+func NewSpreadSheetListRepository(
+	spreadSheetService service.SpreadSheetService,
+) (repository.SpreadsheetListRepository, error) {
 	ctx := context.Background()
 	client, spreadSheetConfig, err := getSpreadSheetConfig(ctx, spreadSheetListFileName2)
 	if err != nil {
@@ -25,11 +30,149 @@ func NewSpreadSheetListRepository() (repository.SpreadsheetListRepository, error
 	}
 
 	return &spreadSheetListRepository{
-		client:            client,
-		spreadSheetConfig: spreadSheetConfig,
+		client:             client,
+		spreadSheetConfig:  spreadSheetConfig,
+		spreadSheetService: spreadSheetService,
 	}, nil
 }
 
-func (s *spreadSheetListRepository) Write(ctx context.Context, rows []*list_entity.ListRow) error {
+func (s *spreadSheetListRepository) Write(ctx context.Context, rows []*spreadsheet_entity.Row) error {
+	log.Println(ctx, fmt.Sprintf("write list start"))
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), "A1")
+	values := [][]interface{}{
+		{
+			"レース条件",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"投資額",
+			"回収額",
+			"回収率",
+			"本命",
+			"騎手",
+			"人気",
+			"オッズ",
+			"対抗",
+			"騎手",
+			"人気",
+			"オッズ",
+			"1着",
+			"騎手",
+			"人気",
+			"オッズ",
+			"2着",
+			"騎手",
+			"人気",
+			"オッズ",
+		},
+	}
+
+	for _, row := range rows {
+		values = append(values, []interface{}{
+			row.RaceDate(),
+			row.Class(),
+			row.CourseCategory(),
+			row.Distance(),
+			row.TraceCondition(),
+			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.Url(), row.RaceName()),
+			row.Payment(),
+			row.Payout(),
+			row.PayoutRate(),
+			row.FavoriteHorse(),
+			row.FavoriteJockey(),
+			row.FavoriteHorsePopular(),
+			row.FavoriteHorseOdds(),
+			row.RivalHorse(),
+			row.RivalJockey(),
+			row.RivalHorsePopular(),
+			row.RivalHorseOdds(),
+			row.FirstPlaceHorse(),
+			row.FirstPlaceJockey(),
+			row.FirstPlaceHorsePopular(),
+			row.FirstPlaceHorseOdds(),
+			row.SecondPlaceHorse(),
+			row.SecondPlaceJockey(),
+			row.SecondPlaceHorsePopular(),
+			row.SecondPlaceHorseOdds(),
+		})
+	}
+
+	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+		Values: values,
+	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	log.Println(ctx, fmt.Sprintf("write list end"))
+
+	return nil
+}
+
+func (s *spreadSheetListRepository) Style(ctx context.Context, styles []*spreadsheet_entity.Style) error {
+	log.Println(ctx, fmt.Sprintf("write list style start"))
+
+	var requests []*sheets.Request
+	for idx, style := range styles {
+		rowNo := int64(idx + 1)
+		requests = append(requests, []*sheets.Request{
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.spreadSheetConfig.SheetId(),
+						StartColumnIndex: 1,
+						StartRowIndex:    rowNo,
+						EndColumnIndex:   2,
+						EndRowIndex:      rowNo + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: s.spreadSheetService.GetCellColor(ctx, style.ClassColor()),
+						},
+					},
+				},
+			},
+		}...)
+	}
+
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+	if err != nil {
+		return err
+	}
+
+	log.Println(ctx, fmt.Sprintf("write list style end"))
+
+	return nil
+}
+
+func (s *spreadSheetListRepository) Clear(ctx context.Context) error {
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.spreadSheetConfig.SheetId(),
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   40,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

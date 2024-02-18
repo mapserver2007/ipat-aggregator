@@ -32,6 +32,7 @@ func NewAnalysisService() AnalysisService {
 	}
 	searchFilters := []filter.Id{
 		filter.All,
+		filter.PredictKyoto12R,
 		filter.TurfSprintDistance,
 		filter.TurfMileDistance,
 		filter.TurfMiddleDistance,
@@ -66,7 +67,6 @@ func NewAnalysisService() AnalysisService {
 		filter.DirtBadConditionClass4,
 		filter.DirtBadConditionClass5,
 		filter.DirtBadConditionClass6,
-		filter.Predict1,
 	}
 
 	return &analysisService{

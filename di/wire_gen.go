@@ -9,8 +9,6 @@ package di
 import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
-	service2 "github.com/mapserver2007/ipat-aggregator/app/service"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
 )
@@ -40,36 +38,4 @@ func InitializeListUseCase() *list_usecase.ListUseCase {
 	listService := service.NewListService(raceConverter, ticketConverter, raceEntityConverter)
 	listUseCase := list_usecase.NewListUseCase(listService)
 	return listUseCase
-}
-
-func DataCacheInit() *usecase.DataCache {
-	csvReader := service2.NewCsvReader()
-	raceClient := infrastructure.NewRaceClient()
-	raceDB := infrastructure.NewRaceDB(raceClient)
-	raceFetcher := service2.NewRaceFetcher(raceClient)
-	raceConverter := service2.NewRaceConverter()
-	dataCache := usecase.NewDataCache(csvReader, raceDB, raceFetcher, raceConverter)
-	return dataCache
-}
-
-func AggregatorInit() *service2.Aggregator {
-	raceConverter := service2.NewRaceConverter()
-	bettingTicketConverter := service2.NewBettingTicketConverter(raceConverter)
-	summarizer := service2.NewSummarizer(raceConverter, bettingTicketConverter)
-	aggregator := service2.NewAggregator(raceConverter, bettingTicketConverter, summarizer)
-	return aggregator
-}
-
-func PredictInit() *service2.Predictor {
-	raceConverter := service2.NewRaceConverter()
-	bettingTicketConverter := service2.NewBettingTicketConverter(raceConverter)
-	predictor := service2.NewPredictor(raceConverter, bettingTicketConverter)
-	return predictor
-}
-
-func AnalyzerInit() *usecase.Analyzer {
-	raceConverter := service2.NewRaceConverter()
-	analyzer := service2.NewAnalyzer(raceConverter)
-	usecaseAnalyzer := usecase.NewAnalyzer(analyzer)
-	return usecaseAnalyzer
 }

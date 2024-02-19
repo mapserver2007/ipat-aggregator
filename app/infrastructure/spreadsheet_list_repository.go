@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	spreadSheetListFileName2 = "spreadsheet_list2.json"
+	spreadSheetListFileName2 = "spreadsheet_list.json"
 )
 
 type spreadSheetListRepository struct {

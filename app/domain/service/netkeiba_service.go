@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
-	jockey_vo "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"time"
 )
@@ -135,9 +134,9 @@ func (n *netKeibaService) CreateJockeyUrls(
 		jockeysMap[jockey.JockeyId().Value()] = true
 	}
 
-	excludeJockeyIdsMap := map[int]jockey_vo.JockeyId{}
+	excludeJockeyIdsMap := map[int]types.JockeyId{}
 	for _, rawJockeyId := range excludeJockeyIds {
-		excludeJockeyIdsMap[rawJockeyId] = jockey_vo.JockeyId(rawJockeyId)
+		excludeJockeyIdsMap[rawJockeyId] = types.JockeyId(rawJockeyId)
 	}
 
 	var urls []string
@@ -150,7 +149,7 @@ func (n *netKeibaService) CreateJockeyUrls(
 		if _, ok := jockeysMap[i]; ok {
 			continue
 		}
-		jockeyId := jockey_vo.JockeyId(i)
+		jockeyId := types.JockeyId(i)
 		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Format()))
 	}
 	for i := beginIdForNARandOversea; i <= endIdForNARandOversea; i++ {
@@ -162,7 +161,7 @@ func (n *netKeibaService) CreateJockeyUrls(
 		if _, ok := jockeysMap[i]; ok {
 			continue
 		}
-		jockeyId := jockey_vo.JockeyId(i)
+		jockeyId := types.JockeyId(i)
 		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Format()))
 	}
 

@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 )
 
+const secretFileName = "secret.json"
+
 func getSpreadSheetConfig(
 	ctx context.Context,
 	spreadSheetConfigFileName string,

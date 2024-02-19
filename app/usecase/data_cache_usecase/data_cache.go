@@ -19,9 +19,9 @@ const (
 	raceResultFileName        = "race_result.json"
 	jockeyFileName            = "jockey.json"
 	raceIdFileName            = "race_id.json"
-	predictRaceResultFilePath = "predict_races/race_result_%d.json"
-	startDate                 = "20231001"
-	endDate                   = "20240131"
+	predictRaceResultFilePath = "races/race_result_%d.json"
+	startDate                 = "20230917"
+	endDate                   = "20240210"
 )
 
 type DataCacheUseCase struct {

@@ -63,7 +63,7 @@ func (t *ticketAggregator) TermResult(ctx context.Context, tickets []*ticket_csv
 		}
 	}
 
-	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers, races)
+	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers)
 	payment, payout := t.getSumAmount(tickets)
 	betCount := types.BetCount(len(tickets))
 	raceCount := types.RaceCount(len(ticketsByRaceId))
@@ -112,7 +112,7 @@ func (t *ticketAggregator) TicketResult(ctx context.Context, tickets []*ticket_c
 		}
 	}
 
-	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers, races)
+	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers)
 	payment, payout := t.getSumAmount(mergedTickets)
 	betCount := types.BetCount(len(mergedTickets))
 	raceCount := types.RaceCount(len(ticketsByRaceId))
@@ -161,7 +161,7 @@ func (t *ticketAggregator) GradeClassResult(ctx context.Context, tickets []*tick
 		}
 	}
 
-	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers, races)
+	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers)
 	payment, payout := t.getSumAmount(mergedTickets)
 	betCount := types.BetCount(len(mergedTickets))
 	raceCount := types.RaceCount(len(ticketsByRaceId))
@@ -210,7 +210,7 @@ func (t *ticketAggregator) CourseCategoryResult(ctx context.Context, tickets []*
 		}
 	}
 
-	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers, races)
+	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers)
 	payment, payout := t.getSumAmount(mergedTickets)
 	betCount := types.BetCount(len(mergedTickets))
 	raceCount := types.RaceCount(len(ticketsByRaceId))
@@ -259,7 +259,7 @@ func (t *ticketAggregator) DistanceCategoryResult(ctx context.Context, tickets [
 		}
 	}
 
-	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers, races)
+	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers)
 	payment, payout := t.getSumAmount(mergedTickets)
 	betCount := types.BetCount(len(mergedTickets))
 	raceCount := types.RaceCount(len(ticketsByRaceId))
@@ -308,7 +308,7 @@ func (t *ticketAggregator) RaceCourseResult(ctx context.Context, tickets []*tick
 		}
 	}
 
-	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers, races)
+	ticketsByRaceId := t.ticketConverter.ConvertToRaceIdMap(ctx, mergedTickets, racingNumbers)
 	payment, payout := t.getSumAmount(mergedTickets)
 	betCount := types.BetCount(len(mergedTickets))
 	raceCount := types.RaceCount(len(ticketsByRaceId))

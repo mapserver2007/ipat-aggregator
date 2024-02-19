@@ -91,14 +91,15 @@ func (r *raceDataRepository) Fetch(
 	url string,
 ) (*netkeiba_entity.Race, error) {
 	var (
-		raceResults              []*netkeiba_entity.RaceResult
-		payoutResults            []*netkeiba_entity.PayoutResult
-		raceName, trackCondition string
-		startTime                string
-		raceTimes                []string
-		courseCategory           types.CourseCategory
-		distance, entries        int
-		gradeClass               types.GradeClass
+		raceResults       []*netkeiba_entity.RaceResult
+		payoutResults     []*netkeiba_entity.PayoutResult
+		raceName          string
+		trackCondition    types.TrackCondition
+		startTime         string
+		raceTimes         []string
+		courseCategory    types.CourseCategory
+		distance, entries int
+		gradeClass        types.GradeClass
 	)
 	raceSexCondition := types.NoRaceSexCondition
 	raceWeightCondition := types.FixedWeight
@@ -276,13 +277,20 @@ func (r *raceDataRepository) Fetch(
 					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
-					if len(matches) == 0 {
-						fmt.Println("owata")
-					}
 					startTime = matches[0][1]
 					courseCategory = types.NewCourseCategory(matches[0][2])
 					distance, _ = strconv.Atoi(matches[0][3])
-					trackCondition = matches[0][4]
+
+					trackConditionText := matches[0][4]
+					if strings.Contains(trackConditionText, "良") {
+						trackCondition = types.GoodToFirm
+					} else if strings.Contains(trackConditionText, "稍") {
+						trackCondition = types.Good
+					} else if strings.Contains(trackConditionText, "重") {
+						trackCondition = types.Yielding
+					} else if strings.Contains(trackConditionText, "不") {
+						trackCondition = types.Soft
+					}
 				case 2:
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
 						switch j {
@@ -339,12 +347,30 @@ func (r *raceDataRepository) Fetch(
 							if text != "" { // 天気アイコンある場合はtextが空
 								regex := regexp.MustCompile(`：(.+)`)
 								matches := regex.FindAllStringSubmatch(text, -1)
-								trackCondition = matches[0][1]
+								trackConditionText := matches[0][1]
+								if strings.Contains(trackConditionText, "良") {
+									trackCondition = types.GoodToFirm
+								} else if strings.Contains(trackConditionText, "稍") {
+									trackCondition = types.Good
+								} else if strings.Contains(trackConditionText, "重") {
+									trackCondition = types.Yielding
+								} else if strings.Contains(trackConditionText, "不") {
+									trackCondition = types.Soft
+								}
 							}
 						case 3:
 							regex := regexp.MustCompile(`：(.+)`)
 							matches := regex.FindAllStringSubmatch(text, -1)
-							trackCondition = matches[0][1]
+							trackConditionText := matches[0][1]
+							if strings.Contains(trackConditionText, "良") {
+								trackCondition = types.GoodToFirm
+							} else if strings.Contains(trackConditionText, "稍") {
+								trackCondition = types.Good
+							} else if strings.Contains(trackConditionText, "重") {
+								trackCondition = types.Yielding
+							} else if strings.Contains(trackConditionText, "不") {
+								trackCondition = types.Soft
+							}
 						}
 					})
 				}
@@ -521,7 +547,7 @@ func (r *raceDataRepository) Fetch(
 		distance,
 		gradeClass.Value(),
 		courseCategory.Value(),
-		trackCondition,
+		trackCondition.Value(),
 		raceSexCondition.Value(),
 		raceWeightCondition.Value(),
 		raceResults,

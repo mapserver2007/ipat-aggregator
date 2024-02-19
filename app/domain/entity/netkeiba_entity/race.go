@@ -18,7 +18,7 @@ type Race struct {
 	distance            int
 	class               int
 	courseCategory      int
-	trackCondition      string
+	trackCondition      int
 	raceSexCondition    int
 	raceWeightCondition int
 	raceResults         []*RaceResult
@@ -37,7 +37,7 @@ func NewRace(
 	distance int,
 	class int,
 	courseCategory int,
-	trackCondition string,
+	trackCondition int,
 	raceSexCondition int,
 	raceWeightCondition int,
 	raceResults []*RaceResult,
@@ -119,7 +119,7 @@ func (r *Race) CourseCategory() int {
 	return r.courseCategory
 }
 
-func (r *Race) TrackCondition() string {
+func (r *Race) TrackCondition() int {
 	return r.trackCondition
 }
 

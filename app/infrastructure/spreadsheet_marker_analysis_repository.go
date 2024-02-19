@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"google.golang.org/api/sheets/v4"
@@ -18,9 +19,12 @@ const (
 type spreadSheetMarkerAnalysisRepository struct {
 	client             *sheets.Service
 	spreadSheetConfigs []*spreadsheet_entity.SpreadSheetConfig
+	spreadSheetService service.SpreadSheetService
 }
 
-func NewSpreadSheetMarkerAnalysisRepository() (repository.SpreadSheetMarkerAnalysisRepository, error) {
+func NewSpreadSheetMarkerAnalysisRepository(
+	spreadSheetService service.SpreadSheetService,
+) (repository.SpreadSheetMarkerAnalysisRepository, error) {
 	ctx := context.Background()
 	client, spreadSheetConfigs, err := getSpreadSheetConfigs(ctx, spreadSheetMarkerAnalysisFileName)
 	if err != nil {
@@ -30,6 +34,7 @@ func NewSpreadSheetMarkerAnalysisRepository() (repository.SpreadSheetMarkerAnaly
 	return &spreadSheetMarkerAnalysisRepository{
 		client:             client,
 		spreadSheetConfigs: spreadSheetConfigs,
+		spreadSheetService: spreadSheetService,
 	}, nil
 }
 
@@ -537,7 +542,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 		}
 
 		log.Println(ctx, fmt.Sprintf("write style marker %s analysis start", sheetMarker.String()))
-		colorTypeList := make([][]int, len(filters))
+		colorTypeList := make([][]types.CellColorType, len(filters))
 		allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
 
 		for _, markerCombinationId := range allMarkerCombinationIds {
@@ -811,25 +816,25 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 			}
 		}
 
-		rateColorTypeFunc := func(matchCount, raceCount int) int {
+		rateColorTypeFunc := func(matchCount, raceCount int) types.CellColorType {
 			if raceCount == 0 {
 				return 0
 			}
 			rate := float64(matchCount) / float64(raceCount)
 			if rate >= 0.75 {
-				return 1
+				return types.FirstColor
 			} else if rate >= 0.50 && rate < 0.75 {
-				return 2
+				return types.SecondColor
 			} else if rate >= 0.33 && rate < 0.50 {
-				return 3
+				return types.ThirdColor
 			}
-			return 0
+			return types.NoneColor
 		}
 		markerCombinationMap := analysisData.MarkerCombinationMapByFilter()
 		raceCountMap := analysisData.RaceCountMapByFilter()
 
 		for idx, f := range filters {
-			colorTypeList[idx] = make([]int, 24)
+			colorTypeList[idx] = make([]types.CellColorType, 24)
 			for _, markerCombinationId := range allMarkerCombinationIds {
 				data, ok := markerCombinationMap[f][markerCombinationId]
 				if ok {
@@ -845,7 +850,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 
 						oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 1)
 						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-						colorTypeList[idx] = []int{
+						colorTypeList[idx] = []types.CellColorType{
 							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
 							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
 							rateColorTypeFunc(oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
@@ -868,7 +873,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 						inOrder3oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 3)
 						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
 
-						colorTypeList[idx] = append(colorTypeList[idx], []int{
+						colorTypeList[idx] = append(colorTypeList[idx], []types.CellColorType{
 							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
 							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
 							rateColorTypeFunc(inOrder2oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
@@ -891,39 +896,11 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 			}
 		}
 
-		rgbSettingFunc := func(colorType int) *sheets.Color {
-			switch colorType {
-			case 1:
-				return &sheets.Color{
-					Red:   1.0,
-					Green: 0.937,
-					Blue:  0.498,
-				}
-			case 2:
-				return &sheets.Color{
-					Red:   0.796,
-					Green: 0.871,
-					Blue:  1.0,
-				}
-			case 3:
-				return &sheets.Color{
-					Red:   0.937,
-					Green: 0.78,
-					Blue:  0.624,
-				}
-			}
-			return &sheets.Color{
-				Red:   1.0,
-				Blue:  1.0,
-				Green: 1.0,
-			}
-		}
-
 		rowSpace := int64(1)
 		for rowIdx, colorTypeRow := range colorTypeList {
-			colSpace := int64(3)
+			colSpace := int64(2)
 			for colIdx, colorType := range colorTypeRow {
-				if colIdx%8 == 7 {
+				if colIdx%8 == 0 {
 					colSpace++
 				}
 				requests = append(requests, []*sheets.Request{
@@ -939,7 +916,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 							},
 							Cell: &sheets.CellData{
 								UserEnteredFormat: &sheets.CellFormat{
-									BackgroundColor: rgbSettingFunc(colorType),
+									BackgroundColor: s.spreadSheetService.GetCellColor(ctx, colorType),
 								},
 							},
 						},

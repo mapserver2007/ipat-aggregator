@@ -32,6 +32,7 @@ func NewAnalysisService() AnalysisService {
 	}
 	searchFilters := []filter.Id{
 		filter.All,
+		filter.PredictKyoto12R,
 		filter.TurfSprintDistance,
 		filter.TurfMileDistance,
 		filter.TurfMiddleDistance,
@@ -40,22 +41,32 @@ func NewAnalysisService() AnalysisService {
 		filter.DirtMileDistance,
 		filter.DirtMiddleDistance,
 		filter.DirtLongDistance,
-		filter.TurfSprintDistanceTopJockey,
-		filter.TurfMileDistanceTopJockey,
-		filter.TurfMiddleDistanceTopJockey,
-		filter.TurfLongDistanceTopJockey,
-		filter.DirtSprintDistanceTopJockey,
-		filter.DirtMileDistanceTopJockey,
-		filter.DirtMiddleDistanceTopJockey,
-		filter.DirtLongDistanceTopJockey,
+		filter.GoodTrackTurfSprintDistance,
+		filter.GoodTrackTurfMileDistance,
+		filter.GoodTrackTurfMiddleDistance,
+		filter.GoodTrackTurfLongDistance,
+		filter.GoodTrackDirtSprintDistance,
+		filter.GoodTrackDirtMileDistance,
+		filter.GoodTrackDirtMiddleDistance,
+		filter.GoodTrackDirtLongDistance,
 		filter.TurfClass1,
 		filter.TurfClass2,
 		filter.TurfClass3,
 		filter.TurfClass4,
+		filter.TurfClass5,
+		filter.TurfClass6,
 		filter.DirtClass1,
 		filter.DirtClass2,
 		filter.DirtClass3,
 		filter.DirtClass4,
+		filter.DirtClass5,
+		filter.DirtClass6,
+		filter.DirtBadConditionClass1,
+		filter.DirtBadConditionClass2,
+		filter.DirtBadConditionClass3,
+		filter.DirtBadConditionClass4,
+		filter.DirtBadConditionClass5,
+		filter.DirtBadConditionClass6,
 	}
 
 	return &analysisService{
@@ -1485,13 +1496,23 @@ func (p *analysisService) CreateAnalysisFilters(
 	}
 	switch race.Class() {
 	case types.Grade1, types.Grade2, types.Grade3:
-		filterIds = append(filterIds, filter.Class4)
+		filterIds = append(filterIds, filter.Class6)
 	case types.OpenClass, types.ListedClass:
+		filterIds = append(filterIds, filter.Class5)
+	case types.ThreeWinClass:
+		filterIds = append(filterIds, filter.Class4)
+	case types.TwoWinClass:
 		filterIds = append(filterIds, filter.Class3)
-	case types.OneWinClass, types.TwoWinClass, types.ThreeWinClass:
+	case types.OneWinClass:
 		filterIds = append(filterIds, filter.Class2)
 	case types.Maiden, types.MakeDebut:
 		filterIds = append(filterIds, filter.Class1)
+	}
+	switch race.TrackCondition() {
+	case types.GoodToFirm:
+		filterIds = append(filterIds, filter.GoodTrack)
+	case types.Good, types.Yielding, types.Soft:
+		filterIds = append(filterIds, filter.BadTrack)
 	}
 
 	return filterIds

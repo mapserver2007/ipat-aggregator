@@ -66,7 +66,7 @@ func (p *analysis) CreateAnalysisData(
 	for _, marker := range markers {
 		race, ok := raceMap[marker.RaceId()]
 		if !ok {
-			log.Println(ctx, fmt.Sprintf("raceId: %s is not found in predict_races", marker.RaceId()))
+			log.Println(ctx, fmt.Sprintf("raceId: %s is not found in races", marker.RaceId()))
 			continue
 		}
 

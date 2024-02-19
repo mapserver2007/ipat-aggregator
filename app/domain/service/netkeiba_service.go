@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
-	jockey_vo "github.com/mapserver2007/ipat-aggregator/app/domain/jockey/value_object"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"time"
 )
@@ -28,14 +27,17 @@ const (
 )
 
 type netKeibaService struct {
-	raceConverter RaceConverter
+	raceConverter   RaceConverter
+	ticketConverter TicketConverter
 }
 
 func NewNetKeibaService(
 	raceConverter RaceConverter,
+	ticketConverter TicketConverter,
 ) NetKeibaService {
 	return &netKeibaService{
-		raceConverter: raceConverter,
+		raceConverter:   raceConverter,
+		ticketConverter: ticketConverter,
 	}
 }
 
@@ -78,11 +80,17 @@ func (n *netKeibaService) CreateRaceUrls(
 	races []*data_cache_entity.Race,
 	racingNumbers []*data_cache_entity.RacingNumber,
 ) ([]string, error) {
-	raceMap := n.raceConverter.ConvertToRawRaceMap(ctx, races)
-	ticketMap := n.raceConverter.ConvertToTicketMap(ctx, tickets, racingNumbers)
+	raceMap := n.raceConverter.ConvertToRaceMap(ctx, races)
+	ticketsMap := n.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers)
 	raceUrlCache := map[types.RaceId]string{}
 
-	for raceId, ticket := range ticketMap {
+	for raceId, ticketsByRaceId := range ticketsMap {
+		// 馬券からレース情報が抜ければ良いので要素1つだけ抜く
+		if len(ticketsByRaceId) == 0 {
+			continue
+		}
+		ticket := ticketsByRaceId[0]
+
 		var url string
 		if _, ok := raceMap[raceId]; ok {
 			continue
@@ -126,9 +134,9 @@ func (n *netKeibaService) CreateJockeyUrls(
 		jockeysMap[jockey.JockeyId().Value()] = true
 	}
 
-	excludeJockeyIdsMap := map[int]jockey_vo.JockeyId{}
+	excludeJockeyIdsMap := map[int]types.JockeyId{}
 	for _, rawJockeyId := range excludeJockeyIds {
-		excludeJockeyIdsMap[rawJockeyId] = jockey_vo.JockeyId(rawJockeyId)
+		excludeJockeyIdsMap[rawJockeyId] = types.JockeyId(rawJockeyId)
 	}
 
 	var urls []string
@@ -141,7 +149,7 @@ func (n *netKeibaService) CreateJockeyUrls(
 		if _, ok := jockeysMap[i]; ok {
 			continue
 		}
-		jockeyId := jockey_vo.JockeyId(i)
+		jockeyId := types.JockeyId(i)
 		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Format()))
 	}
 	for i := beginIdForNARandOversea; i <= endIdForNARandOversea; i++ {
@@ -153,7 +161,7 @@ func (n *netKeibaService) CreateJockeyUrls(
 		if _, ok := jockeysMap[i]; ok {
 			continue
 		}
-		jockeyId := jockey_vo.JockeyId(i)
+		jockeyId := types.JockeyId(i)
 		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Format()))
 	}
 

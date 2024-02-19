@@ -480,6 +480,50 @@ func (c CourseCategory) String() string {
 	return courseCategoryName
 }
 
+type TrackCondition int
+
+// 厳密には芝とダートでは表記が違うが芝の表記に統一
+const (
+	UnknownTrackCondition TrackCondition = iota
+	GoodToFirm
+	Good
+	Yielding
+	Soft
+)
+
+func NewTrackCondition(name string) TrackCondition {
+	var trackCondition TrackCondition
+	switch name {
+	case "良":
+		trackCondition = GoodToFirm
+	case "稍":
+		trackCondition = Good
+	case "重":
+		trackCondition = Yielding
+	case "不":
+		trackCondition = Soft
+	}
+
+	return trackCondition
+}
+
+var trackConditionMap = map[TrackCondition]string{
+	UnknownTrackCondition: "不明",
+	GoodToFirm:            "良",
+	Good:                  "稍",
+	Yielding:              "重",
+	Soft:                  "不",
+}
+
+func (t TrackCondition) Value() int {
+	return int(t)
+}
+
+func (t TrackCondition) String() string {
+	trackConditionName, _ := trackConditionMap[t]
+	return trackConditionName
+}
+
 type JockeyId int
 
 func (j JockeyId) Format() string {
@@ -788,3 +832,30 @@ func (m OddsRangeType) String() string {
 	oddsRange, _ := oddsRangeMap[m]
 	return oddsRange
 }
+
+type PredictStatus byte
+
+const (
+	PredictUncompleted = PredictStatus(0x00) // 予想未完了
+	FavoriteCandidate  = PredictStatus(0x01) // 本命候補が複数ある
+	FavoriteCompleted  = PredictStatus(0x02) // 本命確定
+	RivalCandidate     = PredictStatus(0x04) // 対抗候補が複数ある
+	RivalCompleted     = PredictStatus(0x08) // 対抗確定
+)
+
+func (p PredictStatus) Included(target PredictStatus) bool {
+	return p&target != 0
+}
+
+func (p PredictStatus) Matched(target PredictStatus) bool {
+	return p == target
+}
+
+type CellColorType int
+
+const (
+	NoneColor CellColorType = iota
+	FirstColor
+	SecondColor
+	ThirdColor
+)

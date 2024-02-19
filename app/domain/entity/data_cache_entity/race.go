@@ -17,7 +17,7 @@ type Race struct {
 	distance            int
 	class               types.GradeClass
 	courseCategory      types.CourseCategory
-	trackCondition      string
+	trackCondition      types.TrackCondition
 	raceSexCondition    types.RaceSexCondition
 	raceWeightCondition types.RaceWeightCondition
 	raceResults         []*RaceResult
@@ -37,7 +37,7 @@ func NewRace(
 	distance int,
 	class int,
 	courseCategory int,
-	trackCondition string,
+	trackCondition int,
 	raceSexCondition int,
 	raceWeightCondition int,
 	raceResults []*RaceResult,
@@ -56,7 +56,7 @@ func NewRace(
 		distance:            distance,
 		class:               types.GradeClass(class),
 		courseCategory:      types.CourseCategory(courseCategory),
-		trackCondition:      trackCondition,
+		trackCondition:      types.TrackCondition(trackCondition),
 		raceSexCondition:    types.RaceSexCondition(raceSexCondition),
 		raceWeightCondition: types.RaceWeightCondition(raceWeightCondition),
 		raceResults:         raceResults,
@@ -112,7 +112,7 @@ func (r *Race) CourseCategory() types.CourseCategory {
 	return r.courseCategory
 }
 
-func (r *Race) TrackCondition() string {
+func (r *Race) TrackCondition() types.TrackCondition {
 	return r.trackCondition
 }
 

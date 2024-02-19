@@ -8,6 +8,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"google.golang.org/api/sheets/v4"
 	"log"
+	"strings"
 )
 
 const (
@@ -115,6 +116,28 @@ func (s *spreadSheetListRepository) Style(ctx context.Context, styles []*spreads
 	log.Println(ctx, fmt.Sprintf("write list style start"))
 
 	var requests []*sheets.Request
+	requests = append(requests, &sheets.Request{
+		RepeatCell: &sheets.RepeatCellRequest{
+			Fields: "userEnteredFormat.backgroundColor",
+			Range: &sheets.GridRange{
+				SheetId:          s.spreadSheetConfig.SheetId(),
+				StartColumnIndex: 0,
+				StartRowIndex:    0,
+				EndColumnIndex:   25,
+				EndRowIndex:      1,
+			},
+			Cell: &sheets.CellData{
+				UserEnteredFormat: &sheets.CellFormat{
+					BackgroundColor: &sheets.Color{
+						Red:   1.0,
+						Green: 1.0,
+						Blue:  0.0,
+					},
+				},
+			},
+		},
+	})
+
 	for idx, style := range styles {
 		rowNo := int64(idx + 1)
 		requests = append(requests, []*sheets.Request{
@@ -135,7 +158,93 @@ func (s *spreadSheetListRepository) Style(ctx context.Context, styles []*spreads
 					},
 				},
 			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.spreadSheetConfig.SheetId(),
+						StartColumnIndex: 9,
+						StartRowIndex:    rowNo,
+						EndColumnIndex:   10,
+						EndRowIndex:      rowNo + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: s.spreadSheetService.GetCellColor(ctx, style.FavoriteHorseColor()),
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.spreadSheetConfig.SheetId(),
+						StartColumnIndex: 13,
+						StartRowIndex:    rowNo,
+						EndColumnIndex:   14,
+						EndRowIndex:      rowNo + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: s.spreadSheetService.GetCellColor(ctx, style.RivalHorseColor()),
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.spreadSheetConfig.SheetId(),
+						StartColumnIndex: 17,
+						StartRowIndex:    rowNo,
+						EndColumnIndex:   18,
+						EndRowIndex:      rowNo + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: s.spreadSheetService.GetCellColor(ctx, style.FirstPlaceHorseColor()),
+						},
+					},
+				},
+			},
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          s.spreadSheetConfig.SheetId(),
+						StartColumnIndex: 21,
+						StartRowIndex:    rowNo,
+						EndColumnIndex:   22,
+						EndRowIndex:      rowNo + 1,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: s.spreadSheetService.GetCellColor(ctx, style.SecondPlaceHorseColor()),
+						},
+					},
+				},
+			},
 		}...)
+
+		if len(style.PayoutComments()) > 0 {
+			requests = append(requests, &sheets.Request{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "note",
+					Range: &sheets.GridRange{
+						SheetId:          s.spreadSheetConfig.SheetId(),
+						StartColumnIndex: 7,
+						StartRowIndex:    rowNo,
+						EndColumnIndex:   8,
+						EndRowIndex:      rowNo + 1,
+					},
+					Cell: &sheets.CellData{
+						Note: strings.Join(style.PayoutComments(), "\n"),
+					},
+				},
+			})
+		}
 	}
 
 	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{

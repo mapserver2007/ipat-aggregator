@@ -230,6 +230,10 @@ func (l *listService) Create(
 			rivalJockey = list_entity.NewJockey(99999)
 		}
 
+		sort.Slice(raceResults, func(i, j int) bool {
+			return raceResults[i].OrderNo() < raceResults[j].OrderNo()
+		})
+
 		listRows = append(listRows, list_entity.NewListRow(
 			l.raceEntityConverter.DataCacheToList(race),
 			favoriteHorse,
@@ -345,11 +349,11 @@ func (l *listService) Convert(
 
 		switch row.Race().RaceResults()[1].PopularNumber() {
 		case 1:
-			firstPlaceHorseColor = types.FirstColor
+			secondPlaceHorseColor = types.FirstColor
 		case 2:
-			firstPlaceHorseColor = types.SecondColor
+			secondPlaceHorseColor = types.SecondColor
 		case 3:
-			firstPlaceHorseColor = types.ThirdColor
+			secondPlaceHorseColor = types.ThirdColor
 		}
 
 		var comments []string

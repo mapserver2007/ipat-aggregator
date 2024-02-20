@@ -32,23 +32,30 @@ func NewAnalysisService() AnalysisService {
 	}
 	searchFilters := []filter.Id{
 		filter.All,
-		filter.PredictKyoto12R,
-		filter.TurfSprintDistance,
-		filter.TurfMileDistance,
-		filter.TurfMiddleDistance,
+		//filter.PredictKyoto12R,
+		filter.TurfShortDistance1,
+		filter.TurfShortDistance2,
+		filter.TurfShortDistance3,
+		filter.TurfMiddleDistance1,
+		filter.TurfMiddleDistance2,
 		filter.TurfLongDistance,
-		filter.DirtSprintDistance,
-		filter.DirtMileDistance,
-		filter.DirtMiddleDistance,
+		filter.DirtShortDistance1,
+		filter.DirtShortDistance2,
+		filter.DirtShortDistance3,
+		filter.DirtMiddleDistance1,
+		filter.DirtMiddleDistance2,
 		filter.DirtLongDistance,
-		filter.GoodTrackTurfSprintDistance,
-		filter.GoodTrackTurfMileDistance,
-		filter.GoodTrackTurfMiddleDistance,
-		filter.GoodTrackTurfLongDistance,
-		filter.GoodTrackDirtSprintDistance,
-		filter.GoodTrackDirtMileDistance,
-		filter.GoodTrackDirtMiddleDistance,
-		filter.GoodTrackDirtLongDistance,
+		filter.GoodTrackTurfShortDistance1CentralCourse,
+		filter.GoodTrackTurfShortDistance2CentralCourse,
+		filter.GoodTrackTurfShortDistance3CentralCourse,
+		filter.GoodTrackTurfMiddleDistance1CentralCourse,
+		filter.GoodTrackTurfMiddleDistance2CentralCourse,
+		filter.GoodTrackTurfLongDistanceCentralCourse,
+		filter.GoodTrackDirtShortDistance1CentralCourse,
+		filter.GoodTrackDirtShortDistance2CentralCourse,
+		filter.GoodTrackDirtShortDistance3CentralCourse,
+		filter.GoodTrackDirtMiddleDistance2CentralCourse,
+		filter.GoodTrackDirtLongDistanceCentralCourse,
 		filter.TurfClass1,
 		filter.TurfClass2,
 		filter.TurfClass3,
@@ -1478,13 +1485,17 @@ func (p *analysisService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.Dirt)
 	}
 	if race.Distance() >= 1000 && race.Distance() <= 1200 {
-		filterIds = append(filterIds, filter.Sprint)
-	} else if race.Distance() >= 1201 && race.Distance() <= 1600 {
-		filterIds = append(filterIds, filter.Mile)
-	} else if race.Distance() >= 1601 && race.Distance() <= 1800 {
+		filterIds = append(filterIds, filter.ShortDistance1)
+	} else if race.Distance() >= 1201 && race.Distance() <= 1400 {
+		filterIds = append(filterIds, filter.ShortDistance2)
+	} else if race.Distance() >= 1401 && race.Distance() <= 1600 {
+		filterIds = append(filterIds, filter.ShortDistance3)
+	} else if race.Distance() >= 1601 && race.Distance() <= 1700 {
 		filterIds = append(filterIds, filter.MiddleDistance1)
-	} else if race.Distance() >= 1801 && race.Distance() <= 2000 {
+	} else if race.Distance() >= 1701 && race.Distance() <= 1800 {
 		filterIds = append(filterIds, filter.MiddleDistance2)
+	} else if race.Distance() >= 1801 && race.Distance() <= 2000 {
+		filterIds = append(filterIds, filter.MiddleDistance3)
 	} else if race.Distance() >= 2001 {
 		filterIds = append(filterIds, filter.LongDistance)
 	}
@@ -1513,6 +1524,13 @@ func (p *analysisService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.GoodTrack)
 	case types.Good, types.Yielding, types.Soft:
 		filterIds = append(filterIds, filter.BadTrack)
+	}
+
+	switch race.RaceCourseId() {
+	case types.Tokyo, types.Nakayama, types.Hanshin, types.Kyoto:
+		filterIds = append(filterIds, filter.CentralCourse)
+	default:
+		filterIds = append(filterIds, filter.LocalCourse)
 	}
 
 	return filterIds

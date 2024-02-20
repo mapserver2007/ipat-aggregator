@@ -20,8 +20,6 @@ const (
 	jockeyFileName            = "jockey.json"
 	raceIdFileName            = "race_id.json"
 	predictRaceResultFilePath = "races/race_result_%d.json"
-	startDate                 = "20230917"
-	endDate                   = "20240210"
 )
 
 type DataCacheUseCase struct {
@@ -147,6 +145,7 @@ func (d *DataCacheUseCase) Write(
 	raceIdMap map[types.RaceDate][]types.RaceId,
 	excludeDates []types.RaceDate,
 	predictRaces []*data_cache_entity.Race,
+	startDate, endDate string,
 ) error {
 	urls, _ := d.netKeibaService.CreateRacingNumberUrls(ctx, tickets, racingNumbers)
 	newRawRacingNumbers := make([]*raw_entity.RacingNumber, 0, len(racingNumbers)+len(urls))

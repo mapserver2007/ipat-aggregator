@@ -14,6 +14,11 @@ import (
 	"log"
 )
 
+const (
+	predictRaceStartDate = "20230916"
+	predictRaceEndDate   = "20240210"
+)
+
 func main() {
 	ctx := context.Background()
 	log.Println(ctx, "start")
@@ -73,7 +78,7 @@ func masterFile(
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces)
+	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, predictRaceStartDate, predictRaceEndDate)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}

@@ -13,30 +13,30 @@ import (
 )
 
 const (
-	predictRaceStartDate = "20230910"
-	predictRaceEndDate   = "20240210"
+	analysisRaceStartDate = "20230910"
+	analysisRaceEndDate   = "20240210"
 )
 
 func main() {
 	ctx := context.Background()
 	log.Println(ctx, "start")
 
-	tickets2, racingNumbers2, races2, jockeys2, predictRaces, markers, err := masterFile(ctx)
+	tickets, racingNumbers, ticketRaces, jockeys, analysisRaces, markers, err := masterFile(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	err = list(ctx, tickets2, racingNumbers2, races2, jockeys2)
+	err = list(ctx, tickets, racingNumbers, ticketRaces, jockeys)
 	if err != nil {
 		panic(err)
 	}
 
-	err = analysis(ctx, markers, predictRaces)
+	err = analysis(ctx, markers, analysisRaces)
 	if err != nil {
 		panic(err)
 	}
 
-	err = summary(ctx, tickets2, racingNumbers2, races2, jockeys2)
+	err = summary(ctx, tickets, racingNumbers, ticketRaces, jockeys)
 	if err != nil {
 		panic(err)
 	}
@@ -65,17 +65,17 @@ func masterFile(
 
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
 
-	racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, err := dataCacheUseCase.Read(ctx)
+	racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, predictRaceStartDate, predictRaceEndDate)
+	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisRaceStartDate, analysisRaceEndDate)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	racingNumbers, races, jockeys, _, _, _, predictRaces, err = dataCacheUseCase.Read(ctx)
+	racingNumbers, ticketRaces, jockeys, _, _, _, analysisRaces, err = dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
@@ -85,7 +85,7 @@ func masterFile(
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	return tickets, racingNumbers, races, jockeys, predictRaces, markers, nil
+	return tickets, racingNumbers, ticketRaces, jockeys, analysisRaces, markers, nil
 }
 
 func analysis(

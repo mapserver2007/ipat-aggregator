@@ -36,7 +36,7 @@ func (p *markerDataRepository) Read(ctx context.Context, filePath string) ([]*ma
 			continue
 		}
 
-		predict, err := marker_csv_entity.NewYamato(
+		marker, err := marker_csv_entity.NewYamato(
 			record[0],
 			record[1],
 			record[2],
@@ -50,7 +50,7 @@ func (p *markerDataRepository) Read(ctx context.Context, filePath string) ([]*ma
 			return nil, err
 		}
 
-		markers = append(markers, predict)
+		markers = append(markers, marker)
 		rowNum++
 	}
 

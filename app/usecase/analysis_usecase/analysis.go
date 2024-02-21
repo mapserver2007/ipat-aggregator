@@ -45,12 +45,12 @@ func (p *AnalysisUseCase) Read(ctx context.Context) ([]*marker_csv_entity.Yamato
 	}
 
 	filePath := fmt.Sprintf("%s/%s", dirPath, "yamato_predict.csv")
-	predicts, err := p.markerDataRepository.Read(ctx, filePath)
+	markers, err := p.markerDataRepository.Read(ctx, filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	return predicts, nil
+	return markers, nil
 }
 
 func (p *AnalysisUseCase) CreateAnalysisData(

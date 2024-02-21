@@ -16,25 +16,25 @@ import (
 	"strconv"
 )
 
-type analysis struct {
+type AnalysisUseCase struct {
 	markerDataRepository repository.MarkerDataRepository
 	analysisService      service.AnalysisService
 	ticketConverter      service.TicketConverter
 }
 
-func NewAnalysis(
+func NewAnalysisUseCase(
 	markerDataRepository repository.MarkerDataRepository,
 	analysisService service.AnalysisService,
 	ticketConverter service.TicketConverter,
-) *analysis {
-	return &analysis{
+) *AnalysisUseCase {
+	return &AnalysisUseCase{
 		markerDataRepository: markerDataRepository,
 		analysisService:      analysisService,
 		ticketConverter:      ticketConverter,
 	}
 }
 
-func (p *analysis) Read(ctx context.Context) ([]*marker_csv_entity.Yamato, error) {
+func (p *AnalysisUseCase) Read(ctx context.Context) ([]*marker_csv_entity.Yamato, error) {
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (p *analysis) Read(ctx context.Context) ([]*marker_csv_entity.Yamato, error
 	return predicts, nil
 }
 
-func (p *analysis) CreateAnalysisData(
+func (p *AnalysisUseCase) CreateAnalysisData(
 	ctx context.Context,
 	markers []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,

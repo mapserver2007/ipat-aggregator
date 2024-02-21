@@ -7,15 +7,13 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
 )
 
 const (
-	predictRaceStartDate = "20230916"
+	predictRaceStartDate = "20230910"
 	predictRaceEndDate   = "20240210"
 )
 
@@ -57,14 +55,8 @@ func masterFile(
 	[]*marker_csv_entity.Yamato,
 	error,
 ) {
-	betNumberConverter := service.NewBetNumberConverter()
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
-	analysisService := service.NewAnalysisService()
-	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
-	markerDataRepository := infrastructure.NewMarkerDataRepository()
-	ticketUseCase := ticket_usecase.NewTicket(ticketCsvRepository)
-	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, analysisService, ticketConverter)
+	ticketUseCase := di.InitializeTicketUseCase()
+	analysisUseCase := di.InitializeMarkerAnalysisUseCase()
 
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
@@ -101,12 +93,9 @@ func analysis(
 	markers []*marker_csv_entity.Yamato,
 	races []*data_cache_entity.Race,
 ) error {
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
 	analysisService := service.NewAnalysisService()
 	spreadSheetService := service.NewSpreadSheetService()
-	markerDataRepository := infrastructure.NewMarkerDataRepository()
-	analysisUseCase := analysis_usecase.NewAnalysis(markerDataRepository, analysisService, ticketConverter)
+	analysisUseCase := di.InitializeMarkerAnalysisUseCase()
 	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
 	if err != nil {
 		return err

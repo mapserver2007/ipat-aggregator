@@ -7,8 +7,10 @@ import (
 	"github.com/google/wire"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 )
 
 func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
@@ -24,6 +26,17 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 		infrastructure.NewRacingNumberDataRepository,
 		infrastructure.NewJockeyDataRepository,
 		infrastructure.NewRaceIdDataRepository,
+		infrastructure.NewMarkerDataRepository,
+	)
+	return nil
+}
+
+func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
+	wire.Build(
+		analysis_usecase.NewAnalysisUseCase,
+		service.NewAnalysisService,
+		service.NewRaceConverter,
+		service.NewTicketConverter,
 		infrastructure.NewMarkerDataRepository,
 	)
 	return nil
@@ -48,6 +61,15 @@ func InitializeListUseCase() *list_usecase.ListUseCase {
 		service.NewRaceConverter,
 		service.NewTicketConverter,
 		service.NewRaceEntityConverter,
+	)
+	return nil
+}
+
+func InitializeTicketUseCase() *ticket_usecase.TicketUseCase {
+	wire.Build(
+		ticket_usecase.NewTicketUseCase,
+		service.NewBetNumberConverter,
+		infrastructure.NewTicketCsvRepository,
 	)
 	return nil
 }

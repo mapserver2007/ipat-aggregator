@@ -6,5 +6,5 @@ import (
 )
 
 type MarkerDataRepository interface {
-	Read(ctx context.Context, filePath string) ([]*marker_csv_entity.Yamato, error)
+	Read(ctx context.Context, filePath string) ([]*marker_csv_entity.AnalysisMarker, error)
 }

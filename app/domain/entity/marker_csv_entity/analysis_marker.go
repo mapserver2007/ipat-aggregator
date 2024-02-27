@@ -5,13 +5,13 @@ import (
 	"strconv"
 )
 
-type Yamato struct {
+type AnalysisMarker struct {
 	raceDate  types.RaceDate
 	raceId    types.RaceId
 	markerMap map[types.Marker]int
 }
 
-func NewYamato(
+func NewAnalysisMarker(
 	rawRaceDate,
 	rawRaceId,
 	rawHorseNumber1,
@@ -20,7 +20,7 @@ func NewYamato(
 	rawHorseNumber4,
 	rawHorseNumber5,
 	rawHorseNumber6 string,
-) (*Yamato, error) {
+) (*AnalysisMarker, error) {
 	raceDate, err := types.NewRaceDate(rawRaceDate)
 	if err != nil {
 		return nil, err
@@ -46,69 +46,69 @@ func NewYamato(
 	horseNumber6, _ := strconv.Atoi(rawHorseNumber6)
 	markerMap[types.Check] = horseNumber6
 
-	return &Yamato{
+	return &AnalysisMarker{
 		raceDate:  raceDate,
 		raceId:    types.RaceId(rawRaceId),
 		markerMap: markerMap,
 	}, nil
 }
 
-func (y *Yamato) RaceDate() types.RaceDate {
-	return y.raceDate
+func (a *AnalysisMarker) RaceDate() types.RaceDate {
+	return a.raceDate
 }
 
-func (y *Yamato) RaceId() types.RaceId {
-	return y.raceId
+func (a *AnalysisMarker) RaceId() types.RaceId {
+	return a.raceId
 }
 
-func (y *Yamato) Favorite() int {
-	horseNumber, ok := y.markerMap[types.Favorite]
+func (a *AnalysisMarker) Favorite() int {
+	horseNumber, ok := a.markerMap[types.Favorite]
 	if !ok {
 		return 0
 	}
 	return horseNumber
 }
 
-func (y *Yamato) Rival() int {
-	horseNumber, ok := y.markerMap[types.Rival]
+func (a *AnalysisMarker) Rival() int {
+	horseNumber, ok := a.markerMap[types.Rival]
 	if !ok {
 		return 0
 	}
 	return horseNumber
 }
 
-func (y *Yamato) BrackTriangle() int {
-	horseNumber, ok := y.markerMap[types.BrackTriangle]
+func (a *AnalysisMarker) BrackTriangle() int {
+	horseNumber, ok := a.markerMap[types.BrackTriangle]
 	if !ok {
 		return 0
 	}
 	return horseNumber
 }
 
-func (y *Yamato) WhiteTriangle() int {
-	horseNumber, ok := y.markerMap[types.WhiteTriangle]
+func (a *AnalysisMarker) WhiteTriangle() int {
+	horseNumber, ok := a.markerMap[types.WhiteTriangle]
 	if !ok {
 		return 0
 	}
 	return horseNumber
 }
 
-func (y *Yamato) Star() int {
-	horseNumber, ok := y.markerMap[types.Star]
+func (a *AnalysisMarker) Star() int {
+	horseNumber, ok := a.markerMap[types.Star]
 	if !ok {
 		return 0
 	}
 	return horseNumber
 }
 
-func (y *Yamato) Check() int {
-	horseNumber, ok := y.markerMap[types.Check]
+func (a *AnalysisMarker) Check() int {
+	horseNumber, ok := a.markerMap[types.Check]
 	if !ok {
 		return 0
 	}
 	return horseNumber
 }
 
-func (y *Yamato) MarkerMap() map[types.Marker]int {
-	return y.markerMap
+func (a *AnalysisMarker) MarkerMap() map[types.Marker]int {
+	return a.markerMap
 }

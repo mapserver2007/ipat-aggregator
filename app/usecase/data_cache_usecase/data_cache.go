@@ -238,7 +238,7 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 
-	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, raceIdMap, excludeDates, startDate, endDate)
+	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, startDate, endDate, raceIdMap, excludeDates)
 	if err != nil {
 		return err
 	}

@@ -5,39 +5,41 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 )
 
-type markerAnalysisUseCase struct {
+type MarkerAnalysisUseCase struct {
 	spreadSheetRepository repository.SpreadSheetMarkerAnalysisRepository
 	analysisService       service.AnalysisService
+	filterService         service.FilterService
 }
 
 func NewMarkerAnalysisUseCase(
 	spreadSheetRepository repository.SpreadSheetMarkerAnalysisRepository,
 	analysisService service.AnalysisService,
-) *markerAnalysisUseCase {
-	return &markerAnalysisUseCase{
+	filterService service.FilterService,
+) *MarkerAnalysisUseCase {
+	return &MarkerAnalysisUseCase{
 		spreadSheetRepository: spreadSheetRepository,
 		analysisService:       analysisService,
+		filterService:         filterService,
 	}
 }
 
-func (p *markerAnalysisUseCase) Write(
+func (p *MarkerAnalysisUseCase) Write(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
-	searchFilters []filter.Id,
 ) error {
 	err := p.spreadSheetRepository.Clear(ctx)
 	if err != nil {
 		return err
 	}
-	spreadSheetAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData)
-	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData, searchFilters)
+	filters := p.filterService.GetAnalysisFilters()
+	spreadSheetAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, filters)
+	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData, filters)
 	if err != nil {
 		return err
 	}
-	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData, searchFilters)
+	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData, filters)
 	if err != nil {
 		return err
 	}

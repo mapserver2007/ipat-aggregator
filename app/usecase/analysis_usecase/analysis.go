@@ -9,7 +9,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,45 +18,42 @@ import (
 type AnalysisUseCase struct {
 	markerDataRepository repository.MarkerDataRepository
 	analysisService      service.AnalysisService
+	filterService        service.FilterService
 	ticketConverter      service.TicketConverter
 }
 
 func NewAnalysisUseCase(
 	markerDataRepository repository.MarkerDataRepository,
 	analysisService service.AnalysisService,
+	filterService service.FilterService,
 	ticketConverter service.TicketConverter,
 ) *AnalysisUseCase {
 	return &AnalysisUseCase{
 		markerDataRepository: markerDataRepository,
 		analysisService:      analysisService,
+		filterService:        filterService,
 		ticketConverter:      ticketConverter,
 	}
 }
 
-func (p *AnalysisUseCase) Read(ctx context.Context) ([]*marker_csv_entity.Yamato, error) {
+func (p *AnalysisUseCase) Read(ctx context.Context) ([]*marker_csv_entity.AnalysisMarker, error) {
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
-	dirPath, err := filepath.Abs(rootPath + "/csv/markers")
+	dirPath, err := filepath.Abs(rootPath + "/csv")
 	if err != nil {
 		return nil, err
 	}
-
-	filePath := fmt.Sprintf("%s/%s", dirPath, "yamato_predict.csv")
-	markers, err := p.markerDataRepository.Read(ctx, filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return markers, nil
+	filePath := fmt.Sprintf("%s/%s", dirPath, "analysis_marker.csv")
+	return p.markerDataRepository.Read(ctx, filePath)
 }
 
 func (p *AnalysisUseCase) CreateAnalysisData(
 	ctx context.Context,
-	markers []*marker_csv_entity.Yamato,
+	markers []*marker_csv_entity.AnalysisMarker,
 	races []*data_cache_entity.Race,
-) (*analysis_entity.Layer1, []filter.Id, error) {
+) (*analysis_entity.Layer1, error) {
 	raceMap := map[types.RaceId]*data_cache_entity.Race{}
 	for _, race := range races {
 		raceMap[race.RaceId()] = race
@@ -82,11 +78,11 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 				if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
 					hitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
 					if err != nil {
-						return nil, nil, err
+						return nil, err
 					}
 					horseNumber, ok := marker.MarkerMap()[hitMarker]
 					if !ok && hitMarker != types.NoMarker {
-						return nil, nil, fmt.Errorf("marker %s is not found in markerMap", hitMarker.String())
+						return nil, fmt.Errorf("marker %s is not found in markerMap", hitMarker.String())
 					}
 					if raceResult, ok := raceResultMap[horseNumber]; ok {
 						calculable := analysis_entity.NewCalculable(
@@ -95,12 +91,12 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 							raceResult.PopularNumber(),
 							raceResult.OrderNo(),
 							race.Entries(),
-							p.analysisService.CreateAnalysisFilters(ctx, race, raceResult),
+							p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
 						)
 
 						err := p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
 						if err != nil {
-							return nil, nil, err
+							return nil, err
 						}
 					}
 				}
@@ -112,11 +108,11 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 				if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
 					unHitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
 					if err != nil {
-						return nil, nil, err
+						return nil, err
 					}
 					horseNumber, ok := marker.MarkerMap()[unHitMarker]
 					if !ok && unHitMarker != types.NoMarker {
-						return nil, nil, fmt.Errorf("marker %s is not found in markerMap", unHitMarker.String())
+						return nil, fmt.Errorf("marker %s is not found in markerMap", unHitMarker.String())
 					}
 					if raceResult, ok := raceResultMap[horseNumber]; ok {
 						calculable := analysis_entity.NewCalculable(
@@ -125,12 +121,12 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 							raceResult.PopularNumber(),
 							raceResult.OrderNo(),
 							race.Entries(),
-							p.analysisService.CreateAnalysisFilters(ctx, race, raceResult),
+							p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
 						)
 
 						err := p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
 						if err != nil {
-							return nil, nil, err
+							return nil, err
 						}
 					}
 				}
@@ -138,5 +134,5 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 		}
 	}
 
-	return p.analysisService.GetAnalysisData(), p.analysisService.GetSearchFilters(), nil
+	return p.analysisService.GetAnalysisData(), nil
 }

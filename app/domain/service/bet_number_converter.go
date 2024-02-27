@@ -14,6 +14,7 @@ type BetNumberConverter interface {
 	QuinellaPlaceWheelToQuinellaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 	TrioFormationToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 	TrioWheelOfFirstToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
+	TrioWheelOfSecondToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 	TrifectaFormationToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 	TrifectaWheelOfFirstToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
 	TrifectaWheelMultiToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error)
@@ -171,6 +172,42 @@ func (b *betNumberConverter) TrioWheelOfFirstToTrioBetNumbers(ctx context.Contex
 			betNumberStr := fmt.Sprintf("%02d%s%02d%s%02d", numbers[0], types.QuinellaSeparator, numbers[1], types.QuinellaSeparator, numbers[2])
 			rawBetNumbers = append(rawBetNumbers, betNumberStr)
 		}
+	}
+
+	return rawBetNumbers, nil
+}
+
+// TrioWheelOfSecondToTrioBetNumbers 三連複2着ながし変換
+func (b *betNumberConverter) TrioWheelOfSecondToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]string, error) {
+	// 複数の買い目がまとめられてるものをバラす
+	separator1 := "／"
+	separator2 := "；"
+	values1 := strings.Split(rawBetNumber, separator1)
+	strPivotalNumbers := strings.Split(values1[0], separator2)    // 軸
+	strChallengerNumbers := strings.Split(values1[1], separator2) // 相手
+	var rawBetNumbers []string
+
+	strPivotalNumber1, err := strconv.Atoi(strPivotalNumbers[0])
+	if err != nil {
+		return nil, err
+	}
+	strPivotalNumber2, err := strconv.Atoi(strPivotalNumbers[1])
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(strChallengerNumbers); i++ {
+		challengerNumber, err := strconv.Atoi(strChallengerNumbers[i])
+		if err != nil {
+			return nil, err
+		}
+		numbers := []int{strPivotalNumber1, strPivotalNumber2, challengerNumber}
+		sort.Slice(numbers, func(k, l int) bool {
+			return numbers[k] < numbers[l]
+		})
+
+		betNumberStr := fmt.Sprintf("%02d%s%02d%s%02d", numbers[0], types.QuinellaSeparator, numbers[1], types.QuinellaSeparator, numbers[2])
+		rawBetNumbers = append(rawBetNumbers, betNumberStr)
 	}
 
 	return rawBetNumbers, nil

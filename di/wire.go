@@ -10,6 +10,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 )
 
@@ -35,6 +36,7 @@ func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
 	wire.Build(
 		analysis_usecase.NewAnalysisUseCase,
 		service.NewAnalysisService,
+		service.NewFilterService,
 		service.NewRaceConverter,
 		service.NewTicketConverter,
 		infrastructure.NewMarkerDataRepository,
@@ -70,6 +72,18 @@ func InitializeTicketUseCase() *ticket_usecase.TicketUseCase {
 		ticket_usecase.NewTicketUseCase,
 		service.NewBetNumberConverter,
 		infrastructure.NewTicketCsvRepository,
+	)
+	return nil
+}
+
+func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
+	wire.Build(
+		prediction_usecase.NewPredictionUseCase,
+		service.NewNetKeibaService,
+		service.NewRaceConverter,
+		service.NewTicketConverter,
+		infrastructure.NewRaceIdDataRepository,
+		infrastructure.NewPredictionDataRepository,
 	)
 	return nil
 }

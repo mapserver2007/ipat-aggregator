@@ -643,6 +643,7 @@ func (l *listService) ticketSortOrder() []types.TicketType {
 		types.Quinella,
 		types.QuinellaPlace,
 		types.TrioWheelOfFirst,
+		types.TrioWheelOfSecond,
 		types.Trio,
 		types.TrioFormation,
 		types.Place,

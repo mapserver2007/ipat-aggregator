@@ -15,14 +15,14 @@ func NewMarkerDataRepository() repository.MarkerDataRepository {
 	return &markerDataRepository{}
 }
 
-func (p *markerDataRepository) Read(ctx context.Context, filePath string) ([]*marker_csv_entity.Yamato, error) {
+func (p *markerDataRepository) Read(ctx context.Context, filePath string) ([]*marker_csv_entity.AnalysisMarker, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	var markers []*marker_csv_entity.Yamato
+	var markers []*marker_csv_entity.AnalysisMarker
 	reader := csv.NewReader(f)
 	rowNum := 0
 	for {
@@ -36,7 +36,7 @@ func (p *markerDataRepository) Read(ctx context.Context, filePath string) ([]*ma
 			continue
 		}
 
-		marker, err := marker_csv_entity.NewYamato(
+		marker, err := marker_csv_entity.NewAnalysisMarker(
 			record[0],
 			record[1],
 			record[2],

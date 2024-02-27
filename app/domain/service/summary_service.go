@@ -98,7 +98,7 @@ func (s *summaryService) CreateSummary(
 	for _, raceCourse := range raceCourses {
 		raceCourseResultMap[raceCourse] = s.ticketAggregator.RaceCourseResult(ctx, tickets, races, racingNumbers, raceCourse)
 	}
-	raceCourseResultMap[types.Overseas] = s.ticketAggregator.RaceCourseResult(ctx, tickets, races, racingNumbers, types.Longchamp, types.Deauville, types.Shatin, types.Meydan, types.SantaAnitaPark)
+	raceCourseResultMap[types.Overseas] = s.ticketAggregator.RaceCourseResult(ctx, tickets, races, racingNumbers, types.Longchamp, types.Deauville, types.Shatin, types.Meydan, types.SantaAnitaPark, types.KingAbdulaziz)
 
 	monthlyResult := s.ticketAggregator.MonthlyResult(ctx, tickets, races, racingNumbers)
 

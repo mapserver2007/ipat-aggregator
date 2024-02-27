@@ -532,7 +532,7 @@ func (r *raceDataRepository) Fetch(
 
 	err = r.client.Visit(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to visit url: %s, %v", url, err)
 	}
 
 	return netkeiba_entity.NewRace(

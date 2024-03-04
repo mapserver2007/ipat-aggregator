@@ -46,7 +46,6 @@ const (
 	DirtBadConditionClass5                    Id = 0x7487FE
 	DirtBadConditionClass6                    Id = 0x7507FE
 	// 予想専用
-	//PredictKyoto12R Id = 0x683B1
 )
 
 const (
@@ -73,6 +72,10 @@ const (
 	LargeNumberOfHorses Id = 0x100000
 	CentralCourse       Id = 0x200000
 	LocalCourse         Id = 0x400000
+	Class234            Id = 0x7000
+	Class56             Id = 0x18000
+	ShortDistance       Id = 0x1C
+	MiddleDistance      Id = 0xE0
 )
 
 var filterIdMap = map[Id]string{
@@ -101,6 +104,11 @@ var filterIdMap = map[Id]string{
 	LargeNumberOfHorses: "多頭数",
 	CentralCourse:       "中央場所",
 	LocalCourse:         "ローカル",
+
+	Class234:       "123勝",
+	Class56:        "OP・重賞",
+	ShortDistance:  "短距離",
+	MiddleDistance: "中距離",
 
 	// 以下組み合わせフィルタ
 	TurfShortDistance1:                        "芝~1200m",
@@ -145,7 +153,6 @@ var filterIdMap = map[Id]string{
 	DirtBadConditionClass5:                    "ダ稍重不多全場OP・L",
 	DirtBadConditionClass6:                    "ダ稍重不多全場重賞",
 	// 予想専用
-	//PredictKyoto12R: "京都12R芝1600/123勝良",
 }
 
 func (i Id) Value() int {

@@ -12,29 +12,36 @@ type Race struct {
 	trackCondition      types.TrackCondition
 	raceSexCondition    types.RaceSexCondition
 	raceWeightCondition types.RaceWeightCondition
+	raceCourseId        types.RaceCourse
+	odds                []*Odds
 }
 
 func NewRace(
-	raceId types.RaceId,
+	raceId string,
 	raceName string,
 	entries int,
 	distance int,
-	class types.GradeClass,
-	courseCategory types.CourseCategory,
-	trackCondition types.TrackCondition,
-	raceSexCondition types.RaceSexCondition,
-	raceWeightCondition types.RaceWeightCondition,
+	class int,
+	courseCategory int,
+	trackCondition int,
+	raceSexCondition int,
+	raceWeightCondition int,
+	raceCourseId string,
+	odds []*Odds,
 ) *Race {
+
 	return &Race{
-		raceId:              raceId,
+		raceId:              types.RaceId(raceId),
 		raceName:            raceName,
 		entries:             entries,
 		distance:            distance,
-		class:               class,
-		courseCategory:      courseCategory,
-		trackCondition:      trackCondition,
-		raceSexCondition:    raceSexCondition,
-		raceWeightCondition: raceWeightCondition,
+		class:               types.GradeClass(class),
+		courseCategory:      types.CourseCategory(courseCategory),
+		trackCondition:      types.TrackCondition(trackCondition),
+		raceSexCondition:    types.RaceSexCondition(raceSexCondition),
+		raceWeightCondition: types.RaceWeightCondition(raceWeightCondition),
+		raceCourseId:        types.NewRaceCourse(raceCourseId),
+		odds:                odds,
 	}
 }
 
@@ -72,4 +79,12 @@ func (r *Race) RaceSexCondition() types.RaceSexCondition {
 
 func (r *Race) RaceWeightCondition() types.RaceWeightCondition {
 	return r.raceWeightCondition
+}
+
+func (r *Race) RaceCourseId() types.RaceCourse {
+	return r.raceCourseId
+}
+
+func (r *Race) Odds() []*Odds {
+	return r.odds
 }

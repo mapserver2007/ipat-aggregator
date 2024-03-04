@@ -14,20 +14,20 @@ import (
 )
 
 const (
-	analysisRaceStartDate = "20230903"
-	analysisRaceEndDate   = "20240210"
+	analysisRaceStartDate = "20230827"
+	analysisRaceEndDate   = "20240218"
 )
 
 func main() {
 	ctx := context.Background()
 	log.Println(ctx, "start")
 
-	prediction(ctx)
-
 	tickets, racingNumbers, ticketRaces, jockeys, analysisRaces, markers, err := masterFile(ctx)
 	if err != nil {
 		panic(err)
 	}
+
+	prediction(ctx, markers, analysisRaces)
 
 	err = list(ctx, tickets, racingNumbers, ticketRaces, jockeys)
 	if err != nil {
@@ -49,19 +49,44 @@ func main() {
 
 func prediction(
 	ctx context.Context,
+	markers []*marker_csv_entity.AnalysisMarker,
+	races []*data_cache_entity.Race,
 ) error {
 	predictionUseCase := di.InitializePredictionUseCase()
-
-	markers, err := predictionUseCase.Read(ctx)
+	analysisUseCase := di.InitializeMarkerAnalysisUseCase()
+	spreadSheetService := service.NewSpreadSheetService()
+	filterService := service.NewFilterService()
+	spreadSheetRepository, err := infrastructure.NewSpreadSheetPredictionRepository(spreadSheetService)
 	if err != nil {
 		return err
 	}
-	var raceIds []types.RaceId
-	for _, marker := range markers {
-		raceIds = append(raceIds, marker.RaceId())
+
+	analysisData, err := analysisUseCase.CreateAnalysisData(ctx, markers, races)
+	if err != nil {
+		return err
 	}
 
-	predictionUseCase.Fetch(ctx, raceIds)
+	predictionMarkers, err := predictionUseCase.Read(ctx)
+	if err != nil {
+		return err
+	}
+	var predictionRaceIds []types.RaceId
+	predictionMarkerMap := map[types.RaceId]*marker_csv_entity.PredictionMarker{}
+	for _, predictionMarker := range predictionMarkers {
+		predictionMarkerMap[predictionMarker.RaceId()] = predictionMarker
+		predictionRaceIds = append(predictionRaceIds, predictionMarker.RaceId())
+	}
+
+	predictionRaces, err := predictionUseCase.Fetch(ctx, predictionRaceIds)
+	if err != nil {
+		return err
+	}
+
+	spreadSheetUseCase := spreadsheet_usecase.NewPredictionUseCase(spreadSheetRepository, filterService, spreadSheetService)
+	err = spreadSheetUseCase.Write(ctx, predictionRaces, predictionMarkerMap, analysisData)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -115,9 +140,9 @@ func analysis(
 	markers []*marker_csv_entity.AnalysisMarker,
 	races []*data_cache_entity.Race,
 ) error {
-	analysisService := service.NewAnalysisService()
-	filterService := service.NewFilterService()
 	spreadSheetService := service.NewSpreadSheetService()
+	analysisService := service.NewAnalysisService(spreadSheetService)
+	filterService := service.NewFilterService()
 	analysisUseCase := di.InitializeMarkerAnalysisUseCase()
 	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
 	if err != nil {

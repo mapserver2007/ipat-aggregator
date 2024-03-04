@@ -20,15 +20,19 @@ type AnalysisService interface {
 }
 
 type analysisService struct {
-	analysisData *analysis_entity.Layer1
+	analysisData       *analysis_entity.Layer1
+	spreadSheetService SpreadSheetService
 }
 
-func NewAnalysisService() AnalysisService {
+func NewAnalysisService(
+	spreadSheetService SpreadSheetService,
+) AnalysisService {
 	analysisData := analysis_entity.Layer1{
 		MarkerCombination: make(map[types.MarkerCombinationId]*analysis_entity.Layer2),
 	}
 	return &analysisService{
-		analysisData: &analysisData,
+		analysisData:       &analysisData,
+		spreadSheetService: spreadSheetService,
 	}
 }
 
@@ -1251,9 +1255,9 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 	markerCombinationMapByFilter := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
 	raceCountMapByFilter := map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
 
-	for _, f := range filters {
-		raceCountMapByFilter[f] = p.calcMarkerCombinationRaceCountByFilter(analysisData, f)
-		markerCombinationMapByFilter[f] = p.createMarkerCombinationDataByFilter(analysisData, f)
+	for _, filter := range filters {
+		markerCombinationMapByFilter[filter] = p.spreadSheetService.CreateMarkerCombinationAnalysisData(ctx, analysisData, filter)
+		raceCountMapByFilter[filter] = p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, filter)
 	}
 
 	return spreadsheet_entity.NewAnalysisData(
@@ -1261,91 +1265,6 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 		raceCountMapByFilter,
 		p.createAllMarkerCombinations(),
 	)
-}
-
-func (p *analysisService) createMarkerCombinationDataByFilter(
-	analysisData *analysis_entity.Layer1,
-	searchFilter filter.Id,
-) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis {
-	markerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	raceCountMap := p.calcMarkerCombinationRaceCountByFilter(analysisData, searchFilter)
-	for markerCombinationId, data := range analysisData.MarkerCombination {
-		for _, data2 := range data.RaceDate {
-			for _, data3 := range data2.RaceId {
-				for _, calculable := range data3 {
-					switch markerCombinationId.TicketType() {
-					case types.Win, types.Place:
-						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
-							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-						}
-						match := true
-						for _, f := range calculable.Filters() {
-							if f&searchFilter == 0 {
-								match = false
-								break
-							}
-						}
-						if match {
-							markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return markerCombinationDataMap
-}
-
-func (p *analysisService) calcMarkerCombinationRaceCountByFilter(
-	analysisData *analysis_entity.Layer1,
-	searchFilter filter.Id,
-) map[types.MarkerCombinationId]map[types.OddsRangeType]int {
-	markerCombinationOddsRangeCountMap := map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
-	for markerCombinationId, data := range analysisData.MarkerCombination {
-		if _, ok := markerCombinationOddsRangeCountMap[markerCombinationId]; !ok {
-			markerCombinationOddsRangeCountMap[markerCombinationId] = map[types.OddsRangeType]int{}
-		}
-
-		for _, data2 := range data.RaceDate {
-			for _, data3 := range data2.RaceId {
-				match := true
-				for _, calculable := range data3 {
-					// レースIDに対して複数の結果があるケースは、複勝ワイド、同着のケース
-					for _, f := range calculable.Filters() {
-						// フィルタマッチ条件は同一レースになるため、ループを回さなくても1件目のチェックとおなじになるはず
-						// だが一応全部チェックして1つでもマッチしなければフィルタマッチしないとする
-						if f&searchFilter == 0 {
-							match = false
-							break
-						}
-					}
-					if match {
-						odds := calculable.Odds().InexactFloat64()
-						if odds >= 1.0 && odds <= 1.5 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange1]++
-						} else if odds >= 1.6 && odds <= 2.0 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange2]++
-						} else if odds >= 2.1 && odds <= 2.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange3]++
-						} else if odds >= 3.0 && odds <= 4.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange4]++
-						} else if odds >= 5.0 && odds <= 9.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange5]++
-						} else if odds >= 10.0 && odds <= 19.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange6]++
-						} else if odds >= 20.0 && odds <= 49.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange7]++
-						} else if odds >= 50.0 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange8]++
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return markerCombinationOddsRangeCountMap
 }
 
 func (p *analysisService) createAllMarkerCombinations() []types.MarkerCombinationId {

@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 )
 
 type FilterService interface {
 	CreateAnalysisFilters(ctx context.Context, race *data_cache_entity.Race, raceResultByMarker *data_cache_entity.RaceResult) []filter.Id
-	CreatePredictionFilters(ctx context.Context) error
+	CreatePredictionFilters(ctx context.Context, race *prediction_entity.Race) (filter.Id, filter.Id)
 	GetAnalysisFilters() []filter.Id
 }
 
@@ -26,34 +27,64 @@ func (f *filterService) CreateAnalysisFilters(
 	raceResultByMarker *data_cache_entity.RaceResult,
 ) []filter.Id {
 	var filterIds []filter.Id
-	switch race.CourseCategory() {
-	case types.Turf:
-		filterIds = append(filterIds, filter.Turf)
-	case types.Dirt:
-		filterIds = append(filterIds, filter.Dirt)
-	}
-	if race.Distance() >= 1000 && race.Distance() <= 1200 {
-		filterIds = append(filterIds, filter.ShortDistance1)
-	} else if race.Distance() >= 1201 && race.Distance() <= 1400 {
-		filterIds = append(filterIds, filter.ShortDistance2)
-	} else if race.Distance() >= 1401 && race.Distance() <= 1600 {
-		filterIds = append(filterIds, filter.ShortDistance3)
-	} else if race.Distance() >= 1601 && race.Distance() <= 1700 {
-		filterIds = append(filterIds, filter.MiddleDistance1)
-	} else if race.Distance() >= 1701 && race.Distance() <= 1800 {
-		filterIds = append(filterIds, filter.MiddleDistance2)
-	} else if race.Distance() >= 1801 && race.Distance() <= 2000 {
-		filterIds = append(filterIds, filter.MiddleDistance3)
-	} else if race.Distance() >= 2001 {
-		filterIds = append(filterIds, filter.LongDistance)
-	}
+	filterIds = append(filterIds, f.createCourseCategoryFilter(ctx, race.CourseCategory())...)
+	filterIds = append(filterIds, f.createDistanceFilter(ctx, race.Distance())...)
+	filterIds = append(filterIds, f.createGradeClassFilter(ctx, race.Class())...)
+	filterIds = append(filterIds, f.createTrackConditionFilter(ctx, race.TrackCondition())...)
+	filterIds = append(filterIds, f.createRaceCourse(ctx, race.RaceCourseId())...)
+	filterIds = append(filterIds, f.createEntriesFilter(ctx, race.Entries())...)
+
 	switch raceResultByMarker.JockeyId() {
 	case 5339, 1088, 5366, 5509, 5585: // C.ルメール, 川田将雅, R.ムーア, J.モレイラ, D.レーン
 		filterIds = append(filterIds, filter.TopJockey)
 	default:
 		filterIds = append(filterIds, filter.OtherJockey)
 	}
-	switch race.Class() {
+
+	return filterIds
+}
+
+func (f *filterService) CreatePredictionFilters(
+	ctx context.Context,
+	race *prediction_entity.Race,
+) (filter.Id, filter.Id) {
+	var strictFilterId, simpleFilterId filter.Id
+	strictFilterIds := []filter.Id{filter.TopJockey, filter.OtherJockey}
+	strictFilterIds = append(strictFilterIds, f.createCourseCategoryFilter(ctx, race.CourseCategory())...)
+	strictFilterIds = append(strictFilterIds, f.createDistanceFilter(ctx, race.Distance())...)
+	strictFilterIds = append(strictFilterIds, f.createGradeClassFilter(ctx, race.Class())...)
+	strictFilterIds = append(strictFilterIds, f.createTrackConditionFilter(ctx, race.TrackCondition())...)
+	strictFilterIds = append(strictFilterIds, f.createRaceCourse(ctx, race.RaceCourseId())...)
+	strictFilterIds = append(strictFilterIds, f.createEntriesFilter(ctx, race.Entries())...)
+	for _, filterId := range strictFilterIds {
+		strictFilterId = strictFilterId | filterId
+	}
+
+	simpleFilterIds := []filter.Id{filter.GoodTrack, filter.BadTrack, filter.CentralCourse, filter.LocalCourse, filter.TopJockey, filter.OtherJockey, filter.SmallNumberOfHorses, filter.LargeNumberOfHorses}
+	simpleFilterIds = append(simpleFilterIds, f.createCourseCategoryFilter(ctx, race.CourseCategory())...)
+	simpleFilterIds = append(simpleFilterIds, f.createGradeClassSimpleFilter(ctx, race.Class())...)
+	simpleFilterIds = append(simpleFilterIds, f.createDistanceSimpleFilter(ctx, race.Distance())...)
+	for _, filterId := range simpleFilterIds {
+		simpleFilterId = simpleFilterId | filterId
+	}
+
+	return strictFilterId, simpleFilterId
+}
+
+func (f *filterService) createCourseCategoryFilter(ctx context.Context, courseCategory types.CourseCategory) []filter.Id {
+	var filterIds []filter.Id
+	switch courseCategory {
+	case types.Turf:
+		filterIds = append(filterIds, filter.Turf)
+	case types.Dirt:
+		filterIds = append(filterIds, filter.Dirt)
+	}
+	return filterIds
+}
+
+func (f *filterService) createGradeClassFilter(ctx context.Context, class types.GradeClass) []filter.Id {
+	var filterIds []filter.Id
+	switch class {
 	case types.Grade1, types.Grade2, types.Grade3:
 		filterIds = append(filterIds, filter.Class6)
 	case types.OpenClass, types.ListedClass:
@@ -64,29 +95,87 @@ func (f *filterService) CreateAnalysisFilters(
 		filterIds = append(filterIds, filter.Class3)
 	case types.OneWinClass:
 		filterIds = append(filterIds, filter.Class2)
-	case types.Maiden, types.MakeDebut:
+	case types.Maiden:
 		filterIds = append(filterIds, filter.Class1)
 	}
-	switch race.TrackCondition() {
+	return filterIds
+}
+
+func (f *filterService) createGradeClassSimpleFilter(ctx context.Context, class types.GradeClass) []filter.Id {
+	var filterIds []filter.Id
+	switch class {
+	case types.Grade1, types.Grade2, types.Grade3, types.OpenClass, types.ListedClass:
+		filterIds = append(filterIds, filter.Class56)
+	case types.ThreeWinClass, types.TwoWinClass, types.OneWinClass:
+		filterIds = append(filterIds, filter.Class234)
+	case types.Maiden:
+		filterIds = append(filterIds, filter.Class1)
+	}
+	return filterIds
+}
+
+func (f *filterService) createDistanceFilter(ctx context.Context, distance int) []filter.Id {
+	var filterIds []filter.Id
+	if distance >= 1000 && distance <= 1200 {
+		filterIds = append(filterIds, filter.ShortDistance1)
+	} else if distance >= 1201 && distance <= 1400 {
+		filterIds = append(filterIds, filter.ShortDistance2)
+	} else if distance >= 1401 && distance <= 1600 {
+		filterIds = append(filterIds, filter.ShortDistance3)
+	} else if distance >= 1601 && distance <= 1700 {
+		filterIds = append(filterIds, filter.MiddleDistance1)
+	} else if distance >= 1701 && distance <= 1800 {
+		filterIds = append(filterIds, filter.MiddleDistance2)
+	} else if distance >= 1801 && distance <= 2000 {
+		filterIds = append(filterIds, filter.MiddleDistance3)
+	} else if distance >= 2001 {
+		filterIds = append(filterIds, filter.LongDistance)
+	}
+	return filterIds
+}
+
+func (f *filterService) createDistanceSimpleFilter(ctx context.Context, distance int) []filter.Id {
+	var filterIds []filter.Id
+	if distance >= 1000 && distance <= 1600 {
+		filterIds = append(filterIds, filter.ShortDistance)
+	} else if distance >= 1601 && distance <= 2000 {
+		filterIds = append(filterIds, filter.MiddleDistance)
+	} else if distance >= 2001 {
+		filterIds = append(filterIds, filter.LongDistance)
+	}
+	return filterIds
+}
+
+func (f *filterService) createTrackConditionFilter(ctx context.Context, trackCondition types.TrackCondition) []filter.Id {
+	var filterIds []filter.Id
+	switch trackCondition {
 	case types.GoodToFirm:
 		filterIds = append(filterIds, filter.GoodTrack)
 	case types.Good, types.Yielding, types.Soft:
 		filterIds = append(filterIds, filter.BadTrack)
 	}
+	return filterIds
+}
 
-	switch race.RaceCourseId() {
+func (f *filterService) createRaceCourse(ctx context.Context, raceCourseId types.RaceCourse) []filter.Id {
+	var filterIds []filter.Id
+	switch raceCourseId {
 	case types.Tokyo, types.Nakayama, types.Hanshin, types.Kyoto:
 		filterIds = append(filterIds, filter.CentralCourse)
 	default:
 		filterIds = append(filterIds, filter.LocalCourse)
 	}
-
 	return filterIds
 }
 
-func (f *filterService) CreatePredictionFilters(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+func (f *filterService) createEntriesFilter(ctx context.Context, entries int) []filter.Id {
+	var filterIds []filter.Id
+	if entries <= 10 {
+		filterIds = append(filterIds, filter.SmallNumberOfHorses)
+	} else {
+		filterIds = append(filterIds, filter.LargeNumberOfHorses)
+	}
+	return filterIds
 }
 
 func (f *filterService) GetAnalysisFilters() []filter.Id {

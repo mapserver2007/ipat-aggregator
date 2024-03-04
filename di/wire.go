@@ -39,22 +39,11 @@ func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
 		service.NewFilterService,
 		service.NewRaceConverter,
 		service.NewTicketConverter,
+		service.NewSpreadSheetService,
 		infrastructure.NewMarkerDataRepository,
 	)
 	return nil
 }
-
-//func InitializeSummaryUseCase() *spreadsheet_usecase.SummaryUseCase {
-//	wire.Build(
-//		spreadsheet_usecase.NewSummaryUseCase,
-//		service.NewSummaryService,
-//		service.NewTicketAggregator,
-//		service.NewTicketConverter,
-//		service.NewRaceConverter,
-//		infrastructure.NewSpreadSheetSummaryRepository,
-//	)
-//	return nil
-//}
 
 func InitializeListUseCase() *list_usecase.ListUseCase {
 	wire.Build(
@@ -82,6 +71,8 @@ func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
 		service.NewNetKeibaService,
 		service.NewRaceConverter,
 		service.NewTicketConverter,
+		service.NewRaceEntityConverter,
+		service.NewFilterService,
 		infrastructure.NewRaceIdDataRepository,
 		infrastructure.NewPredictionDataRepository,
 	)

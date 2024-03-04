@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
@@ -15,17 +16,23 @@ type PredictionUseCase struct {
 	netKeibaService          service.NetKeibaService
 	raceIdDataRepository     repository.RaceIdDataRepository
 	predictionDataRepository repository.PredictionDataRepository
+	raceEntityConverter      service.RaceEntityConverter
+	filterService            service.FilterService
 }
 
 func NewPredictionUseCase(
 	netKeibaService service.NetKeibaService,
 	raceIdDataRepository repository.RaceIdDataRepository,
 	predictionDataRepository repository.PredictionDataRepository,
+	raceEntityConverter service.RaceEntityConverter,
+	filterService service.FilterService,
 ) *PredictionUseCase {
 	return &PredictionUseCase{
 		netKeibaService:          netKeibaService,
 		raceIdDataRepository:     raceIdDataRepository,
 		predictionDataRepository: predictionDataRepository,
+		raceEntityConverter:      raceEntityConverter,
+		filterService:            filterService,
 	}
 }
 
@@ -42,23 +49,16 @@ func (p *PredictionUseCase) Read(ctx context.Context) ([]*marker_csv_entity.Pred
 	return p.predictionDataRepository.Read(ctx, filePath)
 }
 
-func (p *PredictionUseCase) Fetch(ctx context.Context, raceIds []types.RaceId) error {
+func (p *PredictionUseCase) Fetch(ctx context.Context, raceIds []types.RaceId) ([]*prediction_entity.Race, error) {
 	raceUrls, oddsUrls := p.netKeibaService.CreatePredictionRaceUrls(ctx, raceIds)
+	var races []*prediction_entity.Race
 	for i := 0; i < len(raceUrls); i++ {
 		race, odds, err := p.predictionDataRepository.Fetch(ctx, raceUrls[i], oddsUrls[i])
 		if err != nil {
-			return err
+			return nil, err
 		}
-
-		_ = race
-		_ = odds
-
+		races = append(races, p.raceEntityConverter.NetKeibaToPrediction(race, odds))
 	}
 
-	// TODO create urls
-	return nil
-}
-
-func (p *PredictionUseCase) Predict() error {
-	return nil
+	return races, nil
 }

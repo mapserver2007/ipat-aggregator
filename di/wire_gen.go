@@ -36,7 +36,8 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 
 func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
 	markerDataRepository := infrastructure.NewMarkerDataRepository()
-	analysisService := service.NewAnalysisService()
+	spreadSheetService := service.NewSpreadSheetService()
+	analysisService := service.NewAnalysisService(spreadSheetService)
 	filterService := service.NewFilterService()
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
@@ -66,6 +67,8 @@ func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
 	netKeibaService := service.NewNetKeibaService(raceConverter, ticketConverter)
 	raceIdDataRepository := infrastructure.NewRaceIdDataRepository()
 	predictionDataRepository := infrastructure.NewPredictionDataRepository()
-	predictionUseCase := prediction_usecase.NewPredictionUseCase(netKeibaService, raceIdDataRepository, predictionDataRepository)
+	raceEntityConverter := service.NewRaceEntityConverter()
+	filterService := service.NewFilterService()
+	predictionUseCase := prediction_usecase.NewPredictionUseCase(netKeibaService, raceIdDataRepository, predictionDataRepository, raceEntityConverter, filterService)
 	return predictionUseCase
 }

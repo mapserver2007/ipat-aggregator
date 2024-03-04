@@ -1,6 +1,9 @@
 package marker_csv_entity
 
-import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
+import (
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"strconv"
+)
 
 type PredictionMarker struct {
 	raceId    types.RaceId
@@ -18,40 +21,22 @@ func NewPredictionMarker(
 ) *PredictionMarker {
 	markerMap := map[types.Marker]int{}
 
-	horseNumber1 := 0
-	if rawHorseNumber1 != "" {
-		horseNumber1 = 1
-	}
+	horseNumber1, _ := strconv.Atoi(rawHorseNumber1)
 	markerMap[types.Favorite] = horseNumber1
 
-	horseNumber2 := 0
-	if rawHorseNumber2 != "" {
-		horseNumber2 = 1
-	}
+	horseNumber2, _ := strconv.Atoi(rawHorseNumber2)
 	markerMap[types.Rival] = horseNumber2
 
-	horseNumber3 := 0
-	if rawHorseNumber3 != "" {
-		horseNumber3 = 1
-	}
+	horseNumber3, _ := strconv.Atoi(rawHorseNumber3)
 	markerMap[types.BrackTriangle] = horseNumber3
 
-	horseNumber4 := 0
-	if rawHorseNumber4 != "" {
-		horseNumber4 = 1
-	}
+	horseNumber4, _ := strconv.Atoi(rawHorseNumber4)
 	markerMap[types.WhiteTriangle] = horseNumber4
 
-	horseNumber5 := 0
-	if rawHorseNumber5 != "" {
-		horseNumber5 = 1
-	}
+	horseNumber5, _ := strconv.Atoi(rawHorseNumber5)
 	markerMap[types.Star] = horseNumber5
 
-	horseNumber6 := 0
-	if rawHorseNumber6 != "" {
-		horseNumber6 = 1
-	}
+	horseNumber6, _ := strconv.Atoi(rawHorseNumber6)
 	markerMap[types.Check] = horseNumber6
 
 	return &PredictionMarker{

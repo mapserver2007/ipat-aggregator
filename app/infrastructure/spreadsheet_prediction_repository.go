@@ -298,10 +298,74 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 	return valuesList, nil
 }
 
-func (s *spreadSheetPredictionRepository) Style(ctx context.Context, predictionDataSize int) error {
+func (s *spreadSheetPredictionRepository) Style(
+	ctx context.Context,
+	markerOddsRangeMapList []map[types.Marker]types.OddsRangeType,
+) error {
 	var requests []*sheets.Request
+	for dataIndex, markerOddsRangeMap := range markerOddsRangeMapList {
+		sortedMarkers := make([]int, 0, len(markerOddsRangeMap))
+		for marker := range markerOddsRangeMap {
+			sortedMarkers = append(sortedMarkers, marker.Value())
+		}
+		sort.Ints(sortedMarkers)
 
-	for dataIndex := 0; dataIndex < predictionDataSize; dataIndex++ {
+		for filterKindNum := range []int{0, 1} {
+			for orderIndex := range []int{0, 1, 2} {
+				for rowIndex, rawMarker := range sortedMarkers {
+					marker := types.Marker(rawMarker)
+					oddsRangeType, ok := markerOddsRangeMap[marker]
+					if !ok {
+						return fmt.Errorf("marker %s not found in markerOddsRangeMapList", marker.String())
+					}
+					requests = append(requests, []*sheets.Request{
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.backgroundColor",
+								Range: &sheets.GridRange{
+									SheetId:          s.spreadSheetConfig.SheetId(),
+									StartColumnIndex: int64(5 + oddsRangeType.Value() + (10 * filterKindNum)),
+									StartRowIndex:    int64(2 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
+									EndColumnIndex:   int64(6 + oddsRangeType.Value() + (10 * filterKindNum)),
+									EndRowIndex:      int64(3 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										BackgroundColor: &sheets.Color{
+											Red:   1.0,
+											Blue:  0.0,
+											Green: 1.0,
+										},
+									},
+								},
+							},
+						},
+						{
+							RepeatCell: &sheets.RepeatCellRequest{
+								Fields: "userEnteredFormat.textFormat.bold",
+								Range: &sheets.GridRange{
+									SheetId:          s.spreadSheetConfig.SheetId(),
+									StartColumnIndex: int64(5 + oddsRangeType.Value() + (10 * filterKindNum)),
+									StartRowIndex:    int64(2 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
+									EndColumnIndex:   int64(6 + oddsRangeType.Value() + (10 * filterKindNum)),
+									EndRowIndex:      int64(3 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
+								},
+								Cell: &sheets.CellData{
+									UserEnteredFormat: &sheets.CellFormat{
+										TextFormat: &sheets.TextFormat{
+											Bold: true,
+										},
+									},
+								},
+							},
+						},
+					}...)
+				}
+			}
+		}
+	}
+
+	for dataIndex := 0; dataIndex < len(markerOddsRangeMapList); dataIndex++ {
 		for colIndex := range []int{0, 1} {
 			requests = append(requests, []*sheets.Request{
 				{

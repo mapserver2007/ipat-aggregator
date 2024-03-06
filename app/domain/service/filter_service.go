@@ -6,6 +6,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"strings"
 )
 
 type FilterService interface {
@@ -31,7 +32,7 @@ func (f *filterService) CreateAnalysisFilters(
 	filterIds = append(filterIds, f.createDistanceFilter(ctx, race.Distance())...)
 	filterIds = append(filterIds, f.createGradeClassFilter(ctx, race.Class())...)
 	filterIds = append(filterIds, f.createTrackConditionFilter(ctx, race.TrackCondition())...)
-	filterIds = append(filterIds, f.createRaceCourse(ctx, race.RaceCourseId())...)
+	filterIds = append(filterIds, f.createRaceCourseFilter(ctx, race.RaceCourseId())...)
 	filterIds = append(filterIds, f.createEntriesFilter(ctx, race.Entries())...)
 
 	switch raceResultByMarker.JockeyId() {
@@ -48,27 +49,39 @@ func (f *filterService) CreatePredictionFilters(
 	ctx context.Context,
 	race *prediction_entity.Race,
 ) (filter.Id, filter.Id) {
-	var strictFilterId, simpleFilterId filter.Id
-	strictFilterIds := []filter.Id{filter.TopJockey, filter.OtherJockey}
+	var (
+		strictFilterIds, simpleFilterIds     []filter.Id
+		strictFilterId, simpleFilterId       filter.Id
+		strictFilterNames, simpleFilterNames []string
+	)
 	strictFilterIds = append(strictFilterIds, f.createCourseCategoryFilter(ctx, race.CourseCategory())...)
 	strictFilterIds = append(strictFilterIds, f.createDistanceFilter(ctx, race.Distance())...)
 	strictFilterIds = append(strictFilterIds, f.createGradeClassFilter(ctx, race.Class())...)
 	strictFilterIds = append(strictFilterIds, f.createTrackConditionFilter(ctx, race.TrackCondition())...)
-	strictFilterIds = append(strictFilterIds, f.createRaceCourse(ctx, race.RaceCourseId())...)
+	strictFilterIds = append(strictFilterIds, f.createRaceCourseFilter(ctx, race.RaceCourseId())...)
 	strictFilterIds = append(strictFilterIds, f.createEntriesFilter(ctx, race.Entries())...)
+	for _, filterId := range strictFilterIds {
+		strictFilterNames = append(strictFilterNames, filterId.String())
+	}
+	strictFilterIds = append(strictFilterIds, []filter.Id{filter.TopJockey, filter.OtherJockey}...)
 	for _, filterId := range strictFilterIds {
 		strictFilterId = strictFilterId | filterId
 	}
 
-	simpleFilterIds := []filter.Id{filter.GoodTrack, filter.BadTrack, filter.CentralCourse, filter.LocalCourse, filter.TopJockey, filter.OtherJockey, filter.SmallNumberOfHorses, filter.LargeNumberOfHorses}
 	simpleFilterIds = append(simpleFilterIds, f.createCourseCategoryFilter(ctx, race.CourseCategory())...)
-	simpleFilterIds = append(simpleFilterIds, f.createGradeClassSimpleFilter(ctx, race.Class())...)
 	simpleFilterIds = append(simpleFilterIds, f.createDistanceSimpleFilter(ctx, race.Distance())...)
+	simpleFilterIds = append(simpleFilterIds, f.createGradeClassSimpleFilter(ctx, race.Class())...)
+	for _, filterId := range simpleFilterIds {
+		simpleFilterNames = append(simpleFilterNames, filterId.String())
+	}
+	simpleFilterIds = append(strictFilterIds,
+		[]filter.Id{filter.GoodTrack, filter.BadTrack, filter.CentralCourse, filter.LocalCourse, filter.TopJockey, filter.OtherJockey, filter.SmallNumberOfHorses, filter.LargeNumberOfHorses}...)
 	for _, filterId := range simpleFilterIds {
 		simpleFilterId = simpleFilterId | filterId
 	}
 
-	return strictFilterId, simpleFilterId
+	return filter.NewFilterId(strictFilterId.Value(), strings.Join(strictFilterNames, "/")),
+		filter.NewFilterId(simpleFilterId.Value(), strings.Join(simpleFilterNames, "/"))
 }
 
 func (f *filterService) createCourseCategoryFilter(ctx context.Context, courseCategory types.CourseCategory) []filter.Id {
@@ -157,7 +170,7 @@ func (f *filterService) createTrackConditionFilter(ctx context.Context, trackCon
 	return filterIds
 }
 
-func (f *filterService) createRaceCourse(ctx context.Context, raceCourseId types.RaceCourse) []filter.Id {
+func (f *filterService) createRaceCourseFilter(ctx context.Context, raceCourseId types.RaceCourse) []filter.Id {
 	var filterIds []filter.Id
 	switch raceCourseId {
 	case types.Tokyo, types.Nakayama, types.Hanshin, types.Kyoto:

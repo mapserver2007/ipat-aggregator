@@ -3,7 +3,6 @@ package infrastructure
 import (
 	"context"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
@@ -19,7 +18,7 @@ const (
 
 type spreadSheetPredictionRepository struct {
 	client             *sheets.Service
-	spreadSheetConfigs []*spreadsheet_entity.SpreadSheetConfig
+	spreadSheetConfig  *spreadsheet_entity.SpreadSheetConfig
 	spreadSheetService service.SpreadSheetService
 }
 
@@ -27,45 +26,80 @@ func NewSpreadSheetPredictionRepository(
 	spreadSheetService service.SpreadSheetService,
 ) (repository.SpreadSheetPredictionRepository, error) {
 	ctx := context.Background()
-	client, spreadSheetConfigs, err := getSpreadSheetConfigs(ctx, spreadSheetMarkerAnalysisFileName)
+	client, spreadSheetConfig, err := getSpreadSheetConfig(ctx, spreadSheetPredictionFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &spreadSheetPredictionRepository{
 		client:             client,
-		spreadSheetConfigs: spreadSheetConfigs,
+		spreadSheetConfig:  spreadSheetConfig,
 		spreadSheetService: spreadSheetService,
 	}, nil
 }
 
 func (s *spreadSheetPredictionRepository) Write(
 	ctx context.Context,
-	strictPredictionData *spreadsheet_entity.PredictionData,
-	simplePredictionData *spreadsheet_entity.PredictionData,
-	markerOddsRangeMap map[types.Marker]types.OddsRangeType,
-	race *prediction_entity.Race,
+	strictPredictionDataList []*spreadsheet_entity.PredictionData,
+	simplePredictionDataList []*spreadsheet_entity.PredictionData,
 ) error {
-	log.Println(ctx, fmt.Sprintf("write prediction %v start", race.RaceId()))
+	log.Println(ctx, fmt.Sprintf("write prediction start"))
+	predictionDataSize := len(strictPredictionDataList)
 
-	strictOddsRangeRaceCountMap := strictPredictionData.OddsRangeRaceCountMap()
-	strictPredictionMarkerCombinationData := strictPredictionData.PredictionMarkerCombinationData()
-	strictValuesList, err := s.createOddsRangeValues(ctx, strictOddsRangeRaceCountMap, strictPredictionMarkerCombinationData)
-	if err != nil {
-		return err
+	for idx := 0; idx < predictionDataSize; idx++ {
+		strictPredictionData := strictPredictionDataList[idx]
+		simplePredictionData := simplePredictionDataList[idx]
+
+		strictValuesList, err := s.createOddsRangeValues(
+			ctx,
+			strictPredictionData.OddsRangeRaceCountMap(),
+			strictPredictionData.PredictionMarkerCombinationData(),
+			strictPredictionData.PredictionTitle(),
+			strictPredictionData.RaceUrl(),
+		)
+		if err != nil {
+			return err
+		}
+
+		simpleValuesList, err := s.createOddsRangeValues(
+			ctx,
+			simplePredictionData.OddsRangeRaceCountMap(),
+			simplePredictionData.PredictionMarkerCombinationData(),
+			simplePredictionData.PredictionTitle(),
+			simplePredictionData.RaceUrl(),
+		)
+		if err != nil {
+			return err
+		}
+
+		var strictValueList [][]interface{}
+		for _, value := range strictValuesList {
+			strictValueList = append(strictValueList, value...)
+		}
+
+		writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("E%d", 1+(idx*22)))
+		_, err = s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+			Values: strictValueList,
+		}).ValueInputOption("USER_ENTERED").Do()
+		if err != nil {
+			return err
+		}
+
+		var simpleValueList [][]interface{}
+		for _, value := range simpleValuesList {
+			simpleValueList = append(simpleValueList, value...)
+		}
+
+		writeRange = fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("O%d", 1+(idx*22)))
+		_, err = s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+			Values: simpleValueList,
+		}).ValueInputOption("USER_ENTERED").Do()
+		if err != nil {
+			return err
+		}
 	}
 
-	simpleOddsRangeRaceCountMap := simplePredictionData.OddsRangeRaceCountMap()
-	simplePredictionMarkerCombinationData := simplePredictionData.PredictionMarkerCombinationData()
-	simpleValuesList, err := s.createOddsRangeValues(ctx, simpleOddsRangeRaceCountMap, simplePredictionMarkerCombinationData)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(strictValuesList)
-	fmt.Println(simpleValuesList)
-
-	log.Println(ctx, fmt.Sprintf("write prediction %v end", race.RaceId()))
+	log.Println(ctx, fmt.Sprintf("write prediction end"))
 
 	return nil
 }
@@ -74,8 +108,24 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 	ctx context.Context,
 	markerCombinationOddsRangeRaceCountMap map[types.MarkerCombinationId]map[types.OddsRangeType]int,
 	predictionMarkerCombinationData map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
+	predictionTitle string,
+	raceUrl string,
 ) ([][][]interface{}, error) {
 	valuesList := make([][][]interface{}, 0)
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
 	valuesList = append(valuesList, [][]interface{}{
 		{
 			"",
@@ -143,6 +193,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 	}
 	sort.Ints(rawMarkerCombinationIds)
 
+	var raceCount int
 	for _, rawMarkerCombinationId := range rawMarkerCombinationIds {
 		markerCombinationId := types.MarkerCombinationId(rawMarkerCombinationId)
 		markerCombinationAnalysisData := predictionMarkerCombinationData[markerCombinationId]
@@ -156,7 +207,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 			oddsRangeMap := s.createOddsRangeMap(ctx, markerCombinationAnalysisData, 1)
 			oddsRangeRaceCountMap := markerCombinationOddsRangeRaceCountMap[markerCombinationId]
 
-			raceCount := 0
+			raceCount = 0
 			for _, oddsRange := range oddsRanges {
 				if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
 					raceCount += n
@@ -170,7 +221,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 				}
 			}
 
-			valuesList[0] = append(valuesList[0], [][]interface{}{
+			valuesList[1] = append(valuesList[1], [][]interface{}{
 				{
 					marker.String(),
 					rateFormatFunc(matchCount, raceCount),
@@ -212,7 +263,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 				}
 			}
 
-			valuesList[1] = append(valuesList[1], [][]interface{}{
+			valuesList[2] = append(valuesList[2], [][]interface{}{
 				{
 					marker.String(),
 					rateFormatFunc(orderNo2MatchCount, raceCount),
@@ -226,7 +277,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
 				},
 			}...)
-			valuesList[2] = append(valuesList[2], [][]interface{}{
+			valuesList[3] = append(valuesList[3], [][]interface{}{
 				{
 					marker.String(),
 					rateFormatFunc(orderNo3MatchCount, raceCount),
@@ -243,17 +294,207 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 		}
 	}
 
+	valuesList[0][0][1] = fmt.Sprintf("=HYPERLINK(\"%s\",\"%s(%d)\")", raceUrl, predictionTitle, raceCount)
 	return valuesList, nil
 }
 
-func (s *spreadSheetPredictionRepository) Style(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+func (s *spreadSheetPredictionRepository) Style(ctx context.Context, predictionDataSize int) error {
+	var requests []*sheets.Request
+
+	for dataIndex := 0; dataIndex < predictionDataSize; dataIndex++ {
+		for colIndex := range []int{0, 1} {
+			requests = append(requests, []*sheets.Request{
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.backgroundColor",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: int64(5 + (10 * colIndex)),
+							StartRowIndex:    int64(0 + (22 * dataIndex)),
+							EndColumnIndex:   int64(14 + (10 * colIndex)),
+							EndRowIndex:      int64(1 + (22 * dataIndex)),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								BackgroundColor: &sheets.Color{
+									Red:   0.0,
+									Blue:  1.0,
+									Green: 0.0,
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.textFormat.bold",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: int64(5 + (10 * colIndex)),
+							StartRowIndex:    int64(0 + (22 * dataIndex)),
+							EndColumnIndex:   int64(14 + (10 * colIndex)),
+							EndRowIndex:      int64(1 + (22 * dataIndex)),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								TextFormat: &sheets.TextFormat{
+									Bold: true,
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.textFormat.foregroundColor",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: int64(5 + (10 * colIndex)),
+							StartRowIndex:    int64(0 + (22 * dataIndex)),
+							EndColumnIndex:   int64(14 + (10 * colIndex)),
+							EndRowIndex:      int64(1 + (22 * dataIndex)),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								TextFormat: &sheets.TextFormat{
+									ForegroundColor: &sheets.Color{
+										Red:   1.0,
+										Green: 1.0,
+										Blue:  1.0,
+									},
+								},
+							},
+						},
+					},
+				},
+			}...)
+			for rowIndex := range []int{0, 1, 2} {
+				requests = append(requests, []*sheets.Request{
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.textFormat.bold",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: int64(5 + (10 * colIndex)),
+								StartRowIndex:    int64(1 + (22 * dataIndex) + (7 * rowIndex)),
+								EndColumnIndex:   int64(14 + (10 * colIndex)),
+								EndRowIndex:      int64(2 + (22 * dataIndex) + (7 * rowIndex)),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									TextFormat: &sheets.TextFormat{
+										Bold: true,
+									},
+								},
+							},
+						},
+					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.backgroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: int64(5 + (10 * colIndex)),
+								StartRowIndex:    int64(1 + (22 * dataIndex) + (7 * rowIndex)),
+								EndColumnIndex:   int64(6 + (10 * colIndex)),
+								EndRowIndex:      int64(2 + (22 * dataIndex) + (7 * rowIndex)),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									BackgroundColor: &sheets.Color{
+										Red:   1.0,
+										Blue:  0.0,
+										Green: 1.0,
+									},
+								},
+							},
+						},
+					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.backgroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: int64(6 + (10 * colIndex)),
+								StartRowIndex:    int64(1 + (22 * dataIndex) + (7 * rowIndex)),
+								EndColumnIndex:   int64(14 + (10 * colIndex)),
+								EndRowIndex:      int64(2 + (22 * dataIndex) + (7 * rowIndex)),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									BackgroundColor: &sheets.Color{
+										Red:   1.0,
+										Blue:  0.0,
+										Green: 0.0,
+									},
+								},
+							},
+						},
+					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.textFormat.foregroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: int64(6 + (10 * colIndex)),
+								StartRowIndex:    int64(1 + (22 * dataIndex) + (7 * rowIndex)),
+								EndColumnIndex:   int64(14 + (10 * colIndex)),
+								EndRowIndex:      int64(2 + (22 * dataIndex) + (7 * rowIndex)),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									TextFormat: &sheets.TextFormat{
+										ForegroundColor: &sheets.Color{
+											Red:   1.0,
+											Green: 1.0,
+											Blue:  1.0,
+										},
+									},
+								},
+							},
+						},
+					},
+				}...)
+			}
+		}
+	}
+
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *spreadSheetPredictionRepository) Clear(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.spreadSheetConfig.SheetId(),
+					StartColumnIndex: 4,
+					StartRowIndex:    0,
+					EndColumnIndex:   40,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *spreadSheetPredictionRepository) createOddsRangeMap(
@@ -297,5 +538,3 @@ func (s *spreadSheetPredictionRepository) createOddsRangeMap(
 
 	return oddsRangeMap
 }
-
-func (s *spreadSheetPredictionRepository) createValueList() {}

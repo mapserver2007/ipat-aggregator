@@ -83,32 +83,31 @@ var filterIdMap = map[Id]string{
 	// 以下基本フィルタ
 	Turf:                "芝",
 	Dirt:                "ダート",
-	ShortDistance1:      "短距離1",
-	ShortDistance2:      "短距離2",
-	ShortDistance3:      "短距離3",
-	MiddleDistance1:     "中距離1",
-	MiddleDistance2:     "中距離2",
-	MiddleDistance3:     "中距離3",
-	LongDistance:        "長距離",
+	ShortDistance1:      "1000~1200m",
+	ShortDistance2:      "1201~1400m",
+	ShortDistance3:      "1401~1600m",
+	MiddleDistance1:     "1601~1700m",
+	MiddleDistance2:     "1701~1800m",
+	MiddleDistance3:     "1801~2000m",
+	LongDistance:        "2001m~",
 	TopJockey:           "上位騎手",
 	OtherJockey:         "その他騎手",
 	Class1:              "未勝利",
-	Class2:              "1勝クラス",
-	Class3:              "2勝クラス",
-	Class4:              "3勝クラス",
+	Class2:              "1勝",
+	Class3:              "2勝",
+	Class4:              "3勝",
 	Class5:              "OP・L",
 	Class6:              "重賞",
-	GoodTrack:           "良馬場",
-	BadTrack:            "良馬場以外",
-	SmallNumberOfHorses: "少頭数",
-	LargeNumberOfHorses: "多頭数",
-	CentralCourse:       "中央場所",
+	GoodTrack:           "良",
+	BadTrack:            "稍重不",
+	SmallNumberOfHorses: "少",
+	LargeNumberOfHorses: "多",
+	CentralCourse:       "中央",
 	LocalCourse:         "ローカル",
-
-	Class234:       "123勝",
-	Class56:        "OP・重賞",
-	ShortDistance:  "短距離",
-	MiddleDistance: "中距離",
+	Class234:            "123勝",
+	Class56:             "OP・重賞",
+	ShortDistance:       "1000~1600m",
+	MiddleDistance:      "1601~2000m",
 
 	// 以下組み合わせフィルタ
 	TurfShortDistance1:                        "芝~1200m",
@@ -155,8 +154,14 @@ var filterIdMap = map[Id]string{
 	// 予想専用
 }
 
-func (i Id) Value() int {
-	return int(i)
+func NewFilterId(rawId uint64, name string) Id {
+	id := Id(rawId)
+	filterIdMap[id] = name
+	return id
+}
+
+func (i Id) Value() uint64 {
+	return uint64(i)
 }
 
 func (i Id) String() string {

@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	analysisRaceStartDate = "20230827"
-	analysisRaceEndDate   = "20240218"
+	analysisRaceStartDate = "20230820"
+	analysisRaceEndDate   = "20240224"
+	debug                 = true
 )
 
 func main() {
@@ -27,7 +28,14 @@ func main() {
 		panic(err)
 	}
 
-	prediction(ctx, markers, analysisRaces)
+	err = prediction(ctx, markers, analysisRaces)
+	if err != nil {
+		panic(err)
+	}
+
+	if debug {
+		return
+	}
 
 	err = list(ctx, tickets, racingNumbers, ticketRaces, jockeys)
 	if err != nil {

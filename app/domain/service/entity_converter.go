@@ -245,6 +245,7 @@ func (r *raceEntityConverter) NetKeibaToPrediction(input1 *netkeiba_entity.Race,
 	race := prediction_entity.NewRace(
 		input1.RaceId(),
 		input1.RaceName(),
+		input1.RaceNumber(),
 		input1.Entries(),
 		input1.Distance(),
 		input1.Class(),
@@ -253,6 +254,7 @@ func (r *raceEntityConverter) NetKeibaToPrediction(input1 *netkeiba_entity.Race,
 		input1.RaceSexCondition(),
 		input1.RaceWeightCondition(),
 		input1.RaceCourseId(),
+		input1.Url(),
 		odds,
 	)
 

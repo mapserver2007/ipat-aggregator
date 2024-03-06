@@ -36,6 +36,12 @@ func (p *PredictionUseCase) Write(
 	predictionMarkerMap map[types.RaceId]*marker_csv_entity.PredictionMarker,
 	analysisData *analysis_entity.Layer1,
 ) error {
+	err := p.spreadSheetRepository.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	var strictPredictionDataList, simplePredictionDataList []*spreadsheet_entity.PredictionData
 	for _, race := range races {
 		marker, ok := predictionMarkerMap[race.RaceId()]
 		if !ok {
@@ -49,14 +55,23 @@ func (p *PredictionUseCase) Write(
 		simplePredictionOddsRangeMap := p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, simpleFilterId)
 
 		markerOddsRangeMap := p.spreadSheetService.CreatePredictionOdds(ctx, marker, race)
+		_ = markerOddsRangeMap
 
-		strictPredictionData := spreadsheet_entity.NewPredictionData(strictPredictionMarkerCombinationData, strictPredictionOddsRangeMap, race)
-		simplePredictionData := spreadsheet_entity.NewPredictionData(simplePredictionMarkerCombinationData, simplePredictionOddsRangeMap, race)
+		strictPredictionDataList = append(strictPredictionDataList,
+			spreadsheet_entity.NewPredictionData(strictPredictionMarkerCombinationData, strictPredictionOddsRangeMap, race, strictFilterId))
+		simplePredictionDataList = append(simplePredictionDataList,
+			spreadsheet_entity.NewPredictionData(simplePredictionMarkerCombinationData, simplePredictionOddsRangeMap, race, simpleFilterId))
+	}
 
-		err := p.spreadSheetRepository.Write(ctx, strictPredictionData, simplePredictionData, markerOddsRangeMap, race)
-		if err != nil {
-			return err
-		}
+	err = p.spreadSheetRepository.Write(ctx, strictPredictionDataList, simplePredictionDataList)
+	if err != nil {
+		return err
+	}
+
+	predictionDataSize := len(strictPredictionDataList)
+	err = p.spreadSheetRepository.Style(ctx, predictionDataSize)
+	if err != nil {
+		return err
 	}
 
 	return nil

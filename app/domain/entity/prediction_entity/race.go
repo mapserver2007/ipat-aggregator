@@ -5,6 +5,7 @@ import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
 type Race struct {
 	raceId              types.RaceId
 	raceName            string
+	raceNumber          int
 	entries             int
 	distance            int
 	class               types.GradeClass
@@ -13,12 +14,14 @@ type Race struct {
 	raceSexCondition    types.RaceSexCondition
 	raceWeightCondition types.RaceWeightCondition
 	raceCourseId        types.RaceCourse
+	url                 string
 	odds                []*Odds
 }
 
 func NewRace(
 	raceId string,
 	raceName string,
+	raceNumber int,
 	entries int,
 	distance int,
 	class int,
@@ -27,12 +30,13 @@ func NewRace(
 	raceSexCondition int,
 	raceWeightCondition int,
 	raceCourseId string,
+	url string,
 	odds []*Odds,
 ) *Race {
-
 	return &Race{
 		raceId:              types.RaceId(raceId),
 		raceName:            raceName,
+		raceNumber:          raceNumber,
 		entries:             entries,
 		distance:            distance,
 		class:               types.GradeClass(class),
@@ -40,7 +44,8 @@ func NewRace(
 		trackCondition:      types.TrackCondition(trackCondition),
 		raceSexCondition:    types.RaceSexCondition(raceSexCondition),
 		raceWeightCondition: types.RaceWeightCondition(raceWeightCondition),
-		raceCourseId:        types.NewRaceCourse(raceCourseId),
+		raceCourseId:        types.RaceCourse(raceCourseId),
+		url:                 url,
 		odds:                odds,
 	}
 }
@@ -51,6 +56,10 @@ func (r *Race) RaceId() types.RaceId {
 
 func (r *Race) RaceName() string {
 	return r.raceName
+}
+
+func (r *Race) RaceNumber() int {
+	return r.raceNumber
 }
 
 func (r *Race) Entries() int {
@@ -83,6 +92,10 @@ func (r *Race) RaceWeightCondition() types.RaceWeightCondition {
 
 func (r *Race) RaceCourseId() types.RaceCourse {
 	return r.raceCourseId
+}
+
+func (r *Race) Url() string {
+	return r.url
 }
 
 func (r *Race) Odds() []*Odds {

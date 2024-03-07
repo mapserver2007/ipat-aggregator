@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	analysisRaceStartDate = "20230820"
+	analysisRaceStartDate = "20230819"
 	analysisRaceEndDate   = "20240224"
-	debug                 = true
+	enableAnalysis        = true
+	enablePrediction      = false
+	enableAggregate       = false
 )
 
 func main() {
@@ -28,28 +30,30 @@ func main() {
 		panic(err)
 	}
 
-	err = prediction(ctx, markers, analysisRaces)
-	if err != nil {
-		panic(err)
+	if enablePrediction {
+		err = prediction(ctx, markers, analysisRaces)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	if debug {
-		return
+	if enableAnalysis {
+		err = analysis(ctx, markers, analysisRaces)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	err = list(ctx, tickets, racingNumbers, ticketRaces, jockeys)
-	if err != nil {
-		panic(err)
-	}
+	if enableAggregate {
+		err = list(ctx, tickets, racingNumbers, ticketRaces, jockeys)
+		if err != nil {
+			panic(err)
+		}
 
-	err = analysis(ctx, markers, analysisRaces)
-	if err != nil {
-		panic(err)
-	}
-
-	err = summary(ctx, tickets, racingNumbers, ticketRaces)
-	if err != nil {
-		panic(err)
+		err = summary(ctx, tickets, racingNumbers, ticketRaces)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	log.Println(ctx, "end")

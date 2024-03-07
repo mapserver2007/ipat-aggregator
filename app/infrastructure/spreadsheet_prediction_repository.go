@@ -157,7 +157,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 	valuesList = append(valuesList, [][]interface{}{
 		{
 			"",
-			"1着率",
+			"3着率",
 			types.WinOddsRange1.String(),
 			types.WinOddsRange2.String(),
 			types.WinOddsRange3.String(),

@@ -151,7 +151,6 @@ var filterIdMap = map[Id]string{
 	DirtBadConditionClass4:                    "ダ稍重不多中央3勝",
 	DirtBadConditionClass5:                    "ダ稍重不多全場OP・L",
 	DirtBadConditionClass6:                    "ダ稍重不多全場重賞",
-	// 予想専用
 }
 
 func NewFilterId(rawId uint64, name string) Id {

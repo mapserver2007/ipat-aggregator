@@ -58,24 +58,25 @@ func (f *filterService) CreatePredictionFilters(
 	strictFilterIds = append(strictFilterIds, f.createDistanceFilter(ctx, race.Distance())...)
 	strictFilterIds = append(strictFilterIds, f.createGradeClassFilter(ctx, race.Class())...)
 	strictFilterIds = append(strictFilterIds, f.createTrackConditionFilter(ctx, race.TrackCondition())...)
-	strictFilterIds = append(strictFilterIds, f.createRaceCourseFilter(ctx, race.RaceCourseId())...)
+	//strictFilterIds = append(strictFilterIds, f.createRaceCourseFilter(ctx, race.RaceCourseId())...)
 	strictFilterIds = append(strictFilterIds, f.createEntriesFilter(ctx, race.Entries())...)
 	for _, filterId := range strictFilterIds {
 		strictFilterNames = append(strictFilterNames, filterId.String())
 	}
-	strictFilterIds = append(strictFilterIds, []filter.Id{filter.TopJockey, filter.OtherJockey}...)
+	strictFilterIds = append(strictFilterIds, []filter.Id{filter.TopJockey, filter.OtherJockey, filter.CentralCourse, filter.LocalCourse}...)
 	for _, filterId := range strictFilterIds {
 		strictFilterId = strictFilterId | filterId
 	}
 
 	simpleFilterIds = append(simpleFilterIds, f.createCourseCategoryFilter(ctx, race.CourseCategory())...)
-	simpleFilterIds = append(simpleFilterIds, f.createDistanceSimpleFilter(ctx, race.Distance())...)
-	simpleFilterIds = append(simpleFilterIds, f.createGradeClassSimpleFilter(ctx, race.Class())...)
+	//simpleFilterIds = append(simpleFilterIds, f.createDistanceSimpleFilter(ctx, race.Distance())...)
+	simpleFilterIds = append(simpleFilterIds, f.createDistanceFilter(ctx, race.Distance())...)
+	//simpleFilterIds = append(simpleFilterIds, f.createGradeClassSimpleFilter(ctx, race.Class())...)
 	for _, filterId := range simpleFilterIds {
 		simpleFilterNames = append(simpleFilterNames, filterId.String())
 	}
-	simpleFilterIds = append(strictFilterIds,
-		[]filter.Id{filter.GoodTrack, filter.BadTrack, filter.CentralCourse, filter.LocalCourse, filter.TopJockey, filter.OtherJockey, filter.SmallNumberOfHorses, filter.LargeNumberOfHorses}...)
+	simpleFilterIds = append(simpleFilterIds,
+		[]filter.Id{filter.GoodTrack, filter.BadTrack, filter.CentralCourse, filter.LocalCourse, filter.TopJockey, filter.OtherJockey, filter.SmallNumberOfHorses, filter.LargeNumberOfHorses, filter.Class1, filter.Class234, filter.Class56}...)
 	for _, filterId := range simpleFilterIds {
 		simpleFilterId = simpleFilterId | filterId
 	}

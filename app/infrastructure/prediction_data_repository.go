@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"github.com/gocolly/colly"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
@@ -74,13 +75,19 @@ func (p *predictionDataRepository) Fetch(
 	ctx context.Context,
 	raceUrl string,
 	oddsUrl string,
+	raceResultUrl string,
 ) (*netkeiba_entity.Race, []*netkeiba_entity.Odds, error) {
 	odds, err := p.fetchOdds(ctx, oddsUrl)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	race, err := p.fetchRace(ctx, raceUrl)
+	raceResults, err := p.fetchRaceResult(ctx, raceResultUrl)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	race, err := p.fetchRace(ctx, raceUrl, raceResults)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -88,7 +95,11 @@ func (p *predictionDataRepository) Fetch(
 	return race, odds, nil
 }
 
-func (p *predictionDataRepository) fetchRace(ctx context.Context, url string) (*netkeiba_entity.Race, error) {
+func (p *predictionDataRepository) fetchRace(
+	ctx context.Context,
+	raceUrl string,
+	raceResults []*netkeiba_entity.RaceResult,
+) (*netkeiba_entity.Race, error) {
 	var (
 		raceName          string
 		trackCondition    types.TrackCondition
@@ -100,7 +111,7 @@ func (p *predictionDataRepository) fetchRace(ctx context.Context, url string) (*
 	raceSexCondition := types.NoRaceSexCondition
 	raceWeightCondition := types.FixedWeight
 
-	parsedUrl, err := neturl.Parse(url)
+	parsedUrl, err := neturl.Parse(raceUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +230,7 @@ func (p *predictionDataRepository) fetchRace(ctx context.Context, url string) (*
 
 	})
 
-	err = p.client.Visit(url)
+	err = p.client.Visit(raceUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +240,7 @@ func (p *predictionDataRepository) fetchRace(ctx context.Context, url string) (*
 		0,
 		raceName,
 		int(types.JRA),
-		url,
+		raceUrl,
 		"",
 		startTime,
 		entries,
@@ -239,9 +250,52 @@ func (p *predictionDataRepository) fetchRace(ctx context.Context, url string) (*
 		trackCondition.Value(),
 		raceSexCondition.Value(),
 		raceWeightCondition.Value(),
-		nil,
+		raceResults,
 		nil,
 	), nil
+}
+
+func (p *predictionDataRepository) fetchRaceResult(ctx context.Context, url string) ([]*netkeiba_entity.RaceResult, error) {
+	var raceResults []*netkeiba_entity.RaceResult
+	p.client.OnHTML("#All_Result_Table", func(e *colly.HTMLElement) {
+		e.ForEach("tr.HorseList", func(i int, ce *colly.HTMLElement) {
+			var numbers []int
+			var oddsList []string
+			ce.ForEach(".Num > div", func(j int, ce2 *colly.HTMLElement) {
+				num, _ := strconv.Atoi(ce2.DOM.Text())
+				numbers = append(numbers, num)
+			})
+			ce.ForEach(".Odds span", func(j int, ce2 *colly.HTMLElement) {
+				oddsList = append(oddsList, ce2.DOM.Text())
+			})
+			popularNumber, _ := strconv.Atoi(oddsList[0])
+			linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
+			regex := regexp.MustCompile(`(\d{5})`)
+			result := regex.FindStringSubmatch(linkUrl)
+			// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
+			jockeyId := 0
+			if result != nil {
+				jockeyId, _ = strconv.Atoi(result[1])
+			}
+
+			raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
+				i+1,
+				ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
+				numbers[0],
+				numbers[1],
+				jockeyId,
+				oddsList[1],
+				popularNumber,
+			))
+		})
+	})
+
+	err := p.client.Visit(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to visit url: %s, %v", url, err)
+	}
+
+	return raceResults, nil
 }
 
 func (p *predictionDataRepository) fetchOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error) {

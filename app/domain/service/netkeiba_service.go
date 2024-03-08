@@ -15,7 +15,7 @@ type NetKeibaService interface {
 	CreateJockeyUrls(ctx context.Context, jockeys []*data_cache_entity.Jockey, excludeJockeyIds []int) ([]string, error)
 	CreateRaceIdUrls(ctx context.Context, dateFrom, dateTo string, raceIdMap map[types.RaceDate][]types.RaceId, excludeDates []types.RaceDate) ([]string, error)
 	CreateAnalysisRaceUrls(ctx context.Context, races []*data_cache_entity.Race, raceIdMap map[types.RaceId]types.RaceDate) ([]string, error)
-	CreatePredictionRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, []string)
+	CreatePredictionRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, []string, []string)
 }
 
 const (
@@ -27,6 +27,7 @@ const (
 	analysisRaceResultUrl   = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%d"
 	predictionRaceUrl       = "https://race.netkeiba.com/race/shutuba.html?race_id=%s"
 	predictionOddsUrl       = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=1&action=update"
+	predictionRaceResultUrl = "https://race.netkeiba.com/race/result.html?race_id=%s"
 )
 
 type netKeibaService struct {
@@ -234,14 +235,12 @@ func (n *netKeibaService) CreateAnalysisRaceUrls(
 	return raceUrls, nil
 }
 
-func (n *netKeibaService) CreatePredictionRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, []string) {
-	var (
-		raceUrls []string
-		oddsUrls []string
-	)
+func (n *netKeibaService) CreatePredictionRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, []string, []string) {
+	var raceUrls, oddsUrls, raceResultUrls []string
 	for _, raceId := range raceIds {
 		raceUrls = append(raceUrls, fmt.Sprintf(predictionRaceUrl, raceId))
 		oddsUrls = append(oddsUrls, fmt.Sprintf(predictionOddsUrl, raceId))
+		raceResultUrls = append(raceResultUrls, fmt.Sprintf(predictionRaceResultUrl, raceId))
 	}
-	return raceUrls, oddsUrls
+	return raceUrls, oddsUrls, raceResultUrls
 }

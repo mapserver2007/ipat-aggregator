@@ -15,7 +15,7 @@ import (
 type SpreadSheetService interface {
 	CreateMarkerCombinationAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis
 	CreateOddsRangeRaceCountMap(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]map[types.OddsRangeType]int
-	CreatePredictionOdds(ctx context.Context, marker *marker_csv_entity.PredictionMarker, race *prediction_entity.Race) map[types.Marker]types.OddsRangeType
+	CreatePredictionOdds(ctx context.Context, marker *marker_csv_entity.PredictionMarker, race *prediction_entity.Race) map[types.Marker]*prediction_entity.OddsRange
 	GetCellColor(ctx context.Context, colorType types.CellColorType) *sheets.Color
 }
 
@@ -116,8 +116,8 @@ func (s *spreadSheetService) CreatePredictionOdds(
 	ctx context.Context,
 	marker *marker_csv_entity.PredictionMarker,
 	race *prediction_entity.Race,
-) map[types.Marker]types.OddsRangeType {
-	markerOddsRangeMap := map[types.Marker]types.OddsRangeType{}
+) map[types.Marker]*prediction_entity.OddsRange {
+	markerOddsRangeMap := map[types.Marker]*prediction_entity.OddsRange{}
 	getOddsRange := func(decimalOdds decimal.Decimal) types.OddsRangeType {
 		odds := decimalOdds.InexactFloat64()
 		if odds >= 1.0 && odds <= 1.5 {
@@ -140,20 +140,30 @@ func (s *spreadSheetService) CreatePredictionOdds(
 		return types.UnknownOddsRangeType
 	}
 
+	contains := func(slice []int, value int) types.InOrder {
+		for idx, v := range slice {
+			if v == value {
+				return types.InOrder(idx + 1)
+			}
+		}
+		return types.OutOfPlace
+	}
+
 	for _, odds := range race.Odds() {
+		inOrder := contains(race.RaceResultHorseNumbers(), odds.HorseNumber())
 		switch odds.HorseNumber() {
 		case marker.Favorite():
-			markerOddsRangeMap[types.Favorite] = getOddsRange(odds.Odds())
+			markerOddsRangeMap[types.Favorite] = prediction_entity.NewOddsRange(getOddsRange(odds.Odds()), inOrder)
 		case marker.Rival():
-			markerOddsRangeMap[types.Rival] = getOddsRange(odds.Odds())
+			markerOddsRangeMap[types.Rival] = prediction_entity.NewOddsRange(getOddsRange(odds.Odds()), inOrder)
 		case marker.BrackTriangle():
-			markerOddsRangeMap[types.BrackTriangle] = getOddsRange(odds.Odds())
+			markerOddsRangeMap[types.BrackTriangle] = prediction_entity.NewOddsRange(getOddsRange(odds.Odds()), inOrder)
 		case marker.WhiteTriangle():
-			markerOddsRangeMap[types.WhiteTriangle] = getOddsRange(odds.Odds())
+			markerOddsRangeMap[types.WhiteTriangle] = prediction_entity.NewOddsRange(getOddsRange(odds.Odds()), inOrder)
 		case marker.Star():
-			markerOddsRangeMap[types.Star] = getOddsRange(odds.Odds())
+			markerOddsRangeMap[types.Star] = prediction_entity.NewOddsRange(getOddsRange(odds.Odds()), inOrder)
 		case marker.Check():
-			markerOddsRangeMap[types.Check] = getOddsRange(odds.Odds())
+			markerOddsRangeMap[types.Check] = prediction_entity.NewOddsRange(getOddsRange(odds.Odds()), inOrder)
 		}
 	}
 

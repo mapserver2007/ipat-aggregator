@@ -8,6 +8,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -50,10 +51,13 @@ func (p *PredictionUseCase) Read(ctx context.Context) ([]*marker_csv_entity.Pred
 }
 
 func (p *PredictionUseCase) Fetch(ctx context.Context, raceIds []types.RaceId) ([]*prediction_entity.Race, error) {
-	raceUrls, oddsUrls := p.netKeibaService.CreatePredictionRaceUrls(ctx, raceIds)
+	raceUrls, oddsUrls, raceResultUrls := p.netKeibaService.CreatePredictionRaceUrls(ctx, raceIds)
 	var races []*prediction_entity.Race
 	for i := 0; i < len(raceUrls); i++ {
-		race, odds, err := p.predictionDataRepository.Fetch(ctx, raceUrls[i], oddsUrls[i])
+		log.Println(ctx, "fetch prediction data from "+raceUrls[i])
+		log.Println(ctx, "fetch prediction data from "+oddsUrls[i])
+		log.Println(ctx, "fetch prediction data from "+raceResultUrls[i])
+		race, odds, err := p.predictionDataRepository.Fetch(ctx, raceUrls[i], oddsUrls[i], raceResultUrls[i])
 		if err != nil {
 			return nil, err
 		}

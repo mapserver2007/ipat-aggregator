@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
@@ -42,13 +43,18 @@ func (s *spreadSheetPredictionRepository) Write(
 	ctx context.Context,
 	strictPredictionDataList []*spreadsheet_entity.PredictionData,
 	simplePredictionDataList []*spreadsheet_entity.PredictionData,
+	markerOddsRangeMapList []map[types.Marker]*prediction_entity.OddsRange,
 ) error {
 	log.Println(ctx, fmt.Sprintf("write prediction start"))
 	predictionDataSize := len(strictPredictionDataList)
 
+	var strictValueList [][]interface{}
+	var simpleValueList [][]interface{}
+
 	for idx := 0; idx < predictionDataSize; idx++ {
 		strictPredictionData := strictPredictionDataList[idx]
 		simplePredictionData := simplePredictionDataList[idx]
+		markerOddsRangeMap := markerOddsRangeMapList[idx]
 
 		strictValuesList, err := s.createOddsRangeValues(
 			ctx,
@@ -56,6 +62,7 @@ func (s *spreadSheetPredictionRepository) Write(
 			strictPredictionData.PredictionMarkerCombinationData(),
 			strictPredictionData.PredictionTitle(),
 			strictPredictionData.RaceUrl(),
+			markerOddsRangeMap,
 		)
 		if err != nil {
 			return err
@@ -67,36 +74,35 @@ func (s *spreadSheetPredictionRepository) Write(
 			simplePredictionData.PredictionMarkerCombinationData(),
 			simplePredictionData.PredictionTitle(),
 			simplePredictionData.RaceUrl(),
+			markerOddsRangeMap,
 		)
 		if err != nil {
 			return err
 		}
 
-		var strictValueList [][]interface{}
 		for _, value := range strictValuesList {
 			strictValueList = append(strictValueList, value...)
 		}
 
-		writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("E%d", 1+(idx*22)))
-		_, err = s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
-			Values: strictValueList,
-		}).ValueInputOption("USER_ENTERED").Do()
-		if err != nil {
-			return err
-		}
-
-		var simpleValueList [][]interface{}
 		for _, value := range simpleValuesList {
 			simpleValueList = append(simpleValueList, value...)
 		}
+	}
 
-		writeRange = fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("O%d", 1+(idx*22)))
-		_, err = s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
-			Values: simpleValueList,
-		}).ValueInputOption("USER_ENTERED").Do()
-		if err != nil {
-			return err
-		}
+	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("E%d", 1))
+	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+		Values: strictValueList,
+	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
+	}
+
+	writeRange = fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("O%d", 1))
+	_, err = s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+		Values: simpleValueList,
+	}).ValueInputOption("USER_ENTERED").Do()
+	if err != nil {
+		return err
 	}
 
 	log.Println(ctx, fmt.Sprintf("write prediction end"))
@@ -110,6 +116,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 	predictionMarkerCombinationData map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
 	predictionTitle string,
 	raceUrl string,
+	markerOddsRangeMap map[types.Marker]*prediction_entity.OddsRange,
 ) ([][][]interface{}, error) {
 	valuesList := make([][][]interface{}, 0)
 	valuesList = append(valuesList, [][]interface{}{
@@ -176,6 +183,13 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 		return fmt.Sprintf("%.2f%%", float64(matchCount)*100/float64(raceCount))
 	}
 
+	isHitIconFunc := func(targetOddsRangeType types.OddsRangeType, oddsRange *prediction_entity.OddsRange, isHit bool) string {
+		if oddsRange.OddsRangeType() == targetOddsRangeType && isHit {
+			return "\U0001F3AF"
+		}
+		return ""
+	}
+
 	oddsRanges := []types.OddsRangeType{
 		types.WinOddsRange1,
 		types.WinOddsRange2,
@@ -204,6 +218,11 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 				return nil, err
 			}
 
+			markerOddsRange, ok := markerOddsRangeMap[marker]
+			if !ok {
+				return nil, fmt.Errorf("marker %s not found in markerOddsRangeMap", marker.String())
+			}
+
 			oddsRangeMap := s.createOddsRangeMap(ctx, markerCombinationAnalysisData, 1)
 			oddsRangeRaceCountMap := markerCombinationOddsRangeRaceCountMap[markerCombinationId]
 
@@ -221,18 +240,20 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 				}
 			}
 
+			isHit := types.FirstPlace == markerOddsRange.InOrder()
+
 			valuesList[1] = append(valuesList[1], [][]interface{}{
 				{
 					marker.String(),
 					rateFormatFunc(matchCount, raceCount),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
-					rateFormatFunc(oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+					isHitIconFunc(types.WinOddsRange1, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+					isHitIconFunc(types.WinOddsRange2, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+					isHitIconFunc(types.WinOddsRange3, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+					isHitIconFunc(types.WinOddsRange4, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+					isHitIconFunc(types.WinOddsRange5, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+					isHitIconFunc(types.WinOddsRange6, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+					isHitIconFunc(types.WinOddsRange7, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+					isHitIconFunc(types.WinOddsRange8, markerOddsRange, isHit) + rateFormatFunc(oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
 				},
 			}...)
 		case types.Place:
@@ -241,11 +262,20 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 				return nil, err
 			}
 
+			inOrder2markerOddsRange, ok := markerOddsRangeMap[marker]
+			if !ok {
+				return nil, fmt.Errorf("marker %s not found in markerOddsRangeMap", marker.String())
+			}
+			inOrder3markerOddsRange, ok := markerOddsRangeMap[marker]
+			if !ok {
+				return nil, fmt.Errorf("marker %s not found in markerOddsRangeMap", marker.String())
+			}
+
 			inOrder2oddsRangeMap := s.createOddsRangeMap(ctx, markerCombinationAnalysisData, 2)
 			inOrder3oddsRangeMap := s.createOddsRangeMap(ctx, markerCombinationAnalysisData, 3)
 			oddsRangeRaceCountMap := markerCombinationOddsRangeRaceCountMap[markerCombinationId]
 
-			raceCount := 0
+			raceCount = 0
 			for _, oddsRange := range oddsRanges {
 				if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
 					raceCount += n
@@ -263,32 +293,40 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 				}
 			}
 
+			isHit := types.FirstPlace == inOrder2markerOddsRange.InOrder() ||
+				types.SecondPlace == inOrder2markerOddsRange.InOrder()
+
 			valuesList[2] = append(valuesList[2], [][]interface{}{
 				{
 					marker.String(),
 					rateFormatFunc(orderNo2MatchCount, raceCount),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
-					rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+					isHitIconFunc(types.WinOddsRange1, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+					isHitIconFunc(types.WinOddsRange2, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+					isHitIconFunc(types.WinOddsRange3, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+					isHitIconFunc(types.WinOddsRange4, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+					isHitIconFunc(types.WinOddsRange5, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+					isHitIconFunc(types.WinOddsRange6, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+					isHitIconFunc(types.WinOddsRange7, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+					isHitIconFunc(types.WinOddsRange8, inOrder2markerOddsRange, isHit) + rateFormatFunc(inOrder2oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
 				},
 			}...)
+
+			isHit = types.FirstPlace == inOrder2markerOddsRange.InOrder() ||
+				types.SecondPlace == inOrder2markerOddsRange.InOrder() ||
+				types.ThirdPlace == inOrder2markerOddsRange.InOrder()
+
 			valuesList[3] = append(valuesList[3], [][]interface{}{
 				{
 					marker.String(),
 					rateFormatFunc(orderNo3MatchCount, raceCount),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
-					rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
+					isHitIconFunc(types.WinOddsRange1, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange1], oddsRangeRaceCountMap[types.WinOddsRange1]),
+					isHitIconFunc(types.WinOddsRange2, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange2], oddsRangeRaceCountMap[types.WinOddsRange2]),
+					isHitIconFunc(types.WinOddsRange3, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange3], oddsRangeRaceCountMap[types.WinOddsRange3]),
+					isHitIconFunc(types.WinOddsRange4, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange4], oddsRangeRaceCountMap[types.WinOddsRange4]),
+					isHitIconFunc(types.WinOddsRange5, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange5], oddsRangeRaceCountMap[types.WinOddsRange5]),
+					isHitIconFunc(types.WinOddsRange6, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange6], oddsRangeRaceCountMap[types.WinOddsRange6]),
+					isHitIconFunc(types.WinOddsRange7, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange7], oddsRangeRaceCountMap[types.WinOddsRange7]),
+					isHitIconFunc(types.WinOddsRange8, inOrder3markerOddsRange, isHit) + rateFormatFunc(inOrder3oddsRangeMap[types.WinOddsRange8], oddsRangeRaceCountMap[types.WinOddsRange8]),
 				},
 			}...)
 		}
@@ -300,7 +338,7 @@ func (s *spreadSheetPredictionRepository) createOddsRangeValues(
 
 func (s *spreadSheetPredictionRepository) Style(
 	ctx context.Context,
-	markerOddsRangeMapList []map[types.Marker]types.OddsRangeType,
+	markerOddsRangeMapList []map[types.Marker]*prediction_entity.OddsRange,
 ) error {
 	var requests []*sheets.Request
 	for dataIndex, markerOddsRangeMap := range markerOddsRangeMapList {
@@ -324,9 +362,9 @@ func (s *spreadSheetPredictionRepository) Style(
 								Fields: "userEnteredFormat.backgroundColor",
 								Range: &sheets.GridRange{
 									SheetId:          s.spreadSheetConfig.SheetId(),
-									StartColumnIndex: int64(5 + oddsRangeType.Value() + (10 * filterKindNum)),
+									StartColumnIndex: int64(5 + oddsRangeType.OddsRangeType().Value() + (10 * filterKindNum)),
 									StartRowIndex:    int64(2 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
-									EndColumnIndex:   int64(6 + oddsRangeType.Value() + (10 * filterKindNum)),
+									EndColumnIndex:   int64(6 + oddsRangeType.OddsRangeType().Value() + (10 * filterKindNum)),
 									EndRowIndex:      int64(3 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
 								},
 								Cell: &sheets.CellData{
@@ -345,9 +383,9 @@ func (s *spreadSheetPredictionRepository) Style(
 								Fields: "userEnteredFormat.textFormat.bold",
 								Range: &sheets.GridRange{
 									SheetId:          s.spreadSheetConfig.SheetId(),
-									StartColumnIndex: int64(5 + oddsRangeType.Value() + (10 * filterKindNum)),
+									StartColumnIndex: int64(5 + oddsRangeType.OddsRangeType().Value() + (10 * filterKindNum)),
 									StartRowIndex:    int64(2 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
-									EndColumnIndex:   int64(6 + oddsRangeType.Value() + (10 * filterKindNum)),
+									EndColumnIndex:   int64(6 + oddsRangeType.OddsRangeType().Value() + (10 * filterKindNum)),
 									EndRowIndex:      int64(3 + rowIndex + (7 * orderIndex) + (22 * dataIndex)),
 								},
 								Cell: &sheets.CellData{

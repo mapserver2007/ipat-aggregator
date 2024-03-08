@@ -16,8 +16,8 @@ import (
 const (
 	analysisRaceStartDate = "20230819"
 	analysisRaceEndDate   = "20240224"
-	enableAnalysis        = true
-	enablePrediction      = false
+	enableAnalysis        = false
+	enablePrediction      = true
 	enableAggregate       = false
 )
 

@@ -8,5 +8,5 @@ import (
 
 type PredictionDataRepository interface {
 	Read(ctx context.Context, filePath string) ([]*marker_csv_entity.PredictionMarker, error)
-	Fetch(ctx context.Context, raceUrl, oddsUrl string) (*netkeiba_entity.Race, []*netkeiba_entity.Odds, error)
+	Fetch(ctx context.Context, raceUrl, oddsUrl, raceResultUrl string) (*netkeiba_entity.Race, []*netkeiba_entity.Odds, error)
 }

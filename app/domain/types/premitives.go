@@ -869,3 +869,16 @@ const (
 	SecondColor
 	ThirdColor
 )
+
+type InOrder int
+
+const (
+	OutOfPlace InOrder = iota
+	FirstPlace
+	SecondPlace
+	ThirdPlace
+)
+
+func (i InOrder) Value() int {
+	return int(i)
+}

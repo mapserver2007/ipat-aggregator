@@ -55,31 +55,31 @@ func (t *ticketCsvRepository) Read(ctx context.Context, path string) ([]*ticket_
 		rawTicketType := record[6]
 		rawPayment := t.extractPayment(rawTicketType, record[8])
 
-		rawBetNumbers, err := t.convertToSubTicketTypeBetNumbers(ctx, rawTicketType, record[7])
+		betNumbers, err := t.convertToSubTicketTypeBetNumbers(ctx, rawTicketType, record[7])
 		if err != nil {
 			return nil, err
 		}
 
-		var hitBetNumber string
+		var hitBetNumber types.BetNumber
 		if strings.HasPrefix(record[9], "的中") {
-			hitBetNumber = strings.Split(record[9], "的中")[1]
+			hitBetNumber = types.NewBetNumber(strings.Split(record[9], "的中")[1])
 		}
 
-		for _, rawBetNumber := range rawBetNumbers {
+		for _, betNumber := range betNumbers {
 			var (
 				rawPayout       string
 				rawTicketResult bool
 			)
-			if hitBetNumber == rawBetNumber {
+			if hitBetNumber == betNumber {
 				rawPayout = record[11]
 				rawTicketResult = true
 			}
 			ticket, err := ticket_csv_entity.NewTicket(
+				betNumber,
 				rawRaceDate,
 				rawRaceEntryNo,
 				rawRaceCourse,
 				rawRaceNo,
-				rawBetNumber,
 				rawTicketType,
 				rawTicketResult,
 				rawPayment,
@@ -100,7 +100,7 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 	ctx context.Context,
 	rawTicketType,
 	rawBetNumber string,
-) ([]string, error) {
+) ([]types.BetNumber, error) {
 	ticketType := types.NewTicketType(rawTicketType)
 	switch ticketType {
 	case types.ExactaWheelOfFirst:
@@ -123,7 +123,7 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 		return nil, fmt.Errorf("unknown ticket type")
 	}
 
-	return []string{rawBetNumber}, nil
+	return []types.BetNumber{types.NewBetNumber(rawBetNumber)}, nil
 }
 
 func (t *ticketCsvRepository) extractPayment(rawTicketType, rawPayment string) string {

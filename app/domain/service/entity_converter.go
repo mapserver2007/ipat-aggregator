@@ -244,7 +244,7 @@ func (r *raceEntityConverter) NetKeibaToPrediction(input1 *netkeiba_entity.Race,
 
 	// レース結果のうち、必要なのは着順に対する馬番のみ
 	raceResultHorseNumbers := make([]int, 0, 3)
-	if input1.RaceResults() != nil {
+	if input1.RaceResults() != nil && len(input1.RaceResults()) >= 3 {
 		for _, raceResult := range input1.RaceResults()[:3] {
 			raceResultHorseNumbers = append(raceResultHorseNumbers, raceResult.HorseNumber())
 		}

@@ -556,6 +556,23 @@ func (s *spreadSheetPredictionRepository) Style(
 							},
 						},
 					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.horizontalAlignment",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: int64(6 + (10 * colIndex)),
+								StartRowIndex:    int64(2 + (22 * dataIndex) + (7 * rowIndex)),
+								EndColumnIndex:   int64(14 + (10 * colIndex)),
+								EndRowIndex:      int64(8 + (22 * dataIndex) + (7 * rowIndex)),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									HorizontalAlignment: "RIGHT",
+								},
+							},
+						},
+					},
 				}...)
 			}
 		}

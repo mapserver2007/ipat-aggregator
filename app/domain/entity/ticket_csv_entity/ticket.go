@@ -18,11 +18,11 @@ type Ticket struct {
 }
 
 func NewTicket(
+	betNumber types.BetNumber,
 	rawRaceDate,
 	rawEntryNo,
 	rawRaceCourse,
 	rawRaceNo,
-	rawBetNumber,
 	rawTicketType string,
 	rawTicketResult bool,
 	rawPayment,
@@ -44,8 +44,6 @@ func NewTicket(
 	if err != nil {
 		return nil, err
 	}
-
-	betNumber := types.NewBetNumber(rawBetNumber)
 
 	ticketType := types.NewTicketType(rawTicketType)
 

@@ -14,64 +14,25 @@ import (
 type AnalysisService interface {
 	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable) error
 	GetAnalysisData() *analysis_entity.Layer1
-	GetSearchFilters() []filter.Id
-	GetHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
-	GetUnHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.Yamato) []types.MarkerCombinationId
-	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1) *spreadsheet_entity.AnalysisData
-	CreateAnalysisFilters(ctx context.Context, race *data_cache_entity.Race, raceResultByMarker *data_cache_entity.RaceResult) []filter.Id
+	GetHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.AnalysisMarker) []types.MarkerCombinationId
+	GetUnHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.AnalysisMarker) []types.MarkerCombinationId
+	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1, filters []filter.Id) *spreadsheet_entity.AnalysisData
 }
 
 type analysisService struct {
-	analysisData  *analysis_entity.Layer1
-	searchFilters []filter.Id
+	analysisData       *analysis_entity.Layer1
+	spreadSheetService SpreadSheetService
 }
 
-func NewAnalysisService() AnalysisService {
+func NewAnalysisService(
+	spreadSheetService SpreadSheetService,
+) AnalysisService {
 	analysisData := analysis_entity.Layer1{
 		MarkerCombination: make(map[types.MarkerCombinationId]*analysis_entity.Layer2),
 	}
-	searchFilters := []filter.Id{
-		filter.All,
-		filter.PredictKyoto12R,
-		filter.TurfSprintDistance,
-		filter.TurfMileDistance,
-		filter.TurfMiddleDistance,
-		filter.TurfLongDistance,
-		filter.DirtSprintDistance,
-		filter.DirtMileDistance,
-		filter.DirtMiddleDistance,
-		filter.DirtLongDistance,
-		filter.GoodTrackTurfSprintDistance,
-		filter.GoodTrackTurfMileDistance,
-		filter.GoodTrackTurfMiddleDistance,
-		filter.GoodTrackTurfLongDistance,
-		filter.GoodTrackDirtSprintDistance,
-		filter.GoodTrackDirtMileDistance,
-		filter.GoodTrackDirtMiddleDistance,
-		filter.GoodTrackDirtLongDistance,
-		filter.TurfClass1,
-		filter.TurfClass2,
-		filter.TurfClass3,
-		filter.TurfClass4,
-		filter.TurfClass5,
-		filter.TurfClass6,
-		filter.DirtClass1,
-		filter.DirtClass2,
-		filter.DirtClass3,
-		filter.DirtClass4,
-		filter.DirtClass5,
-		filter.DirtClass6,
-		filter.DirtBadConditionClass1,
-		filter.DirtBadConditionClass2,
-		filter.DirtBadConditionClass3,
-		filter.DirtBadConditionClass4,
-		filter.DirtBadConditionClass5,
-		filter.DirtBadConditionClass6,
-	}
-
 	return &analysisService{
-		analysisData:  &analysisData,
-		searchFilters: searchFilters,
+		analysisData:       &analysisData,
+		spreadSheetService: spreadSheetService,
 	}
 }
 
@@ -102,14 +63,10 @@ func (p *analysisService) GetAnalysisData() *analysis_entity.Layer1 {
 	return p.analysisData
 }
 
-func (p *analysisService) GetSearchFilters() []filter.Id {
-	return p.searchFilters
-}
-
 func (p *analysisService) GetHitMarkerCombinationIds(
 	ctx context.Context,
 	result *data_cache_entity.PayoutResult,
-	marker *marker_csv_entity.Yamato,
+	marker *marker_csv_entity.AnalysisMarker,
 ) []types.MarkerCombinationId {
 	var markerCombinationIds []types.MarkerCombinationId
 	switch result.TicketType() {
@@ -1217,7 +1174,7 @@ func (p *analysisService) GetHitMarkerCombinationIds(
 func (p *analysisService) GetUnHitMarkerCombinationIds(
 	ctx context.Context,
 	result *data_cache_entity.PayoutResult,
-	marker *marker_csv_entity.Yamato,
+	marker *marker_csv_entity.AnalysisMarker,
 ) []types.MarkerCombinationId {
 	var (
 		unHitMarkerCombinationIds   []types.MarkerCombinationId
@@ -1293,13 +1250,14 @@ func (p *analysisService) GetUnHitMarkerCombinationIds(
 func (p *analysisService) CreateSpreadSheetAnalysisData(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
+	filters []filter.Id,
 ) *spreadsheet_entity.AnalysisData {
 	markerCombinationMapByFilter := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
 	raceCountMapByFilter := map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
 
-	for _, f := range p.searchFilters {
-		raceCountMapByFilter[f] = p.calcMarkerCombinationRaceCountByFilter(analysisData, f)
-		markerCombinationMapByFilter[f] = p.createMarkerCombinationDataByFilter(analysisData, f)
+	for _, filter := range filters {
+		markerCombinationMapByFilter[filter] = p.spreadSheetService.CreateMarkerCombinationAnalysisData(ctx, analysisData, filter)
+		raceCountMapByFilter[filter] = p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, filter)
 	}
 
 	return spreadsheet_entity.NewAnalysisData(
@@ -1307,91 +1265,6 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 		raceCountMapByFilter,
 		p.createAllMarkerCombinations(),
 	)
-}
-
-func (p *analysisService) createMarkerCombinationDataByFilter(
-	analysisData *analysis_entity.Layer1,
-	searchFilter filter.Id,
-) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis {
-	markerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	raceCountMap := p.calcMarkerCombinationRaceCountByFilter(analysisData, searchFilter)
-	for markerCombinationId, data := range analysisData.MarkerCombination {
-		for _, data2 := range data.RaceDate {
-			for _, data3 := range data2.RaceId {
-				for _, calculable := range data3 {
-					switch markerCombinationId.TicketType() {
-					case types.Win, types.Place:
-						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
-							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
-						}
-						match := true
-						for _, f := range calculable.Filters() {
-							if f&searchFilter == 0 {
-								match = false
-								break
-							}
-						}
-						if match {
-							markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return markerCombinationDataMap
-}
-
-func (p *analysisService) calcMarkerCombinationRaceCountByFilter(
-	analysisData *analysis_entity.Layer1,
-	searchFilter filter.Id,
-) map[types.MarkerCombinationId]map[types.OddsRangeType]int {
-	markerCombinationOddsRangeCountMap := map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
-	for markerCombinationId, data := range analysisData.MarkerCombination {
-		if _, ok := markerCombinationOddsRangeCountMap[markerCombinationId]; !ok {
-			markerCombinationOddsRangeCountMap[markerCombinationId] = map[types.OddsRangeType]int{}
-		}
-
-		for _, data2 := range data.RaceDate {
-			for _, data3 := range data2.RaceId {
-				match := true
-				for _, calculable := range data3 {
-					// レースIDに対して複数の結果があるケースは、複勝ワイド、同着のケース
-					for _, f := range calculable.Filters() {
-						// フィルタマッチ条件は同一レースになるため、ループを回さなくても1件目のチェックとおなじになるはず
-						// だが一応全部チェックして1つでもマッチしなければフィルタマッチしないとする
-						if f&searchFilter == 0 {
-							match = false
-							break
-						}
-					}
-					if match {
-						odds := calculable.Odds().InexactFloat64()
-						if odds >= 1.0 && odds <= 1.5 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange1]++
-						} else if odds >= 1.6 && odds <= 2.0 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange2]++
-						} else if odds >= 2.1 && odds <= 2.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange3]++
-						} else if odds >= 3.0 && odds <= 4.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange4]++
-						} else if odds >= 5.0 && odds <= 9.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange5]++
-						} else if odds >= 10.0 && odds <= 19.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange6]++
-						} else if odds >= 20.0 && odds <= 49.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange7]++
-						} else if odds >= 50.0 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange8]++
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return markerCombinationOddsRangeCountMap
 }
 
 func (p *analysisService) createAllMarkerCombinations() []types.MarkerCombinationId {
@@ -1463,57 +1336,4 @@ func (p *analysisService) createAllMarkerCombinations() []types.MarkerCombinatio
 	}
 
 	return markerCombinationIds
-}
-
-func (p *analysisService) CreateAnalysisFilters(
-	ctx context.Context,
-	race *data_cache_entity.Race,
-	raceResultByMarker *data_cache_entity.RaceResult,
-) []filter.Id {
-	var filterIds []filter.Id
-	switch race.CourseCategory() {
-	case types.Turf:
-		filterIds = append(filterIds, filter.Turf)
-	case types.Dirt:
-		filterIds = append(filterIds, filter.Dirt)
-	}
-	if race.Distance() >= 1000 && race.Distance() <= 1200 {
-		filterIds = append(filterIds, filter.Sprint)
-	} else if race.Distance() >= 1201 && race.Distance() <= 1600 {
-		filterIds = append(filterIds, filter.Mile)
-	} else if race.Distance() >= 1601 && race.Distance() <= 1800 {
-		filterIds = append(filterIds, filter.MiddleDistance1)
-	} else if race.Distance() >= 1801 && race.Distance() <= 2000 {
-		filterIds = append(filterIds, filter.MiddleDistance2)
-	} else if race.Distance() >= 2001 {
-		filterIds = append(filterIds, filter.LongDistance)
-	}
-	switch raceResultByMarker.JockeyId() {
-	case 5339, 1088, 5366, 5509, 5585: // C.ルメール, 川田将雅, R.ムーア, J.モレイラ, D.レーン
-		filterIds = append(filterIds, filter.TopJockey)
-	default:
-		filterIds = append(filterIds, filter.OtherJockey)
-	}
-	switch race.Class() {
-	case types.Grade1, types.Grade2, types.Grade3:
-		filterIds = append(filterIds, filter.Class6)
-	case types.OpenClass, types.ListedClass:
-		filterIds = append(filterIds, filter.Class5)
-	case types.ThreeWinClass:
-		filterIds = append(filterIds, filter.Class4)
-	case types.TwoWinClass:
-		filterIds = append(filterIds, filter.Class3)
-	case types.OneWinClass:
-		filterIds = append(filterIds, filter.Class2)
-	case types.Maiden, types.MakeDebut:
-		filterIds = append(filterIds, filter.Class1)
-	}
-	switch race.TrackCondition() {
-	case types.GoodToFirm:
-		filterIds = append(filterIds, filter.GoodTrack)
-	case types.Good, types.Yielding, types.Soft:
-		filterIds = append(filterIds, filter.BadTrack)
-	}
-
-	return filterIds
 }

@@ -9,8 +9,11 @@ package di
 import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 )
 
 // Injectors from wire.go:
@@ -31,6 +34,17 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 	return dataCacheUseCase
 }
 
+func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
+	markerDataRepository := infrastructure.NewMarkerDataRepository()
+	spreadSheetService := service.NewSpreadSheetService()
+	analysisService := service.NewAnalysisService(spreadSheetService)
+	filterService := service.NewFilterService()
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	analysisUseCase := analysis_usecase.NewAnalysisUseCase(markerDataRepository, analysisService, filterService, ticketConverter)
+	return analysisUseCase
+}
+
 func InitializeListUseCase() *list_usecase.ListUseCase {
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
@@ -38,4 +52,23 @@ func InitializeListUseCase() *list_usecase.ListUseCase {
 	listService := service.NewListService(raceConverter, ticketConverter, raceEntityConverter)
 	listUseCase := list_usecase.NewListUseCase(listService)
 	return listUseCase
+}
+
+func InitializeTicketUseCase() *ticket_usecase.TicketUseCase {
+	betNumberConverter := service.NewBetNumberConverter()
+	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
+	ticketUseCase := ticket_usecase.NewTicketUseCase(ticketCsvRepository)
+	return ticketUseCase
+}
+
+func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
+	raceConverter := service.NewRaceConverter()
+	ticketConverter := service.NewTicketConverter(raceConverter)
+	netKeibaService := service.NewNetKeibaService(raceConverter, ticketConverter)
+	raceIdDataRepository := infrastructure.NewRaceIdDataRepository()
+	predictionDataRepository := infrastructure.NewPredictionDataRepository()
+	raceEntityConverter := service.NewRaceEntityConverter()
+	filterService := service.NewFilterService()
+	predictionUseCase := prediction_usecase.NewPredictionUseCase(netKeibaService, raceIdDataRepository, predictionDataRepository, raceEntityConverter, filterService)
+	return predictionUseCase
 }

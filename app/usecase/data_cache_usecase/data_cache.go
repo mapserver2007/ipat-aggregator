@@ -15,13 +15,11 @@ import (
 )
 
 const (
-	racingNumberFileName      = "racing_number.json"
-	raceResultFileName        = "race_result.json"
-	jockeyFileName            = "jockey.json"
-	raceIdFileName            = "race_id.json"
-	predictRaceResultFilePath = "races/race_result_%d.json"
-	startDate                 = "20230917"
-	endDate                   = "20240210"
+	racingNumberFileName       = "racing_number.json"
+	raceResultFileName         = "race_result.json"
+	jockeyFileName             = "jockey.json"
+	raceIdFileName             = "race_id.json"
+	analysisRaceResultFilePath = "races/race_result_%d.json"
 )
 
 type DataCacheUseCase struct {
@@ -88,9 +86,9 @@ func (d *DataCacheUseCase) Read(
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, nil, err
 	}
-	races := make([]*data_cache_entity.Race, 0, len(rawRaces))
+	ticketRaces := make([]*data_cache_entity.Race, 0, len(rawRaces))
 	for _, rawRace := range rawRaces {
-		races = append(races, d.raceEntityConverter.RawToDataCache(rawRace))
+		ticketRaces = append(ticketRaces, d.raceEntityConverter.RawToDataCache(rawRace))
 	}
 
 	rawJockeys, excludeJockeyIds, err := d.jockeyDataRepository.Read(ctx, jockeyFileName)
@@ -123,30 +121,31 @@ func (d *DataCacheUseCase) Read(
 		excludeDates = append(excludeDates, types.RaceDate(rawExcludeDate))
 	}
 
-	predictRaces := make([]*data_cache_entity.Race, 0)
+	analysisRaces := make([]*data_cache_entity.Race, 0)
 	for raceDate := range raceIdMap {
-		rawPredictRaces, err := d.raceDataRepository.Read(ctx, fmt.Sprintf(predictRaceResultFilePath, raceDate.Value()))
+		rawPredictRaces, err := d.raceDataRepository.Read(ctx, fmt.Sprintf(analysisRaceResultFilePath, raceDate.Value()))
 		if err != nil {
 			return nil, nil, nil, nil, nil, nil, nil, err
 		}
 		for _, rawPredictRace := range rawPredictRaces {
-			predictRaces = append(predictRaces, d.raceEntityConverter.RawToDataCache(rawPredictRace))
+			analysisRaces = append(analysisRaces, d.raceEntityConverter.RawToDataCache(rawPredictRace))
 		}
 	}
 
-	return racingNumbers, races, jockeys, excludeJockeyIds, raceIdMap, excludeDates, predictRaces, nil
+	return racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, nil
 }
 
 func (d *DataCacheUseCase) Write(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.Ticket,
 	racingNumbers []*data_cache_entity.RacingNumber,
-	races []*data_cache_entity.Race,
+	ticketRaces []*data_cache_entity.Race,
 	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []int,
 	raceIdMap map[types.RaceDate][]types.RaceId,
 	excludeDates []types.RaceDate,
-	predictRaces []*data_cache_entity.Race,
+	analysisRaces []*data_cache_entity.Race,
+	startDate, endDate string,
 ) error {
 	urls, _ := d.netKeibaService.CreateRacingNumberUrls(ctx, tickets, racingNumbers)
 	newRawRacingNumbers := make([]*raw_entity.RacingNumber, 0, len(racingNumbers)+len(urls))
@@ -176,12 +175,12 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 
-	urls, err = d.netKeibaService.CreateRaceUrls(ctx, tickets, races, racingNumbers)
+	urls, err = d.netKeibaService.CreateRaceUrls(ctx, tickets, ticketRaces, racingNumbers)
 	if err != nil {
 		return err
 	}
-	newRaces := make([]*raw_entity.Race, 0, len(races)+len(urls))
-	for _, race := range races {
+	newRaces := make([]*raw_entity.Race, 0, len(ticketRaces)+len(urls))
+	for _, race := range ticketRaces {
 		newRaces = append(newRaces, d.raceEntityConverter.DataCacheToRaw(race))
 	}
 	for _, url := range urls {
@@ -239,7 +238,7 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 
-	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, raceIdMap, excludeDates, startDate, endDate)
+	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, startDate, endDate, raceIdMap, excludeDates)
 	if err != nil {
 		return err
 	}
@@ -296,14 +295,14 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 
-	predictRaceIdsMap := map[types.RaceId]types.RaceDate{}
+	analysisRaceIdsMap := map[types.RaceId]types.RaceDate{}
 	for _, rawRaceDate := range raceIdInfo.RaceDates {
 		for _, rawRaceId := range rawRaceDate.RaceIds {
-			predictRaceIdsMap[types.RaceId(rawRaceId)] = types.RaceDate(rawRaceDate.RaceDate)
+			analysisRaceIdsMap[types.RaceId(rawRaceId)] = types.RaceDate(rawRaceDate.RaceDate)
 		}
 	}
 
-	urls, err = d.netKeibaService.CreatePredictRaceUrls(ctx, predictRaces, predictRaceIdsMap)
+	urls, err = d.netKeibaService.CreateAnalysisRaceUrls(ctx, analysisRaces, analysisRaceIdsMap)
 	if err != nil {
 		return err
 	}
@@ -311,7 +310,7 @@ func (d *DataCacheUseCase) Write(
 
 	for _, url := range urls {
 		time.Sleep(time.Second * 1)
-		log.Println(ctx, "fetch predictRace from "+url)
+		log.Println(ctx, "fetch analysisRace from "+url)
 		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
 			return err
@@ -324,7 +323,7 @@ func (d *DataCacheUseCase) Write(
 		raceInfo = raw_entity.RaceInfo{
 			Races: rawRaces,
 		}
-		filePath := fmt.Sprintf(predictRaceResultFilePath, raceDate.Value())
+		filePath := fmt.Sprintf(analysisRaceResultFilePath, raceDate.Value())
 		err = d.raceDataRepository.Write(ctx, filePath, &raceInfo)
 		if err != nil {
 			return err

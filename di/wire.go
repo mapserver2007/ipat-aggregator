@@ -7,8 +7,11 @@ import (
 	"github.com/google/wire"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 )
 
 func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
@@ -29,17 +32,18 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 	return nil
 }
 
-//func InitializeSummaryUseCase() *spreadsheet_usecase.SummaryUseCase {
-//	wire.Build(
-//		spreadsheet_usecase.NewSummaryUseCase,
-//		service.NewSummaryService,
-//		service.NewTicketAggregator,
-//		service.NewTicketConverter,
-//		service.NewRaceConverter,
-//		infrastructure.NewSpreadSheetSummaryRepository,
-//	)
-//	return nil
-//}
+func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
+	wire.Build(
+		analysis_usecase.NewAnalysisUseCase,
+		service.NewAnalysisService,
+		service.NewFilterService,
+		service.NewRaceConverter,
+		service.NewTicketConverter,
+		service.NewSpreadSheetService,
+		infrastructure.NewMarkerDataRepository,
+	)
+	return nil
+}
 
 func InitializeListUseCase() *list_usecase.ListUseCase {
 	wire.Build(
@@ -48,6 +52,29 @@ func InitializeListUseCase() *list_usecase.ListUseCase {
 		service.NewRaceConverter,
 		service.NewTicketConverter,
 		service.NewRaceEntityConverter,
+	)
+	return nil
+}
+
+func InitializeTicketUseCase() *ticket_usecase.TicketUseCase {
+	wire.Build(
+		ticket_usecase.NewTicketUseCase,
+		service.NewBetNumberConverter,
+		infrastructure.NewTicketCsvRepository,
+	)
+	return nil
+}
+
+func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
+	wire.Build(
+		prediction_usecase.NewPredictionUseCase,
+		service.NewNetKeibaService,
+		service.NewRaceConverter,
+		service.NewTicketConverter,
+		service.NewRaceEntityConverter,
+		service.NewFilterService,
+		infrastructure.NewRaceIdDataRepository,
+		infrastructure.NewPredictionDataRepository,
 	)
 	return nil
 }

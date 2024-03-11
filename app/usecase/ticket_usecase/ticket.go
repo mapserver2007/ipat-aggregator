@@ -7,21 +7,22 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-type ticket struct {
+type TicketUseCase struct {
 	csvRepository repository.TicketCsvRepository
 }
 
-func NewTicket(
+func NewTicketUseCase(
 	csvRepository repository.TicketCsvRepository,
-) *ticket {
-	return &ticket{
+) *TicketUseCase {
+	return &TicketUseCase{
 		csvRepository: csvRepository,
 	}
 }
 
-func (t *ticket) Read(ctx context.Context) ([]*ticket_csv_entity.Ticket, error) {
+func (t *TicketUseCase) Read(ctx context.Context) ([]*ticket_csv_entity.Ticket, error) {
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -42,6 +43,10 @@ func (t *ticket) Read(ctx context.Context) ([]*ticket_csv_entity.Ticket, error) 
 		if filepath.Ext(filePath) != ".csv" {
 			continue
 		}
+		if !strings.Contains(filePath, "_tohyo") {
+			continue
+		}
+
 		tickets, err := t.csvRepository.Read(ctx, filePath)
 		if err != nil {
 			return nil, err

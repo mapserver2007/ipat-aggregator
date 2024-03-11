@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	spreadSheetSummaryFileName2 = "spreadsheet_summary.json"
+	spreadSheetSummaryFileName = "spreadsheet_summary.json"
 )
 
 type spreadSheetSummaryRepository struct {
@@ -22,7 +22,7 @@ type spreadSheetSummaryRepository struct {
 
 func NewSpreadSheetSummaryRepository() (repository.SpreadSheetSummaryRepository, error) {
 	ctx := context.Background()
-	client, spreadSheetConfig, err := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName2)
+	client, spreadSheetConfig, err := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName)
 	if err != nil {
 		return nil, err
 	}

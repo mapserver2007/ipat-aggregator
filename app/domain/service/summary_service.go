@@ -51,11 +51,11 @@ func (s *summaryService) CreateSummary(
 	ticketResultMap[types.Quinella] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Quinella)
 	ticketResultMap[types.Exacta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Exacta, types.ExactaWheelOfFirst)
 	ticketResultMap[types.QuinellaPlace] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.QuinellaPlace, types.QuinellaPlaceWheel)
-	ticketResultMap[types.Trio] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trio, types.TrioFormation, types.TrifectaWheelOfFirst)
+	ticketResultMap[types.Trio] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond)
 	ticketResultMap[types.Trifecta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 	ticketResultMap[types.AllTicketType] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Win, types.Place, types.Quinella,
 		types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel,
-		types.Trio, types.TrioFormation, types.TrifectaWheelOfFirst,
+		types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond,
 		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 
 	gradeClassResultMap := map[types.GradeClass]*spreadsheet_entity.TicketResult{}
@@ -98,7 +98,7 @@ func (s *summaryService) CreateSummary(
 	for _, raceCourse := range raceCourses {
 		raceCourseResultMap[raceCourse] = s.ticketAggregator.RaceCourseResult(ctx, tickets, races, racingNumbers, raceCourse)
 	}
-	raceCourseResultMap[types.Overseas] = s.ticketAggregator.RaceCourseResult(ctx, tickets, races, racingNumbers, types.Longchamp, types.Deauville, types.Shatin, types.Meydan, types.SantaAnitaPark)
+	raceCourseResultMap[types.Overseas] = s.ticketAggregator.RaceCourseResult(ctx, tickets, races, racingNumbers, types.Longchamp, types.Deauville, types.Shatin, types.Meydan, types.SantaAnitaPark, types.KingAbdulaziz)
 
 	monthlyResult := s.ticketAggregator.MonthlyResult(ctx, tickets, races, racingNumbers)
 

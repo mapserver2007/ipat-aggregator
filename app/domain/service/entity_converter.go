@@ -4,6 +4,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 )
 
@@ -51,6 +52,7 @@ type RaceEntityConverter interface {
 	NetKeibaToRaw(input *netkeiba_entity.Race) *raw_entity.Race
 	RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race
 	DataCacheToList(input *data_cache_entity.Race) *list_entity.Race
+	NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds) *prediction_entity.Race
 }
 
 type raceEntityConverter struct{}
@@ -228,6 +230,44 @@ func (r *raceEntityConverter) DataCacheToList(input *data_cache_entity.Race) *li
 		input.Url(),
 		raceResults,
 	)
+}
+
+func (r *raceEntityConverter) NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds) *prediction_entity.Race {
+	var odds []*prediction_entity.Odds
+	for _, nkOdds := range input2 {
+		odds = append(odds, prediction_entity.NewOdds(
+			nkOdds.Odds(),
+			nkOdds.PopularNumber(),
+			nkOdds.HorseNumber(),
+		))
+	}
+
+	// レース結果のうち、必要なのは着順に対する馬番のみ
+	raceResultHorseNumbers := make([]int, 0, 3)
+	if input1.RaceResults() != nil && len(input1.RaceResults()) >= 3 {
+		for _, raceResult := range input1.RaceResults()[:3] {
+			raceResultHorseNumbers = append(raceResultHorseNumbers, raceResult.HorseNumber())
+		}
+	}
+
+	race := prediction_entity.NewRace(
+		input1.RaceId(),
+		input1.RaceName(),
+		input1.RaceNumber(),
+		input1.Entries(),
+		input1.Distance(),
+		input1.Class(),
+		input1.CourseCategory(),
+		input1.TrackCondition(),
+		input1.RaceSexCondition(),
+		input1.RaceWeightCondition(),
+		input1.RaceCourseId(),
+		input1.Url(),
+		raceResultHorseNumbers,
+		odds,
+	)
+
+	return race
 }
 
 type JockeyEntityConverter interface {

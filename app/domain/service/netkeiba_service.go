@@ -13,8 +13,9 @@ type NetKeibaService interface {
 	CreateRacingNumberUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateRaceUrls(ctx context.Context, tickets []*ticket_csv_entity.Ticket, races []*data_cache_entity.Race, racingNumbers []*data_cache_entity.RacingNumber) ([]string, error)
 	CreateJockeyUrls(ctx context.Context, jockeys []*data_cache_entity.Jockey, excludeJockeyIds []int) ([]string, error)
-	CreateRaceIdUrls(ctx context.Context, raceIdMap map[types.RaceDate][]types.RaceId, excludeDates []types.RaceDate, dateFrom, dateTo string) ([]string, error)
-	CreatePredictRaceUrls(ctx context.Context, races []*data_cache_entity.Race, raceIdMap map[types.RaceId]types.RaceDate) ([]string, error)
+	CreateRaceIdUrls(ctx context.Context, dateFrom, dateTo string, raceIdMap map[types.RaceDate][]types.RaceId, excludeDates []types.RaceDate) ([]string, error)
+	CreateAnalysisRaceUrls(ctx context.Context, races []*data_cache_entity.Race, raceIdMap map[types.RaceId]types.RaceDate) ([]string, error)
+	CreatePredictionRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, []string, []string)
 }
 
 const (
@@ -23,7 +24,10 @@ const (
 	raceResultUrlForNAR     = "https://nar.netkeiba.com/race/result.html?race_id=%s&organizer=%d&race_date=%d"
 	raceResultUrlForOversea = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=%d&race_date=%d"
 	jockeyUrl               = "https://db.netkeiba.com/jockey/%s/"
-	predictRaceResultUrl    = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%d&type=predict"
+	analysisRaceResultUrl   = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%d"
+	predictionRaceUrl       = "https://race.netkeiba.com/race/shutuba.html?race_id=%s"
+	predictionOddsUrl       = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=1&action=update"
+	predictionRaceResultUrl = "https://race.netkeiba.com/race/result.html?race_id=%s"
 )
 
 type netKeibaService struct {
@@ -170,9 +174,9 @@ func (n *netKeibaService) CreateJockeyUrls(
 
 func (n *netKeibaService) CreateRaceIdUrls(
 	ctx context.Context,
+	dateFrom, dateTo string,
 	raceIdMap map[types.RaceDate][]types.RaceId,
 	excludeDates []types.RaceDate,
-	dateFrom, dateTo string,
 ) ([]string, error) {
 	urls := make([]string, 0)
 	excludeDateMap := map[types.RaceDate]bool{}
@@ -187,18 +191,24 @@ func (n *netKeibaService) CreateRaceIdUrls(
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := excludeDateMap[date]; ok {
-			continue
+		if excludeDateMap != nil {
+			if _, ok := excludeDateMap[date]; ok {
+				continue
+			}
 		}
-		if _, ok := raceIdMap[date]; !ok {
+		if raceIdMap == nil {
 			urls = append(urls, fmt.Sprintf(raceListUrlForJRA, date))
+		} else {
+			if _, ok := raceIdMap[date]; !ok {
+				urls = append(urls, fmt.Sprintf(raceListUrlForJRA, date))
+			}
 		}
 	}
 
 	return urls, nil
 }
 
-func (n *netKeibaService) CreatePredictRaceUrls(
+func (n *netKeibaService) CreateAnalysisRaceUrls(
 	ctx context.Context,
 	races []*data_cache_entity.Race,
 	raceIdMap map[types.RaceId]types.RaceDate,
@@ -213,14 +223,24 @@ func (n *netKeibaService) CreatePredictRaceUrls(
 	}
 	for raceId, raceDate := range raceIdMap {
 		if _, ok := raceMap[raceId]; !ok {
-			raceUrls = append(raceUrls, fmt.Sprintf(predictRaceResultUrl, raceId, raceDate))
+			raceUrls = append(raceUrls, fmt.Sprintf(analysisRaceResultUrl, raceId, raceDate))
 		}
 	}
 
 	for _, race := range races {
 		if _, ok := raceIdMap[race.RaceId()]; !ok {
-			raceUrls = append(raceUrls, fmt.Sprintf(predictRaceResultUrl, race.RaceId(), race.RaceDate()))
+			raceUrls = append(raceUrls, fmt.Sprintf(analysisRaceResultUrl, race.RaceId(), race.RaceDate()))
 		}
 	}
 	return raceUrls, nil
+}
+
+func (n *netKeibaService) CreatePredictionRaceUrls(ctx context.Context, raceIds []types.RaceId) ([]string, []string, []string) {
+	var raceUrls, oddsUrls, raceResultUrls []string
+	for _, raceId := range raceIds {
+		raceUrls = append(raceUrls, fmt.Sprintf(predictionRaceUrl, raceId))
+		oddsUrls = append(oddsUrls, fmt.Sprintf(predictionOddsUrl, raceId))
+		raceResultUrls = append(raceResultUrls, fmt.Sprintf(predictionRaceResultUrl, raceId))
+	}
+	return raceUrls, oddsUrls, raceResultUrls
 }

@@ -74,6 +74,12 @@ func NewRaceIdForOverseas(
 	raceNo int,
 ) RaceId {
 	rawRaceId := fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day, raceNo)
+	// 海外の場合、日をまたぐケースがあり開催日時とrace_idが一致しない場合がある(例：3月のドバイ)
+	if raceCourse == Meydan || raceCourse == KingAbdulaziz || raceCourse == SantaAnitaPark {
+		// 日付を-1してraceIdを設定する特殊対応
+		// 月をまたぐわけではないのでtimeパッケージで厳密にはやらない
+		rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day-1, raceNo)
+	}
 	return RaceId(rawRaceId)
 }
 
@@ -155,6 +161,7 @@ const (
 	Shatin         = "H1"
 	Meydan         = "J0"
 	SantaAnitaPark = "F3"
+	KingAbdulaziz  = "P0"
 	Overseas       = "99" // その他海外
 )
 
@@ -185,6 +192,7 @@ var raceCourseMap = map[RaceCourse]string{
 	Shatin:         "シャティン（香港）",
 	Meydan:         "メイダン（ＵＡＥ）",
 	SantaAnitaPark: "サンタアニタパーク（アメリカ）",
+	KingAbdulaziz:  "Ｋアブドゥルアジーズ（サウジアラビア）",
 	Overseas:       "海外",
 	UnknownPlace:   "不明",
 }
@@ -236,7 +244,7 @@ func (r RaceCourse) NAR() bool {
 
 func (r RaceCourse) Oversea() bool {
 	switch r {
-	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark:
+	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark, KingAbdulaziz:
 		return true
 	}
 	return false
@@ -278,6 +286,7 @@ const (
 	Trio
 	TrioFormation
 	TrioWheelOfFirst
+	TrioWheelOfSecond
 	Trifecta
 	TrifectaFormation
 	TrifectaWheelOfFirst
@@ -298,6 +307,7 @@ var ticketTypeMap = map[TicketType]string{
 	Trio:                       "3連複",
 	TrioFormation:              "3連複フォーメーション",
 	TrioWheelOfFirst:           "3連複軸1頭ながし",
+	TrioWheelOfSecond:          "3連複軸2頭ながし",
 	Trifecta:                   "3連単",
 	TrifectaFormation:          "3連単フォーメーション",
 	TrifectaWheelOfFirst:       "3連単1着ながし",
@@ -328,7 +338,7 @@ func (b TicketType) OriginTicketType() TicketType {
 		return Exacta
 	case QuinellaPlaceWheel:
 		return QuinellaPlace
-	case TrioFormation, TrioWheelOfFirst:
+	case TrioFormation, TrioWheelOfFirst, TrioWheelOfSecond:
 		return Trio
 	case TrifectaFormation, TrifectaWheelOfFirst, TrifectaWheelOfFirstMulti, TrifectaWheelOfSecondMulti:
 		return Trifecta
@@ -859,3 +869,16 @@ const (
 	SecondColor
 	ThirdColor
 )
+
+type InOrder int
+
+const (
+	OutOfPlace InOrder = iota
+	FirstPlace
+	SecondPlace
+	ThirdPlace
+)
+
+func (i InOrder) Value() int {
+	return int(i)
+}

@@ -94,7 +94,7 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 							p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
 						)
 
-						err := p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
+						err = p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
 						if err != nil {
 							return nil, err
 						}
@@ -124,7 +124,7 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 							p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
 						)
 
-						err := p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
+						err = p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
 						if err != nil {
 							return nil, err
 						}

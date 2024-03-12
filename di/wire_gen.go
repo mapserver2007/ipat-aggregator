@@ -36,12 +36,12 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 
 func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
 	markerDataRepository := infrastructure.NewMarkerDataRepository()
-	spreadSheetService := service.NewSpreadSheetService()
-	analysisService := service.NewAnalysisService(spreadSheetService)
 	filterService := service.NewFilterService()
+	spreadSheetService := service.NewSpreadSheetService()
+	analysisService := service.NewAnalysisService(filterService, spreadSheetService)
 	raceConverter := service.NewRaceConverter()
 	ticketConverter := service.NewTicketConverter(raceConverter)
-	analysisUseCase := analysis_usecase.NewAnalysisUseCase(markerDataRepository, analysisService, filterService, ticketConverter)
+	analysisUseCase := analysis_usecase.NewAnalysisUseCase(markerDataRepository, analysisService, ticketConverter)
 	return analysisUseCase
 }
 

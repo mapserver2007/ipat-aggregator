@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
@@ -9,11 +10,12 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"sort"
+	"strconv"
 )
 
 type AnalysisService interface {
-	AddAnalysisData(ctx context.Context, markerCombinationId types.MarkerCombinationId, race *data_cache_entity.Race, numerical *analysis_entity.Calculable) error
 	GetAnalysisData() *analysis_entity.Layer1
+	AddAnalysisData(ctx context.Context, marker *marker_csv_entity.AnalysisMarker, race *data_cache_entity.Race) error
 	GetHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.AnalysisMarker) []types.MarkerCombinationId
 	GetUnHitMarkerCombinationIds(ctx context.Context, result *data_cache_entity.PayoutResult, marker *marker_csv_entity.AnalysisMarker) []types.MarkerCombinationId
 	CreateSpreadSheetAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1, filters []filter.Id) *spreadsheet_entity.AnalysisData
@@ -21,10 +23,12 @@ type AnalysisService interface {
 
 type analysisService struct {
 	analysisData       *analysis_entity.Layer1
+	filterService      FilterService
 	spreadSheetService SpreadSheetService
 }
 
 func NewAnalysisService(
+	filterService FilterService,
 	spreadSheetService SpreadSheetService,
 ) AnalysisService {
 	analysisData := analysis_entity.Layer1{
@@ -32,29 +36,92 @@ func NewAnalysisService(
 	}
 	return &analysisService{
 		analysisData:       &analysisData,
+		filterService:      filterService,
 		spreadSheetService: spreadSheetService,
 	}
 }
 
 func (p *analysisService) AddAnalysisData(
 	ctx context.Context,
-	markerCombinationId types.MarkerCombinationId,
+	marker *marker_csv_entity.AnalysisMarker,
 	race *data_cache_entity.Race,
-	calculable *analysis_entity.Calculable,
 ) error {
-	layer1 := p.analysisData.MarkerCombination
-	if _, ok := layer1[markerCombinationId]; !ok {
-		layer1[markerCombinationId] = &analysis_entity.Layer2{
-			RaceDate: make(map[types.RaceDate]*analysis_entity.Layer3),
+	raceResultMap := map[int]*data_cache_entity.RaceResult{}
+	for _, raceResult := range race.RaceResults() {
+		raceResultMap[raceResult.HorseNumber()] = raceResult
+	}
+
+	addData := func(markerCombinationId types.MarkerCombinationId,
+		race *data_cache_entity.Race,
+		calculable *analysis_entity.Calculable) {
+		layer1 := p.analysisData.MarkerCombination
+		if _, ok := layer1[markerCombinationId]; !ok {
+			layer1[markerCombinationId] = &analysis_entity.Layer2{
+				RaceDate: make(map[types.RaceDate]*analysis_entity.Layer3),
+			}
+		}
+		layer2 := layer1[markerCombinationId].RaceDate
+		if _, ok := layer2[race.RaceDate()]; !ok {
+			layer2[race.RaceDate()] = &analysis_entity.Layer3{
+				RaceId: make(map[types.RaceId][]*analysis_entity.Calculable),
+			}
+		}
+		layer2[race.RaceDate()].RaceId[race.RaceId()] = append(layer2[race.RaceDate()].RaceId[race.RaceId()], calculable)
+	}
+
+	for _, payoutResult := range race.PayoutResults() {
+		hitMarkerCombinationIds := p.GetHitMarkerCombinationIds(ctx, payoutResult, marker)
+		for _, markerCombinationId := range hitMarkerCombinationIds {
+			// 集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
+			if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
+				hitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
+				if err != nil {
+					return err
+				}
+				horseNumber, ok := marker.MarkerMap()[hitMarker]
+				if !ok && hitMarker != types.NoMarker {
+					return fmt.Errorf("marker %s is not found in markerMap", hitMarker.String())
+				}
+				if raceResult, ok := raceResultMap[horseNumber]; ok {
+					calculable := analysis_entity.NewCalculable(
+						raceResult.Odds(),
+						types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
+						raceResult.PopularNumber(),
+						raceResult.OrderNo(),
+						race.Entries(),
+						p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
+					)
+					addData(markerCombinationId, race, calculable)
+				}
+			}
+		}
+
+		unHitMarkerCombinationIds := p.GetUnHitMarkerCombinationIds(ctx, payoutResult, marker)
+		for _, markerCombinationId := range unHitMarkerCombinationIds {
+			// 集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
+			if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
+				unHitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
+				if err != nil {
+					return err
+				}
+				horseNumber, ok := marker.MarkerMap()[unHitMarker]
+				if !ok && unHitMarker != types.NoMarker {
+					return fmt.Errorf("marker %s is not found in markerMap", unHitMarker.String())
+				}
+				if raceResult, ok := raceResultMap[horseNumber]; ok {
+					calculable := analysis_entity.NewCalculable(
+						raceResult.Odds(),
+						types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
+						raceResult.PopularNumber(),
+						raceResult.OrderNo(),
+						race.Entries(),
+						p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
+					)
+					addData(markerCombinationId, race, calculable)
+				}
+			}
 		}
 	}
-	layer2 := layer1[markerCombinationId].RaceDate
-	if _, ok := layer2[race.RaceDate()]; !ok {
-		layer2[race.RaceDate()] = &analysis_entity.Layer3{
-			RaceId: make(map[types.RaceId][]*analysis_entity.Calculable),
-		}
-	}
-	layer2[race.RaceDate()].RaceId[race.RaceId()] = append(layer2[race.RaceDate()].RaceId[race.RaceId()], calculable)
 
 	return nil
 }

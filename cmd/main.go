@@ -153,8 +153,8 @@ func analysis(
 	races []*data_cache_entity.Race,
 ) error {
 	spreadSheetService := service.NewSpreadSheetService()
-	analysisService := service.NewAnalysisService(spreadSheetService)
 	filterService := service.NewFilterService()
+	analysisService := service.NewAnalysisService(filterService, spreadSheetService)
 	analysisUseCase := di.InitializeMarkerAnalysisUseCase()
 	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
 	if err != nil {

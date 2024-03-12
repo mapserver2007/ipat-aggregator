@@ -67,7 +67,10 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 			raceResultMap[raceResult.HorseNumber()] = raceResult
 		}
 
-		p.analysisService.AddAnalysisData(ctx, marker, race)
+		err := p.analysisService.AddAnalysisData(ctx, marker, race)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return p.analysisService.GetAnalysisData(), nil

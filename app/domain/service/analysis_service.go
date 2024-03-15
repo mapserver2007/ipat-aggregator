@@ -84,12 +84,27 @@ func (p *analysisService) AddAnalysisData(
 				}
 				if raceResult, ok := raceResultMap[horseNumber]; ok {
 					calculable := analysis_entity.NewCalculable(
+						markerCombinationId.TicketType(),
 						raceResult.Odds(),
 						types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
 						raceResult.PopularNumber(),
 						raceResult.OrderNo(),
 						race.Entries(),
 						p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
+					)
+					addData(markerCombinationId, race, calculable)
+				}
+			} else if markerCombinationId.TicketType().OriginTicketType() == types.Trio {
+				// TODO 印は最小単位で集計したあと、◎-印-印のような組合せに再編成する
+				for i := 0; i < len(payoutResult.Numbers()); i++ {
+					calculable := analysis_entity.NewCalculable(
+						markerCombinationId.TicketType().OriginTicketType(),
+						payoutResult.Odds()[i],
+						payoutResult.Numbers()[i],
+						payoutResult.Populars()[i],
+						0, // 使わない
+						race.Entries(),
+						nil, // TODO フィルタはあとで
 					)
 					addData(markerCombinationId, race, calculable)
 				}
@@ -110,12 +125,26 @@ func (p *analysisService) AddAnalysisData(
 				}
 				if raceResult, ok := raceResultMap[horseNumber]; ok {
 					calculable := analysis_entity.NewCalculable(
+						markerCombinationId.TicketType(),
 						raceResult.Odds(),
 						types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
 						raceResult.PopularNumber(),
 						raceResult.OrderNo(),
 						race.Entries(),
 						p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
+					)
+					addData(markerCombinationId, race, calculable)
+				}
+			} else if markerCombinationId.TicketType().OriginTicketType() == types.Trio {
+				for i := 0; i < len(payoutResult.Numbers()); i++ {
+					calculable := analysis_entity.NewCalculable(
+						markerCombinationId.TicketType().OriginTicketType(),
+						payoutResult.Odds()[i],
+						payoutResult.Numbers()[i],
+						payoutResult.Populars()[i],
+						0, // 使わない
+						race.Entries(),
+						nil, // TODO フィルタはあとで
 					)
 					addData(markerCombinationId, race, calculable)
 				}
@@ -464,17 +493,20 @@ func (p *analysisService) GetHitMarkerCombinationIds(
 			rawHorseNumbers := []int{99, 99, 99} // 初期値は無扱いの99
 			markerMap := marker.MarkerMap()
 			// 印の重い順で処理
+			idx := 0
 			for _, k := range []int{1, 2, 3, 4, 5, 6} {
 				horseNumberByMarker := markerMap[types.Marker(k)]
-				for idx, rawHorseNumber := range horseNumber.List() {
+				for _, rawHorseNumber := range horseNumber.List() {
 					if horseNumberByMarker == rawHorseNumber {
 						rawHorseNumbers[idx] = rawHorseNumber
+						idx++
 					}
 				}
 			}
 
-			// 無扱いの99必ず末尾にするためにソート
-			sort.Ints(rawHorseNumbers)
+			if idx != len(rawHorseNumbers) {
+				continue
+			}
 
 			markerCombinationId, _ := types.NewMarkerCombinationId(6999)
 			switch rawHorseNumbers[0] {
@@ -1303,6 +1335,158 @@ func (p *analysisService) GetUnHitMarkerCombinationIds(
 				unHitMarkerCombinationIdMap[types.MarkerCombinationId(26)] = false
 			}
 		}
+	case types.Trio:
+		for _, horseNumber := range result.Numbers() {
+			rawHorseNumbers := []int{99, 99, 99} // 初期値は無扱いの99
+			markerMap := marker.MarkerMap()
+			// 印の重い順で処理
+			idx := 0
+			for _, k := range []int{1, 2, 3, 4, 5, 6} {
+				horseNumberByMarker := markerMap[types.Marker(k)]
+				for _, rawHorseNumber := range horseNumber.List() {
+					if horseNumberByMarker == rawHorseNumber {
+						rawHorseNumbers[idx] = rawHorseNumber
+						idx++
+					}
+				}
+			}
+
+			if idx == len(rawHorseNumbers) {
+				continue
+			}
+
+			markerCombinationId, _ := types.NewMarkerCombinationId(6999)
+			switch rawHorseNumbers[0] {
+			case marker.Favorite():
+				switch rawHorseNumbers[1] {
+				case marker.Rival():
+					switch rawHorseNumbers[2] {
+					case marker.BrackTriangle():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6123)
+					case marker.WhiteTriangle():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6124)
+					case marker.Star():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6125)
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6126)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6129)
+					}
+				case marker.BrackTriangle():
+					switch rawHorseNumbers[2] {
+					case marker.WhiteTriangle():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6134)
+					case marker.Star():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6135)
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6136)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6139)
+					}
+				case marker.WhiteTriangle():
+					switch rawHorseNumbers[2] {
+					case marker.Star():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6145)
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6146)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6149)
+					}
+				case marker.Star():
+					switch rawHorseNumbers[2] {
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6156)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6159)
+					}
+				case marker.Check():
+					markerCombinationId, _ = types.NewMarkerCombinationId(6169)
+				default:
+					markerCombinationId, _ = types.NewMarkerCombinationId(6199)
+				}
+			case marker.Rival():
+				switch rawHorseNumbers[1] {
+				case marker.BrackTriangle():
+					switch rawHorseNumbers[2] {
+					case marker.WhiteTriangle():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6234)
+					case marker.Star():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6235)
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6236)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6239)
+					}
+				case marker.WhiteTriangle():
+					switch rawHorseNumbers[2] {
+					case marker.Star():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6245)
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6246)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6249)
+					}
+				case marker.Star():
+					switch rawHorseNumbers[2] {
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6256)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6259)
+					}
+				case marker.Check():
+					markerCombinationId, _ = types.NewMarkerCombinationId(6269)
+				default:
+					markerCombinationId, _ = types.NewMarkerCombinationId(6299)
+				}
+			case marker.BrackTriangle():
+				switch rawHorseNumbers[1] {
+				case marker.WhiteTriangle():
+					switch rawHorseNumbers[2] {
+					case marker.Star():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6345)
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6346)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6349)
+					}
+				case marker.Star():
+					switch rawHorseNumbers[2] {
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6356)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6359)
+					}
+				case marker.Check():
+					markerCombinationId, _ = types.NewMarkerCombinationId(6369)
+				default:
+					markerCombinationId, _ = types.NewMarkerCombinationId(6399)
+				}
+			case marker.WhiteTriangle():
+				switch rawHorseNumbers[1] {
+				case marker.Star():
+					switch rawHorseNumbers[2] {
+					case marker.Check():
+						markerCombinationId, _ = types.NewMarkerCombinationId(6456)
+					default:
+						markerCombinationId, _ = types.NewMarkerCombinationId(6459)
+					}
+				case marker.Check():
+					markerCombinationId, _ = types.NewMarkerCombinationId(6469)
+				default:
+					markerCombinationId, _ = types.NewMarkerCombinationId(6499)
+				}
+			case marker.Star():
+				switch rawHorseNumbers[1] {
+				case marker.Check():
+					markerCombinationId, _ = types.NewMarkerCombinationId(6569)
+				default:
+					markerCombinationId, _ = types.NewMarkerCombinationId(6599)
+				}
+			case marker.Check():
+				markerCombinationId, _ = types.NewMarkerCombinationId(6699)
+			}
+			unHitMarkerCombinationIds = append(unHitMarkerCombinationIds, markerCombinationId)
+		}
 	}
 
 	for markerCombinationId, unHit := range unHitMarkerCombinationIdMap {
@@ -1319,17 +1503,18 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 	analysisData *analysis_entity.Layer1,
 	filters []filter.Id,
 ) *spreadsheet_entity.AnalysisData {
-	markerCombinationMapByFilter := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	raceCountMapByFilter := map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
+	markerCombinationFilterMap := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
+	oddsRangeRaceCountFilterMap := map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
 
 	for _, filter := range filters {
-		markerCombinationMapByFilter[filter] = p.spreadSheetService.CreateMarkerCombinationAnalysisData(ctx, analysisData, filter)
-		raceCountMapByFilter[filter] = p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, filter)
+		markerCombinationFilterMap[filter] = p.spreadSheetService.CreateMarkerCombinationAnalysisData(ctx, analysisData, filter)
+		oddsRangeRaceCountFilterMap[filter] = p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, filter)
 	}
 
 	return spreadsheet_entity.NewAnalysisData(
-		markerCombinationMapByFilter,
-		raceCountMapByFilter,
+		markerCombinationFilterMap,
+		oddsRangeRaceCountFilterMap,
+		filters,
 		p.createAllMarkerCombinations(),
 	)
 }

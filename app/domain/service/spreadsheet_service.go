@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
@@ -16,6 +17,7 @@ type SpreadSheetService interface {
 	CreateMarkerCombinationAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis
 	CreateOddsRangeRaceCountMap(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]map[types.OddsRangeType]int
 	CreatePredictionOdds(ctx context.Context, marker *marker_csv_entity.PredictionMarker, race *prediction_entity.Race) map[types.Marker]*prediction_entity.OddsRange
+	CreateTrioMarkerCombinationAggregationData(ctx context.Context, markerCombinationIds []types.MarkerCombinationId, markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis, raceCountMap map[types.MarkerCombinationId]map[types.OddsRangeType]int) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, map[types.MarkerCombinationId]map[types.OddsRangeType]int, error)
 	GetCellColor(ctx context.Context, colorType types.CellColorType) *sheets.Color
 }
 
@@ -39,7 +41,8 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 					switch markerCombinationId.TicketType() {
 					case types.Win, types.Place:
 						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
-							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis(raceCountMap[markerCombinationId])
+							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis()
+							markerCombinationDataMap[markerCombinationId].AddRaceCountOddsRangeMap(raceCountMap[markerCombinationId])
 						}
 						match := true
 						for _, f := range calculable.Filters() {
@@ -51,6 +54,12 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 						if match {
 							markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
 						}
+					case types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond:
+						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
+							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis()
+						}
+						// TODO フィルタ
+						markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
 					}
 				}
 			}
@@ -86,22 +95,43 @@ func (s *spreadSheetService) CreateOddsRangeRaceCountMap(
 					}
 					if match {
 						odds := calculable.Odds().InexactFloat64()
-						if odds >= 1.0 && odds <= 1.5 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange1]++
-						} else if odds >= 1.6 && odds <= 2.0 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange2]++
-						} else if odds >= 2.1 && odds <= 2.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange3]++
-						} else if odds >= 3.0 && odds <= 4.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange4]++
-						} else if odds >= 5.0 && odds <= 9.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange5]++
-						} else if odds >= 10.0 && odds <= 19.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange6]++
-						} else if odds >= 20.0 && odds <= 49.9 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange7]++
-						} else if odds >= 50.0 {
-							markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange8]++
+						switch calculable.TicketType() {
+						case types.Win, types.Place:
+							if odds >= 1.0 && odds <= 1.5 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange1]++
+							} else if odds >= 1.6 && odds <= 2.0 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange2]++
+							} else if odds >= 2.1 && odds <= 2.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange3]++
+							} else if odds >= 3.0 && odds <= 4.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange4]++
+							} else if odds >= 5.0 && odds <= 9.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange5]++
+							} else if odds >= 10.0 && odds <= 19.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange6]++
+							} else if odds >= 20.0 && odds <= 49.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange7]++
+							} else if odds >= 50.0 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.WinOddsRange8]++
+							}
+						case types.Trio:
+							if odds >= 1.0 && odds <= 9.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange1]++
+							} else if odds >= 10.0 && odds <= 19.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange2]++
+							} else if odds >= 20.0 && odds <= 29.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange3]++
+							} else if odds >= 30.0 && odds <= 49.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange4]++
+							} else if odds >= 50.0 && odds <= 99.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange5]++
+							} else if odds >= 100.0 && odds <= 299.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange6]++
+							} else if odds >= 300.0 && odds <= 499.9 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange7]++
+							} else if odds >= 500.0 {
+								markerCombinationOddsRangeCountMap[markerCombinationId][types.TrioOddsRange8]++
+							}
 						}
 					}
 				}
@@ -168,6 +198,147 @@ func (s *spreadSheetService) CreatePredictionOdds(
 	}
 
 	return markerOddsRangeMap
+}
+
+// CreateTrioMarkerCombinationAggregationData 3連複の各印の組合せを表示用の印に再集計する
+func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
+	ctx context.Context,
+	markerCombinationIds []types.MarkerCombinationId,
+	markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
+	raceCountMap map[types.MarkerCombinationId]map[types.OddsRangeType]int,
+) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, map[types.MarkerCombinationId]map[types.OddsRangeType]int, error) {
+	aggregationMarkerCombinationIds := []types.MarkerCombinationId{
+		types.MarkerCombinationId(6100), // ◎-印-印
+		types.MarkerCombinationId(6200), // ◯-印-印
+		types.MarkerCombinationId(6300), // ▲-印-印
+		types.MarkerCombinationId(6400), // △-印-印
+		types.MarkerCombinationId(6500), // ☆-印-印
+		types.MarkerCombinationId(6600), // ✓-印-印
+		types.MarkerCombinationId(6109), // ◎-印-無
+		types.MarkerCombinationId(6209), // ◯-印-無
+		types.MarkerCombinationId(6309), // ▲-印-無
+		types.MarkerCombinationId(6409), // △-印-無
+		types.MarkerCombinationId(6509), // ☆-印-無
+		types.MarkerCombinationId(6609), // ✓-印-無
+	}
+
+	aggregationAnalysisListMap := map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis{}
+	aggregationRaceCountOddsRangeMap := map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
+	for _, markerCombinationId := range markerCombinationIds {
+		if markerCombinationId.TicketType() == types.Trio {
+			for _, aggregationMarkerCombinationId := range aggregationMarkerCombinationIds {
+				if _, ok := aggregationAnalysisListMap[aggregationMarkerCombinationId]; !ok {
+					aggregationAnalysisListMap[aggregationMarkerCombinationId] = make([]*spreadsheet_entity.MarkerCombinationAnalysis, 0)
+				}
+				if _, ok := aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId]; !ok {
+					aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId] = map[types.OddsRangeType]int{}
+				}
+
+				var rawMarkerCombinationIds []int
+				switch aggregationMarkerCombinationId.Value() {
+				case 6100:
+					rawMarkerCombinationIds = []int{6123, 6124, 6125, 6126, 6134, 6135, 6136, 6145, 6146, 6156}
+				case 6200:
+					rawMarkerCombinationIds = []int{6123, 6124, 6125, 6126, 6234, 6235, 6236, 6245, 6246, 6256}
+				case 6300:
+					rawMarkerCombinationIds = []int{6123, 6134, 6135, 6136, 6234, 6235, 6236, 6345, 6346, 6356}
+				case 6400:
+					rawMarkerCombinationIds = []int{6124, 6134, 6145, 6146, 6234, 6245, 6246, 6345, 6346, 6456}
+				case 6500:
+					rawMarkerCombinationIds = []int{6125, 6135, 6145, 6156, 6235, 6245, 6256, 6345, 6356, 6456}
+				case 6600:
+					rawMarkerCombinationIds = []int{6126, 6136, 6146, 6156, 6236, 6246, 6256, 6346, 6356, 6456}
+				case 6109:
+					rawMarkerCombinationIds = []int{6129, 6139, 6149, 6159, 6169}
+				case 6209:
+					rawMarkerCombinationIds = []int{6129, 6239, 6249, 6259, 6269}
+				case 6309:
+					rawMarkerCombinationIds = []int{6139, 6239, 6349, 6359, 6369}
+				case 6409:
+					rawMarkerCombinationIds = []int{6149, 6249, 6349, 6459, 6469}
+				case 6509:
+					rawMarkerCombinationIds = []int{6159, 6259, 6359, 6459, 6569}
+				case 6609:
+					rawMarkerCombinationIds = []int{6169, 6269, 6369, 6469, 6569}
+				}
+
+				aggregationAnalysis, err := s.getTrioAggregationTrioAnalysis(
+					ctx,
+					rawMarkerCombinationIds,
+					markerCombinationId,
+					markerCombinationMap,
+				)
+				if err != nil {
+					return nil, nil, err
+				}
+				if aggregationAnalysis != nil {
+					aggregationAnalysisListMap[aggregationMarkerCombinationId] = append(aggregationAnalysisListMap[aggregationMarkerCombinationId], aggregationAnalysis)
+				}
+
+				aggregationRaceCountMap, err := s.getTrioAggregationTrioRaceCount(
+					ctx,
+					rawMarkerCombinationIds,
+					markerCombinationId,
+					raceCountMap,
+				)
+				if err != nil {
+					return nil, nil, err
+				}
+				if aggregationRaceCountMap != nil {
+					for oddsRangeType, raceCount := range aggregationRaceCountMap {
+						aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId][oddsRangeType] += raceCount
+					}
+				}
+			}
+		}
+	}
+
+	return aggregationAnalysisListMap, aggregationRaceCountOddsRangeMap, nil
+}
+
+func (s *spreadSheetService) getTrioAggregationTrioAnalysis(
+	ctx context.Context,
+	rawMarkerCombinationIds []int,
+	markerCombinationId types.MarkerCombinationId,
+	markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
+) (*spreadsheet_entity.MarkerCombinationAnalysis, error) {
+	if contains(rawMarkerCombinationIds, markerCombinationId.Value()) {
+		analysisData, ok := markerCombinationMap[markerCombinationId]
+		if !ok {
+			return nil, fmt.Errorf("markerCombinationId not found: %d", markerCombinationId.Value())
+		}
+		return analysisData, nil
+	}
+	return nil, nil
+}
+
+func (s *spreadSheetService) getTrioAggregationTrioRaceCount(
+	ctx context.Context,
+	rawMarkerCombinationIds []int,
+	markerCombinationId types.MarkerCombinationId,
+	raceCountMap map[types.MarkerCombinationId]map[types.OddsRangeType]int,
+) (map[types.OddsRangeType]int, error) {
+	if contains(rawMarkerCombinationIds, markerCombinationId.Value()) {
+		raceCountOddsRangeMap, ok := raceCountMap[markerCombinationId]
+		if !ok {
+			return nil, fmt.Errorf("raceCountMap not found: %d", markerCombinationId.Value())
+		}
+		oddsRangeMap := map[types.OddsRangeType]int{}
+		for oddsRange, raceCount := range raceCountOddsRangeMap {
+			oddsRangeMap[oddsRange] += raceCount
+		}
+		return oddsRangeMap, nil
+	}
+	return nil, nil
+}
+
+func contains(slice []int, value int) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *spreadSheetService) GetCellColor(

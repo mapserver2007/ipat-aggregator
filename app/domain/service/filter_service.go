@@ -12,7 +12,8 @@ import (
 type FilterService interface {
 	CreateAnalysisFilters(ctx context.Context, race *data_cache_entity.Race, raceResultByMarker *data_cache_entity.RaceResult) []filter.Id
 	CreatePredictionFilters(ctx context.Context, race *prediction_entity.Race) (filter.Id, filter.Id)
-	GetAnalysisFilters() []filter.Id
+	GetWinPlaceAnalysisFilters() []filter.Id
+	GetTrioAnalysisFilters() []filter.Id
 }
 
 type filterService struct {
@@ -192,7 +193,7 @@ func (f *filterService) createEntriesFilter(ctx context.Context, entries int) []
 	return filterIds
 }
 
-func (f *filterService) GetAnalysisFilters() []filter.Id {
+func (f *filterService) GetWinPlaceAnalysisFilters() []filter.Id {
 	return []filter.Id{
 		filter.All,
 		filter.TurfShortDistance1,
@@ -236,5 +237,11 @@ func (f *filterService) GetAnalysisFilters() []filter.Id {
 		filter.DirtBadConditionClass4,
 		filter.DirtBadConditionClass5,
 		filter.DirtBadConditionClass6,
+	}
+}
+
+func (f *filterService) GetTrioAnalysisFilters() []filter.Id {
+	return []filter.Id{
+		filter.All,
 	}
 }

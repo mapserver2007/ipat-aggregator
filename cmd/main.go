@@ -156,7 +156,11 @@ func analysis(
 	filterService := service.NewFilterService()
 	analysisService := service.NewAnalysisService(filterService, spreadSheetService)
 	analysisUseCase := di.InitializeMarkerAnalysisUseCase()
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
+	spreadSheetMarkerAnalysisRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
+	if err != nil {
+		return err
+	}
+	spreadSheetTrioAnalysisRepository, err := infrastructure.NewSpreadSheetTrioAnalysisRepository(spreadSheetService)
 	if err != nil {
 		return err
 	}
@@ -166,7 +170,7 @@ func analysis(
 		return err
 	}
 
-	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, analysisService, filterService)
+	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetMarkerAnalysisRepository, spreadSheetTrioAnalysisRepository, analysisService, filterService)
 	err = spreadSheetUseCase.Write(ctx, analysisData)
 	if err != nil {
 		return err

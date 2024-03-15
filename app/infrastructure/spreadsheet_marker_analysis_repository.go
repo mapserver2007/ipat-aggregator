@@ -7,7 +7,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"google.golang.org/api/sheets/v4"
 	"log"
 )
@@ -41,7 +40,6 @@ func NewSpreadSheetMarkerAnalysisRepository(
 func (s *spreadSheetMarkerAnalysisRepository) Write(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,
-	filters []filter.Id,
 ) error {
 	for _, spreadSheetConfig := range s.spreadSheetConfigs {
 		var sheetMarker types.Marker
@@ -172,8 +170,8 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 		}
 
 		allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
-		markerCombinationMap := analysisData.MarkerCombinationMapByFilter()
-		raceCountMap := analysisData.RaceCountMapByFilter()
+		markerCombinationFilterMap := analysisData.MarkerCombinationFilterMap()
+		raceCountMap := analysisData.OddsRangeRaceCountFilterMap()
 
 		oddsRanges := []types.OddsRangeType{
 			types.WinOddsRange1,
@@ -186,10 +184,10 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 			types.WinOddsRange8,
 		}
 
-		for idx, f := range filters {
+		for idx, f := range analysisData.Filters() {
 			rowPosition := idx + 1
 			for _, markerCombinationId := range allMarkerCombinationIds {
-				data, ok := markerCombinationMap[f][markerCombinationId]
+				data, ok := markerCombinationFilterMap[f][markerCombinationId]
 				if ok {
 					switch markerCombinationId.TicketType() {
 					case types.Win:
@@ -319,7 +317,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 						}...)
 					}
 				}
-				data, ok = markerCombinationMap[f][markerCombinationId]
+				data, ok = markerCombinationFilterMap[f][markerCombinationId]
 				if ok {
 					switch markerCombinationId.TicketType() {
 					case types.Win:
@@ -417,7 +415,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 		}
 
 		for idx, values := range valuesList {
-			writeRange := fmt.Sprintf("%s!%s", spreadSheetConfig.SheetName(), fmt.Sprintf("A%d", idx*(len(filters)+1)+1))
+			writeRange := fmt.Sprintf("%s!%s", spreadSheetConfig.SheetName(), fmt.Sprintf("A%d", idx*(len(markerCombinationFilterMap)+1)+1))
 			_, err := s.client.Spreadsheets.Values.Update(spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
 				Values: values,
 			}).ValueInputOption("USER_ENTERED").Do()
@@ -519,9 +517,9 @@ func (s *spreadSheetMarkerAnalysisRepository) createUnHitWinOddsRangeMap(
 func (s *spreadSheetMarkerAnalysisRepository) Style(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,
-	filters []filter.Id,
 ) error {
 	var requests []*sheets.Request
+	filters := analysisData.Filters()
 	for _, spreadSheetConfig := range s.spreadSheetConfigs {
 		var sheetMarker types.Marker
 		switch spreadSheetConfig.SheetName() {
@@ -830,8 +828,8 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 			}
 			return types.NoneColor
 		}
-		markerCombinationMap := analysisData.MarkerCombinationMapByFilter()
-		raceCountMap := analysisData.RaceCountMapByFilter()
+		markerCombinationMap := analysisData.MarkerCombinationFilterMap()
+		raceCountMap := analysisData.OddsRangeRaceCountFilterMap()
 
 		for idx, f := range filters {
 			colorTypeList[idx] = make([]types.CellColorType, 24)

@@ -8,20 +8,23 @@ import (
 )
 
 type MarkerAnalysisUseCase struct {
-	spreadSheetRepository repository.SpreadSheetMarkerAnalysisRepository
-	analysisService       service.AnalysisService
-	filterService         service.FilterService
+	spreadSheetMarkerAnalysisRepository repository.SpreadSheetMarkerAnalysisRepository
+	spreadSheetTrioAnalysisRepository   repository.SpreadSheetTrioAnalysisRepository
+	analysisService                     service.AnalysisService
+	filterService                       service.FilterService
 }
 
 func NewMarkerAnalysisUseCase(
-	spreadSheetRepository repository.SpreadSheetMarkerAnalysisRepository,
+	spreadSheetMarkerAnalysisRepository repository.SpreadSheetMarkerAnalysisRepository,
+	spreadSheetTrioAnalysisRepository repository.SpreadSheetTrioAnalysisRepository,
 	analysisService service.AnalysisService,
 	filterService service.FilterService,
 ) *MarkerAnalysisUseCase {
 	return &MarkerAnalysisUseCase{
-		spreadSheetRepository: spreadSheetRepository,
-		analysisService:       analysisService,
-		filterService:         filterService,
+		spreadSheetMarkerAnalysisRepository: spreadSheetMarkerAnalysisRepository,
+		spreadSheetTrioAnalysisRepository:   spreadSheetTrioAnalysisRepository,
+		analysisService:                     analysisService,
+		filterService:                       filterService,
 	}
 }
 
@@ -29,17 +32,23 @@ func (p *MarkerAnalysisUseCase) Write(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
 ) error {
-	err := p.spreadSheetRepository.Clear(ctx)
+	err := p.spreadSheetMarkerAnalysisRepository.Clear(ctx)
 	if err != nil {
 		return err
 	}
-	filters := p.filterService.GetAnalysisFilters()
-	spreadSheetAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, filters)
-	err = p.spreadSheetRepository.Write(ctx, spreadSheetAnalysisData, filters)
+	winPlaceFilters := p.filterService.GetWinPlaceAnalysisFilters()
+	trioFilters := p.filterService.GetTrioAnalysisFilters()
+
+	spreadSheetWinPlaceAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, winPlaceFilters)
+	spreadSheetTrioAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, trioFilters)
+
+	p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData, trioFilters)
+
+	err = p.spreadSheetMarkerAnalysisRepository.Write(ctx, spreadSheetWinPlaceAnalysisData)
 	if err != nil {
 		return err
 	}
-	err = p.spreadSheetRepository.Style(ctx, spreadSheetAnalysisData, filters)
+	err = p.spreadSheetMarkerAnalysisRepository.Style(ctx, spreadSheetWinPlaceAnalysisData)
 	if err != nil {
 		return err
 	}

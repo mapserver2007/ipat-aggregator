@@ -79,7 +79,7 @@ const (
 )
 
 var filterIdMap = map[Id]string{
-	All: "条件なし",
+	All: "全レース",
 	// 以下基本フィルタ
 	Turf:                "芝",
 	Dirt:                "ダート",

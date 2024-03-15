@@ -7,29 +7,36 @@ import (
 )
 
 type AnalysisData struct {
-	markerCombinationMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
-	raceCountMapByFilter         map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int
-	allMarkerCombinationIds      []types.MarkerCombinationId
+	markerCombinationFilterMap  map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
+	oddsRangeRaceCountFilterMap map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int
+	filters                     []filter.Id
+	allMarkerCombinationIds     []types.MarkerCombinationId
 }
 
 func NewAnalysisData(
-	markerCombinationMapByFilter map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
-	raceCountMapByFilter map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int,
+	markerCombinationFilterMap map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
+	oddsRangeRaceCountFilterMap map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int,
+	filters []filter.Id,
 	allMarkerCombinationIds []types.MarkerCombinationId,
 ) *AnalysisData {
 	return &AnalysisData{
-		markerCombinationMapByFilter: markerCombinationMapByFilter,
-		raceCountMapByFilter:         raceCountMapByFilter,
-		allMarkerCombinationIds:      allMarkerCombinationIds,
+		markerCombinationFilterMap:  markerCombinationFilterMap,
+		oddsRangeRaceCountFilterMap: oddsRangeRaceCountFilterMap,
+		filters:                     filters,
+		allMarkerCombinationIds:     allMarkerCombinationIds,
 	}
 }
 
-func (a *AnalysisData) MarkerCombinationMapByFilter() map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
-	return a.markerCombinationMapByFilter
+func (a *AnalysisData) MarkerCombinationFilterMap() map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
+	return a.markerCombinationFilterMap
 }
 
-func (a *AnalysisData) RaceCountMapByFilter() map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int {
-	return a.raceCountMapByFilter
+func (a *AnalysisData) OddsRangeRaceCountFilterMap() map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int {
+	return a.oddsRangeRaceCountFilterMap
+}
+
+func (a *AnalysisData) Filters() []filter.Id {
+	return a.filters
 }
 
 func (a *AnalysisData) AllMarkerCombinationIds() []types.MarkerCombinationId {
@@ -41,11 +48,15 @@ type MarkerCombinationAnalysis struct {
 	calculables           []*analysis_entity.Calculable
 }
 
-func NewMarkerCombinationAnalysis(raceCountOddsRangeMap map[types.OddsRangeType]int) *MarkerCombinationAnalysis {
+func NewMarkerCombinationAnalysis() *MarkerCombinationAnalysis {
 	return &MarkerCombinationAnalysis{
-		raceCountOddsRangeMap: raceCountOddsRangeMap,
+		raceCountOddsRangeMap: map[types.OddsRangeType]int{},
 		calculables:           make([]*analysis_entity.Calculable, 0),
 	}
+}
+
+func (m *MarkerCombinationAnalysis) AddRaceCountOddsRangeMap(raceCountOddsRangeMap map[types.OddsRangeType]int) {
+	m.raceCountOddsRangeMap = raceCountOddsRangeMap
 }
 
 func (m *MarkerCombinationAnalysis) AddCalculable(calculable *analysis_entity.Calculable) {

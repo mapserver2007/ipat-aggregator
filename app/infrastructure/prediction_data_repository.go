@@ -183,13 +183,15 @@ func (p *predictionDataRepository) fetchRace(
 				}
 			case 1:
 				text := ConvertFromEucJPToUtf8(ce.DOM.Text())
-				regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
+				regex := regexp.MustCompile(`(\d+:\d+).+(ダ|芝|障)(\d+)(?:[\s\S]*馬場:(.+))?`)
 				matches := regex.FindAllStringSubmatch(text, -1)
 				startTime = matches[0][1]
 				courseCategory = types.NewCourseCategory(matches[0][2])
 				distance, _ = strconv.Atoi(matches[0][3])
 
 				trackConditionText := matches[0][4]
+				// 前日の早い段階では馬場が確定していないため、matches[0][4]は空になる場合があるので暫定で初期値は良にしておく
+				trackCondition = types.GoodToFirm
 				if strings.Contains(trackConditionText, "良") {
 					trackCondition = types.GoodToFirm
 				} else if strings.Contains(trackConditionText, "稍") {

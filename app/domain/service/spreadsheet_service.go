@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
@@ -15,9 +14,10 @@ import (
 
 type SpreadSheetService interface {
 	CreateMarkerCombinationAnalysisData(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis
-	CreateOddsRangeRaceCountMap(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]map[types.OddsRangeType]int
+	CreateOddsRangeCountMap(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]map[types.OddsRangeType]int
+	CreateTicketTypeRaceCountMap(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.TicketType]int
 	CreatePredictionOdds(ctx context.Context, marker *marker_csv_entity.PredictionMarker, race *prediction_entity.Race) map[types.Marker]*prediction_entity.OddsRange
-	CreateTrioMarkerCombinationAggregationData(ctx context.Context, markerCombinationIds []types.MarkerCombinationId, markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis, raceCountMap map[types.MarkerCombinationId]map[types.OddsRangeType]int) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, map[types.MarkerCombinationId]map[types.OddsRangeType]int, error)
+	CreateTrioMarkerCombinationAggregationData(ctx context.Context, markerCombinationIds []types.MarkerCombinationId, markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, error)
 	GetCellColor(ctx context.Context, colorType types.CellColorType) *sheets.Color
 }
 
@@ -33,7 +33,7 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 	filter filter.Id,
 ) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis {
 	markerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	raceCountMap := s.CreateOddsRangeRaceCountMap(ctx, analysisData, filter)
+	//oddRangeCountMap := s.CreateOddsRangeCountMap(ctx, analysisData, filter)
 	for markerCombinationId, data := range analysisData.MarkerCombination {
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
@@ -42,7 +42,6 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 					case types.Win, types.Place:
 						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
 							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis()
-							markerCombinationDataMap[markerCombinationId].AddRaceCountOddsRangeMap(raceCountMap[markerCombinationId])
 						}
 						match := true
 						for _, f := range calculable.Filters() {
@@ -69,7 +68,7 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 	return markerCombinationDataMap
 }
 
-func (s *spreadSheetService) CreateOddsRangeRaceCountMap(
+func (s *spreadSheetService) CreateOddsRangeCountMap(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
 	filter filter.Id,
@@ -142,6 +141,52 @@ func (s *spreadSheetService) CreateOddsRangeRaceCountMap(
 	return markerCombinationOddsRangeCountMap
 }
 
+func (s *spreadSheetService) CreateTicketTypeRaceCountMap(
+	ctx context.Context,
+	analysisData *analysis_entity.Layer1,
+	filter filter.Id,
+) map[types.TicketType]int {
+	ticketTypeRaceIdCountMap := map[types.TicketType]map[types.RaceId]bool{}
+	for markerCombinationId, data := range analysisData.MarkerCombination {
+		ticketType := markerCombinationId.TicketType().OriginTicketType()
+		if _, ok := ticketTypeRaceIdCountMap[ticketType]; !ok {
+			ticketTypeRaceIdCountMap[ticketType] = map[types.RaceId]bool{}
+		}
+
+		for _, data2 := range data.RaceDate {
+			for raceId, data3 := range data2.RaceId {
+				if _, ok := ticketTypeRaceIdCountMap[ticketType][raceId]; ok {
+					continue
+				}
+				ticketTypeRaceIdCountMap[ticketType][raceId] = false
+				for _, calculable := range data3 {
+					match := true
+					for _, f := range calculable.Filters() {
+						if f&filter == 0 {
+							match = false
+							break
+						}
+					}
+					if match {
+						ticketTypeRaceIdCountMap[ticketType][raceId] = true
+					}
+				}
+			}
+		}
+	}
+
+	ticketTypeRaceCountMap := map[types.TicketType]int{}
+	for ticketType, raceIdCountMap := range ticketTypeRaceIdCountMap {
+		for _, b := range raceIdCountMap {
+			if b {
+				ticketTypeRaceCountMap[ticketType] += 1
+			}
+		}
+	}
+
+	return ticketTypeRaceCountMap
+}
+
 func (s *spreadSheetService) CreatePredictionOdds(
 	ctx context.Context,
 	marker *marker_csv_entity.PredictionMarker,
@@ -170,7 +215,7 @@ func (s *spreadSheetService) CreatePredictionOdds(
 		return types.UnknownOddsRangeType
 	}
 
-	contains := func(slice []int, value int) types.InOrder {
+	containsHorseNumber := func(slice []int, value int) types.InOrder {
 		for idx, v := range slice {
 			if v == value {
 				return types.InOrder(idx + 1)
@@ -180,7 +225,7 @@ func (s *spreadSheetService) CreatePredictionOdds(
 	}
 
 	for _, odds := range race.Odds() {
-		inOrder := contains(race.RaceResultHorseNumbers(), odds.HorseNumber())
+		inOrder := containsHorseNumber(race.RaceResultHorseNumbers(), odds.HorseNumber())
 		switch odds.HorseNumber() {
 		case marker.Favorite():
 			markerOddsRangeMap[types.Favorite] = prediction_entity.NewOddsRange(getOddsRange(odds.Odds()), inOrder)
@@ -205,8 +250,7 @@ func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
 	ctx context.Context,
 	markerCombinationIds []types.MarkerCombinationId,
 	markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
-	raceCountMap map[types.MarkerCombinationId]map[types.OddsRangeType]int,
-) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, map[types.MarkerCombinationId]map[types.OddsRangeType]int, error) {
+) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, error) {
 	aggregationMarkerCombinationIds := []types.MarkerCombinationId{
 		types.MarkerCombinationId(6100), // ◎-印-印
 		types.MarkerCombinationId(6200), // ◯-印-印
@@ -214,6 +258,7 @@ func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
 		types.MarkerCombinationId(6400), // △-印-印
 		types.MarkerCombinationId(6500), // ☆-印-印
 		types.MarkerCombinationId(6600), // ✓-印-印
+		// TODO 無は集計が困難なので後日消す予定(やろうと思えば頭数から計算は可能だがやる意義が薄い？)
 		types.MarkerCombinationId(6109), // ◎-印-無
 		types.MarkerCombinationId(6209), // ◯-印-無
 		types.MarkerCombinationId(6309), // ▲-印-無
@@ -223,7 +268,7 @@ func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
 	}
 
 	aggregationAnalysisListMap := map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	aggregationRaceCountOddsRangeMap := map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
+	aggregationRaceCountOddsRangeMap := map[types.MarkerCombinationId][]map[types.OddsRangeType]int{}
 	for _, markerCombinationId := range markerCombinationIds {
 		if markerCombinationId.TicketType() == types.Trio {
 			for _, aggregationMarkerCombinationId := range aggregationMarkerCombinationIds {
@@ -231,7 +276,7 @@ func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
 					aggregationAnalysisListMap[aggregationMarkerCombinationId] = make([]*spreadsheet_entity.MarkerCombinationAnalysis, 0)
 				}
 				if _, ok := aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId]; !ok {
-					aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId] = map[types.OddsRangeType]int{}
+					aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId] = make([]map[types.OddsRangeType]int, 0)
 				}
 
 				var rawMarkerCombinationIds []int
@@ -269,31 +314,16 @@ func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
 					markerCombinationMap,
 				)
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 				if aggregationAnalysis != nil {
 					aggregationAnalysisListMap[aggregationMarkerCombinationId] = append(aggregationAnalysisListMap[aggregationMarkerCombinationId], aggregationAnalysis)
-				}
-
-				aggregationRaceCountMap, err := s.getTrioAggregationTrioRaceCount(
-					ctx,
-					rawMarkerCombinationIds,
-					markerCombinationId,
-					raceCountMap,
-				)
-				if err != nil {
-					return nil, nil, err
-				}
-				if aggregationRaceCountMap != nil {
-					for oddsRangeType, raceCount := range aggregationRaceCountMap {
-						aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId][oddsRangeType] += raceCount
-					}
 				}
 			}
 		}
 	}
 
-	return aggregationAnalysisListMap, aggregationRaceCountOddsRangeMap, nil
+	return aggregationAnalysisListMap, nil
 }
 
 func (s *spreadSheetService) getTrioAggregationTrioAnalysis(
@@ -303,31 +333,9 @@ func (s *spreadSheetService) getTrioAggregationTrioAnalysis(
 	markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
 ) (*spreadsheet_entity.MarkerCombinationAnalysis, error) {
 	if contains(rawMarkerCombinationIds, markerCombinationId.Value()) {
-		analysisData, ok := markerCombinationMap[markerCombinationId]
-		if !ok {
-			return nil, fmt.Errorf("markerCombinationId not found: %d", markerCombinationId.Value())
+		if analysisData, ok := markerCombinationMap[markerCombinationId]; ok {
+			return analysisData, nil
 		}
-		return analysisData, nil
-	}
-	return nil, nil
-}
-
-func (s *spreadSheetService) getTrioAggregationTrioRaceCount(
-	ctx context.Context,
-	rawMarkerCombinationIds []int,
-	markerCombinationId types.MarkerCombinationId,
-	raceCountMap map[types.MarkerCombinationId]map[types.OddsRangeType]int,
-) (map[types.OddsRangeType]int, error) {
-	if contains(rawMarkerCombinationIds, markerCombinationId.Value()) {
-		raceCountOddsRangeMap, ok := raceCountMap[markerCombinationId]
-		if !ok {
-			return nil, fmt.Errorf("raceCountMap not found: %d", markerCombinationId.Value())
-		}
-		oddsRangeMap := map[types.OddsRangeType]int{}
-		for oddsRange, raceCount := range raceCountOddsRangeMap {
-			oddsRangeMap[oddsRange] += raceCount
-		}
-		return oddsRangeMap, nil
 	}
 	return nil, nil
 }

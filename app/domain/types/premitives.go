@@ -685,6 +685,7 @@ const (
 	Star                            // ☆
 	Check                           // ✓
 	NoMarker      Marker = 9        // 無
+	AnyMarker     Marker = 0        // 印(any)
 )
 
 var markerMap = map[Marker]string{
@@ -695,6 +696,7 @@ var markerMap = map[Marker]string{
 	Star:          "☆",
 	Check:         "✓",
 	NoMarker:      "無",
+	AnyMarker:     "印",
 }
 
 func NewMarker(value int) (Marker, error) {

@@ -14,6 +14,8 @@ type Calculable struct {
 	orderNo    int
 	entries    int
 	filters    []filter.Id
+	isHit      bool
+	pivotals   []*Pivotal
 }
 
 func NewCalculable(
@@ -24,6 +26,8 @@ func NewCalculable(
 	orderNo int,
 	entries int,
 	filters []filter.Id,
+	isHit bool,
+	pivotals []*Pivotal,
 ) *Calculable {
 	decimalOdds, _ := decimal.NewFromString(odds)
 	return &Calculable{
@@ -34,6 +38,8 @@ func NewCalculable(
 		orderNo:    orderNo,
 		entries:    entries,
 		filters:    filters,
+		isHit:      isHit,
+		pivotals:   pivotals,
 	}
 }
 
@@ -63,4 +69,12 @@ func (n *Calculable) Entries() int {
 
 func (n *Calculable) Filters() []filter.Id {
 	return n.filters
+}
+
+func (n *Calculable) IsHit() bool {
+	return n.isHit
+}
+
+func (n *Calculable) Pivotals() []*Pivotal {
+	return n.pivotals
 }

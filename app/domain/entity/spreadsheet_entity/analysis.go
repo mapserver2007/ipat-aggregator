@@ -7,32 +7,42 @@ import (
 )
 
 type AnalysisData struct {
-	markerCombinationFilterMap  map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
-	oddsRangeRaceCountFilterMap map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int
-	filters                     []filter.Id
-	allMarkerCombinationIds     []types.MarkerCombinationId
+	markerCombinationFilterMap map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis
+	oddsRangeCountFilterMap    map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int
+	raceCountFilterMap         map[filter.Id]map[types.TicketType]int
+	filters                    []filter.Id
+	allMarkerCombinationIds    []types.MarkerCombinationId
 }
 
 func NewAnalysisData(
 	markerCombinationFilterMap map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis,
-	oddsRangeRaceCountFilterMap map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int,
+	oddsRangeCountFilterMap map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int,
+	raceCountFilterMap map[filter.Id]map[types.TicketType]int,
 	filters []filter.Id,
 	allMarkerCombinationIds []types.MarkerCombinationId,
 ) *AnalysisData {
 	return &AnalysisData{
-		markerCombinationFilterMap:  markerCombinationFilterMap,
-		oddsRangeRaceCountFilterMap: oddsRangeRaceCountFilterMap,
-		filters:                     filters,
-		allMarkerCombinationIds:     allMarkerCombinationIds,
+		markerCombinationFilterMap: markerCombinationFilterMap,
+		oddsRangeCountFilterMap:    oddsRangeCountFilterMap,
+		raceCountFilterMap:         raceCountFilterMap,
+		filters:                    filters,
+		allMarkerCombinationIds:    allMarkerCombinationIds,
 	}
 }
 
+// MarkerCombinationFilterMap 打たれた印(的中・不的中・オッズ等の情報)に関する情報。的中回数、オッズはここから算出する
 func (a *AnalysisData) MarkerCombinationFilterMap() map[filter.Id]map[types.MarkerCombinationId]*MarkerCombinationAnalysis {
 	return a.markerCombinationFilterMap
 }
 
-func (a *AnalysisData) OddsRangeRaceCountFilterMap() map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int {
-	return a.oddsRangeRaceCountFilterMap
+// OddsRangeCountFilterMap オッズ幅に対する情報。対象レースすべての情報を保持している(的中・不的中の合算)
+func (a *AnalysisData) OddsRangeCountFilterMap() map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int {
+	return a.oddsRangeCountFilterMap
+}
+
+// RaceCountFilterMap 券種単位のレース数
+func (a *AnalysisData) RaceCountFilterMap() map[filter.Id]map[types.TicketType]int {
+	return a.raceCountFilterMap
 }
 
 func (a *AnalysisData) Filters() []filter.Id {
@@ -44,19 +54,13 @@ func (a *AnalysisData) AllMarkerCombinationIds() []types.MarkerCombinationId {
 }
 
 type MarkerCombinationAnalysis struct {
-	raceCountOddsRangeMap map[types.OddsRangeType]int
-	calculables           []*analysis_entity.Calculable
+	calculables []*analysis_entity.Calculable
 }
 
 func NewMarkerCombinationAnalysis() *MarkerCombinationAnalysis {
 	return &MarkerCombinationAnalysis{
-		raceCountOddsRangeMap: map[types.OddsRangeType]int{},
-		calculables:           make([]*analysis_entity.Calculable, 0),
+		calculables: make([]*analysis_entity.Calculable, 0),
 	}
-}
-
-func (m *MarkerCombinationAnalysis) AddRaceCountOddsRangeMap(raceCountOddsRangeMap map[types.OddsRangeType]int) {
-	m.raceCountOddsRangeMap = raceCountOddsRangeMap
 }
 
 func (m *MarkerCombinationAnalysis) AddCalculable(calculable *analysis_entity.Calculable) {

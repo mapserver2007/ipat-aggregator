@@ -53,9 +53,9 @@ func (p *PredictionUseCase) Write(
 
 		strictFilterId, simpleFilterId := p.filterService.CreatePredictionFilters(ctx, race)
 		strictPredictionMarkerCombinationData := p.spreadSheetService.CreateMarkerCombinationAnalysisData(ctx, analysisData, strictFilterId)
-		strictPredictionOddsRangeMap := p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, strictFilterId)
+		strictPredictionOddsRangeMap := p.spreadSheetService.CreateOddsRangeCountMap(ctx, analysisData, strictFilterId)
 		simplePredictionMarkerCombinationData := p.spreadSheetService.CreateMarkerCombinationAnalysisData(ctx, analysisData, simpleFilterId)
-		simplePredictionOddsRangeMap := p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, simpleFilterId)
+		simplePredictionOddsRangeMap := p.spreadSheetService.CreateOddsRangeCountMap(ctx, analysisData, simpleFilterId)
 
 		markerOddsRangeMap := p.spreadSheetService.CreatePredictionOdds(ctx, marker, race)
 		markerOddsRangeMapList = append(markerOddsRangeMapList, markerOddsRangeMap)

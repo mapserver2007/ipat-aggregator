@@ -91,22 +91,65 @@ func (p *analysisService) AddAnalysisData(
 						raceResult.OrderNo(),
 						race.Entries(),
 						p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
+						true,
+						nil,
 					)
 					addData(markerCombinationId, race, calculable)
 				}
 			} else if markerCombinationId.TicketType().OriginTicketType() == types.Trio {
-				// TODO 印は最小単位で集計したあと、◎-印-印のような組合せに再編成する
+				pivotals := make([]*analysis_entity.Pivotal, 0, 3)
+				strMarkerCombinationId := strconv.Itoa(markerCombinationId.Value())
+
+				// 軸用のデータを取得
+				for i := 1; i < len(strMarkerCombinationId); i++ {
+					digit, err := strconv.Atoi(string(strMarkerCombinationId[i]))
+					if err != nil {
+						return err
+					}
+					hitMarker := types.Marker(digit)
+					horseNumber, ok := marker.MarkerMap()[hitMarker]
+					if !ok {
+						return fmt.Errorf("marker %s is not found in markerMap", types.Marker(digit).String())
+					}
+					raceResult, ok := raceResultMap[horseNumber]
+					if !ok {
+						return fmt.Errorf("raceResult for horseNumber %d is not found", horseNumber)
+					}
+					pivotals = append(pivotals, analysis_entity.NewPivotal(
+						hitMarker,
+						raceResult.Odds(),
+						raceResult.HorseNumber(),
+						raceResult.PopularNumber(),
+						raceResult.OrderNo(),
+					))
+				}
+
 				for i := 0; i < len(payoutResult.Numbers()); i++ {
-					calculable := analysis_entity.NewCalculable(
-						markerCombinationId.TicketType().OriginTicketType(),
-						payoutResult.Odds()[i],
-						payoutResult.Numbers()[i],
-						payoutResult.Populars()[i],
-						0, // 使わない
-						race.Entries(),
-						nil, // TODO フィルタはあとで
-					)
-					addData(markerCombinationId, race, calculable)
+					// 複数回来る場合は同着。その場合は不的中馬番の組合せが含まれるのでそれは除外する
+					isHit := true
+					numbers := payoutResult.Numbers()[i].List()
+					for _, pivotal := range pivotals {
+						if !contains(numbers, pivotal.HorseNumber()) {
+							// ひとつでも一致しない場合は、同着における不的中の組合せ
+							isHit = false
+							break
+						}
+					}
+
+					if isHit {
+						calculable := analysis_entity.NewCalculable(
+							markerCombinationId.TicketType().OriginTicketType(),
+							payoutResult.Odds()[i],
+							payoutResult.Numbers()[i],
+							payoutResult.Populars()[i],
+							0, // 使わない
+							race.Entries(),
+							nil, // TODO フィルタはあとで
+							true,
+							pivotals,
+						)
+						addData(markerCombinationId, race, calculable)
+					}
 				}
 			}
 		}
@@ -132,21 +175,45 @@ func (p *analysisService) AddAnalysisData(
 						raceResult.OrderNo(),
 						race.Entries(),
 						p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
+						false,
+						nil,
 					)
 					addData(markerCombinationId, race, calculable)
 				}
 			} else if markerCombinationId.TicketType().OriginTicketType() == types.Trio {
 				for i := 0; i < len(payoutResult.Numbers()); i++ {
-					calculable := analysis_entity.NewCalculable(
-						markerCombinationId.TicketType().OriginTicketType(),
-						payoutResult.Odds()[i],
-						payoutResult.Numbers()[i],
-						payoutResult.Populars()[i],
-						0, // 使わない
-						race.Entries(),
-						nil, // TODO フィルタはあとで
-					)
-					addData(markerCombinationId, race, calculable)
+					isUnHit := false
+					strMarkerCombinationId := strconv.Itoa(markerCombinationId.Value())
+					// 軸用のデータを取得(ただし不的中計算では軸データ不要なので同着における不的中判定だけする)
+					for i := 1; i < len(strMarkerCombinationId); i++ {
+						digit, err := strconv.Atoi(string(strMarkerCombinationId[i]))
+						if err != nil {
+							return err
+						}
+						hitMarker := types.Marker(digit)
+						if _, ok := marker.MarkerMap()[hitMarker]; !ok {
+							// 無印の場合は馬番が予想印から馬番が取れないので自動的に不的中扱い
+							// ここを通らない場合は予想印と結果の3馬番が一致することになるので的中になる
+							// ここに来るケースは同着時の的中が含まれる場合だけでそれは除外対象データ
+							isUnHit = true
+							break
+						}
+					}
+
+					if isUnHit {
+						calculable := analysis_entity.NewCalculable(
+							markerCombinationId.TicketType().OriginTicketType(),
+							payoutResult.Odds()[i],
+							payoutResult.Numbers()[i],
+							payoutResult.Populars()[i],
+							0, // 使わない
+							race.Entries(),
+							nil, // TODO フィルタはあとで
+							false,
+							nil, // 不的中時は軸計算をしないのでnil
+						)
+						addData(markerCombinationId, race, calculable)
+					}
 				}
 			}
 		}
@@ -1504,16 +1571,19 @@ func (p *analysisService) CreateSpreadSheetAnalysisData(
 	filters []filter.Id,
 ) *spreadsheet_entity.AnalysisData {
 	markerCombinationFilterMap := map[filter.Id]map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	oddsRangeRaceCountFilterMap := map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
+	oddsRangeCountFilterMap := map[filter.Id]map[types.MarkerCombinationId]map[types.OddsRangeType]int{}
+	raceCountFilterMap := map[filter.Id]map[types.TicketType]int{}
 
 	for _, filter := range filters {
 		markerCombinationFilterMap[filter] = p.spreadSheetService.CreateMarkerCombinationAnalysisData(ctx, analysisData, filter)
-		oddsRangeRaceCountFilterMap[filter] = p.spreadSheetService.CreateOddsRangeRaceCountMap(ctx, analysisData, filter)
+		oddsRangeCountFilterMap[filter] = p.spreadSheetService.CreateOddsRangeCountMap(ctx, analysisData, filter)
+		raceCountFilterMap[filter] = p.spreadSheetService.CreateTicketTypeRaceCountMap(ctx, analysisData, filter)
 	}
 
 	return spreadsheet_entity.NewAnalysisData(
 		markerCombinationFilterMap,
-		oddsRangeRaceCountFilterMap,
+		oddsRangeCountFilterMap,
+		raceCountFilterMap,
 		filters,
 		p.createAllMarkerCombinations(),
 	)

@@ -42,7 +42,10 @@ func (p *MarkerAnalysisUseCase) Write(
 	spreadSheetWinPlaceAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, winPlaceFilters)
 	spreadSheetTrioAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, trioFilters)
 
-	p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData, trioFilters)
+	err = p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData)
+	if err != nil {
+		return err
+	}
 
 	err = p.spreadSheetMarkerAnalysisRepository.Write(ctx, spreadSheetWinPlaceAnalysisData)
 	if err != nil {

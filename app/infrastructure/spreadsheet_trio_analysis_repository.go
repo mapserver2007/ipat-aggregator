@@ -61,6 +61,10 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 
 		aggregationMarkerIds := make([]int, 0, len(trioAggregationAnalysisListMap))
 		for id := range trioAggregationAnalysisListMap {
+			if id.Value()%10 == types.NoMarker.Value() {
+				// TODO 一旦無が含まれる場合をスルーする
+				continue
+			}
 			aggregationMarkerIds = append(aggregationMarkerIds, id.Value())
 		}
 		sort.Ints(aggregationMarkerIds)
@@ -69,11 +73,6 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 		for _, rawId := range aggregationMarkerIds {
 			defaultValuesList := s.createDefaultValuesList()
 			position := len(defaultValuesList) * aggregationMarkerIndex
-			// TODO 一旦無が含まれる場合をスルーする
-			if rawId%10 == types.NoMarker.Value() {
-				continue
-			}
-
 			pivotalMarker, err := types.NewMarker((rawId / 100) % 10)
 			if err != nil {
 				return err
@@ -177,6 +176,26 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][9] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange8], matchCount)
 				case 4:
+					allWinOddsRangeMap := map[types.OddsRangeType]int{}
+					for _, oddsRange := range aggregationHitPivotalOddsRangeMap {
+						allWinOddsRangeMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
+						allWinOddsRangeMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
+						allWinOddsRangeMap[types.TrioOddsRange3] += oddsRange[types.TrioOddsRange3]
+						allWinOddsRangeMap[types.TrioOddsRange4] += oddsRange[types.TrioOddsRange4]
+						allWinOddsRangeMap[types.TrioOddsRange5] += oddsRange[types.TrioOddsRange5]
+						allWinOddsRangeMap[types.TrioOddsRange6] += oddsRange[types.TrioOddsRange6]
+						allWinOddsRangeMap[types.TrioOddsRange7] += oddsRange[types.TrioOddsRange7]
+						allWinOddsRangeMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
+					}
+					valuesList[i][0][3] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange8], raceCount)
+				case 5:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange1.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -186,7 +205,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 5:
+				case 6:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange3]
@@ -195,7 +214,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange8]
-				case 6:
+				case 7:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange1] {
 						matchCount += count
@@ -208,7 +227,16 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange8], matchCount)
-				case 7:
+				case 8:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange1][types.TrioOddsRange8], raceCount)
+				case 9:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange2.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -218,7 +246,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 8:
+				case 10:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange3]
@@ -227,7 +255,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange8]
-				case 9:
+				case 11:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange2] {
 						matchCount += count
@@ -240,7 +268,16 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange8], matchCount)
-				case 10:
+				case 12:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange2][types.TrioOddsRange8], raceCount)
+				case 13:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange3.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -250,7 +287,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 11:
+				case 14:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange3]
@@ -259,7 +296,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange8]
-				case 12:
+				case 15:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange3] {
 						matchCount += count
@@ -272,7 +309,16 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange8], matchCount)
-				case 13:
+				case 16:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange3][types.TrioOddsRange8], raceCount)
+				case 17:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange4.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -282,7 +328,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 14:
+				case 18:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange3]
@@ -291,7 +337,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange8]
-				case 15:
+				case 19:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange4] {
 						matchCount += count
@@ -304,7 +350,16 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange8], matchCount)
-				case 16:
+				case 20:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange4][types.TrioOddsRange8], raceCount)
+				case 21:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange5.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -314,7 +369,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 17:
+				case 22:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange3]
@@ -323,7 +378,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange8]
-				case 18:
+				case 23:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange5] {
 						matchCount += count
@@ -336,7 +391,16 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange8], matchCount)
-				case 19:
+				case 24:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange5][types.TrioOddsRange8], raceCount)
+				case 25:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange6.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -346,7 +410,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 20:
+				case 26:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange3]
@@ -355,7 +419,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange8]
-				case 21:
+				case 27:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange6] {
 						matchCount += count
@@ -368,7 +432,16 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange8], matchCount)
-				case 22:
+				case 28:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange6][types.TrioOddsRange8], raceCount)
+				case 29:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange7.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -378,7 +451,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 23:
+				case 30:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange3]
@@ -387,7 +460,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange8]
-				case 24:
+				case 31:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange7] {
 						matchCount += count
@@ -400,7 +473,16 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange8], matchCount)
-				case 25:
+				case 32:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange7][types.TrioOddsRange8], raceCount)
+				case 33:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange8.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
 					valuesList[i][0][4] = types.TrioOddsRange2.String()
@@ -410,7 +492,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = types.TrioOddsRange6.String()
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 26:
+				case 34:
 					valuesList[i][0][3] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange1]
 					valuesList[i][0][4] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange2]
 					valuesList[i][0][5] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange3]
@@ -419,7 +501,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange6]
 					valuesList[i][0][9] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange7]
 					valuesList[i][0][10] = aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange8]
-				case 27:
+				case 35:
 					matchCount = 0
 					for _, count := range aggregationHitPivotalOddsRangeMap[types.WinOddsRange8] {
 						matchCount += count
@@ -432,6 +514,15 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange6], matchCount)
 					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange7], matchCount)
 					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange8], matchCount)
+				case 36:
+					valuesList[i][0][3] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange1], raceCount)
+					valuesList[i][0][4] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange2], raceCount)
+					valuesList[i][0][5] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange3], raceCount)
+					valuesList[i][0][6] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange4], raceCount)
+					valuesList[i][0][7] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange5], raceCount)
+					valuesList[i][0][8] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange6], raceCount)
+					valuesList[i][0][9] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange7], raceCount)
+					valuesList[i][0][10] = rateFormatFunc(aggregationHitPivotalOddsRangeMap[types.WinOddsRange8][types.TrioOddsRange8], raceCount)
 				}
 			}
 
@@ -517,10 +608,25 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 		},
 	})
-	// OddsRange単1
 	valuesList = append(valuesList, [][]interface{}{
 		{
 			"回収率",
+			"",
+			"的中全割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
+	// OddsRange単1
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"最大オッズ",
 			"",
 			fmt.Sprintf("単%s", types.WinOddsRange1.String()),
 			types.TrioOddsRange1.String(),
@@ -535,7 +641,7 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 	})
 	valuesList = append(valuesList, [][]interface{}{
 		{
-			"最大オッズ",
+			"最小オッズ",
 			"",
 			"的中回数",
 			"",
@@ -550,9 +656,24 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 	})
 	valuesList = append(valuesList, [][]interface{}{
 		{
-			"最小オッズ",
+			"平均オッズ",
 			"",
 			"的中割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"中央オッズ",
+			"",
+			"的中全割合",
 			"",
 			"",
 			"",
@@ -566,7 +687,7 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 	// OddsRange単2
 	valuesList = append(valuesList, [][]interface{}{
 		{
-			"平均オッズ",
+			"",
 			"",
 			fmt.Sprintf("単%s", types.WinOddsRange2.String()),
 			types.TrioOddsRange1.String(),
@@ -581,7 +702,7 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 	})
 	valuesList = append(valuesList, [][]interface{}{
 		{
-			"中央オッズ",
+			"",
 			"",
 			"的中回数",
 			"",
@@ -599,6 +720,21 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 			"",
 			"的中割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"的中全割合",
 			"",
 			"",
 			"",
@@ -655,6 +791,21 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 		},
 	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"的中全割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
 	// OddsRange単4
 	valuesList = append(valuesList, [][]interface{}{
 		{
@@ -691,6 +842,21 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 			"",
 			"的中割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"的中全割合",
 			"",
 			"",
 			"",
@@ -747,6 +913,21 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 		},
 	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"的中全割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
 	// OddsRange単6
 	valuesList = append(valuesList, [][]interface{}{
 		{
@@ -783,6 +964,21 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 			"",
 			"的中割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"的中全割合",
 			"",
 			"",
 			"",
@@ -839,6 +1035,21 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 		},
 	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"的中全割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
 	// OddsRange単8
 	valuesList = append(valuesList, [][]interface{}{
 		{
@@ -875,6 +1086,21 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 			"",
 			"",
 			"的中割合",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
+	})
+	valuesList = append(valuesList, [][]interface{}{
+		{
+			"",
+			"",
+			"的中全割合",
 			"",
 			"",
 			"",
@@ -986,7 +1212,6 @@ func (s *spreadSheetTrioAnalysisRepository) aggregationOdds(
 	ctx context.Context,
 	markerCombinationAnalysisList []*spreadsheet_entity.MarkerCombinationAnalysis,
 ) (float64, float64, float64, float64, float64) {
-
 	var rawOddsList []float64
 	for _, markerCombinationAnalysis := range markerCombinationAnalysisList {
 		for _, calculable := range markerCombinationAnalysis.Calculables() {
@@ -1033,12 +1258,301 @@ func (s *spreadSheetTrioAnalysisRepository) aggregationOdds(
 	return total, max, min, average, median
 }
 
-func (s *spreadSheetTrioAnalysisRepository) Style(ctx context.Context, analysisData *spreadsheet_entity.AnalysisData) error {
-	//TODO implement me
-	panic("implement me")
+func (s *spreadSheetTrioAnalysisRepository) Style(
+	ctx context.Context,
+	analysisData *spreadsheet_entity.AnalysisData,
+) error {
+	var requests []*sheets.Request
+	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
+	markerCombinationMap := analysisData.MarkerCombinationFilterMap()
+	rowGroupSize := len(s.createDefaultValuesList())
+
+	for _, f := range analysisData.Filters() {
+		trioAggregationAnalysisListMap, err := s.spreadSheetService.CreateTrioMarkerCombinationAggregationData(ctx, allMarkerCombinationIds, markerCombinationMap[f])
+		if err != nil {
+			return err
+		}
+		aggregationMarkerIds := make([]int, 0, len(trioAggregationAnalysisListMap))
+		for id := range trioAggregationAnalysisListMap {
+			if id.Value()%10 == types.NoMarker.Value() {
+				// TODO 一旦無が含まれる場合をスルーする
+				continue
+			}
+			aggregationMarkerIds = append(aggregationMarkerIds, id.Value())
+		}
+		sort.Ints(aggregationMarkerIds)
+
+		for idx := range aggregationMarkerIds {
+			requests = append(requests, []*sheets.Request{
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.backgroundColor",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: 0,
+							StartRowIndex:    int64(idx * rowGroupSize),
+							EndColumnIndex:   11,
+							EndRowIndex:      int64(idx*rowGroupSize + 1),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								BackgroundColor: &sheets.Color{
+									Red:   0.0,
+									Blue:  1.0,
+									Green: 0.0,
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.textFormat.foregroundColor",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: 0,
+							StartRowIndex:    int64(idx * rowGroupSize),
+							EndColumnIndex:   11,
+							EndRowIndex:      int64(idx*rowGroupSize + 1),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								TextFormat: &sheets.TextFormat{
+									ForegroundColor: &sheets.Color{
+										Red:   1.0,
+										Green: 1.0,
+										Blue:  1.0,
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.textFormat.bold",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: 0,
+							StartRowIndex:    int64(idx * rowGroupSize),
+							EndColumnIndex:   11,
+							EndRowIndex:      int64(idx*rowGroupSize + 1),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								TextFormat: &sheets.TextFormat{
+									Bold: true,
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.textFormat.bold",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: 0,
+							StartRowIndex:    int64(idx*rowGroupSize + 1),
+							EndColumnIndex:   1,
+							EndRowIndex:      int64(idx*rowGroupSize + 9),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								TextFormat: &sheets.TextFormat{
+									Bold: true,
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.textFormat.bold",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: 2,
+							StartRowIndex:    int64(idx*rowGroupSize + 1),
+							EndColumnIndex:   3,
+							EndRowIndex:      int64(idx*rowGroupSize + rowGroupSize),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								TextFormat: &sheets.TextFormat{
+									Bold: true,
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.backgroundColor",
+						Range: &sheets.GridRange{
+							SheetId:          s.spreadSheetConfig.SheetId(),
+							StartColumnIndex: 0,
+							StartRowIndex:    int64(idx*rowGroupSize + 1),
+							EndColumnIndex:   1,
+							EndRowIndex:      int64(idx*rowGroupSize + 9),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								BackgroundColor: &sheets.Color{
+									Red:   1.0,
+									Blue:  0.0,
+									Green: 1.0,
+								},
+							},
+						},
+					},
+				},
+			}...)
+			for i := 0; i < 9; i++ {
+				requests = append(requests, []*sheets.Request{
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.backgroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: 2,
+								StartRowIndex:    int64(1 + (i * 4) + idx*rowGroupSize),
+								EndColumnIndex:   3,
+								EndRowIndex:      int64(2 + (i * 4) + idx*rowGroupSize),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									BackgroundColor: &sheets.Color{
+										Red:   0.0,
+										Blue:  0.0,
+										Green: 0.0,
+									},
+								},
+							},
+						},
+					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.backgroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: 3,
+								StartRowIndex:    int64(1 + (i * 4) + idx*rowGroupSize),
+								EndColumnIndex:   11,
+								EndRowIndex:      int64(2 + (i * 4) + idx*rowGroupSize),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									BackgroundColor: &sheets.Color{
+										Red:   1.0,
+										Blue:  0.0,
+										Green: 0.0,
+									},
+								},
+							},
+						},
+					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.textFormat.bold",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: 2,
+								StartRowIndex:    int64(1 + (i * 4) + idx*rowGroupSize),
+								EndColumnIndex:   11,
+								EndRowIndex:      int64(2 + (i * 4) + idx*rowGroupSize),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									TextFormat: &sheets.TextFormat{
+										Bold: true,
+									},
+								},
+							},
+						},
+					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.textFormat.foregroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: 2,
+								StartRowIndex:    int64(1 + (i * 4) + idx*rowGroupSize),
+								EndColumnIndex:   11,
+								EndRowIndex:      int64(2 + (i * 4) + idx*rowGroupSize),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									TextFormat: &sheets.TextFormat{
+										ForegroundColor: &sheets.Color{
+											Red:   1.0,
+											Green: 1.0,
+											Blue:  1.0,
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "userEnteredFormat.backgroundColor",
+							Range: &sheets.GridRange{
+								SheetId:          s.spreadSheetConfig.SheetId(),
+								StartColumnIndex: 2,
+								StartRowIndex:    int64(2 + (i * 4) + idx*rowGroupSize),
+								EndColumnIndex:   3,
+								EndRowIndex:      int64(6 + (i * 4) + idx*rowGroupSize),
+							},
+							Cell: &sheets.CellData{
+								UserEnteredFormat: &sheets.CellFormat{
+									BackgroundColor: &sheets.Color{
+										Red:   1.0,
+										Blue:  0.0,
+										Green: 1.0,
+									},
+								},
+							},
+						},
+					},
+				}...)
+			}
+		}
+
+	}
+
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *spreadSheetTrioAnalysisRepository) Clear(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          s.spreadSheetConfig.SheetId(),
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   12,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

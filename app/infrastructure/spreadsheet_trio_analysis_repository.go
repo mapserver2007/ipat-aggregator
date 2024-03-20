@@ -1501,7 +1501,7 @@ func (s *spreadSheetTrioAnalysisRepository) Style(
 								StartColumnIndex: 2,
 								StartRowIndex:    int64(2 + (i * 4) + idx*rowGroupSize),
 								EndColumnIndex:   3,
-								EndRowIndex:      int64(6 + (i * 4) + idx*rowGroupSize),
+								EndRowIndex:      int64(5 + (i * 4) + idx*rowGroupSize),
 							},
 							Cell: &sheets.CellData{
 								UserEnteredFormat: &sheets.CellFormat{

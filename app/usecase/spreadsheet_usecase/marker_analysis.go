@@ -32,20 +32,16 @@ func (p *MarkerAnalysisUseCase) Write(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
 ) error {
-	err := p.spreadSheetMarkerAnalysisRepository.Clear(ctx)
-	if err != nil {
-		return err
-	}
-	err = p.spreadSheetTrioAnalysisRepository.Clear(ctx)
-	if err != nil {
-		return err
-	}
 	winPlaceFilters := p.filterService.GetWinPlaceAnalysisFilters()
 	trioFilters := p.filterService.GetTrioAnalysisFilters()
 
 	spreadSheetWinPlaceAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, winPlaceFilters)
 	spreadSheetTrioAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, trioFilters)
 
+	err := p.spreadSheetMarkerAnalysisRepository.Clear(ctx)
+	if err != nil {
+		return err
+	}
 	err = p.spreadSheetMarkerAnalysisRepository.Write(ctx, spreadSheetWinPlaceAnalysisData)
 	if err != nil {
 		return err
@@ -55,6 +51,10 @@ func (p *MarkerAnalysisUseCase) Write(
 		return err
 	}
 
+	err = p.spreadSheetTrioAnalysisRepository.Clear(ctx)
+	if err != nil {
+		return err
+	}
 	err = p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData)
 	if err != nil {
 		return err

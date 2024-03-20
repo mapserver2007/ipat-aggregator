@@ -18,7 +18,7 @@ const (
 	analysisRaceEndDate   = "20240317"
 	enableAnalysis        = true
 	enablePrediction      = false
-	enableAggregate       = true
+	enableAggregate       = false
 )
 
 func main() {

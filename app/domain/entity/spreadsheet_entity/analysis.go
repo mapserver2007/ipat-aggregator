@@ -4,6 +4,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"github.com/shopspring/decimal"
 )
 
 type AnalysisData struct {
@@ -69,4 +70,34 @@ func (m *MarkerCombinationAnalysis) AddCalculable(calculable *analysis_entity.Ca
 
 func (m *MarkerCombinationAnalysis) Calculables() []*analysis_entity.Calculable {
 	return m.calculables
+}
+
+type Odds struct {
+	ticketType types.TicketType
+	odds       decimal.Decimal
+	number     types.BetNumber
+}
+
+func NewOdds(
+	ticketType types.TicketType,
+	odds string,
+	number types.BetNumber,
+) *Odds {
+	return &Odds{
+		ticketType: ticketType,
+		odds:       decimal.RequireFromString(odds),
+		number:     number,
+	}
+}
+
+func (m *Odds) TicketType() types.TicketType {
+	return m.ticketType
+}
+
+func (m *Odds) Odds() decimal.Decimal {
+	return m.odds
+}
+
+func (m *Odds) Number() types.BetNumber {
+	return m.number
 }

@@ -3,6 +3,7 @@ package spreadsheet_usecase
 import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 )
@@ -31,31 +32,32 @@ func NewMarkerAnalysisUseCase(
 func (p *MarkerAnalysisUseCase) Write(
 	ctx context.Context,
 	analysisData *analysis_entity.Layer1,
+	races []*data_cache_entity.Race,
 ) error {
-	winPlaceFilters := p.filterService.GetWinPlaceAnalysisFilters()
+	//winPlaceFilters := p.filterService.GetWinPlaceAnalysisFilters()
 	trioFilters := p.filterService.GetTrioAnalysisFilters()
 
-	spreadSheetWinPlaceAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, winPlaceFilters)
+	//spreadSheetWinPlaceAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, winPlaceFilters)
 	spreadSheetTrioAnalysisData := p.analysisService.CreateSpreadSheetAnalysisData(ctx, analysisData, trioFilters)
 
-	err := p.spreadSheetMarkerAnalysisRepository.Clear(ctx)
-	if err != nil {
-		return err
-	}
-	err = p.spreadSheetMarkerAnalysisRepository.Write(ctx, spreadSheetWinPlaceAnalysisData)
-	if err != nil {
-		return err
-	}
-	err = p.spreadSheetMarkerAnalysisRepository.Style(ctx, spreadSheetWinPlaceAnalysisData)
-	if err != nil {
-		return err
-	}
+	//err := p.spreadSheetMarkerAnalysisRepository.Clear(ctx)
+	//if err != nil {
+	//	return err
+	//}
+	//err = p.spreadSheetMarkerAnalysisRepository.Write(ctx, spreadSheetWinPlaceAnalysisData)
+	//if err != nil {
+	//	return err
+	//}
+	//err = p.spreadSheetMarkerAnalysisRepository.Style(ctx, spreadSheetWinPlaceAnalysisData)
+	//if err != nil {
+	//	return err
+	//}
 
-	err = p.spreadSheetTrioAnalysisRepository.Clear(ctx)
+	err := p.spreadSheetTrioAnalysisRepository.Clear(ctx)
 	if err != nil {
 		return err
 	}
-	err = p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData)
+	err = p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData, races)
 	if err != nil {
 		return err
 	}

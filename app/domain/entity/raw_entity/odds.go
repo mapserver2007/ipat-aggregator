@@ -1,6 +1,6 @@
 package raw_entity
 
-type OddsInfo struct {
+type RealTimeOddsInfo struct {
 	Status      string `json:"status"`
 	UpdateCount string `json:"update_count"`
 	Reason      string `json:"reason"`
@@ -8,10 +8,14 @@ type OddsInfo struct {
 }
 
 type Data struct {
-	OfficialDatetime string `json:"official_datetime"`
-	Odds             Odds   `json:"odds"`
+	OfficialDatetime string       `json:"official_datetime"`
+	Odds             RealTimeOdds `json:"odds"`
 }
 
-type Odds struct {
+type RealTimeOdds struct {
 	List map[string][]string `json:"1"`
+}
+
+type FixedOddsInfo struct {
+	TicketType int `json:"ticket_type"`
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
@@ -28,6 +29,7 @@ type DataCacheUseCase struct {
 	jockeyDataRepository        repository.JockeyDataRepository
 	raceIdDataRepository        repository.RaceIdDataRepository
 	markerDataRepository        repository.MarkerDataRepository
+	oddsDataRepository          repository.OddsDataRepository
 	netKeibaService             service.NetKeibaService
 	raceConverter               service.RaceConverter
 	racingNumberEntityConverter service.RacingNumberEntityConverter
@@ -41,6 +43,7 @@ func NewDataCacheUseCase(
 	jockeyDataRepository repository.JockeyDataRepository,
 	raceIdDataRepository repository.RaceIdDataRepository,
 	markerDataRepository repository.MarkerDataRepository,
+	oddsDataRepository repository.OddsDataRepository,
 	netKeibaService service.NetKeibaService,
 	raceConverter service.RaceConverter,
 	racingNumberConverter service.RacingNumberEntityConverter,
@@ -53,6 +56,7 @@ func NewDataCacheUseCase(
 		jockeyDataRepository:        jockeyDataRepository,
 		raceIdDataRepository:        raceIdDataRepository,
 		markerDataRepository:        markerDataRepository,
+		oddsDataRepository:          oddsDataRepository,
 		netKeibaService:             netKeibaService,
 		raceConverter:               raceConverter,
 		racingNumberEntityConverter: racingNumberConverter,
@@ -302,22 +306,48 @@ func (d *DataCacheUseCase) Write(
 		}
 	}
 
-	urls, err = d.netKeibaService.CreateAnalysisRaceUrls(ctx, analysisRaces, analysisRaceIdsMap)
+	raceUrls, err := d.netKeibaService.CreateAnalysisRaceUrls(ctx, analysisRaces, analysisRaceIdsMap)
 	if err != nil {
 		return err
 	}
-	raceMap := map[types.RaceDate][]*raw_entity.Race{}
 
-	for _, url := range urls {
+	oddsUrls, err := d.netKeibaService.CreateOddsUrls(ctx, analysisRaces, analysisRaceIdsMap)
+	if err != nil {
+		return err
+	}
+
+	raceMap := map[types.RaceDate][]*raw_entity.Race{}
+	fetchRaceMap := map[types.RaceId]*netkeiba_entity.Race{}
+	fetchOddsMap := map[types.RaceId][]*netkeiba_entity.Odds{}
+
+	for _, url := range raceUrls {
 		time.Sleep(time.Second * 1)
 		log.Println(ctx, "fetch analysisRace from "+url)
 		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
 			return err
 		}
+		fetchRaceMap[types.RaceId(fetchRace.RaceId())] = fetchRace
 		newRace := d.raceEntityConverter.NetKeibaToRaw(fetchRace)
 		raceMap[types.RaceDate(newRace.RaceDate)] = append(raceMap[types.RaceDate(newRace.RaceDate)], newRace)
 	}
+
+	for _, url := range oddsUrls {
+		time.Sleep(time.Second * 1)
+		log.Println(ctx, "fetch analysisOdds from "+url)
+		fetchOdds, err := d.oddsDataRepository.Fetch(ctx, url) // TODO impl
+		if err != nil {
+			return err
+		}
+		u, err := net_url.Parse(url)
+		if err != nil {
+			return err
+		}
+		raceId := types.RaceId(u.Query().Get("race_id"))
+		fetchOddsMap[raceId] = fetchOdds
+	}
+
+	// TODO ここでfetchRaceとfetchOddsを合体
 
 	for raceDate, rawRaces := range raceMap {
 		raceInfo = raw_entity.RaceInfo{

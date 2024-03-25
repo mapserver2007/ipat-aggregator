@@ -311,7 +311,7 @@ func (p *predictionDataRepository) fetchOdds(ctx context.Context, url string) ([
 		return nil, err
 	}
 
-	var oddsInfo *raw_entity.OddsInfo
+	var oddsInfo *raw_entity.RealTimeOddsInfo
 	if err := json.Unmarshal(body, &oddsInfo); err != nil {
 		return nil, err
 	}

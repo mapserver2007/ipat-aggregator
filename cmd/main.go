@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	analysisRaceStartDate = "20230813"
-	analysisRaceEndDate   = "20240317"
+	analysisRaceStartDate = "20230812"
+	analysisRaceEndDate   = "20240324"
 	enableAnalysis        = true
 	enablePrediction      = false
 	enableAggregate       = false
@@ -124,6 +124,11 @@ func masterFile(
 
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
 
+	markers, err := analysisUseCase.Read(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+
 	racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
@@ -135,11 +140,6 @@ func masterFile(
 	}
 
 	racingNumbers, ticketRaces, jockeys, _, _, _, analysisRaces, err = dataCacheUseCase.Read(ctx)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
-	}
-
-	markers, err := analysisUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
@@ -171,7 +171,7 @@ func analysis(
 	}
 
 	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetMarkerAnalysisRepository, spreadSheetTrioAnalysisRepository, analysisService, filterService)
-	err = spreadSheetUseCase.Write(ctx, analysisData)
+	err = spreadSheetUseCase.Write(ctx, analysisData, races)
 	if err != nil {
 		return err
 	}

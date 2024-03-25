@@ -245,7 +245,8 @@ func (s *spreadSheetService) CreatePredictionOdds(
 	return markerOddsRangeMap
 }
 
-// CreateTrioMarkerCombinationAggregationData 3連複の各印の組合せを表示用の印に再集計する
+// Deprecated
+// CreateHitTrioMarkerCombinationAggregationData 3連複の各印の組合せ(的中)を表示用の印に再集計する
 func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
 	ctx context.Context,
 	markerCombinationIds []types.MarkerCombinationId,
@@ -258,13 +259,6 @@ func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
 		types.MarkerCombinationId(6400), // △-印-印
 		types.MarkerCombinationId(6500), // ☆-印-印
 		types.MarkerCombinationId(6600), // ✓-印-印
-		// TODO 無は集計が困難なので後日消す予定(やろうと思えば頭数から計算は可能だがやる意義が薄い？)
-		types.MarkerCombinationId(6109), // ◎-印-無
-		types.MarkerCombinationId(6209), // ◯-印-無
-		types.MarkerCombinationId(6309), // ▲-印-無
-		types.MarkerCombinationId(6409), // △-印-無
-		types.MarkerCombinationId(6509), // ☆-印-無
-		types.MarkerCombinationId(6609), // ✓-印-無
 	}
 
 	aggregationAnalysisListMap := map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis{}

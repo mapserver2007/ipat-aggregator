@@ -113,6 +113,8 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 		return t.betNumberConverter.TrioWheelOfFirstToTrioBetNumbers(ctx, rawBetNumber)
 	case types.TrioWheelOfSecond:
 		return t.betNumberConverter.TrioWheelOfSecondToTrioBetNumbers(ctx, rawBetNumber)
+	case types.TrioBox:
+		return t.betNumberConverter.TrioBoxToTrioBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaFormation:
 		return t.betNumberConverter.TrifectaFormationToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaWheelOfFirst:
@@ -133,6 +135,7 @@ func (t *ticketCsvRepository) extractPayment(rawTicketType, rawPayment string) s
 		types.TrioFormation == ticketType ||
 		types.TrioWheelOfFirst == ticketType ||
 		types.TrioWheelOfSecond == ticketType ||
+		types.TrioBox == ticketType ||
 		types.TrifectaFormation == ticketType ||
 		types.TrifectaWheelOfFirst == ticketType ||
 		types.TrifectaWheelOfFirstMulti == ticketType ||

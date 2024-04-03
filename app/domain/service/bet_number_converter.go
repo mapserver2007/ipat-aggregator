@@ -15,6 +15,7 @@ type BetNumberConverter interface {
 	TrioFormationToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrioWheelOfFirstToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrioWheelOfSecondToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
+	TrioBoxToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrifectaFormationToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrifectaWheelOfFirstToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrifectaWheelMultiToTrifectaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
@@ -208,6 +209,54 @@ func (b *betNumberConverter) TrioWheelOfSecondToTrioBetNumbers(ctx context.Conte
 
 		betNumberStr := fmt.Sprintf("%02d%s%02d%s%02d", numbers[0], types.QuinellaSeparator, numbers[1], types.QuinellaSeparator, numbers[2])
 		betNumbers = append(betNumbers, types.BetNumber(betNumberStr))
+	}
+
+	return betNumbers, nil
+}
+
+// TrioBoxToTrioBetNumbers 三連複ボックス変換
+func (b *betNumberConverter) TrioBoxToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error) {
+	// 04；07；11
+	separator := "；"
+	values := strings.Split(rawBetNumber, separator)
+	betNumberMap := map[string]string{}
+	var betNumbers []types.BetNumber
+
+	for i := 0; i < len(values); i++ {
+		challengerNumber1, err := strconv.Atoi(values[i])
+		if err != nil {
+			return nil, err
+		}
+		for j := i + 1; j < len(values); j++ {
+			challengerNumber2, err := strconv.Atoi(values[j])
+			if err != nil {
+				return nil, err
+			}
+
+			if challengerNumber1 == challengerNumber2 {
+				continue
+			}
+
+			for k := j + 1; k < len(values); k++ {
+				challengerNumber3, err := strconv.Atoi(values[k])
+				if err != nil {
+					return nil, err
+				}
+
+				if challengerNumber1 == challengerNumber3 || challengerNumber2 == challengerNumber3 {
+					continue
+				}
+
+				betNumberStr := fmt.Sprintf("%02d%s%02d%s%02d", challengerNumber1, types.QuinellaSeparator, challengerNumber2, types.QuinellaSeparator, challengerNumber3)
+				if _, ok := betNumberMap[betNumberStr]; !ok {
+					betNumberMap[betNumberStr] = betNumberStr
+				}
+			}
+		}
+	}
+
+	for _, betNumber := range betNumberMap {
+		betNumbers = append(betNumbers, types.BetNumber(betNumber))
 	}
 
 	return betNumbers, nil

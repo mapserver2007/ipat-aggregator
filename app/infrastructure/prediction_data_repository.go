@@ -18,6 +18,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type predictionDataRepository struct {
@@ -311,17 +312,26 @@ func (p *predictionDataRepository) fetchOdds(ctx context.Context, url string) ([
 		return nil, err
 	}
 
-	var oddsInfo *raw_entity.RealTimeOddsInfo
+	var oddsInfo *raw_entity.OddsInfo
 	if err := json.Unmarshal(body, &oddsInfo); err != nil {
 		return nil, err
 	}
 
+	dateTime, err := time.Parse("2006-01-02 15:04:05", oddsInfo.Data.OfficialDatetime)
+	if err != nil {
+		return nil, err
+	}
+	raceDate, err := types.NewRaceDate(dateTime.Format("20060102"))
+	if err != nil {
+		return nil, err
+	}
+
 	var odds []*netkeiba_entity.Odds
-	for rawNumber, list := range oddsInfo.Data.Odds.List {
+	for rawNumber, list := range oddsInfo.Data.Odds.Wins {
 		popularNumber, _ := strconv.Atoi(list[2])
 		horseNumber, _ := strconv.Atoi(rawNumber)
 		odds = append(odds, netkeiba_entity.NewOdds(
-			list[0], popularNumber, horseNumber,
+			types.Win, list[0], popularNumber, []int{horseNumber}, raceDate,
 		))
 	}
 

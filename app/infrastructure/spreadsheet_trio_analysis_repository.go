@@ -1309,14 +1309,6 @@ func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerOddsRangeCountMap(
 
 					for _, trioOdds := range trioOddsList {
 						odds = trioOdds.Odds().InexactFloat64()
-
-						if pivotalMarker.Value() == 1 && pivotalMarkerOddsRange == types.WinOddsRange4 {
-							odds2 := trioOdds.Odds().InexactFloat64()
-							if odds2 >= 300.0 && odds2 <= 499.9 {
-								fmt.Println(fmt.Sprintf("marker: %d, win odds %v, trio odds %v, hit: %v", markerCombinationId.Value(), pivotalOdds.Odds().InexactFloat64(), trioOdds.Odds().InexactFloat64(), calculable.IsHit()))
-							}
-						}
-
 						if odds >= 1.0 && odds <= 9.9 {
 							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange1]++
 						} else if odds >= 10.0 && odds <= 19.9 {

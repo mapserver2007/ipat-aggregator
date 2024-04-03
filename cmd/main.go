@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	analysisRaceStartDate = "20230812"
-	analysisRaceEndDate   = "20240324"
+	analysisRaceStartDate = "20230805"
+	analysisRaceEndDate   = "20240331"
 	enableAnalysis        = true
 	enablePrediction      = false
 	enableAggregate       = false
@@ -129,17 +129,17 @@ func masterFile(
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, err := dataCacheUseCase.Read(ctx)
+	racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisOdds, err := dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisRaceStartDate, analysisRaceEndDate)
+	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisOdds, analysisRaceStartDate, analysisRaceEndDate, markers)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	racingNumbers, ticketRaces, jockeys, _, _, _, analysisRaces, err = dataCacheUseCase.Read(ctx)
+	racingNumbers, ticketRaces, jockeys, _, _, _, analysisRaces, analysisOdds, err = dataCacheUseCase.Read(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}

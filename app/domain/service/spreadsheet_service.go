@@ -53,7 +53,7 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 						if match {
 							markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
 						}
-					case types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond:
+					case types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond, types.TrioBox:
 						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
 							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis()
 						}

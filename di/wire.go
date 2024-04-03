@@ -23,6 +23,7 @@ func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
 		service.NewRaceEntityConverter,
 		service.NewJockeyEntityConverter,
 		service.NewTicketConverter,
+		service.NewOddsEntityConverter,
 		infrastructure.NewRaceDataRepository,
 		infrastructure.NewRacingNumberDataRepository,
 		infrastructure.NewJockeyDataRepository,

@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
@@ -44,37 +45,38 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,
 	races []*data_cache_entity.Race,
+	odds []*data_cache_entity.Odds,
 ) error {
-	markerCombinationTotalCount := 10 // 軸1頭相手5頭に対する点数は10点
+	//markerCombinationTotalCount := 10 // 軸1頭相手5頭に対する点数は10点
 	hitRateFormat := func(matchCount, raceCount int) string {
 		if raceCount == 0 {
 			return "-"
 		}
-		return fmt.Sprintf("%.2f%%", float64(matchCount)*100/float64(raceCount)/float64(markerCombinationTotalCount))
+		return fmt.Sprintf("%.2f%%", float64(matchCount)*100/float64(raceCount))
 	}
 	payoutRateFormat := func(payout float64, raceCount int) string {
 		if raceCount == 0 {
 			return "-"
 		}
-		return fmt.Sprintf("%.2f%%", payout*100/float64(raceCount)/float64(markerCombinationTotalCount))
+		return fmt.Sprintf("%.2f%%", payout*100/float64(raceCount))
 	}
 
 	//allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
 	markerCombinationMap := analysisData.MarkerCombinationFilterMap()
 
-	// 軸、オッズ幅を振り分けるためのデータを作る
-	winRaceOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{}  // 同着を考慮してslice
-	trioRaceOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{} // 同着を考慮してslice
-	payoutResultMap := map[types.RaceId]map[types.TicketType]*data_cache_entity.PayoutResult{}
+	// レース結果のオッズ
+	winRaceResultOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{}  // 同着を考慮してslice
+	trioRaceResultOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{} // 同着を考慮してslice
+
 	for _, race := range races {
-		payoutResultMap[race.RaceId()] = map[types.TicketType]*data_cache_entity.PayoutResult{}
 		for _, payoutResult := range race.PayoutResults() {
 			switch payoutResult.TicketType() {
 			case types.Win:
-				winRaceOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
+				winRaceResultOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
+				// 軸を取得する目的なのでレース結果の1着の情報を保持(同着の場合は複数あり)
 				for _, result := range race.RaceResults() {
 					if result.OrderNo() == 1 {
-						winRaceOddsMap[race.RaceId()] = append(winRaceOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
+						winRaceResultOddsMap[race.RaceId()] = append(winRaceResultOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
 							payoutResult.TicketType(),
 							result.Odds(),
 							types.NewBetNumber(strconv.Itoa(result.HorseNumber())),
@@ -82,9 +84,10 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					}
 				}
 			case types.Trio:
-				trioRaceOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
+				trioRaceResultOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
+				// オッズ計算のため3連複払戻結果の情報を保持(同着の場合は複数あり)
 				for i := 0; i < len(payoutResult.Numbers()); i++ {
-					trioRaceOddsMap[race.RaceId()] = append(trioRaceOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
+					trioRaceResultOddsMap[race.RaceId()] = append(trioRaceResultOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
 						payoutResult.TicketType(),
 						payoutResult.Odds()[i],
 						payoutResult.Numbers()[i],
@@ -92,52 +95,67 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 				}
 			}
 
-			payoutResultMap[race.RaceId()][payoutResult.TicketType()] = payoutResult
+			//payoutResultMap[race.RaceId()][payoutResult.TicketType()] = payoutResult
 		}
 	}
 
 	var valuesList [][][]interface{}
 	for _, f := range analysisData.Filters() {
 		raceCount := analysisData.RaceCountFilterMap()[f][types.Trio]
-		//trioAggregationAnalysisListMap, err := s.spreadSheetService.CreateTrioMarkerCombinationAggregationData(ctx, allMarkerCombinationIds, markerCombinationMap[f])
-		//if err != nil {
-		//	return err
-		//}
 
-		pivotalMarkerOddsRangeCountMap, err := s.getPivotalMarkerOddsRangeCountMap(ctx, markerCombinationMap[f], winRaceOddsMap, trioRaceOddsMap)
+		// 軸に対するオッズ幅ごとの的中回数
+		pivotalMarkerHitOddsRangeCountMap, err := s.getPivotalMarkerHitOddsRangeCountMap(ctx, markerCombinationMap[f], winRaceResultOddsMap, trioRaceResultOddsMap)
 		if err != nil {
 			return err
 		}
-		pivotalMarkerTotalOddsMap, err := s.getPivotalMarkerTotalOddsMap(ctx, markerCombinationMap[f], winRaceOddsMap, trioRaceOddsMap)
+
+		// 軸に対するオッズ幅ごとの全回数
+		pivotalMarkerAllOddsRangeCountMap, err := s.getPivotalMarkerAllOddsRangeCountMap(ctx, markerCombinationMap[f], winRaceResultOddsMap, trioRaceResultOddsMap)
 		if err != nil {
 			return err
 		}
+
+		// 軸に対するオッズ幅ごとの的中時オッズの合計
+		pivotalMarkerHitTotalOddsMap, err := s.getPivotalMarkerHitTotalOddsMap(ctx, markerCombinationMap[f], winRaceResultOddsMap, trioRaceResultOddsMap)
+		if err != nil {
+			return err
+		}
+
+		// 軸に対するオッズ幅ごとの全オッズの合計
+		pivotalMarkerAllTotalOddsMap, err := s.getPivotalMarkerAllTotalOddsMap(ctx, markerCombinationMap[f], winRaceResultOddsMap, trioRaceResultOddsMap)
+		if err != nil {
+			return err
+		}
+
+		// 軸に対する的中+不的中の全組み合わせのオッズ幅ごとの出現回数
 
 		_ = raceCount
-		_ = pivotalMarkerOddsRangeCountMap
-		_ = pivotalMarkerTotalOddsMap
+		_ = pivotalMarkerHitOddsRangeCountMap
+		_ = pivotalMarkerAllOddsRangeCountMap
+		_ = pivotalMarkerHitTotalOddsMap
+		_ = pivotalMarkerAllTotalOddsMap
 
-		var rawPivotalMarkers []int
-		for pivotalMarker := range pivotalMarkerOddsRangeCountMap {
-			rawPivotalMarkers = append(rawPivotalMarkers, pivotalMarker.Value())
-		}
-		sort.Ints(rawPivotalMarkers)
+		//var rawPivotalMarkers []int
+		//for pivotalMarker := range pivotalMarkerOddsRangeCountMap {
+		//	rawPivotalMarkers = append(rawPivotalMarkers, pivotalMarker.Value())
+		//}
+		//sort.Ints(rawPivotalMarkers)
 
 		aggregationMarkerIndex := 0
-		for _, rawMarker := range rawPivotalMarkers {
-			pivotalMarker, _ := types.NewMarker(rawMarker)
+		for _, rawMarkerId := range []int{1, 2, 3, 4, 5, 6} {
+			pivotalMarker, _ := types.NewMarker(rawMarkerId)
 			defaultValuesList := s.createDefaultValuesList()
 			position := len(defaultValuesList) * aggregationMarkerIndex
 
-			oddsRangeCountMap, ok := pivotalMarkerOddsRangeCountMap[pivotalMarker]
-			if !ok {
-				return fmt.Errorf("oddsRangeCountMap not found: %v", pivotalMarker)
-			}
-
-			totalOddsMap, ok := pivotalMarkerTotalOddsMap[pivotalMarker]
-			if !ok {
-				return fmt.Errorf("oddsRangeTotalMap not found: %v", pivotalMarker)
-			}
+			//oddsRangeCountMap, ok := pivotalMarkerOddsRangeCountMap[pivotalMarker]
+			//if !ok {
+			//	return fmt.Errorf("oddsRangeCountMap not found: %v", pivotalMarker)
+			//}
+			//
+			//totalOddsMap, ok := pivotalMarkerTotalOddsMap[pivotalMarker]
+			//if !ok {
+			//	return fmt.Errorf("oddsRangeTotalMap not found: %v", pivotalMarker)
+			//}
 
 			valuesList = append(valuesList, defaultValuesList...)
 			//aggregationMarkerCombinationId := types.MarkerCombinationId(rawId)
@@ -145,10 +163,10 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 			//if !ok {
 			//	return fmt.Errorf("aggregationAnalysisList not found: %v", aggregationMarkerCombinationId)
 			//}
-
-			// aggregationAnalysisListの中は、集約される前の印組合せが全部入っていて、calculablesはlistになっていて合算はされていない状態
+			//
+			//// aggregationAnalysisListの中は、集約される前の印組合せが全部入っていて、calculablesはlistになっていて合算はされていない状態
 			//aggregationHitPivotalOddsRangeMap := s.createHitTrioOddsRangeMap(ctx, aggregationAnalysisList, pivotalMarker)
-			//total, max, min, average, median := s.aggregationOdds(ctx, aggregationAnalysisList)
+			////total, max, min, average, median := s.aggregationOdds(ctx, aggregationAnalysisList)
 			//matchCount := 0
 			//for _, pivotalOddsRange := range aggregationHitPivotalOddsRangeMap {
 			//	for _, count := range pivotalOddsRange {
@@ -231,14 +249,14 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 				//	for _, count := range allWinOddsRangeMap {
 				//		matchCount += count
 				//	}
-				//	valuesList[i][0][3] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange1], matchCount)
-				//	valuesList[i][0][4] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange2], matchCount)
-				//	valuesList[i][0][5] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange3], matchCount)
-				//	valuesList[i][0][6] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange4], matchCount)
-				//	valuesList[i][0][7] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange5], matchCount)
-				//	valuesList[i][0][8] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange6], matchCount)
-				//	valuesList[i][0][9] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange7], matchCount)
-				//	valuesList[i][0][10] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange8], matchCount)
+				//	valuesList[i][0][3] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange1], matchCount)
+				//	valuesList[i][0][4] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange2], matchCount)
+				//	valuesList[i][0][5] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange3], matchCount)
+				//	valuesList[i][0][6] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange4], matchCount)
+				//	valuesList[i][0][7] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange5], matchCount)
+				//	valuesList[i][0][8] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange6], matchCount)
+				//	valuesList[i][0][9] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange7], matchCount)
+				//	valuesList[i][0][10] = hitRateFormat(allWinOddsRangeMap[types.TrioOddsRange8], matchCount)
 				//case 4:
 				//	allWinOddsRangeMap := map[types.OddsRangeType]int{}
 				//	for _, oddsRange := range aggregationHitPivotalOddsRangeMap {
@@ -251,14 +269,14 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 				//		allWinOddsRangeMap[types.TrioOddsRange7] += oddsRange[types.TrioOddsRange7]
 				//		allWinOddsRangeMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
 				//	}
-				//	valuesList[i][0][3] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange1], raceCount)
-				//	valuesList[i][0][4] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange2], raceCount)
-				//	valuesList[i][0][5] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange3], raceCount)
-				//	valuesList[i][0][6] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange4], raceCount)
-				//	valuesList[i][0][7] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange5], raceCount)
-				//	valuesList[i][0][8] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange6], raceCount)
-				//	valuesList[i][0][9] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange7], raceCount)
-				//	valuesList[i][0][10] = rateFormatFunc(allWinOddsRangeMap[types.TrioOddsRange8], raceCount)
+				//	valuesList[i][0][3] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange1], raceCount)
+				//	valuesList[i][0][4] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange2], raceCount)
+				//	valuesList[i][0][5] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange3], raceCount)
+				//	valuesList[i][0][6] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange4], raceCount)
+				//	valuesList[i][0][7] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange5], raceCount)
+				//	valuesList[i][0][8] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange6], raceCount)
+				//	valuesList[i][0][9] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange7], raceCount)
+				//	valuesList[i][0][10] = payoutRateFormat(allWinOddsRangeMap[types.TrioOddsRange8], raceCount)
 				case 5:
 					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange1.String())
 					valuesList[i][0][3] = types.TrioOddsRange1.String()
@@ -270,291 +288,297 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][9] = types.TrioOddsRange7.String()
 					valuesList[i][0][10] = types.TrioOddsRange8.String()
 				case 6:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange8])
+					oddsMap := pivotalMarkerHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
+					valuesList[i][0][3] = oddsMap[types.TrioOddsRange1]
+					valuesList[i][0][4] = oddsMap[types.TrioOddsRange2]
+					valuesList[i][0][5] = oddsMap[types.TrioOddsRange3]
+					valuesList[i][0][6] = oddsMap[types.TrioOddsRange4]
+					valuesList[i][0][7] = oddsMap[types.TrioOddsRange5]
+					valuesList[i][0][8] = oddsMap[types.TrioOddsRange6]
+					valuesList[i][0][9] = oddsMap[types.TrioOddsRange7]
+					valuesList[i][0][10] = oddsMap[types.TrioOddsRange8]
 				case 7:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange1][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange8])
+					hitCountMap := pivotalMarkerHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
+					allCountMap := pivotalMarkerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
+					valuesList[i][0][3] = hitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
+					valuesList[i][0][4] = hitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
+					valuesList[i][0][5] = hitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
+					valuesList[i][0][6] = hitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
+					valuesList[i][0][7] = hitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
+					valuesList[i][0][8] = hitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
+					valuesList[i][0][9] = hitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
+					valuesList[i][0][10] = hitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
 				case 8:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange1][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange1][types.TrioOddsRange8])
-				case 9:
-					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange2.String())
-					valuesList[i][0][3] = types.TrioOddsRange1.String()
-					valuesList[i][0][4] = types.TrioOddsRange2.String()
-					valuesList[i][0][5] = types.TrioOddsRange3.String()
-					valuesList[i][0][6] = types.TrioOddsRange4.String()
-					valuesList[i][0][7] = types.TrioOddsRange5.String()
-					valuesList[i][0][8] = types.TrioOddsRange6.String()
-					valuesList[i][0][9] = types.TrioOddsRange7.String()
-					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 10:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange8])
-				case 11:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange8])
-				case 12:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange8])
-				case 13:
-					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange3.String())
-					valuesList[i][0][3] = types.TrioOddsRange1.String()
-					valuesList[i][0][4] = types.TrioOddsRange2.String()
-					valuesList[i][0][5] = types.TrioOddsRange3.String()
-					valuesList[i][0][6] = types.TrioOddsRange4.String()
-					valuesList[i][0][7] = types.TrioOddsRange5.String()
-					valuesList[i][0][8] = types.TrioOddsRange6.String()
-					valuesList[i][0][9] = types.TrioOddsRange7.String()
-					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 14:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange8])
-				case 15:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange8])
-				case 16:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange8])
-				case 17:
-					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange4.String())
-					valuesList[i][0][3] = types.TrioOddsRange1.String()
-					valuesList[i][0][4] = types.TrioOddsRange2.String()
-					valuesList[i][0][5] = types.TrioOddsRange3.String()
-					valuesList[i][0][6] = types.TrioOddsRange4.String()
-					valuesList[i][0][7] = types.TrioOddsRange5.String()
-					valuesList[i][0][8] = types.TrioOddsRange6.String()
-					valuesList[i][0][9] = types.TrioOddsRange7.String()
-					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 18:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange8])
-				case 19:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange8])
-				case 20:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange8])
-				case 21:
-					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange5.String())
-					valuesList[i][0][3] = types.TrioOddsRange1.String()
-					valuesList[i][0][4] = types.TrioOddsRange2.String()
-					valuesList[i][0][5] = types.TrioOddsRange3.String()
-					valuesList[i][0][6] = types.TrioOddsRange4.String()
-					valuesList[i][0][7] = types.TrioOddsRange5.String()
-					valuesList[i][0][8] = types.TrioOddsRange6.String()
-					valuesList[i][0][9] = types.TrioOddsRange7.String()
-					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 22:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange8])
-				case 23:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange8])
-				case 24:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange8])
-				case 25:
-					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange6.String())
-					valuesList[i][0][3] = types.TrioOddsRange1.String()
-					valuesList[i][0][4] = types.TrioOddsRange2.String()
-					valuesList[i][0][5] = types.TrioOddsRange3.String()
-					valuesList[i][0][6] = types.TrioOddsRange4.String()
-					valuesList[i][0][7] = types.TrioOddsRange5.String()
-					valuesList[i][0][8] = types.TrioOddsRange6.String()
-					valuesList[i][0][9] = types.TrioOddsRange7.String()
-					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 26:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange8])
-				case 27:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange8])
-				case 28:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange8])
-				case 29:
-					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange7.String())
-					valuesList[i][0][3] = types.TrioOddsRange1.String()
-					valuesList[i][0][4] = types.TrioOddsRange2.String()
-					valuesList[i][0][5] = types.TrioOddsRange3.String()
-					valuesList[i][0][6] = types.TrioOddsRange4.String()
-					valuesList[i][0][7] = types.TrioOddsRange5.String()
-					valuesList[i][0][8] = types.TrioOddsRange6.String()
-					valuesList[i][0][9] = types.TrioOddsRange7.String()
-					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 30:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange8])
-				case 31:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange8])
-				case 32:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange8])
-				case 33:
-					valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange8.String())
-					valuesList[i][0][3] = types.TrioOddsRange1.String()
-					valuesList[i][0][4] = types.TrioOddsRange2.String()
-					valuesList[i][0][5] = types.TrioOddsRange3.String()
-					valuesList[i][0][6] = types.TrioOddsRange4.String()
-					valuesList[i][0][7] = types.TrioOddsRange5.String()
-					valuesList[i][0][8] = types.TrioOddsRange6.String()
-					valuesList[i][0][9] = types.TrioOddsRange7.String()
-					valuesList[i][0][10] = types.TrioOddsRange8.String()
-				case 34:
-					valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange1])
-					valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange2])
-					valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange3])
-					valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange4])
-					valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange5])
-					valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange6])
-					valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange7])
-					valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange8])
-				case 35:
-					valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange1])
-					valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange2])
-					valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange3])
-					valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange4])
-					valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange5])
-					valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange6])
-					valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange7])
-					valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange8])
-				case 36:
-					valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange1])
-					valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange2])
-					valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange3])
-					valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange4])
-					valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange5])
-					valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange6])
-					valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange7])
-					valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange8])
+					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange1]
+					allCountMap := pivotalMarkerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
+					valuesList[i][0][3] = payoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
+					valuesList[i][0][4] = payoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
+					valuesList[i][0][5] = payoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
+					valuesList[i][0][6] = payoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
+					valuesList[i][0][7] = payoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
+					valuesList[i][0][8] = payoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
+					valuesList[i][0][9] = payoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
+					valuesList[i][0][10] = payoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
+					//case 9:
+					//	valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange2.String())
+					//	valuesList[i][0][3] = types.TrioOddsRange1.String()
+					//	valuesList[i][0][4] = types.TrioOddsRange2.String()
+					//	valuesList[i][0][5] = types.TrioOddsRange3.String()
+					//	valuesList[i][0][6] = types.TrioOddsRange4.String()
+					//	valuesList[i][0][7] = types.TrioOddsRange5.String()
+					//	valuesList[i][0][8] = types.TrioOddsRange6.String()
+					//	valuesList[i][0][9] = types.TrioOddsRange7.String()
+					//	valuesList[i][0][10] = types.TrioOddsRange8.String()
+					//case 10:
+					//	valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange8])
+					//case 11:
+					//	valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange2][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange8])
+					//case 12:
+					//	valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange2][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange2][types.TrioOddsRange8])
+					//case 13:
+					//	valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange3.String())
+					//	valuesList[i][0][3] = types.TrioOddsRange1.String()
+					//	valuesList[i][0][4] = types.TrioOddsRange2.String()
+					//	valuesList[i][0][5] = types.TrioOddsRange3.String()
+					//	valuesList[i][0][6] = types.TrioOddsRange4.String()
+					//	valuesList[i][0][7] = types.TrioOddsRange5.String()
+					//	valuesList[i][0][8] = types.TrioOddsRange6.String()
+					//	valuesList[i][0][9] = types.TrioOddsRange7.String()
+					//	valuesList[i][0][10] = types.TrioOddsRange8.String()
+					//case 14:
+					//	valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange8])
+					//case 15:
+					//	valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange3][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange8])
+					//case 16:
+					//	valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange3][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange3][types.TrioOddsRange8])
+					//case 17:
+					//	valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange4.String())
+					//	valuesList[i][0][3] = types.TrioOddsRange1.String()
+					//	valuesList[i][0][4] = types.TrioOddsRange2.String()
+					//	valuesList[i][0][5] = types.TrioOddsRange3.String()
+					//	valuesList[i][0][6] = types.TrioOddsRange4.String()
+					//	valuesList[i][0][7] = types.TrioOddsRange5.String()
+					//	valuesList[i][0][8] = types.TrioOddsRange6.String()
+					//	valuesList[i][0][9] = types.TrioOddsRange7.String()
+					//	valuesList[i][0][10] = types.TrioOddsRange8.String()
+					//case 18:
+					//	valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange8])
+					//case 19:
+					//	valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange4][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange8])
+					//case 20:
+					//	valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange4][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange4][types.TrioOddsRange8])
+					//case 21:
+					//	valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange5.String())
+					//	valuesList[i][0][3] = types.TrioOddsRange1.String()
+					//	valuesList[i][0][4] = types.TrioOddsRange2.String()
+					//	valuesList[i][0][5] = types.TrioOddsRange3.String()
+					//	valuesList[i][0][6] = types.TrioOddsRange4.String()
+					//	valuesList[i][0][7] = types.TrioOddsRange5.String()
+					//	valuesList[i][0][8] = types.TrioOddsRange6.String()
+					//	valuesList[i][0][9] = types.TrioOddsRange7.String()
+					//	valuesList[i][0][10] = types.TrioOddsRange8.String()
+					//case 22:
+					//	valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange8])
+					//case 23:
+					//	valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange5][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange8])
+					//case 24:
+					//	valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange5][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange5][types.TrioOddsRange8])
+					//case 25:
+					//	valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange6.String())
+					//	valuesList[i][0][3] = types.TrioOddsRange1.String()
+					//	valuesList[i][0][4] = types.TrioOddsRange2.String()
+					//	valuesList[i][0][5] = types.TrioOddsRange3.String()
+					//	valuesList[i][0][6] = types.TrioOddsRange4.String()
+					//	valuesList[i][0][7] = types.TrioOddsRange5.String()
+					//	valuesList[i][0][8] = types.TrioOddsRange6.String()
+					//	valuesList[i][0][9] = types.TrioOddsRange7.String()
+					//	valuesList[i][0][10] = types.TrioOddsRange8.String()
+					//case 26:
+					//	valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange8])
+					//case 27:
+					//	valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange6][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange8])
+					//case 28:
+					//	valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange6][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange6][types.TrioOddsRange8])
+					//case 29:
+					//	valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange7.String())
+					//	valuesList[i][0][3] = types.TrioOddsRange1.String()
+					//	valuesList[i][0][4] = types.TrioOddsRange2.String()
+					//	valuesList[i][0][5] = types.TrioOddsRange3.String()
+					//	valuesList[i][0][6] = types.TrioOddsRange4.String()
+					//	valuesList[i][0][7] = types.TrioOddsRange5.String()
+					//	valuesList[i][0][8] = types.TrioOddsRange6.String()
+					//	valuesList[i][0][9] = types.TrioOddsRange7.String()
+					//	valuesList[i][0][10] = types.TrioOddsRange8.String()
+					//case 30:
+					//	valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange8])
+					//case 31:
+					//	valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange7][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange8])
+					//case 32:
+					//	valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange7][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange7][types.TrioOddsRange8])
+					//case 33:
+					//	valuesList[i][0][2] = fmt.Sprintf("単%s", types.WinOddsRange8.String())
+					//	valuesList[i][0][3] = types.TrioOddsRange1.String()
+					//	valuesList[i][0][4] = types.TrioOddsRange2.String()
+					//	valuesList[i][0][5] = types.TrioOddsRange3.String()
+					//	valuesList[i][0][6] = types.TrioOddsRange4.String()
+					//	valuesList[i][0][7] = types.TrioOddsRange5.String()
+					//	valuesList[i][0][8] = types.TrioOddsRange6.String()
+					//	valuesList[i][0][9] = types.TrioOddsRange7.String()
+					//	valuesList[i][0][10] = types.TrioOddsRange8.String()
+					//case 34:
+					//	valuesList[i][0][3] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange8])
+					//case 35:
+					//	valuesList[i][0][3] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange1]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange2]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange3]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange4]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange5]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange6]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange7]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = hitRateFormat(len(totalOddsMap[types.WinOddsRange8][types.TrioOddsRange8]), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange8])
+					//case 36:
+					//	valuesList[i][0][3] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange1]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange1])
+					//	valuesList[i][0][4] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange2]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange2])
+					//	valuesList[i][0][5] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange3]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange3])
+					//	valuesList[i][0][6] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange4]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange4])
+					//	valuesList[i][0][7] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange5]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange5])
+					//	valuesList[i][0][8] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange6]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange6])
+					//	valuesList[i][0][9] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange7]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange7])
+					//	valuesList[i][0][10] = payoutRateFormat(s.getTotalOdds(ctx, totalOddsMap[types.WinOddsRange8][types.TrioOddsRange8]).InexactFloat64(), oddsRangeCountMap[types.WinOddsRange8][types.TrioOddsRange8])
+					//}
 				}
 			}
 
@@ -1147,12 +1171,12 @@ func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]inte
 	return valuesList
 }
 
-func (s *spreadSheetTrioAnalysisRepository) createHitTrioOddsRangeMap(
-	ctx context.Context,
-
-) {
-
-}
+//func (s *spreadSheetTrioAnalysisRepository) createHitTrioOddsRangeMap(
+//	ctx context.Context,
+//
+//) {
+//
+//}
 
 //func (s *spreadSheetTrioAnalysisRepository) createHitTrioOddsRangeMap(
 //	ctx context.Context,
@@ -1247,13 +1271,13 @@ func (s *spreadSheetTrioAnalysisRepository) createHitTrioOddsRangeMap(
 //	return pivotalOddsRangeMap
 //}
 
-func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerOddsRangeCountMap(
+func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerHitOddsRangeCountMap(
 	ctx context.Context,
 	markerCombinationAnalysisMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
 	winRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
 	trioRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
 ) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int, error) {
-	pivotalMarkerOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int{}
+	pivotalMarkerHitCountOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int{}
 	pivotalMarkers := []types.Marker{
 		types.Favorite,
 		types.Rival,
@@ -1263,85 +1287,95 @@ func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerOddsRangeCountMap(
 		types.Check,
 	}
 
-	for _, pivotalMarker := range pivotalMarkers {
+	hitMarkerCalculablesMap := map[types.Marker][]*analysis_entity.Calculable{}
+	for _, marker := range pivotalMarkers {
 		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
 			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
 				continue
 			}
-			if _, ok := pivotalMarkerOddsRangeMap[pivotalMarker]; !ok {
-				pivotalMarkerOddsRangeMap[pivotalMarker] = map[types.OddsRangeType]map[types.OddsRangeType]int{}
+			for _, calculable := range markerCombinationAnalysis.Calculables() {
+				if calculable.IsHit() {
+					hitMarkerCalculablesMap[marker] = append(hitMarkerCalculablesMap[marker], calculable)
+				}
+			}
+		}
+	}
+
+	for marker, calculables := range hitMarkerCalculablesMap {
+		pivotalMarkerHitCountOddsRangeMap[marker] = map[types.OddsRangeType]map[types.OddsRangeType]int{}
+		for _, calculable := range calculables {
+			if !calculable.IsHit() {
+				continue
 			}
 
-			for _, calculable := range markerCombinationAnalysis.Calculables() {
-				pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
-				if !ok {
-					return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
-				}
-				trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
-				if !ok {
-					return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+			pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+			}
+			trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+			}
+
+			for _, pivotalOdds := range pivotalOddsList {
+				var pivotalMarkerOddsRange types.OddsRangeType
+				odds := pivotalOdds.Odds().InexactFloat64()
+				if odds >= 1.0 && odds <= 1.5 {
+					pivotalMarkerOddsRange = types.WinOddsRange1
+				} else if odds >= 1.6 && odds <= 2.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange2
+				} else if odds >= 2.1 && odds <= 2.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange3
+				} else if odds >= 3.0 && odds <= 4.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange4
+				} else if odds >= 5.0 && odds <= 9.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange5
+				} else if odds >= 10.0 && odds <= 19.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange6
+				} else if odds >= 20.0 && odds <= 49.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange7
+				} else if odds >= 50.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange8
 				}
 
-				for _, pivotalOdds := range pivotalOddsList {
-					var pivotalMarkerOddsRange types.OddsRangeType
-					odds := pivotalOdds.Odds().InexactFloat64()
-					if odds >= 1.0 && odds <= 1.5 {
-						pivotalMarkerOddsRange = types.WinOddsRange1
-					} else if odds >= 1.6 && odds <= 2.0 {
-						pivotalMarkerOddsRange = types.WinOddsRange2
-					} else if odds >= 2.1 && odds <= 2.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange3
-					} else if odds >= 3.0 && odds <= 4.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange4
-					} else if odds >= 5.0 && odds <= 9.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange5
+				if _, ok := pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange]; !ok {
+					pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange] = map[types.OddsRangeType]int{}
+				}
+
+				for _, trioOdds := range trioOddsList {
+					odds = trioOdds.Odds().InexactFloat64()
+					if odds >= 1.0 && odds <= 9.9 {
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1]++
 					} else if odds >= 10.0 && odds <= 19.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange6
-					} else if odds >= 20.0 && odds <= 49.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange7
-					} else if odds >= 50.0 {
-						pivotalMarkerOddsRange = types.WinOddsRange8
-					}
-
-					if _, ok := pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange]; !ok {
-						pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange] = map[types.OddsRangeType]int{}
-					}
-
-					for _, trioOdds := range trioOddsList {
-						odds = trioOdds.Odds().InexactFloat64()
-						if odds >= 1.0 && odds <= 9.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange1]++
-						} else if odds >= 10.0 && odds <= 19.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange2]++
-						} else if odds >= 20.0 && odds <= 29.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange3]++
-						} else if odds >= 30.0 && odds <= 49.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange4]++
-						} else if odds >= 50.0 && odds <= 99.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange5]++
-						} else if odds >= 100.0 && odds <= 299.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange6]++
-						} else if odds >= 300.0 && odds <= 499.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange7]++
-						} else if odds >= 500.0 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange8]++
-						}
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2]++
+					} else if odds >= 20.0 && odds <= 29.9 {
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3]++
+					} else if odds >= 30.0 && odds <= 49.9 {
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4]++
+					} else if odds >= 50.0 && odds <= 99.9 {
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5]++
+					} else if odds >= 100.0 && odds <= 299.9 {
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6]++
+					} else if odds >= 300.0 && odds <= 499.9 {
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7]++
+					} else if odds >= 500.0 {
+						pivotalMarkerHitCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8]++
 					}
 				}
 			}
 		}
 	}
 
-	return pivotalMarkerOddsRangeMap, nil
+	return pivotalMarkerHitCountOddsRangeMap, nil
 }
 
-func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerTotalOddsMap(
+func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerAllOddsRangeCountMap(
 	ctx context.Context,
 	markerCombinationAnalysisMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
 	winRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
 	trioRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
-) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType][]decimal.Decimal, error) {
-	pivotalMarkerOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType][]decimal.Decimal{}
+) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int, error) {
+	pivotalMarkerAllCountOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int{}
 	pivotalMarkers := []types.Marker{
 		types.Favorite,
 		types.Rival,
@@ -1351,80 +1385,284 @@ func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerTotalOddsMap(
 		types.Check,
 	}
 
-	for _, pivotalMarker := range pivotalMarkers {
+	allMarkerCalculablesMap := map[types.Marker][]*analysis_entity.Calculable{}
+	for _, marker := range pivotalMarkers {
 		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
 			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
 				continue
 			}
-			if _, ok := pivotalMarkerOddsRangeMap[pivotalMarker]; !ok {
-				pivotalMarkerOddsRangeMap[pivotalMarker] = map[types.OddsRangeType]map[types.OddsRangeType][]decimal.Decimal{}
+			for _, calculable := range markerCombinationAnalysis.Calculables() {
+				allMarkerCalculablesMap[marker] = append(allMarkerCalculablesMap[marker], calculable)
+			}
+		}
+	}
+
+	for marker, calculables := range allMarkerCalculablesMap {
+		pivotalMarkerAllCountOddsRangeMap[marker] = map[types.OddsRangeType]map[types.OddsRangeType]int{}
+		for _, calculable := range calculables {
+			pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+			}
+			trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
 			}
 
-			for _, calculable := range markerCombinationAnalysis.Calculables() {
-				if !calculable.IsHit() {
-					continue
+			for _, pivotalOdds := range pivotalOddsList {
+				var pivotalMarkerOddsRange types.OddsRangeType
+				odds := pivotalOdds.Odds().InexactFloat64()
+				if odds >= 1.0 && odds <= 1.5 {
+					pivotalMarkerOddsRange = types.WinOddsRange1
+				} else if odds >= 1.6 && odds <= 2.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange2
+				} else if odds >= 2.1 && odds <= 2.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange3
+				} else if odds >= 3.0 && odds <= 4.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange4
+				} else if odds >= 5.0 && odds <= 9.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange5
+				} else if odds >= 10.0 && odds <= 19.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange6
+				} else if odds >= 20.0 && odds <= 49.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange7
+				} else if odds >= 50.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange8
 				}
 
-				pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
-				if !ok {
-					return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
-				}
-				trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
-				if !ok {
-					return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+				if _, ok := pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange]; !ok {
+					pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange] = map[types.OddsRangeType]int{}
 				}
 
-				for _, pivotalOdds := range pivotalOddsList {
-					var pivotalMarkerOddsRange types.OddsRangeType
-					odds := pivotalOdds.Odds().InexactFloat64()
-					if odds >= 1.0 && odds <= 1.5 {
-						pivotalMarkerOddsRange = types.WinOddsRange1
-					} else if odds >= 1.6 && odds <= 2.0 {
-						pivotalMarkerOddsRange = types.WinOddsRange2
-					} else if odds >= 2.1 && odds <= 2.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange3
-					} else if odds >= 3.0 && odds <= 4.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange4
-					} else if odds >= 5.0 && odds <= 9.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange5
+				for _, trioOdds := range trioOddsList {
+					odds = trioOdds.Odds().InexactFloat64()
+					if odds >= 1.0 && odds <= 9.9 {
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1]++
 					} else if odds >= 10.0 && odds <= 19.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange6
-					} else if odds >= 20.0 && odds <= 49.9 {
-						pivotalMarkerOddsRange = types.WinOddsRange7
-					} else if odds >= 50.0 {
-						pivotalMarkerOddsRange = types.WinOddsRange8
-					}
-
-					if _, ok := pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange]; !ok {
-						pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange] = map[types.OddsRangeType][]decimal.Decimal{}
-					}
-
-					for _, trioOdds := range trioOddsList {
-						odds = trioOdds.Odds().InexactFloat64()
-						if odds >= 1.0 && odds <= 9.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange1] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange1], trioOdds.Odds())
-						} else if odds >= 10.0 && odds <= 19.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange2] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange2], trioOdds.Odds())
-						} else if odds >= 20.0 && odds <= 29.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange3] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange3], trioOdds.Odds())
-						} else if odds >= 30.0 && odds <= 49.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange4] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange4], trioOdds.Odds())
-						} else if odds >= 50.0 && odds <= 99.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange5] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange5], trioOdds.Odds())
-						} else if odds >= 100.0 && odds <= 299.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange6] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange6], trioOdds.Odds())
-						} else if odds >= 300.0 && odds <= 499.9 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange7] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange7], trioOdds.Odds())
-						} else if odds >= 500.0 {
-							pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange8] = append(pivotalMarkerOddsRangeMap[pivotalMarker][pivotalMarkerOddsRange][types.TrioOddsRange8], trioOdds.Odds())
-						}
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2]++
+					} else if odds >= 20.0 && odds <= 29.9 {
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3]++
+					} else if odds >= 30.0 && odds <= 49.9 {
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4]++
+					} else if odds >= 50.0 && odds <= 99.9 {
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5]++
+					} else if odds >= 100.0 && odds <= 299.9 {
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6]++
+					} else if odds >= 300.0 && odds <= 499.9 {
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7]++
+					} else if odds >= 500.0 {
+						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8]++
 					}
 				}
 			}
 		}
 	}
 
-	return pivotalMarkerOddsRangeMap, nil
+	return pivotalMarkerAllCountOddsRangeMap, nil
+}
+
+func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerHitTotalOddsMap(
+	ctx context.Context,
+	markerCombinationAnalysisMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
+	winRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
+	trioRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
+) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal, error) {
+	pivotalMarkerHitTotalOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal{}
+	pivotalMarkers := []types.Marker{
+		types.Favorite,
+		types.Rival,
+		types.BrackTriangle,
+		types.WhiteTriangle,
+		types.Star,
+		types.Check,
+	}
+
+	allMarkerCalculablesMap := map[types.Marker][]*analysis_entity.Calculable{}
+	for _, marker := range pivotalMarkers {
+		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
+			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
+				continue
+			}
+			for _, calculable := range markerCombinationAnalysis.Calculables() {
+				allMarkerCalculablesMap[marker] = append(allMarkerCalculablesMap[marker], calculable)
+			}
+		}
+	}
+
+	for marker, calculables := range allMarkerCalculablesMap {
+		pivotalMarkerHitTotalOddsRangeMap[marker] = map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal{}
+		for _, calculable := range calculables {
+			if !calculable.IsHit() {
+				continue
+			}
+
+			pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+			}
+			trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+			}
+
+			for _, pivotalOdds := range pivotalOddsList {
+				var pivotalMarkerOddsRange types.OddsRangeType
+				odds := pivotalOdds.Odds().InexactFloat64()
+				if odds >= 1.0 && odds <= 1.5 {
+					pivotalMarkerOddsRange = types.WinOddsRange1
+				} else if odds >= 1.6 && odds <= 2.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange2
+				} else if odds >= 2.1 && odds <= 2.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange3
+				} else if odds >= 3.0 && odds <= 4.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange4
+				} else if odds >= 5.0 && odds <= 9.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange5
+				} else if odds >= 10.0 && odds <= 19.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange6
+				} else if odds >= 20.0 && odds <= 49.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange7
+				} else if odds >= 50.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange8
+				}
+
+				if _, ok := pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange]; !ok {
+					pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange] = map[types.OddsRangeType]decimal.Decimal{}
+				}
+
+				for _, trioOdds := range trioOddsList {
+					odds = trioOdds.Odds().InexactFloat64()
+					if odds >= 1.0 && odds <= 9.9 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1].Add(trioOdds.Odds())
+					} else if odds >= 10.0 && odds <= 19.9 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2].Add(trioOdds.Odds())
+					} else if odds >= 20.0 && odds <= 29.9 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3].Add(trioOdds.Odds())
+					} else if odds >= 30.0 && odds <= 49.9 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4].Add(trioOdds.Odds())
+					} else if odds >= 50.0 && odds <= 99.9 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5].Add(trioOdds.Odds())
+					} else if odds >= 100.0 && odds <= 299.9 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6].Add(trioOdds.Odds())
+					} else if odds >= 300.0 && odds <= 499.9 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7].Add(trioOdds.Odds())
+					} else if odds >= 500.0 {
+						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8] =
+							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8].Add(trioOdds.Odds())
+					}
+				}
+			}
+		}
+	}
+
+	return pivotalMarkerHitTotalOddsRangeMap, nil
+}
+
+func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerAllTotalOddsMap(
+	ctx context.Context,
+	markerCombinationAnalysisMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
+	winRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
+	trioRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
+) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal, error) {
+	pivotalMarkerAllTotalOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal{}
+	pivotalMarkers := []types.Marker{
+		types.Favorite,
+		types.Rival,
+		types.BrackTriangle,
+		types.WhiteTriangle,
+		types.Star,
+		types.Check,
+	}
+
+	allMarkerCalculablesMap := map[types.Marker][]*analysis_entity.Calculable{}
+	for _, marker := range pivotalMarkers {
+		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
+			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
+				continue
+			}
+			for _, calculable := range markerCombinationAnalysis.Calculables() {
+				allMarkerCalculablesMap[marker] = append(allMarkerCalculablesMap[marker], calculable)
+			}
+		}
+	}
+
+	for marker, calculables := range allMarkerCalculablesMap {
+		pivotalMarkerAllTotalOddsRangeMap[marker] = map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal{}
+		for _, calculable := range calculables {
+			pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+			}
+			trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
+			if !ok {
+				return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+			}
+
+			for _, pivotalOdds := range pivotalOddsList {
+				var pivotalMarkerOddsRange types.OddsRangeType
+				odds := pivotalOdds.Odds().InexactFloat64()
+				if odds >= 1.0 && odds <= 1.5 {
+					pivotalMarkerOddsRange = types.WinOddsRange1
+				} else if odds >= 1.6 && odds <= 2.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange2
+				} else if odds >= 2.1 && odds <= 2.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange3
+				} else if odds >= 3.0 && odds <= 4.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange4
+				} else if odds >= 5.0 && odds <= 9.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange5
+				} else if odds >= 10.0 && odds <= 19.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange6
+				} else if odds >= 20.0 && odds <= 49.9 {
+					pivotalMarkerOddsRange = types.WinOddsRange7
+				} else if odds >= 50.0 {
+					pivotalMarkerOddsRange = types.WinOddsRange8
+				}
+
+				if _, ok := pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange]; !ok {
+					pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange] = map[types.OddsRangeType]decimal.Decimal{}
+				}
+
+				for _, trioOdds := range trioOddsList {
+					odds = trioOdds.Odds().InexactFloat64()
+					if odds >= 1.0 && odds <= 9.9 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1].Add(trioOdds.Odds())
+					} else if odds >= 10.0 && odds <= 19.9 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2].Add(trioOdds.Odds())
+					} else if odds >= 20.0 && odds <= 29.9 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3].Add(trioOdds.Odds())
+					} else if odds >= 30.0 && odds <= 49.9 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4].Add(trioOdds.Odds())
+					} else if odds >= 50.0 && odds <= 99.9 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5].Add(trioOdds.Odds())
+					} else if odds >= 100.0 && odds <= 299.9 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6].Add(trioOdds.Odds())
+					} else if odds >= 300.0 && odds <= 499.9 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7].Add(trioOdds.Odds())
+					} else if odds >= 500.0 {
+						pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8] =
+							pivotalMarkerAllTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8].Add(trioOdds.Odds())
+					}
+				}
+			}
+		}
+	}
+
+	return pivotalMarkerAllTotalOddsRangeMap, nil
 }
 
 func (s *spreadSheetTrioAnalysisRepository) getTotalOdds(

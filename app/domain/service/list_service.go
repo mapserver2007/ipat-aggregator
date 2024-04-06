@@ -493,6 +493,7 @@ func (l *listService) getMaxBetNumbers(
 			ticketType == types.Trifecta ||
 			ticketType == types.TrifectaFormation ||
 			ticketType == types.TrifectaWheelOfFirst ||
+			ticketType == types.TrifectaWheelOfSecond ||
 			ticketType == types.TrifectaWheelOfFirstMulti ||
 			ticketType == types.TrifectaWheelOfSecondMulti
 	}
@@ -636,9 +637,11 @@ func (l *listService) ticketSortOrder() []types.TicketType {
 		types.ExactaWheelOfFirst,
 		types.Trifecta,
 		types.TrifectaWheelOfFirst,
+		types.TrifectaWheelOfSecond,
 		types.TrifectaFormation,
 		types.TrifectaWheelOfFirstMulti,
 		types.TrifectaWheelOfSecondMulti,
+		types.QuinellaWheel,
 		types.QuinellaPlaceWheel,
 		types.Quinella,
 		types.QuinellaPlace,

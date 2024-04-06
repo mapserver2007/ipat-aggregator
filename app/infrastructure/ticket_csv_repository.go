@@ -103,6 +103,8 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 ) ([]types.BetNumber, error) {
 	ticketType := types.NewTicketType(rawTicketType)
 	switch ticketType {
+	case types.QuinellaWheel:
+		return t.betNumberConverter.QuinellaWheelToQuinellaBetNumbers(ctx, rawBetNumber)
 	case types.ExactaWheelOfFirst:
 		return t.betNumberConverter.ExactaWheelOfFirstToExactaBetNumbers(ctx, rawBetNumber)
 	case types.QuinellaPlaceWheel:
@@ -119,6 +121,8 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 		return t.betNumberConverter.TrifectaFormationToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaWheelOfFirst:
 		return t.betNumberConverter.TrifectaWheelOfFirstToTrifectaBetNumbers(ctx, rawBetNumber)
+	case types.TrifectaWheelOfSecond:
+		return t.betNumberConverter.TrifectaWheelOfSecondToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti:
 		return t.betNumberConverter.TrifectaWheelMultiToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.UnknownTicketType:
@@ -130,7 +134,8 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 
 func (t *ticketCsvRepository) extractPayment(rawTicketType, rawPayment string) string {
 	ticketType := types.NewTicketType(rawTicketType)
-	if types.ExactaWheelOfFirst == ticketType ||
+	if types.QuinellaWheel == ticketType ||
+		types.ExactaWheelOfFirst == ticketType ||
 		types.QuinellaPlaceWheel == ticketType ||
 		types.TrioFormation == ticketType ||
 		types.TrioWheelOfFirst == ticketType ||
@@ -138,6 +143,7 @@ func (t *ticketCsvRepository) extractPayment(rawTicketType, rawPayment string) s
 		types.TrioBox == ticketType ||
 		types.TrifectaFormation == ticketType ||
 		types.TrifectaWheelOfFirst == ticketType ||
+		types.TrifectaWheelOfSecond == ticketType ||
 		types.TrifectaWheelOfFirstMulti == ticketType ||
 		types.TrifectaWheelOfSecondMulti == ticketType {
 		// 3連複軸1頭ながし, 馬単、3連単1着流し:

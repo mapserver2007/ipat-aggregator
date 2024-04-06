@@ -7,7 +7,7 @@ import (
 )
 
 type SpreadSheetTrioAnalysisRepository interface {
-	Write(ctx context.Context, analysisData *spreadsheet_entity.AnalysisData, races []*data_cache_entity.Race) error
+	Write(ctx context.Context, analysisData *spreadsheet_entity.AnalysisData, races []*data_cache_entity.Race, odds []*data_cache_entity.Odds) error
 	Style(ctx context.Context, analysisData *spreadsheet_entity.AnalysisData) error
 	Clear(ctx context.Context) error
 }

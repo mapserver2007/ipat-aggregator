@@ -48,15 +48,15 @@ func (s *summaryService) CreateSummary(
 	ticketResultMap := map[types.TicketType]*spreadsheet_entity.TicketResult{}
 	ticketResultMap[types.Win] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Win)
 	ticketResultMap[types.Place] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Place)
-	ticketResultMap[types.Quinella] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Quinella)
+	ticketResultMap[types.Quinella] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Quinella, types.QuinellaWheel)
 	ticketResultMap[types.Exacta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Exacta, types.ExactaWheelOfFirst)
 	ticketResultMap[types.QuinellaPlace] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.QuinellaPlace, types.QuinellaPlaceWheel)
 	ticketResultMap[types.Trio] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond, types.TrioBox)
-	ticketResultMap[types.Trifecta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
-	ticketResultMap[types.AllTicketType] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Win, types.Place, types.Quinella,
+	ticketResultMap[types.Trifecta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecond, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
+	ticketResultMap[types.AllTicketType] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Win, types.Place, types.Quinella, types.QuinellaWheel,
 		types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel,
 		types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond, types.TrioBox,
-		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
+		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecond, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 
 	gradeClassResultMap := map[types.GradeClass]*spreadsheet_entity.TicketResult{}
 	gradeClassResultMap[types.Grade1] = s.ticketAggregator.GradeClassResult(ctx, tickets, races, racingNumbers, types.Grade1, types.JumpGrade1)

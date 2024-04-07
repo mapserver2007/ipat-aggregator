@@ -15,10 +15,10 @@ import (
 
 const (
 	analysisRaceStartDate = "20230805"
-	analysisRaceEndDate   = "20240406"
-	enableAnalysis        = false
+	analysisRaceEndDate   = "20240407"
+	enableAnalysis        = true
 	enablePrediction      = false
-	enableAggregate       = true
+	enableAggregate       = false
 )
 
 func main() {

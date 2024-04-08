@@ -456,6 +456,8 @@ func (d *DataCacheUseCase) Write(
 		keys = append(keys, raceDate.Value())
 	}
 
+	sort.Ints(keys)
+
 	for _, rawRaceDate := range keys {
 		rawRaceOddsList := oddsMap[types.RaceDate(rawRaceDate)]
 		raceOddsInfo := raw_entity.RaceOddsInfo{

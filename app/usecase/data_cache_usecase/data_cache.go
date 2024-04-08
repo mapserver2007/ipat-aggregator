@@ -12,6 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"log"
 	net_url "net/url"
+	"sort"
 	"time"
 )
 
@@ -440,17 +441,27 @@ func (d *DataCacheUseCase) Write(
 			oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
 		}
 
+		sort.Slice(newOdds, func(i, j int) bool {
+			return newOdds[i].Popular < newOdds[j].Popular
+		})
+
 		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
 			RaceId: raceId,
 			Odds:   newOdds,
 		})
 	}
 
-	for raceDate, rawRaceOddsList := range oddsMap {
+	keys := make([]int, 0, len(oddsMap))
+	for raceDate := range oddsMap {
+		keys = append(keys, raceDate.Value())
+	}
+
+	for _, rawRaceDate := range keys {
+		rawRaceOddsList := oddsMap[types.RaceDate(rawRaceDate)]
 		raceOddsInfo := raw_entity.RaceOddsInfo{
 			RaceOdds: rawRaceOddsList,
 		}
-		filePath := fmt.Sprintf(analysisRaceOddsFilePath, raceDate.Value())
+		filePath := fmt.Sprintf(analysisRaceOddsFilePath, rawRaceDate)
 		err = d.oddsDataRepository.Write(ctx, filePath, &raceOddsInfo)
 		if err != nil {
 			return err

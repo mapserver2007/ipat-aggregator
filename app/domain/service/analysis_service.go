@@ -73,7 +73,8 @@ func (p *analysisService) AddAnalysisData(
 		hitMarkerCombinationIds := p.GetHitMarkerCombinationIds(ctx, payoutResult, marker)
 		for _, markerCombinationId := range hitMarkerCombinationIds {
 			// 集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
-			if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
+			switch markerCombinationId.TicketType().OriginTicketType() {
+			case types.Win, types.Place:
 				hitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
 				if err != nil {
 					return err
@@ -96,7 +97,7 @@ func (p *analysisService) AddAnalysisData(
 					)
 					addData(markerCombinationId, race, calculable)
 				}
-			} else if markerCombinationId.TicketType().OriginTicketType() == types.Trio {
+			case types.Trio:
 				for i := 0; i < len(payoutResult.Numbers()); i++ {
 					calculable := analysis_entity.NewCalculable(
 						race.RaceId(),
@@ -106,7 +107,7 @@ func (p *analysisService) AddAnalysisData(
 						payoutResult.Populars()[i],
 						0, // 使わない
 						race.Entries(),
-						nil, // TODO フィルタはあとで
+						p.filterService.CreateAnalysisFilters(ctx, race, nil),
 						true,
 					)
 					addData(markerCombinationId, race, calculable)
@@ -117,7 +118,8 @@ func (p *analysisService) AddAnalysisData(
 		unHitMarkerCombinationIds := p.GetUnHitMarkerCombinationIds(ctx, payoutResult, marker)
 		for _, markerCombinationId := range unHitMarkerCombinationIds {
 			// 集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
-			if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
+			switch markerCombinationId.TicketType().OriginTicketType() {
+			case types.Win, types.Place:
 				unHitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
 				if err != nil {
 					return err
@@ -140,7 +142,7 @@ func (p *analysisService) AddAnalysisData(
 					)
 					addData(markerCombinationId, race, calculable)
 				}
-			} else if markerCombinationId.TicketType().OriginTicketType() == types.Trio {
+			case types.Trio:
 				for i := 0; i < len(payoutResult.Numbers()); i++ {
 					calculable := analysis_entity.NewCalculable(
 						race.RaceId(),
@@ -150,7 +152,7 @@ func (p *analysisService) AddAnalysisData(
 						payoutResult.Populars()[i],
 						0, // 使わない
 						race.Entries(),
-						nil, // TODO フィルタはあとで
+						p.filterService.CreateAnalysisFilters(ctx, race, nil),
 						false,
 					)
 					addData(markerCombinationId, race, calculable)

@@ -17,7 +17,6 @@ type SpreadSheetService interface {
 	CreateOddsRangeCountMap(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.MarkerCombinationId]map[types.OddsRangeType]int
 	CreateTicketTypeRaceCountMap(ctx context.Context, analysisData *analysis_entity.Layer1, filter filter.Id) map[types.TicketType]int
 	CreatePredictionOdds(ctx context.Context, marker *marker_csv_entity.PredictionMarker, race *prediction_entity.Race) map[types.Marker]*prediction_entity.OddsRange
-	CreateTrioMarkerCombinationAggregationData(ctx context.Context, markerCombinationIds []types.MarkerCombinationId, markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, error)
 	GetCellColor(ctx context.Context, colorType types.CellColorType) *sheets.Color
 }
 
@@ -33,12 +32,11 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 	filter filter.Id,
 ) map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis {
 	markerCombinationDataMap := map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	//oddRangeCountMap := s.CreateOddsRangeCountMap(ctx, analysisData, filter)
 	for markerCombinationId, data := range analysisData.MarkerCombination {
 		for _, data2 := range data.RaceDate {
 			for _, data3 := range data2.RaceId {
 				for _, calculable := range data3 {
-					switch markerCombinationId.TicketType() {
+					switch markerCombinationId.TicketType().OriginTicketType() {
 					case types.Win, types.Place:
 						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
 							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis()
@@ -53,12 +51,20 @@ func (s *spreadSheetService) CreateMarkerCombinationAnalysisData(
 						if match {
 							markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
 						}
-					case types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond, types.TrioBox:
+					case types.Trio:
 						if _, ok := markerCombinationDataMap[markerCombinationId]; !ok {
 							markerCombinationDataMap[markerCombinationId] = spreadsheet_entity.NewMarkerCombinationAnalysis()
 						}
-						// TODO フィルタ
-						markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
+						match := true
+						for _, f := range calculable.Filters() {
+							if f&filter == 0 {
+								match = false
+								break
+							}
+						}
+						if match {
+							markerCombinationDataMap[markerCombinationId].AddCalculable(calculable)
+						}
 					}
 				}
 			}
@@ -243,81 +249,6 @@ func (s *spreadSheetService) CreatePredictionOdds(
 	}
 
 	return markerOddsRangeMap
-}
-
-// Deprecated
-// CreateHitTrioMarkerCombinationAggregationData 3連複の各印の組合せ(的中)を表示用の印に再集計する
-func (s *spreadSheetService) CreateTrioMarkerCombinationAggregationData(
-	ctx context.Context,
-	markerCombinationIds []types.MarkerCombinationId,
-	markerCombinationMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
-) (map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis, error) {
-	aggregationMarkerCombinationIds := []types.MarkerCombinationId{
-		types.MarkerCombinationId(6100), // ◎-印-印
-		types.MarkerCombinationId(6200), // ◯-印-印
-		types.MarkerCombinationId(6300), // ▲-印-印
-		types.MarkerCombinationId(6400), // △-印-印
-		types.MarkerCombinationId(6500), // ☆-印-印
-		types.MarkerCombinationId(6600), // ✓-印-印
-	}
-
-	aggregationAnalysisListMap := map[types.MarkerCombinationId][]*spreadsheet_entity.MarkerCombinationAnalysis{}
-	aggregationRaceCountOddsRangeMap := map[types.MarkerCombinationId][]map[types.OddsRangeType]int{}
-	for _, markerCombinationId := range markerCombinationIds {
-		if markerCombinationId.TicketType() == types.Trio {
-			for _, aggregationMarkerCombinationId := range aggregationMarkerCombinationIds {
-				if _, ok := aggregationAnalysisListMap[aggregationMarkerCombinationId]; !ok {
-					aggregationAnalysisListMap[aggregationMarkerCombinationId] = make([]*spreadsheet_entity.MarkerCombinationAnalysis, 0)
-				}
-				if _, ok := aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId]; !ok {
-					aggregationRaceCountOddsRangeMap[aggregationMarkerCombinationId] = make([]map[types.OddsRangeType]int, 0)
-				}
-
-				var rawMarkerCombinationIds []int
-				switch aggregationMarkerCombinationId.Value() {
-				case 6100:
-					rawMarkerCombinationIds = []int{6123, 6124, 6125, 6126, 6134, 6135, 6136, 6145, 6146, 6156}
-				case 6200:
-					rawMarkerCombinationIds = []int{6123, 6124, 6125, 6126, 6234, 6235, 6236, 6245, 6246, 6256}
-				case 6300:
-					rawMarkerCombinationIds = []int{6123, 6134, 6135, 6136, 6234, 6235, 6236, 6345, 6346, 6356}
-				case 6400:
-					rawMarkerCombinationIds = []int{6124, 6134, 6145, 6146, 6234, 6245, 6246, 6345, 6346, 6456}
-				case 6500:
-					rawMarkerCombinationIds = []int{6125, 6135, 6145, 6156, 6235, 6245, 6256, 6345, 6356, 6456}
-				case 6600:
-					rawMarkerCombinationIds = []int{6126, 6136, 6146, 6156, 6236, 6246, 6256, 6346, 6356, 6456}
-				case 6109:
-					rawMarkerCombinationIds = []int{6129, 6139, 6149, 6159, 6169}
-				case 6209:
-					rawMarkerCombinationIds = []int{6129, 6239, 6249, 6259, 6269}
-				case 6309:
-					rawMarkerCombinationIds = []int{6139, 6239, 6349, 6359, 6369}
-				case 6409:
-					rawMarkerCombinationIds = []int{6149, 6249, 6349, 6459, 6469}
-				case 6509:
-					rawMarkerCombinationIds = []int{6159, 6259, 6359, 6459, 6569}
-				case 6609:
-					rawMarkerCombinationIds = []int{6169, 6269, 6369, 6469, 6569}
-				}
-
-				aggregationAnalysis, err := s.getTrioAggregationTrioAnalysis(
-					ctx,
-					rawMarkerCombinationIds,
-					markerCombinationId,
-					markerCombinationMap,
-				)
-				if err != nil {
-					return nil, err
-				}
-				if aggregationAnalysis != nil {
-					aggregationAnalysisListMap[aggregationMarkerCombinationId] = append(aggregationAnalysisListMap[aggregationMarkerCombinationId], aggregationAnalysis)
-				}
-			}
-		}
-	}
-
-	return aggregationAnalysisListMap, nil
 }
 
 func (s *spreadSheetService) getTrioAggregationTrioAnalysis(

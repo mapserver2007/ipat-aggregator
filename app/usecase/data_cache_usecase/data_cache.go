@@ -451,19 +451,11 @@ func (d *DataCacheUseCase) Write(
 		})
 	}
 
-	keys := make([]int, 0, len(oddsMap))
-	for raceDate := range oddsMap {
-		keys = append(keys, raceDate.Value())
-	}
-
-	sort.Ints(keys)
-
-	for _, rawRaceDate := range keys {
-		rawRaceOddsList := oddsMap[types.RaceDate(rawRaceDate)]
+	for raceDate, rawRaceOddsList := range oddsMap {
 		raceOddsInfo := raw_entity.RaceOddsInfo{
 			RaceOdds: rawRaceOddsList,
 		}
-		filePath := fmt.Sprintf(analysisRaceOddsFilePath, rawRaceDate)
+		filePath := fmt.Sprintf(analysisRaceOddsFilePath, raceDate.Value())
 		err = d.oddsDataRepository.Write(ctx, filePath, &raceOddsInfo)
 		if err != nil {
 			return err

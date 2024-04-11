@@ -11,8 +11,9 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
 	"google.golang.org/api/sheets/v4"
-	"sort"
+	"log"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 
 type spreadSheetTrioAnalysisRepository struct {
 	client             *sheets.Service
-	spreadSheetConfig  *spreadsheet_entity.SpreadSheetConfig
+	spreadSheetConfigs []*spreadsheet_entity.SpreadSheetConfig
 	spreadSheetService service.SpreadSheetService
 }
 
@@ -29,14 +30,14 @@ func NewSpreadSheetTrioAnalysisRepository(
 	spreadSheetService service.SpreadSheetService,
 ) (repository.SpreadSheetTrioAnalysisRepository, error) {
 	ctx := context.Background()
-	client, spreadSheetConfig, err := getSpreadSheetConfig(ctx, spreadSheetTrioAnalysisFileName)
+	client, spreadSheetConfigs, err := getSpreadSheetConfigs(ctx, spreadSheetTrioAnalysisFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &spreadSheetTrioAnalysisRepository{
 		client:             client,
-		spreadSheetConfig:  spreadSheetConfig,
+		spreadSheetConfigs: spreadSheetConfigs,
 		spreadSheetService: spreadSheetService,
 	}, nil
 }
@@ -47,165 +48,129 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 	races []*data_cache_entity.Race,
 	odds []*data_cache_entity.Odds,
 ) error {
-	markerCombinationMap := analysisData.MarkerCombinationFilterMap()
+	for idx, spreadSheetConfig := range s.spreadSheetConfigs {
+		pivotalMarker, _ := types.NewMarker(idx + 1)
+		log.Println(ctx, fmt.Sprintf("write marker %s-印-印 analysis start", pivotalMarker.String()))
 
-	// レース結果のオッズ
-	winRaceResultOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{}  // 同着を考慮してslice
-	trioRaceResultOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{} // 同着を考慮してslice
+		markerCombinationMap := analysisData.MarkerCombinationFilterMap()
 
-	for _, race := range races {
-		for _, payoutResult := range race.PayoutResults() {
-			switch payoutResult.TicketType() {
-			case types.Win:
-				winRaceResultOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
-				// 軸を取得する目的なのでレース結果の1着の情報を保持(同着の場合は複数あり)
-				for _, result := range race.RaceResults() {
-					if result.OrderNo() == 1 {
-						winRaceResultOddsMap[race.RaceId()] = append(winRaceResultOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
+		// レース結果のオッズ
+		winRaceResultOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{}  // 同着を考慮してslice
+		trioRaceResultOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{} // 同着を考慮してslice
+
+		for _, race := range races {
+			for _, payoutResult := range race.PayoutResults() {
+				switch payoutResult.TicketType() {
+				case types.Win:
+					winRaceResultOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
+					// 軸を取得する目的なのでレース結果の1着の情報を保持(同着の場合は複数あり)
+					for _, result := range race.RaceResults() {
+						if result.OrderNo() == 1 {
+							winRaceResultOddsMap[race.RaceId()] = append(winRaceResultOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
+								payoutResult.TicketType(),
+								result.Odds(),
+								types.NewBetNumber(strconv.Itoa(result.HorseNumber())),
+							))
+						}
+					}
+				case types.Trio:
+					trioRaceResultOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
+					// オッズ計算のため3連複払戻結果の情報を保持(同着の場合は複数あり)
+					for i := 0; i < len(payoutResult.Numbers()); i++ {
+						trioRaceResultOddsMap[race.RaceId()] = append(trioRaceResultOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
 							payoutResult.TicketType(),
-							result.Odds(),
-							types.NewBetNumber(strconv.Itoa(result.HorseNumber())),
+							payoutResult.Odds()[i],
+							payoutResult.Numbers()[i],
 						))
 					}
 				}
-			case types.Trio:
-				trioRaceResultOddsMap[race.RaceId()] = make([]*spreadsheet_entity.Odds, 0)
-				// オッズ計算のため3連複払戻結果の情報を保持(同着の場合は複数あり)
-				for i := 0; i < len(payoutResult.Numbers()); i++ {
-					trioRaceResultOddsMap[race.RaceId()] = append(trioRaceResultOddsMap[race.RaceId()], spreadsheet_entity.NewOdds(
-						payoutResult.TicketType(),
-						payoutResult.Odds()[i],
-						payoutResult.Numbers()[i],
-					))
+			}
+		}
+
+		trioMarkerOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{}
+		for _, o := range odds {
+			if o.TicketType().OriginTicketType() == types.Trio {
+				if _, ok := trioMarkerOddsMap[o.RaceId()]; !ok {
+					trioMarkerOddsMap[o.RaceId()] = make([]*spreadsheet_entity.Odds, 0, 20)
 				}
+				trioMarkerOddsMap[o.RaceId()] = append(trioMarkerOddsMap[o.RaceId()], spreadsheet_entity.NewOdds(
+					o.TicketType(),
+					o.Odds(),
+					o.Number(),
+				))
 			}
 		}
-	}
 
-	trioMarkerOddsMap := map[types.RaceId][]*spreadsheet_entity.Odds{}
-	for _, o := range odds {
-		if o.TicketType().OriginTicketType() == types.Trio {
-			if _, ok := trioMarkerOddsMap[o.RaceId()]; !ok {
-				trioMarkerOddsMap[o.RaceId()] = make([]*spreadsheet_entity.Odds, 0, 20)
+		var valuesList [][][]interface{}
+		for filterGroupIndex, f := range analysisData.Filters() {
+			// 軸に対するレース単位のオッズ幅ごとの的中回数
+			raceHitOddsRangeCountMap, err := s.getRaceHitOddsRangeCountMap(
+				ctx,
+				markerCombinationMap[f],
+				winRaceResultOddsMap,
+				trioRaceResultOddsMap,
+			)
+			if err != nil {
+				return err
 			}
-			trioMarkerOddsMap[o.RaceId()] = append(trioMarkerOddsMap[o.RaceId()], spreadsheet_entity.NewOdds(
-				o.TicketType(),
-				o.Odds(),
-				o.Number(),
-			))
-		}
-	}
 
-	var valuesList [][][]interface{}
-	for _, f := range analysisData.Filters() {
-		// 軸に対するレース単位のオッズ幅ごとの的中回数
-		raceHitOddsRangeCountMap, err := s.getRaceHitOddsRangeCountMap(
-			ctx,
-			markerCombinationMap[f],
-			winRaceResultOddsMap,
-			trioRaceResultOddsMap,
-		)
-		if err != nil {
-			return err
-		}
+			// 軸に対するレース単位のオッズ幅ごとの出現回数
+			raceOddsRangeCountMap, err := s.getRaceOddsRangeCountMap(
+				ctx,
+				markerCombinationMap[f],
+				winRaceResultOddsMap,
+				trioRaceResultOddsMap,
+			)
+			if err != nil {
+				return err
+			}
 
-		// 軸に対するレース単位のオッズ幅ごとの出現回数
-		raceOddsRangeCountMap, err := s.getRaceOddsRangeCountMap(
-			ctx,
-			markerCombinationMap[f],
-			winRaceResultOddsMap,
-			trioRaceResultOddsMap,
-		)
-		if err != nil {
-			return err
-		}
+			// 軸に対する印単位のオッズ幅ごとの全回数
+			markerAllOddsRangeCountMap, err := s.getMarkerAllOddsRangeCountMap(
+				ctx,
+				markerCombinationMap[f],
+				winRaceResultOddsMap,
+				trioMarkerOddsMap,
+			)
+			if err != nil {
+				return err
+			}
 
-		// 軸に対する印単位のオッズ幅ごとの全回数
-		markerAllOddsRangeCountMap, err := s.getMarkerAllOddsRangeCountMap(
-			ctx,
-			markerCombinationMap[f],
-			winRaceResultOddsMap,
-			trioMarkerOddsMap,
-		)
-		if err != nil {
-			return err
-		}
+			// 軸に対するオッズ幅ごとの的中時オッズの合計
+			pivotalMarkerHitTotalOddsMap, err := s.getPivotalMarkerHitTotalOddsMap(
+				ctx,
+				markerCombinationMap[f],
+				winRaceResultOddsMap,
+				trioRaceResultOddsMap,
+			)
+			if err != nil {
+				return err
+			}
 
-		// 軸に対するオッズ幅ごとの的中時オッズの合計
-		pivotalMarkerHitTotalOddsMap, err := s.getPivotalMarkerHitTotalOddsMap(
-			ctx,
-			markerCombinationMap[f],
-			winRaceResultOddsMap,
-			trioRaceResultOddsMap,
-		)
-		if err != nil {
-			return err
-		}
-
-		aggregationMarkerIndex := 0
-		for _, rawMarkerId := range []int{1, 2, 3, 4, 5, 6} {
-			pivotalMarker, _ := types.NewMarker(rawMarkerId)
 			defaultValuesList := s.createDefaultValuesList()
-			position := len(defaultValuesList) * aggregationMarkerIndex
+			position := len(defaultValuesList) * filterGroupIndex
 			valuesList = append(valuesList, defaultValuesList...)
 
-			// 印組合せのオッズ幅の集計
+			// 率計算
 			for i := position; i < len(defaultValuesList)+position; i++ {
+				var (
+					hitCountMap  map[types.OddsRangeType]int
+					allCountMap  map[types.OddsRangeType]int
+					raceCountMap map[types.OddsRangeType]int
+					hitOddsMap   map[types.OddsRangeType]decimal.Decimal
+				)
+
 				switch i - position {
 				case 0:
-					valuesList[i][0][0] = fmt.Sprintf("%s-印-印, フィルタ条件: %s", pivotalMarker.String(), f.String())
+					valuesList[i][0][4] = fmt.Sprintf("軸選択的中率 フィルタ条件: %s", f.String())
+					valuesList[i][0][12] = fmt.Sprintf("軸選択回収率 フィルタ条件: %s", f.String())
+					valuesList[i][0][20] = fmt.Sprintf("%s軸+印決着回数 フィルタ条件: %s", pivotalMarker.String(), f.String())
+					valuesList[i][0][28] = fmt.Sprintf("%s軸+印/無含む決着回数) フィルタ条件: %s", pivotalMarker.String(), f.String())
+					continue
 				case 1:
-					valuesList[i][0][0] = "単全部"
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
+					continue
 				case 2:
-					oddsMap := map[types.OddsRangeType]int{}
-					for _, oddsRangeMap := range raceHitOddsRangeCountMap[pivotalMarker] {
-						oddsMap[types.TrioOddsRange1] += oddsRangeMap[types.TrioOddsRange1]
-						oddsMap[types.TrioOddsRange2] += oddsRangeMap[types.TrioOddsRange2]
-						oddsMap[types.TrioOddsRange3] += oddsRangeMap[types.TrioOddsRange3]
-						oddsMap[types.TrioOddsRange4] += oddsRangeMap[types.TrioOddsRange4]
-						oddsMap[types.TrioOddsRange5] += oddsRangeMap[types.TrioOddsRange5]
-						oddsMap[types.TrioOddsRange6] += oddsRangeMap[types.TrioOddsRange6]
-						oddsMap[types.TrioOddsRange7] += oddsRangeMap[types.TrioOddsRange7]
-						oddsMap[types.TrioOddsRange8] += oddsRangeMap[types.TrioOddsRange8]
-					}
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 3:
-					oddsMap := map[types.OddsRangeType]int{}
-					for _, oddsRange := range raceOddsRangeCountMap[pivotalMarker] {
-						oddsMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
-						oddsMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
-						oddsMap[types.TrioOddsRange3] += oddsRange[types.TrioOddsRange3]
-						oddsMap[types.TrioOddsRange4] += oddsRange[types.TrioOddsRange4]
-						oddsMap[types.TrioOddsRange5] += oddsRange[types.TrioOddsRange5]
-						oddsMap[types.TrioOddsRange6] += oddsRange[types.TrioOddsRange6]
-						oddsMap[types.TrioOddsRange7] += oddsRange[types.TrioOddsRange7]
-						oddsMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
-					}
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 4:
-					hitCountMap := map[types.OddsRangeType]int{}
+					hitCountMap = map[types.OddsRangeType]int{}
 					for _, oddsRange := range raceHitOddsRangeCountMap[pivotalMarker] {
 						hitCountMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
 						hitCountMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
@@ -216,7 +181,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 						hitCountMap[types.TrioOddsRange7] += oddsRange[types.TrioOddsRange7]
 						hitCountMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
 					}
-					allCountMap := map[types.OddsRangeType]int{}
+					allCountMap = map[types.OddsRangeType]int{}
 					for _, oddsRange := range markerAllOddsRangeCountMap[pivotalMarker] {
 						allCountMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
 						allCountMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
@@ -227,16 +192,18 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 						allCountMap[types.TrioOddsRange7] += oddsRange[types.TrioOddsRange7]
 						allCountMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
 					}
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 5:
-					hitOddsMap := map[types.OddsRangeType]decimal.Decimal{}
+					raceCountMap = map[types.OddsRangeType]int{}
+					for _, oddsRange := range raceOddsRangeCountMap[pivotalMarker] {
+						raceCountMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
+						raceCountMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
+						raceCountMap[types.TrioOddsRange3] += oddsRange[types.TrioOddsRange3]
+						raceCountMap[types.TrioOddsRange4] += oddsRange[types.TrioOddsRange4]
+						raceCountMap[types.TrioOddsRange5] += oddsRange[types.TrioOddsRange5]
+						raceCountMap[types.TrioOddsRange6] += oddsRange[types.TrioOddsRange6]
+						raceCountMap[types.TrioOddsRange7] += oddsRange[types.TrioOddsRange7]
+						raceCountMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
+					}
+					hitOddsMap = map[types.OddsRangeType]decimal.Decimal{}
 					for _, oddsRange := range pivotalMarkerHitTotalOddsMap[pivotalMarker] {
 						hitOddsMap[types.TrioOddsRange1] = hitOddsMap[types.TrioOddsRange1].Add(oddsRange[types.TrioOddsRange1])
 						hitOddsMap[types.TrioOddsRange2] = hitOddsMap[types.TrioOddsRange2].Add(oddsRange[types.TrioOddsRange2])
@@ -247,458 +214,120 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 						hitOddsMap[types.TrioOddsRange7] = hitOddsMap[types.TrioOddsRange7].Add(oddsRange[types.TrioOddsRange7])
 						hitOddsMap[types.TrioOddsRange8] = hitOddsMap[types.TrioOddsRange8].Add(oddsRange[types.TrioOddsRange8])
 					}
-					allCountMap := map[types.OddsRangeType]int{}
-					for _, oddsRange := range markerAllOddsRangeCountMap[pivotalMarker] {
-						allCountMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
-						allCountMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
-						allCountMap[types.TrioOddsRange3] += oddsRange[types.TrioOddsRange3]
-						allCountMap[types.TrioOddsRange4] += oddsRange[types.TrioOddsRange4]
-						allCountMap[types.TrioOddsRange5] += oddsRange[types.TrioOddsRange5]
-						allCountMap[types.TrioOddsRange6] += oddsRange[types.TrioOddsRange6]
-						allCountMap[types.TrioOddsRange7] += oddsRange[types.TrioOddsRange7]
-						allCountMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
-					}
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 6:
+					valuesList[i][0][0] = "単全部"
+				case 3:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange1]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange1.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 7:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 8:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 9:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 10:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange1]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 11:
+				case 4:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange2]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange2.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 12:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 13:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 14:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 15:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange2]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 16:
+				case 5:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange3]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange3.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 17:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 18:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 19:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 20:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange3]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 21:
+				case 6:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange4]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange4.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 22:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 23:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 24:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 25:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange4]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 26:
+				case 7:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange5]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange5.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 27:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 28:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 29:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 30:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange5]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 31:
+				case 8:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange6]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange6.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 32:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 33:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 34:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 35:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange6]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 36:
+				case 9:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange7]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange7.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 37:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 38:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 39:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 40:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange7]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
-				case 41:
+				case 10:
+					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
+					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
+					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange8]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange8.String())
-					valuesList[i][0][1] = types.TrioOddsRange1.String()
-					valuesList[i][0][2] = types.TrioOddsRange2.String()
-					valuesList[i][0][3] = types.TrioOddsRange3.String()
-					valuesList[i][0][4] = types.TrioOddsRange4.String()
-					valuesList[i][0][5] = types.TrioOddsRange5.String()
-					valuesList[i][0][6] = types.TrioOddsRange6.String()
-					valuesList[i][0][7] = types.TrioOddsRange7.String()
-					valuesList[i][0][8] = types.TrioOddsRange8.String()
-				case 42:
-					oddsMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 43:
-					oddsMap := raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					valuesList[i][0][1] = oddsMap[types.TrioOddsRange1]
-					valuesList[i][0][2] = oddsMap[types.TrioOddsRange2]
-					valuesList[i][0][3] = oddsMap[types.TrioOddsRange3]
-					valuesList[i][0][4] = oddsMap[types.TrioOddsRange4]
-					valuesList[i][0][5] = oddsMap[types.TrioOddsRange5]
-					valuesList[i][0][6] = oddsMap[types.TrioOddsRange6]
-					valuesList[i][0][7] = oddsMap[types.TrioOddsRange7]
-					valuesList[i][0][8] = oddsMap[types.TrioOddsRange8]
-				case 44:
-					hitCountMap := raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					valuesList[i][0][1] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
-				case 45:
-					hitOddsMap := pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange8]
-					allCountMap := markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					valuesList[i][0][1] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
-					valuesList[i][0][2] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
-					valuesList[i][0][3] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
-					valuesList[i][0][4] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
-					valuesList[i][0][5] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
-					valuesList[i][0][6] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
-					valuesList[i][0][7] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
-					valuesList[i][0][8] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
 				}
+
+				allCount := 0
+				for _, count := range allCountMap {
+					allCount += count
+				}
+				valuesList[i][0][1] = allCount
+				hitCount := 0
+				for _, count := range hitCountMap {
+					hitCount += count
+				}
+				valuesList[i][0][2] = hitCount
+				raceCount := 0
+				for _, count := range raceCountMap {
+					raceCount += count
+				}
+				valuesList[i][0][3] = raceCount
+				valuesList[i][0][4] = HitRateFormat(hitCountMap[types.TrioOddsRange1], allCountMap[types.TrioOddsRange1])
+				valuesList[i][0][5] = HitRateFormat(hitCountMap[types.TrioOddsRange2], allCountMap[types.TrioOddsRange2])
+				valuesList[i][0][6] = HitRateFormat(hitCountMap[types.TrioOddsRange3], allCountMap[types.TrioOddsRange3])
+				valuesList[i][0][7] = HitRateFormat(hitCountMap[types.TrioOddsRange4], allCountMap[types.TrioOddsRange4])
+				valuesList[i][0][8] = HitRateFormat(hitCountMap[types.TrioOddsRange5], allCountMap[types.TrioOddsRange5])
+				valuesList[i][0][9] = HitRateFormat(hitCountMap[types.TrioOddsRange6], allCountMap[types.TrioOddsRange6])
+				valuesList[i][0][10] = HitRateFormat(hitCountMap[types.TrioOddsRange7], allCountMap[types.TrioOddsRange7])
+				valuesList[i][0][11] = HitRateFormat(hitCountMap[types.TrioOddsRange8], allCountMap[types.TrioOddsRange8])
+				valuesList[i][0][12] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange1].InexactFloat64(), allCountMap[types.TrioOddsRange1])
+				valuesList[i][0][13] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange2].InexactFloat64(), allCountMap[types.TrioOddsRange2])
+				valuesList[i][0][14] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange3].InexactFloat64(), allCountMap[types.TrioOddsRange3])
+				valuesList[i][0][15] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange4].InexactFloat64(), allCountMap[types.TrioOddsRange4])
+				valuesList[i][0][16] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange5].InexactFloat64(), allCountMap[types.TrioOddsRange5])
+				valuesList[i][0][17] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange6].InexactFloat64(), allCountMap[types.TrioOddsRange6])
+				valuesList[i][0][18] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange7].InexactFloat64(), allCountMap[types.TrioOddsRange7])
+				valuesList[i][0][19] = PayoutRateFormat(hitOddsMap[types.TrioOddsRange8].InexactFloat64(), allCountMap[types.TrioOddsRange8])
+				valuesList[i][0][20] = hitCountMap[types.TrioOddsRange1]
+				valuesList[i][0][21] = hitCountMap[types.TrioOddsRange2]
+				valuesList[i][0][22] = hitCountMap[types.TrioOddsRange3]
+				valuesList[i][0][23] = hitCountMap[types.TrioOddsRange4]
+				valuesList[i][0][24] = hitCountMap[types.TrioOddsRange5]
+				valuesList[i][0][25] = hitCountMap[types.TrioOddsRange6]
+				valuesList[i][0][26] = hitCountMap[types.TrioOddsRange7]
+				valuesList[i][0][27] = hitCountMap[types.TrioOddsRange8]
+				valuesList[i][0][28] = allCountMap[types.TrioOddsRange1]
+				valuesList[i][0][29] = allCountMap[types.TrioOddsRange2]
+				valuesList[i][0][30] = allCountMap[types.TrioOddsRange3]
+				valuesList[i][0][31] = allCountMap[types.TrioOddsRange4]
+				valuesList[i][0][32] = allCountMap[types.TrioOddsRange5]
+				valuesList[i][0][33] = allCountMap[types.TrioOddsRange6]
+				valuesList[i][0][34] = allCountMap[types.TrioOddsRange7]
+				valuesList[i][0][35] = allCountMap[types.TrioOddsRange8]
 			}
-
-			aggregationMarkerIndex++
 		}
-	}
 
-	var values [][]interface{}
-	for _, v := range valuesList {
-		values = append(values, v...)
-	}
-	writeRange := fmt.Sprintf("%s!%s", s.spreadSheetConfig.SheetName(), fmt.Sprintf("A1"))
-	_, err := s.client.Spreadsheets.Values.Update(s.spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
-		Values: values,
-	}).ValueInputOption("USER_ENTERED").Do()
-	if err != nil {
-		return err
+		var values [][]interface{}
+		for _, v := range valuesList {
+			values = append(values, v...)
+		}
+		writeRange := fmt.Sprintf("%s!%s", spreadSheetConfig.SheetName(), fmt.Sprintf("A1"))
+		_, err := s.client.Spreadsheets.Values.Update(spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
+			Values: values,
+		}).ValueInputOption("USER_ENTERED").Do()
+		if err != nil {
+			return err
+		}
+
+		log.Println(ctx, fmt.Sprintf("write marker %s-印-印 analysis end", pivotalMarker.String()))
 	}
 
 	return nil
@@ -706,85 +335,54 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 
 func (s *spreadSheetTrioAnalysisRepository) createDefaultValuesList() [][][]interface{} {
 	valuesList := make([][][]interface{}, 0)
-	valuesList = append(valuesList, [][]interface{}{
-		{
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-		},
-	})
-	for i := 0; i < 9; i++ {
-		valuesList = append(valuesList, [][]interface{}{
-			{
-				"",
-				types.TrioOddsRange1.String(),
-				types.TrioOddsRange2.String(),
-				types.TrioOddsRange3.String(),
-				types.TrioOddsRange4.String(),
-				types.TrioOddsRange5.String(),
-				types.TrioOddsRange6.String(),
-				types.TrioOddsRange7.String(),
-				types.TrioOddsRange8.String(),
-			},
-		})
-		valuesList = append(valuesList, [][]interface{}{
-			{
-				"的中回数",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-			},
-		})
-		valuesList = append(valuesList, [][]interface{}{
-			{
-				"出現回数",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-			},
-		})
-		valuesList = append(valuesList, [][]interface{}{
-			{
-				"軸選択的中率",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-			},
-		})
-		valuesList = append(valuesList, [][]interface{}{
-			{
-				"軸選択回収率",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-				"",
-			},
-		})
+	for i := 0; i < 11; i++ {
+		if i == 1 {
+			valuesList = append(valuesList, [][]interface{}{
+				{
+					"",
+					"投票回数",
+					"的中回数",
+					"レース数",
+					types.TrioOddsRange1.String(),
+					types.TrioOddsRange2.String(),
+					types.TrioOddsRange3.String(),
+					types.TrioOddsRange4.String(),
+					types.TrioOddsRange5.String(),
+					types.TrioOddsRange6.String(),
+					types.TrioOddsRange7.String(),
+					types.TrioOddsRange8.String(),
+					types.TrioOddsRange1.String(),
+					types.TrioOddsRange2.String(),
+					types.TrioOddsRange3.String(),
+					types.TrioOddsRange4.String(),
+					types.TrioOddsRange5.String(),
+					types.TrioOddsRange6.String(),
+					types.TrioOddsRange7.String(),
+					types.TrioOddsRange8.String(),
+					types.TrioOddsRange1.String(),
+					types.TrioOddsRange2.String(),
+					types.TrioOddsRange3.String(),
+					types.TrioOddsRange4.String(),
+					types.TrioOddsRange5.String(),
+					types.TrioOddsRange6.String(),
+					types.TrioOddsRange7.String(),
+					types.TrioOddsRange8.String(),
+					types.TrioOddsRange1.String(),
+					types.TrioOddsRange2.String(),
+					types.TrioOddsRange3.String(),
+					types.TrioOddsRange4.String(),
+					types.TrioOddsRange5.String(),
+					types.TrioOddsRange6.String(),
+					types.TrioOddsRange7.String(),
+					types.TrioOddsRange8.String(),
+				},
+			})
+		} else {
+			valuesList = append(valuesList, [][]interface{}{
+				{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
+			})
+		}
+
 	}
 
 	return valuesList
@@ -810,6 +408,9 @@ func (s *spreadSheetTrioAnalysisRepository) getRaceHitOddsRangeCountMap(
 	for _, marker := range pivotalMarkers {
 		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
 			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
+				continue
+			}
+			if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
 				continue
 			}
 			for _, calculable := range markerCombinationAnalysis.Calculables() {
@@ -906,6 +507,9 @@ func (s *spreadSheetTrioAnalysisRepository) getRaceOddsRangeCountMap(
 			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
 				continue
 			}
+			if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
+				continue
+			}
 			for _, calculable := range markerCombinationAnalysis.Calculables() {
 				markerCalculablesMap[marker] = append(markerCalculablesMap[marker], calculable)
 			}
@@ -996,6 +600,9 @@ func (s *spreadSheetTrioAnalysisRepository) getMarkerAllOddsRangeCountMap(
 	for _, marker := range pivotalMarkers {
 		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
 			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
+				continue
+			}
+			if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
 				continue
 			}
 			for _, calculable := range markerCombinationAnalysis.Calculables() {
@@ -1091,6 +698,9 @@ func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerHitTotalOddsMap(
 			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
 				continue
 			}
+			if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
+				continue
+			}
 			for _, calculable := range markerCombinationAnalysis.Calculables() {
 				allMarkerCalculablesMap[marker] = append(allMarkerCalculablesMap[marker], calculable)
 			}
@@ -1178,36 +788,24 @@ func (s *spreadSheetTrioAnalysisRepository) Style(
 	analysisData *spreadsheet_entity.AnalysisData,
 ) error {
 	var requests []*sheets.Request
-	allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
-	markerCombinationMap := analysisData.MarkerCombinationFilterMap()
 	rowGroupSize := len(s.createDefaultValuesList())
 
-	for _, f := range analysisData.Filters() {
-		trioAggregationAnalysisListMap, err := s.spreadSheetService.CreateTrioMarkerCombinationAggregationData(ctx, allMarkerCombinationIds, markerCombinationMap[f])
-		if err != nil {
-			return err
-		}
-		aggregationMarkerIds := make([]int, 0, len(trioAggregationAnalysisListMap))
-		for id := range trioAggregationAnalysisListMap {
-			if id.Value()%10 == types.NoMarker.Value() {
-				// TODO 一旦無が含まれる場合をスルーする
-				continue
-			}
-			aggregationMarkerIds = append(aggregationMarkerIds, id.Value())
-		}
-		sort.Ints(aggregationMarkerIds)
+	for idx, spreadSheetConfig := range s.spreadSheetConfigs {
+		pivotalMarker, _ := types.NewMarker(idx + 1)
+		log.Println(ctx, fmt.Sprintf("write style marker %s-印-印 analysis start", pivotalMarker.String()))
 
-		for idx := range aggregationMarkerIds {
+		for filterGroupIndex := range analysisData.Filters() {
+			position := rowGroupSize * filterGroupIndex
 			requests = append(requests, []*sheets.Request{
 				{
 					RepeatCell: &sheets.RepeatCellRequest{
 						Fields: "userEnteredFormat.backgroundColor",
 						Range: &sheets.GridRange{
-							SheetId:          s.spreadSheetConfig.SheetId(),
-							StartColumnIndex: 0,
-							StartRowIndex:    int64(idx * rowGroupSize),
-							EndColumnIndex:   9,
-							EndRowIndex:      int64(idx*rowGroupSize + 1),
+							SheetId:          spreadSheetConfig.SheetId(),
+							StartColumnIndex: 4,
+							StartRowIndex:    int64(position),
+							EndColumnIndex:   36,
+							EndRowIndex:      int64(position + 1),
 						},
 						Cell: &sheets.CellData{
 							UserEnteredFormat: &sheets.CellFormat{
@@ -1224,11 +822,11 @@ func (s *spreadSheetTrioAnalysisRepository) Style(
 					RepeatCell: &sheets.RepeatCellRequest{
 						Fields: "userEnteredFormat.textFormat.foregroundColor",
 						Range: &sheets.GridRange{
-							SheetId:          s.spreadSheetConfig.SheetId(),
-							StartColumnIndex: 0,
-							StartRowIndex:    int64(idx * rowGroupSize),
-							EndColumnIndex:   11,
-							EndRowIndex:      int64(idx*rowGroupSize + 1),
+							SheetId:          spreadSheetConfig.SheetId(),
+							StartColumnIndex: 4,
+							StartRowIndex:    int64(position),
+							EndColumnIndex:   36,
+							EndRowIndex:      int64(position + 2),
 						},
 						Cell: &sheets.CellData{
 							UserEnteredFormat: &sheets.CellFormat{
@@ -1247,11 +845,11 @@ func (s *spreadSheetTrioAnalysisRepository) Style(
 					RepeatCell: &sheets.RepeatCellRequest{
 						Fields: "userEnteredFormat.textFormat.bold",
 						Range: &sheets.GridRange{
-							SheetId:          s.spreadSheetConfig.SheetId(),
+							SheetId:          spreadSheetConfig.SheetId(),
 							StartColumnIndex: 0,
-							StartRowIndex:    int64(idx * rowGroupSize),
-							EndColumnIndex:   11,
-							EndRowIndex:      int64(idx*rowGroupSize + 1),
+							StartRowIndex:    int64(position),
+							EndColumnIndex:   36,
+							EndRowIndex:      int64(position + 2),
 						},
 						Cell: &sheets.CellData{
 							UserEnteredFormat: &sheets.CellFormat{
@@ -1266,30 +864,11 @@ func (s *spreadSheetTrioAnalysisRepository) Style(
 					RepeatCell: &sheets.RepeatCellRequest{
 						Fields: "userEnteredFormat.textFormat.bold",
 						Range: &sheets.GridRange{
-							SheetId:          s.spreadSheetConfig.SheetId(),
+							SheetId:          spreadSheetConfig.SheetId(),
 							StartColumnIndex: 0,
-							StartRowIndex:    int64(idx*rowGroupSize + 1),
+							StartRowIndex:    int64(position + 1),
 							EndColumnIndex:   1,
-							EndRowIndex:      int64(idx*rowGroupSize + 9),
-						},
-						Cell: &sheets.CellData{
-							UserEnteredFormat: &sheets.CellFormat{
-								TextFormat: &sheets.TextFormat{
-									Bold: true,
-								},
-							},
-						},
-					},
-				},
-				{
-					RepeatCell: &sheets.RepeatCellRequest{
-						Fields: "userEnteredFormat.textFormat.bold",
-						Range: &sheets.GridRange{
-							SheetId:          s.spreadSheetConfig.SheetId(),
-							StartColumnIndex: 0,
-							StartRowIndex:    int64(idx*rowGroupSize + 1),
-							EndColumnIndex:   1,
-							EndRowIndex:      int64(idx*rowGroupSize + rowGroupSize),
+							EndRowIndex:      int64(position + 11),
 						},
 						Cell: &sheets.CellData{
 							UserEnteredFormat: &sheets.CellFormat{
@@ -1304,11 +883,11 @@ func (s *spreadSheetTrioAnalysisRepository) Style(
 					RepeatCell: &sheets.RepeatCellRequest{
 						Fields: "userEnteredFormat.backgroundColor",
 						Range: &sheets.GridRange{
-							SheetId:          s.spreadSheetConfig.SheetId(),
+							SheetId:          spreadSheetConfig.SheetId(),
 							StartColumnIndex: 0,
-							StartRowIndex:    int64(idx*rowGroupSize + 1),
+							StartRowIndex:    int64(position + 1),
 							EndColumnIndex:   1,
-							EndRowIndex:      int64(idx*rowGroupSize + 9),
+							EndRowIndex:      int64(position + 11),
 						},
 						Cell: &sheets.CellData{
 							UserEnteredFormat: &sheets.CellFormat{
@@ -1321,152 +900,88 @@ func (s *spreadSheetTrioAnalysisRepository) Style(
 						},
 					},
 				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.backgroundColor",
+						Range: &sheets.GridRange{
+							SheetId:          spreadSheetConfig.SheetId(),
+							StartColumnIndex: 0,
+							StartRowIndex:    int64(position + 1),
+							EndColumnIndex:   4,
+							EndRowIndex:      int64(position + 2),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								BackgroundColor: &sheets.Color{
+									Red:   1.0,
+									Blue:  0.0,
+									Green: 1.0,
+								},
+							},
+						},
+					},
+				},
+				{
+					RepeatCell: &sheets.RepeatCellRequest{
+						Fields: "userEnteredFormat.backgroundColor",
+						Range: &sheets.GridRange{
+							SheetId:          spreadSheetConfig.SheetId(),
+							StartColumnIndex: 4,
+							StartRowIndex:    int64(position + 1),
+							EndColumnIndex:   36,
+							EndRowIndex:      int64(position + 2),
+						},
+						Cell: &sheets.CellData{
+							UserEnteredFormat: &sheets.CellFormat{
+								BackgroundColor: &sheets.Color{
+									Red:   1.0,
+									Blue:  0.0,
+									Green: 0.0,
+								},
+							},
+						},
+					},
+				},
 			}...)
-			for i := 0; i < 9; i++ {
-				requests = append(requests, []*sheets.Request{
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.backgroundColor",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 0,
-								StartRowIndex:    int64(1 + (i * 5) + idx*rowGroupSize),
-								EndColumnIndex:   1,
-								EndRowIndex:      int64(2 + (i * 5) + idx*rowGroupSize),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									BackgroundColor: &sheets.Color{
-										Red:   0.0,
-										Blue:  0.0,
-										Green: 0.0,
-									},
-								},
-							},
-						},
-					},
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.backgroundColor",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 1,
-								StartRowIndex:    int64(1 + (i * 5) + idx*rowGroupSize),
-								EndColumnIndex:   9,
-								EndRowIndex:      int64(2 + (i * 5) + idx*rowGroupSize),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									BackgroundColor: &sheets.Color{
-										Red:   1.0,
-										Blue:  0.0,
-										Green: 0.0,
-									},
-								},
-							},
-						},
-					},
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.textFormat.bold",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 0,
-								StartRowIndex:    int64(1 + (i * 5) + idx*rowGroupSize),
-								EndColumnIndex:   9,
-								EndRowIndex:      int64(2 + (i * 5) + idx*rowGroupSize),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									TextFormat: &sheets.TextFormat{
-										Bold: true,
-									},
-								},
-							},
-						},
-					},
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.textFormat.foregroundColor",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 0,
-								StartRowIndex:    int64(1 + (i * 5) + idx*rowGroupSize),
-								EndColumnIndex:   9,
-								EndRowIndex:      int64(2 + (i * 5) + idx*rowGroupSize),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									TextFormat: &sheets.TextFormat{
-										ForegroundColor: &sheets.Color{
-											Red:   1.0,
-											Green: 1.0,
-											Blue:  1.0,
-										},
-									},
-								},
-							},
-						},
-					},
-					{
-						RepeatCell: &sheets.RepeatCellRequest{
-							Fields: "userEnteredFormat.backgroundColor",
-							Range: &sheets.GridRange{
-								SheetId:          s.spreadSheetConfig.SheetId(),
-								StartColumnIndex: 0,
-								StartRowIndex:    int64(2 + (i * 5) + idx*rowGroupSize),
-								EndColumnIndex:   1,
-								EndRowIndex:      int64(6 + (i * 5) + idx*rowGroupSize),
-							},
-							Cell: &sheets.CellData{
-								UserEnteredFormat: &sheets.CellFormat{
-									BackgroundColor: &sheets.Color{
-										Red:   1.0,
-										Blue:  0.0,
-										Green: 1.0,
-									},
-								},
-							},
-						},
-					},
-				}...)
-			}
 		}
 
-	}
+		_, err := s.client.Spreadsheets.BatchUpdate(spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+			Requests: requests,
+		}).Do()
+		if err != nil {
+			return err
+		}
 
-	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
-		Requests: requests,
-	}).Do()
-	if err != nil {
-		return err
+		log.Println(ctx, fmt.Sprintf("write style marker %s-印-印 analysis end", pivotalMarker.String()))
 	}
 
 	return nil
 }
 
 func (s *spreadSheetTrioAnalysisRepository) Clear(ctx context.Context) error {
-	requests := []*sheets.Request{
-		{
-			RepeatCell: &sheets.RepeatCellRequest{
-				Fields: "*",
-				Range: &sheets.GridRange{
-					SheetId:          s.spreadSheetConfig.SheetId(),
-					StartColumnIndex: 0,
-					StartRowIndex:    0,
-					EndColumnIndex:   12,
-					EndRowIndex:      9999,
+	for _, spreadSheetConfig := range s.spreadSheetConfigs {
+		requests := []*sheets.Request{
+			{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "*",
+					Range: &sheets.GridRange{
+						SheetId:          spreadSheetConfig.SheetId(),
+						StartColumnIndex: 0,
+						StartRowIndex:    0,
+						EndColumnIndex:   40,
+						EndRowIndex:      9999,
+					},
+					Cell: &sheets.CellData{},
 				},
-				Cell: &sheets.CellData{},
 			},
-		},
-	}
-	_, err := s.client.Spreadsheets.BatchUpdate(s.spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
-		Requests: requests,
-	}).Do()
+		}
+		_, err := s.client.Spreadsheets.BatchUpdate(spreadSheetConfig.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+			Requests: requests,
+		}).Do()
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

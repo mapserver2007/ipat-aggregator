@@ -415,6 +415,10 @@ func (d *DataCacheUseCase) Write(
 			return err
 		}
 
+		sort.Slice(fetchOdds, func(i, j int) bool {
+			return fetchOdds[i].RaceDate().Value() < fetchOdds[i].RaceDate().Value()
+		})
+
 		u, err := net_url.Parse(url)
 		if err != nil {
 			return err

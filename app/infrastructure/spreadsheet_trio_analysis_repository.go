@@ -9,6 +9,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
 	"google.golang.org/api/sheets/v4"
 	"log"
@@ -114,9 +115,14 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 				return err
 			}
 
+			if f == filter.DirtSmallNumberOfHorses && idx == 4 {
+				fmt.Println("wata")
+			}
+
 			// 軸に対するレース単位のオッズ幅ごとの出現回数
 			raceOddsRangeCountMap, err := s.getRaceOddsRangeCountMap(
 				ctx,
+				pivotalMarker,
 				markerCombinationMap[f],
 				winRaceResultOddsMap,
 				trioRaceResultOddsMap,
@@ -128,6 +134,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 			// 軸に対する印単位のオッズ幅ごとの全回数
 			markerAllOddsRangeCountMap, err := s.getMarkerAllOddsRangeCountMap(
 				ctx,
+				pivotalMarker,
 				markerCombinationMap[f],
 				winRaceResultOddsMap,
 				trioMarkerOddsMap,
@@ -139,6 +146,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 			// 軸に対するオッズ幅ごとの的中時オッズの合計
 			pivotalMarkerHitTotalOddsMap, err := s.getPivotalMarkerHitTotalOddsMap(
 				ctx,
+				pivotalMarker,
 				markerCombinationMap[f],
 				winRaceResultOddsMap,
 				trioRaceResultOddsMap,
@@ -182,7 +190,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 						hitCountMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
 					}
 					allCountMap = map[types.OddsRangeType]int{}
-					for _, oddsRange := range markerAllOddsRangeCountMap[pivotalMarker] {
+					for _, oddsRange := range markerAllOddsRangeCountMap {
 						allCountMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
 						allCountMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
 						allCountMap[types.TrioOddsRange3] += oddsRange[types.TrioOddsRange3]
@@ -193,7 +201,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 						allCountMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
 					}
 					raceCountMap = map[types.OddsRangeType]int{}
-					for _, oddsRange := range raceOddsRangeCountMap[pivotalMarker] {
+					for _, oddsRange := range raceOddsRangeCountMap {
 						raceCountMap[types.TrioOddsRange1] += oddsRange[types.TrioOddsRange1]
 						raceCountMap[types.TrioOddsRange2] += oddsRange[types.TrioOddsRange2]
 						raceCountMap[types.TrioOddsRange3] += oddsRange[types.TrioOddsRange3]
@@ -204,7 +212,7 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 						raceCountMap[types.TrioOddsRange8] += oddsRange[types.TrioOddsRange8]
 					}
 					hitOddsMap = map[types.OddsRangeType]decimal.Decimal{}
-					for _, oddsRange := range pivotalMarkerHitTotalOddsMap[pivotalMarker] {
+					for _, oddsRange := range pivotalMarkerHitTotalOddsMap {
 						hitOddsMap[types.TrioOddsRange1] = hitOddsMap[types.TrioOddsRange1].Add(oddsRange[types.TrioOddsRange1])
 						hitOddsMap[types.TrioOddsRange2] = hitOddsMap[types.TrioOddsRange2].Add(oddsRange[types.TrioOddsRange2])
 						hitOddsMap[types.TrioOddsRange3] = hitOddsMap[types.TrioOddsRange3].Add(oddsRange[types.TrioOddsRange3])
@@ -217,54 +225,53 @@ func (s *spreadSheetTrioAnalysisRepository) Write(
 					valuesList[i][0][0] = "単全部"
 				case 3:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange1]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange1]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange1]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange1]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange1]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange1.String())
 				case 4:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange2]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange2]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange2]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange2]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange2]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange2.String())
 				case 5:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange3]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange3]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange3]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange3]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange3]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange3.String())
 				case 6:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange4]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange4]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange4]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange4]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange4]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange4.String())
 				case 7:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange5]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange5]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange5]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange5]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange5]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange5.String())
 				case 8:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange6]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange6]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange6]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange6]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange6]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange6.String())
 				case 9:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange7]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange7]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange7]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange7]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange7]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange7.String())
 				case 10:
 					hitCountMap = raceHitOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					allCountMap = markerAllOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					raceCountMap = raceOddsRangeCountMap[pivotalMarker][types.WinOddsRange8]
-					hitOddsMap = pivotalMarkerHitTotalOddsMap[pivotalMarker][types.WinOddsRange8]
+					allCountMap = markerAllOddsRangeCountMap[types.WinOddsRange8]
+					raceCountMap = raceOddsRangeCountMap[types.WinOddsRange8]
+					hitOddsMap = pivotalMarkerHitTotalOddsMap[types.WinOddsRange8]
 					valuesList[i][0][0] = fmt.Sprintf("単%s", types.WinOddsRange8.String())
 				}
-
 				allCount := 0
 				for _, count := range allCountMap {
 					allCount += count
@@ -487,91 +494,79 @@ func (s *spreadSheetTrioAnalysisRepository) getRaceHitOddsRangeCountMap(
 
 func (s *spreadSheetTrioAnalysisRepository) getRaceOddsRangeCountMap(
 	ctx context.Context,
+	marker types.Marker,
 	markerCombinationAnalysisMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
 	winRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
 	trioRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
-) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int, error) {
-	raceOddsRangeCountMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int{}
-	pivotalMarkers := []types.Marker{
-		types.Favorite,
-		types.Rival,
-		types.BrackTriangle,
-		types.WhiteTriangle,
-		types.Star,
-		types.Check,
-	}
-
-	markerCalculablesMap := map[types.Marker][]*analysis_entity.Calculable{}
-	for _, marker := range pivotalMarkers {
-		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
-			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
-				continue
-			}
-			if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
-				continue
-			}
-			for _, calculable := range markerCombinationAnalysis.Calculables() {
-				markerCalculablesMap[marker] = append(markerCalculablesMap[marker], calculable)
-			}
+) (map[types.OddsRangeType]map[types.OddsRangeType]int, error) {
+	raceOddsRangeCountMap := map[types.OddsRangeType]map[types.OddsRangeType]int{}
+	var calculables []*analysis_entity.Calculable
+	for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
+		if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
+			continue
 		}
+		if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
+			continue
+		}
+		if len(markerCombinationAnalysis.Calculables()) == 0 {
+			continue
+		}
+		calculables = append(calculables, markerCombinationAnalysis.Calculables()...)
 	}
 
-	for marker, calculables := range markerCalculablesMap {
-		raceOddsRangeCountMap[marker] = map[types.OddsRangeType]map[types.OddsRangeType]int{}
-		for _, calculable := range calculables {
-			pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
-			if !ok {
-				return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
-			}
-			trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
-			if !ok {
-				return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+	for _, calculable := range calculables {
+		pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+		}
+		trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+		}
+
+		for _, pivotalOdds := range pivotalOddsList {
+			var pivotalMarkerOddsRange types.OddsRangeType
+			odds := pivotalOdds.Odds().InexactFloat64()
+			if odds >= 1.0 && odds <= 1.5 {
+				pivotalMarkerOddsRange = types.WinOddsRange1
+			} else if odds >= 1.6 && odds <= 2.0 {
+				pivotalMarkerOddsRange = types.WinOddsRange2
+			} else if odds >= 2.1 && odds <= 2.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange3
+			} else if odds >= 3.0 && odds <= 4.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange4
+			} else if odds >= 5.0 && odds <= 9.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange5
+			} else if odds >= 10.0 && odds <= 19.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange6
+			} else if odds >= 20.0 && odds <= 49.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange7
+			} else if odds >= 50.0 {
+				pivotalMarkerOddsRange = types.WinOddsRange8
 			}
 
-			for _, pivotalOdds := range pivotalOddsList {
-				var pivotalMarkerOddsRange types.OddsRangeType
-				odds := pivotalOdds.Odds().InexactFloat64()
-				if odds >= 1.0 && odds <= 1.5 {
-					pivotalMarkerOddsRange = types.WinOddsRange1
-				} else if odds >= 1.6 && odds <= 2.0 {
-					pivotalMarkerOddsRange = types.WinOddsRange2
-				} else if odds >= 2.1 && odds <= 2.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange3
-				} else if odds >= 3.0 && odds <= 4.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange4
-				} else if odds >= 5.0 && odds <= 9.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange5
+			if _, ok := raceOddsRangeCountMap[pivotalMarkerOddsRange]; !ok {
+				raceOddsRangeCountMap[pivotalMarkerOddsRange] = map[types.OddsRangeType]int{}
+			}
+
+			for _, trioOdds := range trioOddsList {
+				odds = trioOdds.Odds().InexactFloat64()
+				if odds >= 1.0 && odds <= 9.9 {
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange1]++
 				} else if odds >= 10.0 && odds <= 19.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange6
-				} else if odds >= 20.0 && odds <= 49.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange7
-				} else if odds >= 50.0 {
-					pivotalMarkerOddsRange = types.WinOddsRange8
-				}
-
-				if _, ok := raceOddsRangeCountMap[marker][pivotalMarkerOddsRange]; !ok {
-					raceOddsRangeCountMap[marker][pivotalMarkerOddsRange] = map[types.OddsRangeType]int{}
-				}
-
-				for _, trioOdds := range trioOddsList {
-					odds = trioOdds.Odds().InexactFloat64()
-					if odds >= 1.0 && odds <= 9.9 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1]++
-					} else if odds >= 10.0 && odds <= 19.9 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2]++
-					} else if odds >= 20.0 && odds <= 29.9 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3]++
-					} else if odds >= 30.0 && odds <= 49.9 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4]++
-					} else if odds >= 50.0 && odds <= 99.9 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5]++
-					} else if odds >= 100.0 && odds <= 299.9 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6]++
-					} else if odds >= 300.0 && odds <= 499.9 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7]++
-					} else if odds >= 500.0 {
-						raceOddsRangeCountMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8]++
-					}
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange2]++
+				} else if odds >= 20.0 && odds <= 29.9 {
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange3]++
+				} else if odds >= 30.0 && odds <= 49.9 {
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange4]++
+				} else if odds >= 50.0 && odds <= 99.9 {
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange5]++
+				} else if odds >= 100.0 && odds <= 299.9 {
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange6]++
+				} else if odds >= 300.0 && odds <= 499.9 {
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange7]++
+				} else if odds >= 500.0 {
+					raceOddsRangeCountMap[pivotalMarkerOddsRange][types.TrioOddsRange8]++
 				}
 			}
 		}
@@ -582,92 +577,81 @@ func (s *spreadSheetTrioAnalysisRepository) getRaceOddsRangeCountMap(
 
 func (s *spreadSheetTrioAnalysisRepository) getMarkerAllOddsRangeCountMap(
 	ctx context.Context,
+	marker types.Marker,
 	markerCombinationAnalysisMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
 	winRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
 	trioMarkerOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
-) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int, error) {
-	pivotalMarkerAllCountOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]int{}
-	pivotalMarkers := []types.Marker{
-		types.Favorite,
-		types.Rival,
-		types.BrackTriangle,
-		types.WhiteTriangle,
-		types.Star,
-		types.Check,
-	}
+) (map[types.OddsRangeType]map[types.OddsRangeType]int, error) {
+	pivotalMarkerAllCountOddsRangeMap := map[types.OddsRangeType]map[types.OddsRangeType]int{}
+	var calculables []*analysis_entity.Calculable
 
-	allMarkerCalculablesMap := map[types.Marker][]*analysis_entity.Calculable{}
-	for _, marker := range pivotalMarkers {
-		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
-			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
-				continue
-			}
-			if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
-				continue
-			}
-			for _, calculable := range markerCombinationAnalysis.Calculables() {
-				allMarkerCalculablesMap[marker] = append(allMarkerCalculablesMap[marker], calculable)
-			}
+	for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
+		if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
+			continue
 		}
+		if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
+			continue
+		}
+		if len(markerCombinationAnalysis.Calculables()) == 0 {
+			continue
+		}
+		calculables = append(calculables, markerCombinationAnalysis.Calculables()...)
 	}
 
-	for marker, calculables := range allMarkerCalculablesMap {
-		pivotalMarkerAllCountOddsRangeMap[marker] = map[types.OddsRangeType]map[types.OddsRangeType]int{}
-		for _, calculable := range calculables {
-			markerOdds, ok := trioMarkerOddsMap[calculable.RaceId()]
-			if !ok {
-				return nil, fmt.Errorf("trioMarkerOdds not found. raceId: %s", calculable.RaceId())
+	for _, calculable := range calculables {
+		markerOdds, ok := trioMarkerOddsMap[calculable.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("trioMarkerOdds not found. raceId: %s", calculable.RaceId())
+		}
+
+		pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+		}
+
+		for _, pivotalOdds := range pivotalOddsList {
+			var pivotalMarkerOddsRange types.OddsRangeType
+			odds := pivotalOdds.Odds().InexactFloat64()
+			if odds >= 1.0 && odds <= 1.5 {
+				pivotalMarkerOddsRange = types.WinOddsRange1
+			} else if odds >= 1.6 && odds <= 2.0 {
+				pivotalMarkerOddsRange = types.WinOddsRange2
+			} else if odds >= 2.1 && odds <= 2.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange3
+			} else if odds >= 3.0 && odds <= 4.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange4
+			} else if odds >= 5.0 && odds <= 9.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange5
+			} else if odds >= 10.0 && odds <= 19.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange6
+			} else if odds >= 20.0 && odds <= 49.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange7
+			} else if odds >= 50.0 {
+				pivotalMarkerOddsRange = types.WinOddsRange8
 			}
 
-			pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
-			if !ok {
-				return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+			if _, ok := pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange]; !ok {
+				pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange] = map[types.OddsRangeType]int{}
 			}
 
-			for _, pivotalOdds := range pivotalOddsList {
-				var pivotalMarkerOddsRange types.OddsRangeType
-				odds := pivotalOdds.Odds().InexactFloat64()
-				if odds >= 1.0 && odds <= 1.5 {
-					pivotalMarkerOddsRange = types.WinOddsRange1
-				} else if odds >= 1.6 && odds <= 2.0 {
-					pivotalMarkerOddsRange = types.WinOddsRange2
-				} else if odds >= 2.1 && odds <= 2.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange3
-				} else if odds >= 3.0 && odds <= 4.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange4
-				} else if odds >= 5.0 && odds <= 9.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange5
+			for _, trioOdds := range markerOdds {
+				odds = trioOdds.Odds().InexactFloat64()
+				if odds >= 1.0 && odds <= 9.9 {
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange1]++
 				} else if odds >= 10.0 && odds <= 19.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange6
-				} else if odds >= 20.0 && odds <= 49.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange7
-				} else if odds >= 50.0 {
-					pivotalMarkerOddsRange = types.WinOddsRange8
-				}
-
-				if _, ok := pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange]; !ok {
-					pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange] = map[types.OddsRangeType]int{}
-				}
-
-				for _, trioOdds := range markerOdds {
-					odds = trioOdds.Odds().InexactFloat64()
-					if odds >= 1.0 && odds <= 9.9 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1]++
-					} else if odds >= 10.0 && odds <= 19.9 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2]++
-					} else if odds >= 20.0 && odds <= 29.9 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3]++
-					} else if odds >= 30.0 && odds <= 49.9 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4]++
-					} else if odds >= 50.0 && odds <= 99.9 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5]++
-					} else if odds >= 100.0 && odds <= 299.9 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6]++
-					} else if odds >= 300.0 && odds <= 499.9 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7]++
-					} else if odds >= 500.0 {
-						pivotalMarkerAllCountOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8]++
-					}
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange2]++
+				} else if odds >= 20.0 && odds <= 29.9 {
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange3]++
+				} else if odds >= 30.0 && odds <= 49.9 {
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange4]++
+				} else if odds >= 50.0 && odds <= 99.9 {
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange5]++
+				} else if odds >= 100.0 && odds <= 299.9 {
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange6]++
+				} else if odds >= 300.0 && odds <= 499.9 {
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange7]++
+				} else if odds >= 500.0 {
+					pivotalMarkerAllCountOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange8]++
 				}
 			}
 		}
@@ -678,103 +662,92 @@ func (s *spreadSheetTrioAnalysisRepository) getMarkerAllOddsRangeCountMap(
 
 func (s *spreadSheetTrioAnalysisRepository) getPivotalMarkerHitTotalOddsMap(
 	ctx context.Context,
+	marker types.Marker,
 	markerCombinationAnalysisMap map[types.MarkerCombinationId]*spreadsheet_entity.MarkerCombinationAnalysis,
 	winRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
 	trioRaceOddsMap map[types.RaceId][]*spreadsheet_entity.Odds,
-) (map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal, error) {
-	pivotalMarkerHitTotalOddsRangeMap := map[types.Marker]map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal{}
-	pivotalMarkers := []types.Marker{
-		types.Favorite,
-		types.Rival,
-		types.BrackTriangle,
-		types.WhiteTriangle,
-		types.Star,
-		types.Check,
-	}
+) (map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal, error) {
+	var calculables []*analysis_entity.Calculable
+	pivotalMarkerHitTotalOddsRangeMap := map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal{}
 
-	allMarkerCalculablesMap := map[types.Marker][]*analysis_entity.Calculable{}
-	for _, marker := range pivotalMarkers {
-		for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
-			if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
-				continue
-			}
-			if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
-				continue
-			}
-			for _, calculable := range markerCombinationAnalysis.Calculables() {
-				allMarkerCalculablesMap[marker] = append(allMarkerCalculablesMap[marker], calculable)
-			}
+	for markerCombinationId, markerCombinationAnalysis := range markerCombinationAnalysisMap {
+		if markerCombinationId.TicketType().OriginTicketType() != types.Trio {
+			continue
 		}
+		if !strings.Contains(strconv.Itoa(markerCombinationId.Value()%1000), strconv.Itoa(marker.Value())) {
+			continue
+		}
+		if len(markerCombinationAnalysis.Calculables()) == 0 {
+			continue
+		}
+		calculables = append(calculables, markerCombinationAnalysis.Calculables()...)
 	}
 
-	for marker, calculables := range allMarkerCalculablesMap {
-		pivotalMarkerHitTotalOddsRangeMap[marker] = map[types.OddsRangeType]map[types.OddsRangeType]decimal.Decimal{}
-		for _, calculable := range calculables {
-			if !calculable.IsHit() {
-				continue
+	for _, calculable := range calculables {
+		if !calculable.IsHit() {
+			continue
+		}
+
+		pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
+		}
+		trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+		}
+
+		for _, pivotalOdds := range pivotalOddsList {
+			var pivotalMarkerOddsRange types.OddsRangeType
+			odds := pivotalOdds.Odds().InexactFloat64()
+			if odds >= 1.0 && odds <= 1.5 {
+				pivotalMarkerOddsRange = types.WinOddsRange1
+			} else if odds >= 1.6 && odds <= 2.0 {
+				pivotalMarkerOddsRange = types.WinOddsRange2
+			} else if odds >= 2.1 && odds <= 2.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange3
+			} else if odds >= 3.0 && odds <= 4.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange4
+			} else if odds >= 5.0 && odds <= 9.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange5
+			} else if odds >= 10.0 && odds <= 19.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange6
+			} else if odds >= 20.0 && odds <= 49.9 {
+				pivotalMarkerOddsRange = types.WinOddsRange7
+			} else if odds >= 50.0 {
+				pivotalMarkerOddsRange = types.WinOddsRange8
 			}
 
-			pivotalOddsList, ok := winRaceOddsMap[calculable.RaceId()]
-			if !ok {
-				return nil, fmt.Errorf("winRaceOdds not found. raceId: %s", calculable.RaceId())
-			}
-			trioOddsList, ok := trioRaceOddsMap[calculable.RaceId()]
-			if !ok {
-				return nil, fmt.Errorf("trioRaceOdds not found. raceId: %s", calculable.RaceId())
+			if _, ok := pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange]; !ok {
+				pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange] = map[types.OddsRangeType]decimal.Decimal{}
 			}
 
-			for _, pivotalOdds := range pivotalOddsList {
-				var pivotalMarkerOddsRange types.OddsRangeType
-				odds := pivotalOdds.Odds().InexactFloat64()
-				if odds >= 1.0 && odds <= 1.5 {
-					pivotalMarkerOddsRange = types.WinOddsRange1
-				} else if odds >= 1.6 && odds <= 2.0 {
-					pivotalMarkerOddsRange = types.WinOddsRange2
-				} else if odds >= 2.1 && odds <= 2.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange3
-				} else if odds >= 3.0 && odds <= 4.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange4
-				} else if odds >= 5.0 && odds <= 9.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange5
+			for _, trioOdds := range trioOddsList {
+				odds = trioOdds.Odds().InexactFloat64()
+				if odds >= 1.0 && odds <= 9.9 {
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange1] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange1].Add(trioOdds.Odds())
 				} else if odds >= 10.0 && odds <= 19.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange6
-				} else if odds >= 20.0 && odds <= 49.9 {
-					pivotalMarkerOddsRange = types.WinOddsRange7
-				} else if odds >= 50.0 {
-					pivotalMarkerOddsRange = types.WinOddsRange8
-				}
-
-				if _, ok := pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange]; !ok {
-					pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange] = map[types.OddsRangeType]decimal.Decimal{}
-				}
-
-				for _, trioOdds := range trioOddsList {
-					odds = trioOdds.Odds().InexactFloat64()
-					if odds >= 1.0 && odds <= 9.9 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange1].Add(trioOdds.Odds())
-					} else if odds >= 10.0 && odds <= 19.9 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange2].Add(trioOdds.Odds())
-					} else if odds >= 20.0 && odds <= 29.9 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange3].Add(trioOdds.Odds())
-					} else if odds >= 30.0 && odds <= 49.9 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange4].Add(trioOdds.Odds())
-					} else if odds >= 50.0 && odds <= 99.9 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange5].Add(trioOdds.Odds())
-					} else if odds >= 100.0 && odds <= 299.9 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange6].Add(trioOdds.Odds())
-					} else if odds >= 300.0 && odds <= 499.9 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange7].Add(trioOdds.Odds())
-					} else if odds >= 500.0 {
-						pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8] =
-							pivotalMarkerHitTotalOddsRangeMap[marker][pivotalMarkerOddsRange][types.TrioOddsRange8].Add(trioOdds.Odds())
-					}
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange2] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange2].Add(trioOdds.Odds())
+				} else if odds >= 20.0 && odds <= 29.9 {
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange3] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange3].Add(trioOdds.Odds())
+				} else if odds >= 30.0 && odds <= 49.9 {
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange4] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange4].Add(trioOdds.Odds())
+				} else if odds >= 50.0 && odds <= 99.9 {
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange5] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange5].Add(trioOdds.Odds())
+				} else if odds >= 100.0 && odds <= 299.9 {
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange6] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange6].Add(trioOdds.Odds())
+				} else if odds >= 300.0 && odds <= 499.9 {
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange7] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange7].Add(trioOdds.Odds())
+				} else if odds >= 500.0 {
+					pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange8] =
+						pivotalMarkerHitTotalOddsRangeMap[pivotalMarkerOddsRange][types.TrioOddsRange8].Add(trioOdds.Odds())
 				}
 			}
 		}

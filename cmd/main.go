@@ -15,7 +15,7 @@ import (
 
 const (
 	analysisRaceStartDate = "20230805"
-	analysisRaceEndDate   = "20240407"
+	analysisRaceEndDate   = "20240414"
 	enableAnalysis        = true
 	enablePrediction      = false
 	enableAggregate       = false
@@ -226,16 +226,6 @@ func summary(
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func ticketSummary(
-	ctx context.Context,
-	tickets []*ticket_csv_entity.Ticket,
-	racingNumbers []*data_cache_entity.RacingNumber,
-	races []*data_cache_entity.Race,
-) error {
 
 	return nil
 }

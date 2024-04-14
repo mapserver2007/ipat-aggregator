@@ -114,14 +114,14 @@ func (d *DataCacheUseCase) Read(
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
-	raceIdMap := map[types.RaceDate][]types.RaceId{}
+	raceDateMap := map[types.RaceDate][]types.RaceId{}
 	for _, rawRaceDate := range rawRaceDates {
 		var raceIds []types.RaceId
 		for _, rawRaceId := range rawRaceDate.RaceIds {
 			raceIds = append(raceIds, types.RaceId(rawRaceId))
 		}
 		raceDate := types.RaceDate(rawRaceDate.RaceDate)
-		raceIdMap[raceDate] = raceIds
+		raceDateMap[raceDate] = raceIds
 	}
 	excludeDates := make([]types.RaceDate, 0, len(rawExcludeDates))
 	for _, rawExcludeDate := range rawExcludeDates {
@@ -132,7 +132,7 @@ func (d *DataCacheUseCase) Read(
 	}
 
 	analysisRaces := make([]*data_cache_entity.Race, 0)
-	for raceDate := range raceIdMap {
+	for _, raceDate := range service.SortedRaceDateKeys(raceDateMap) {
 		rawPredictRaces, err := d.raceDataRepository.Read(ctx, fmt.Sprintf(analysisRaceResultFilePath, raceDate.Value()))
 		if err != nil {
 			return nil, nil, nil, nil, nil, nil, nil, nil, err
@@ -143,7 +143,8 @@ func (d *DataCacheUseCase) Read(
 	}
 
 	analysisOdds := make([]*data_cache_entity.Odds, 0)
-	for raceDate := range raceIdMap {
+
+	for _, raceDate := range service.SortedRaceDateKeys(raceDateMap) {
 		rawRaceOddsList, err := d.oddsDataRepository.Read(ctx, fmt.Sprintf(analysisRaceOddsFilePath, raceDate.Value()))
 		if err != nil {
 			return nil, nil, nil, nil, nil, nil, nil, nil, err
@@ -156,7 +157,7 @@ func (d *DataCacheUseCase) Read(
 		}
 	}
 
-	return racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisOdds, nil
+	return racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceDateMap, excludeDates, analysisRaces, analysisOdds, nil
 }
 
 func (d *DataCacheUseCase) Write(
@@ -367,7 +368,9 @@ func (d *DataCacheUseCase) Write(
 		}
 		raceIdOddsMap[odds.RaceId()] = append(raceIdOddsMap[odds.RaceId()], odds)
 	}
-	for raceId, oddsList := range raceIdOddsMap {
+
+	for _, raceId := range service.SortedRaceIdKeys(raceIdOddsMap) {
+		oddsList := raceIdOddsMap[raceId]
 		raceDate := oddsList[0].RaceDate()
 		rawOddsList := make([]*raw_entity.Odds, 0, len(oddsList))
 		for _, odds := range oddsList {
@@ -455,7 +458,11 @@ func (d *DataCacheUseCase) Write(
 		})
 	}
 
-	for raceDate, rawRaceOddsList := range oddsMap {
+	ttt := service.SortedRaceDateKeys(oddsMap)
+	fmt.Println(ttt)
+
+	for _, raceDate := range service.SortedRaceDateKeys(oddsMap) {
+		rawRaceOddsList := oddsMap[raceDate]
 		raceOddsInfo := raw_entity.RaceOddsInfo{
 			RaceOdds: rawRaceOddsList,
 		}

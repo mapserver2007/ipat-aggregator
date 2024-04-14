@@ -6,7 +6,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"sort"
 	"time"
 )
 
@@ -222,15 +221,7 @@ func (n *netKeibaService) CreateAnalysisRaceUrls(
 		raceMap[race.RaceId()] = race
 	}
 
-	keys := make([]string, 0, len(raceMap))
-	for raceId := range raceMap {
-		keys = append(keys, raceId.String())
-	}
-
-	sort.Strings(keys)
-
-	for _, rawRaceId := range keys {
-		raceId := types.RaceId(rawRaceId)
+	for _, raceId := range SortedRaceIdKeys(raceIdMap) {
 		if raceDate, ok := raceIdMap[raceId]; !ok {
 			raceUrls = append(raceUrls, fmt.Sprintf(analysisRaceResultUrl, raceId, raceDate))
 		}
@@ -261,15 +252,7 @@ func (n *netKeibaService) CreateOddsUrls(
 		oddsMap[odds.RaceId()] = true
 	}
 
-	keys := make([]string, 0, len(oddsMap))
-	for raceId := range raceIdMap {
-		keys = append(keys, raceId.String())
-	}
-
-	sort.Strings(keys)
-
-	for _, rawRaceId := range keys {
-		raceId := types.RaceId(rawRaceId)
+	for _, raceId := range SortedRaceIdKeys(raceIdMap) {
 		if _, ok := oddsMap[raceId]; !ok {
 			trioOddsUrls = append(trioOddsUrls, fmt.Sprintf(oddsUrl, raceId, 7))
 		}

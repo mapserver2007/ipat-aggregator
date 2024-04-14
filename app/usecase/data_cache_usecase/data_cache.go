@@ -167,7 +167,7 @@ func (d *DataCacheUseCase) Write(
 	ticketRaces []*data_cache_entity.Race,
 	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []int,
-	raceIdMap map[types.RaceDate][]types.RaceId,
+	raceDateMap map[types.RaceDate][]types.RaceId,
 	excludeDates []types.RaceDate,
 	analysisRaces []*data_cache_entity.Race,
 	analysisOdds []*data_cache_entity.Odds,
@@ -265,13 +265,15 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 
-	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, startDate, endDate, raceIdMap, excludeDates)
+	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, startDate, endDate, raceDateMap, excludeDates)
 	if err != nil {
 		return err
 	}
 	var newRawRaceDates []*raw_entity.RaceDate
 	var newRawExcludeDates []int
-	for raceDate, raceIds := range raceIdMap {
+
+	for _, raceDate := range service.SortedRaceDateKeys(raceDateMap) {
+		raceIds := raceDateMap[raceDate]
 		rawRaceIds := make([]string, 0, len(raceIds))
 		for _, raceId := range raceIds {
 			rawRaceIds = append(rawRaceIds, raceId.String())
@@ -457,9 +459,6 @@ func (d *DataCacheUseCase) Write(
 			Odds:   newOdds,
 		})
 	}
-
-	ttt := service.SortedRaceDateKeys(oddsMap)
-	fmt.Println(ttt)
 
 	for _, raceDate := range service.SortedRaceDateKeys(oddsMap) {
 		rawRaceOddsList := oddsMap[raceDate]

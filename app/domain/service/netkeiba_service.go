@@ -222,8 +222,8 @@ func (n *netKeibaService) CreateAnalysisRaceUrls(
 	}
 
 	for _, raceId := range SortedRaceIdKeys(raceIdMap) {
-		if raceDate, ok := raceIdMap[raceId]; !ok {
-			raceUrls = append(raceUrls, fmt.Sprintf(analysisRaceResultUrl, raceId, raceDate))
+		if _, ok := raceMap[raceId]; !ok {
+			raceUrls = append(raceUrls, fmt.Sprintf(analysisRaceResultUrl, raceId, raceIdMap[raceId]))
 		}
 	}
 

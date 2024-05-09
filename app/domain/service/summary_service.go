@@ -42,7 +42,7 @@ func (s *summaryService) CreateSummary(
 
 	monthFrom := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
 	nextMonth := now.AddDate(0, 1, 0)
-	monthTo := time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	monthTo := time.Date(nextMonth.Year(), nextMonth.Month()-2, 1, 0, 0, 0, 0, time.Local)
 	monthResult := s.ticketAggregator.TermResult(ctx, tickets, races, racingNumbers, monthFrom, monthTo)
 
 	ticketResultMap := map[types.TicketType]*spreadsheet_entity.TicketResult{}
@@ -50,11 +50,11 @@ func (s *summaryService) CreateSummary(
 	ticketResultMap[types.Place] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Place)
 	ticketResultMap[types.Quinella] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Quinella, types.QuinellaWheel)
 	ticketResultMap[types.Exacta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Exacta, types.ExactaWheelOfFirst)
-	ticketResultMap[types.QuinellaPlace] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.QuinellaPlace, types.QuinellaPlaceWheel)
+	ticketResultMap[types.QuinellaPlace] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.QuinellaPlace, types.QuinellaPlaceWheel, types.QuinellaPlaceFormation)
 	ticketResultMap[types.Trio] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond, types.TrioBox)
 	ticketResultMap[types.Trifecta] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecond, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 	ticketResultMap[types.AllTicketType] = s.ticketAggregator.TicketResult(ctx, tickets, races, racingNumbers, types.Win, types.Place, types.Quinella, types.QuinellaWheel,
-		types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel,
+		types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel, types.QuinellaPlaceFormation,
 		types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond, types.TrioBox,
 		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecond, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 

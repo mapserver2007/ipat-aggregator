@@ -285,6 +285,10 @@ func (l *listService) Convert(
 	})
 
 	for _, row := range listRows {
+		if row.FavoriteJockey() == nil {
+			fmt.Println("owata")
+		}
+
 		rows = append(rows, spreadsheet_entity.NewRow(
 			row.Race().RaceDate(),
 			row.Race().Class(),
@@ -645,6 +649,7 @@ func (l *listService) ticketSortOrder() []types.TicketType {
 		types.QuinellaPlaceWheel,
 		types.Quinella,
 		types.QuinellaPlace,
+		types.QuinellaPlaceFormation,
 		types.TrioWheelOfFirst,
 		types.TrioWheelOfSecond,
 		types.Trio,

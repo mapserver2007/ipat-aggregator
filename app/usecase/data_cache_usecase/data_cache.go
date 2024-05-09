@@ -180,7 +180,7 @@ func (d *DataCacheUseCase) Write(
 		newRawRacingNumbers = append(newRawRacingNumbers, d.racingNumberEntityConverter.DataCacheToRaw(racingNumber))
 	}
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch racingNumber from "+url)
 		fetchRacingNumbers, err := d.racingNumberDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -211,7 +211,7 @@ func (d *DataCacheUseCase) Write(
 		newRaces = append(newRaces, d.raceEntityConverter.DataCacheToRaw(race))
 	}
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch race from "+url)
 		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -240,7 +240,7 @@ func (d *DataCacheUseCase) Write(
 	}
 	var newExcludeJockeyIds []int
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch jockey from "+url)
 		jockey, err := d.jockeyDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -288,7 +288,7 @@ func (d *DataCacheUseCase) Write(
 	}
 
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		u, err := net_url.Parse(url)
 		if err != nil {
 			return err
@@ -384,13 +384,14 @@ func (d *DataCacheUseCase) Write(
 		}
 
 		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
-			RaceId: raceId.String(),
-			Odds:   rawOddsList,
+			RaceId:   raceId.String(),
+			RaceDate: raceDate.Value(),
+			Odds:     rawOddsList,
 		})
 	}
 
 	for _, url := range raceUrls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch analysisRace from "+url)
 		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -413,7 +414,7 @@ func (d *DataCacheUseCase) Write(
 
 	for _, url := range oddsUrls {
 		newOdds := make([]*raw_entity.Odds, 0, 20) // 6頭BOXは20点
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch analysisOdds from "+url)
 		fetchOdds, err := d.oddsDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -455,8 +456,9 @@ func (d *DataCacheUseCase) Write(
 		})
 
 		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
-			RaceId: raceId,
-			Odds:   newOdds,
+			RaceId:   raceId,
+			RaceDate: raceDate.Value(),
+			Odds:     newOdds,
 		})
 	}
 

@@ -99,6 +99,12 @@ func (p *analysisService) AddAnalysisData(
 				}
 			case types.Trio:
 				for i := 0; i < len(payoutResult.Numbers()); i++ {
+
+					// TODO ここをかなり見直さないとだめっぽい
+					// oddsデータをもってきて、20点分のオッズ情報をセットする。
+					// ちなみに20点分入れるが、計算時に軸の印で絞って10点にする
+
+					// 20点に分割する
 					calculable := analysis_entity.NewCalculable(
 						race.RaceId(),
 						markerCombinationId.TicketType().OriginTicketType(),

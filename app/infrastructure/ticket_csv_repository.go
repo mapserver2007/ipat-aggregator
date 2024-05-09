@@ -105,10 +105,12 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 	switch ticketType {
 	case types.QuinellaWheel:
 		return t.betNumberConverter.QuinellaWheelToQuinellaBetNumbers(ctx, rawBetNumber)
-	case types.ExactaWheelOfFirst:
-		return t.betNumberConverter.ExactaWheelOfFirstToExactaBetNumbers(ctx, rawBetNumber)
 	case types.QuinellaPlaceWheel:
 		return t.betNumberConverter.QuinellaPlaceWheelToQuinellaBetNumbers(ctx, rawBetNumber)
+	case types.QuinellaPlaceFormation:
+		return t.betNumberConverter.QuinellaPlaceFormationToQuinellaBetNumbers(ctx, rawBetNumber)
+	case types.ExactaWheelOfFirst:
+		return t.betNumberConverter.ExactaWheelOfFirstToExactaBetNumbers(ctx, rawBetNumber)
 	case types.TrioFormation:
 		return t.betNumberConverter.TrioFormationToTrioBetNumbers(ctx, rawBetNumber)
 	case types.TrioWheelOfFirst:
@@ -135,8 +137,9 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 func (t *ticketCsvRepository) extractPayment(rawTicketType, rawPayment string) string {
 	ticketType := types.NewTicketType(rawTicketType)
 	if types.QuinellaWheel == ticketType ||
-		types.ExactaWheelOfFirst == ticketType ||
 		types.QuinellaPlaceWheel == ticketType ||
+		types.QuinellaPlaceFormation == ticketType ||
+		types.ExactaWheelOfFirst == ticketType ||
 		types.TrioFormation == ticketType ||
 		types.TrioWheelOfFirst == ticketType ||
 		types.TrioWheelOfSecond == ticketType ||

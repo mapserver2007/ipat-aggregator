@@ -284,6 +284,7 @@ const (
 	ExactaWheelOfFirst
 	QuinellaPlace
 	QuinellaPlaceWheel
+	QuinellaPlaceFormation
 	Trio
 	TrioFormation
 	TrioWheelOfFirst
@@ -308,6 +309,7 @@ var ticketTypeMap = map[TicketType]string{
 	ExactaWheelOfFirst:         "馬単1着ながし",
 	QuinellaPlace:              "ワイド",
 	QuinellaPlaceWheel:         "ワイドながし",
+	QuinellaPlaceFormation:     "ワイドフォーメーション",
 	Trio:                       "3連複",
 	TrioFormation:              "3連複フォーメーション",
 	TrioWheelOfFirst:           "3連複軸1頭ながし",
@@ -344,7 +346,7 @@ func (b TicketType) OriginTicketType() TicketType {
 		return Quinella
 	case ExactaWheelOfFirst:
 		return Exacta
-	case QuinellaPlaceWheel:
+	case QuinellaPlaceWheel, QuinellaPlaceFormation:
 		return QuinellaPlace
 	case TrioFormation, TrioWheelOfFirst, TrioWheelOfSecond, TrioBox:
 		return Trio

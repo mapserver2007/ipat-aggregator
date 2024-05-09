@@ -22,8 +22,9 @@ type RaceOddsInfo struct {
 }
 
 type RaceOdds struct {
-	RaceId string  `json:"race_id"`
-	Odds   []*Odds `json:"odds"`
+	RaceId   string  `json:"race_id"`
+	RaceDate int     `json:"race_date"`
+	Odds     []*Odds `json:"odds"`
 }
 
 type Odds struct {

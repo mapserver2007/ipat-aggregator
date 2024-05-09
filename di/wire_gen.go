@@ -7,11 +7,20 @@
 package di
 
 import (
+	"github.com/google/wire"
+	"github.com/mapserver2007/ipat-aggregator/app/controller"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/aggregation_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 )
@@ -74,3 +83,49 @@ func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
 	predictionUseCase := prediction_usecase.NewPredictionUseCase(netKeibaService, raceIdDataRepository, predictionDataRepository, raceEntityConverter, filterService)
 	return predictionUseCase
 }
+
+func NewMaster() *controller.Master {
+	betNumberConverter := master_service.NewBetNumberConverter()
+	ticketRepository := infrastructure.NewTicketRepository(betNumberConverter)
+	ticket := master_service.NewTicket(ticketRepository)
+	netKeibaGateway := gateway.NewNetKeibaGateway()
+	raceIdRepository := infrastructure.NewRaceIdRepository(netKeibaGateway)
+	raceId := master_service.NewRaceId(raceIdRepository)
+	raceRepository := infrastructure.NewRaceRepository(netKeibaGateway)
+	raceEntityConverter := converter.NewRaceEntityConverter()
+	race := master_service.NewRace(raceRepository, raceEntityConverter)
+	jockeyRepository := infrastructure.NewJockeyRepository(netKeibaGateway)
+	jockeyEntityConverter := converter.NewJockeyEntityConverter()
+	jockey := master_service.NewJockey(jockeyRepository, jockeyEntityConverter)
+	oddsRepository := infrastructure.NewOddsRepository(netKeibaGateway)
+	oddsEntityConverter := converter.NewOddsEntityConverter()
+	odds := master_service.NewOdds(oddsRepository, oddsEntityConverter)
+	analysisMarkerRepository := infrastructure.NewAnalysisMarkerRepository()
+	analysisMarker := master_service.NewAnalysisMarker(analysisMarkerRepository)
+	predictionMarkerRepository := infrastructure.NewPredictionMarkerRepository()
+	predictionMarker := master_service.NewPredictionMarker(predictionMarkerRepository)
+	master := master_usecase.NewMaster(ticket, raceId, race, jockey, odds, analysisMarker, predictionMarker)
+	controllerMaster := controller.NewMaster(master)
+	return controllerMaster
+}
+
+func NewAggregation() *controller.Aggregation {
+	term := summary_service.NewTerm()
+	ticket := summary_service.NewTicket()
+	class := summary_service.NewClass()
+	courseCategory := summary_service.NewCourseCategory()
+	distanceCategory := summary_service.NewDistanceCategory()
+	raceCourse := summary_service.NewRaceCourse()
+	spreadSheetSummaryGateway := gateway.NewSpreadSheetSummaryGateway()
+	spreadSheetRepository := infrastructure.NewSpreadSummeryRepository(spreadSheetSummaryGateway)
+	summary := aggregation_service.NewSummary(term, ticket, class, courseCategory, distanceCategory, raceCourse, spreadSheetRepository)
+	aggregation := aggregation_usecase.NewAggregation(summary)
+	controllerAggregation := controller.NewAggregation(aggregation)
+	return controllerAggregation
+}
+
+// wire.go:
+
+var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, gateway.NewNetKeibaGateway)
+
+var AggregationSet = wire.NewSet(aggregation_usecase.NewAggregation, aggregation_service.NewSummary, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSummeryRepository, gateway.NewSpreadSheetSummaryGateway)

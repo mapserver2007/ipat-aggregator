@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/mapserver2007/ipat-aggregator/app/controller"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
@@ -15,17 +16,24 @@ import (
 
 const (
 	analysisRaceStartDate = "20230805"
-	analysisRaceEndDate   = "20240414"
-	enableAnalysis        = true
+	analysisRaceEndDate   = "20240505"
+	enableAnalysis        = false
 	enablePrediction      = false
 	enableAggregate       = false
+	enableDebug           = true
 )
 
 func main() {
 	ctx := context.Background()
 	log.Println(ctx, "start")
 
+	if enableDebug {
+		debug(ctx)
+		return
+	}
+
 	tickets, racingNumbers, ticketRaces, jockeys, analysisRaces, analysisOdds, markers, err := masterFile(ctx)
+
 	if err != nil {
 		panic(err)
 	}
@@ -57,6 +65,25 @@ func main() {
 	}
 
 	log.Println(ctx, "end")
+}
+
+func debug(ctx context.Context) {
+	// 実験
+	masterCtrl := di.NewMaster()
+	master, err := masterCtrl.Execute(ctx, &controller.MasterInput{
+		StartDate: analysisRaceStartDate,
+		EndDate:   analysisRaceEndDate,
+	})
+	if err != nil {
+		log.Println("master error")
+		panic(err)
+	}
+
+	aggregationCtrl := di.NewAggregation()
+	err = aggregationCtrl.Execute(ctx, &controller.AggregationInput{
+		Master: master,
+	})
+
 }
 
 func prediction(
@@ -173,7 +200,7 @@ func analysis(
 	}
 
 	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetMarkerAnalysisRepository, spreadSheetTrioAnalysisRepository, analysisService, filterService)
-	err = spreadSheetUseCase.Write(ctx, analysisData, races, odds)
+	err = spreadSheetUseCase.Write(ctx, analysisData, races, odds, markers)
 	if err != nil {
 		return err
 	}

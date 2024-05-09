@@ -67,6 +67,7 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 			raceResultMap[raceResult.HorseNumber()] = raceResult
 		}
 
+		// TODO oddsを渡す
 		err := p.analysisService.AddAnalysisData(ctx, marker, race)
 		if err != nil {
 			return nil, err

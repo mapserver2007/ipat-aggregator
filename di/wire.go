@@ -5,11 +5,19 @@ package di
 
 import (
 	"github.com/google/wire"
+	"github.com/mapserver2007/ipat-aggregator/app/controller"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/aggregation_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 )
@@ -80,3 +88,71 @@ func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
 	)
 	return nil
 }
+
+// 以下リファクタリング後
+
+var MasterSet = wire.NewSet(
+	master_usecase.NewMaster,
+	master_service.NewTicket,
+	master_service.NewRaceId,
+	master_service.NewRace,
+	master_service.NewJockey,
+	master_service.NewOdds,
+	master_service.NewAnalysisMarker,
+	master_service.NewPredictionMarker,
+	master_service.NewBetNumberConverter,
+	converter.NewRaceEntityConverter,
+	converter.NewJockeyEntityConverter,
+	converter.NewOddsEntityConverter,
+	infrastructure.NewTicketRepository,
+	infrastructure.NewRaceIdRepository,
+	infrastructure.NewRaceRepository,
+	infrastructure.NewJockeyRepository,
+	infrastructure.NewOddsRepository,
+	infrastructure.NewAnalysisMarkerRepository,
+	infrastructure.NewPredictionMarkerRepository,
+	gateway.NewNetKeibaGateway,
+)
+
+var AggregationSet = wire.NewSet(
+	aggregation_usecase.NewAggregation,
+	aggregation_service.NewSummary,
+	summary_service.NewTerm,
+	summary_service.NewTicket,
+	summary_service.NewClass,
+	summary_service.NewCourseCategory,
+	summary_service.NewDistanceCategory,
+	summary_service.NewRaceCourse,
+	infrastructure.NewSpreadSummeryRepository,
+	gateway.NewSpreadSheetSummaryGateway,
+)
+
+func NewMaster() *controller.Master {
+	wire.Build(
+		MasterSet,
+		controller.NewMaster,
+	)
+	return nil
+}
+
+func NewAggregation() *controller.Aggregation {
+	wire.Build(
+		AggregationSet,
+		controller.NewAggregation,
+	)
+	return nil
+}
+
+//var AnalysisSet = wire.NewSet(
+//	analysis_usecase.NewAnalysis2,
+//	//analysis_service.NewTrio,
+//
+//)
+//
+//func NewAnalysis() *controller.NewAnalysis {
+//	wire.Build(
+//		AnalysisSet,
+//		controller.NewAnalysis,
+//	)
+//	return nil
+//}

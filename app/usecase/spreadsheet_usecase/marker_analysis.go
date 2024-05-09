@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 )
@@ -34,6 +35,7 @@ func (p *MarkerAnalysisUseCase) Write(
 	analysisData *analysis_entity.Layer1,
 	races []*data_cache_entity.Race,
 	odds []*data_cache_entity.Odds,
+	markers []*marker_csv_entity.AnalysisMarker,
 ) error {
 	winPlaceFilters := p.filterService.GetWinPlaceAnalysisFilters()
 	trioFilters := p.filterService.GetTrioAnalysisFilters()
@@ -58,7 +60,7 @@ func (p *MarkerAnalysisUseCase) Write(
 	if err != nil {
 		return err
 	}
-	err = p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData, races, odds)
+	err = p.spreadSheetTrioAnalysisRepository.Write(ctx, spreadSheetTrioAnalysisData, races, odds, markers)
 	if err != nil {
 		return err
 	}

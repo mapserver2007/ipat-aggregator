@@ -11,8 +11,9 @@ import (
 
 type BetNumberConverter interface {
 	QuinellaWheelToQuinellaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
-	ExactaWheelOfFirstToExactaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	QuinellaPlaceWheelToQuinellaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
+	QuinellaPlaceFormationToQuinellaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
+	ExactaWheelOfFirstToExactaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrioFormationToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrioWheelOfFirstToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
 	TrioWheelOfSecondToTrioBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error)
@@ -58,31 +59,6 @@ func (b *betNumberConverter) QuinellaWheelToQuinellaBetNumbers(ctx context.Conte
 	return betNumbers, nil
 }
 
-// ExactaWheelOfFirstToExactaBetNumbers 馬単1着ながし変換
-func (b *betNumberConverter) ExactaWheelOfFirstToExactaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error) {
-	// 複数の買い目がまとめられてるものをバラす
-	separator1 := "／"
-	separator2 := "；"
-	values1 := strings.Split(rawBetNumber, separator1)
-	pivotalNumber, err := strconv.Atoi(values1[0]) // 軸
-	if err != nil {
-		return nil, err
-	}
-	strChallengerNumbers := strings.Split(values1[1], separator2) // 相手
-	var betNumbers []types.BetNumber
-	for _, strChallengerNumber := range strChallengerNumbers {
-		var betNumberStr string
-		challengerNumber, err := strconv.Atoi(strChallengerNumber)
-		if err != nil {
-			return nil, err
-		}
-		betNumberStr = fmt.Sprintf("%02d%s%02d", pivotalNumber, types.ExactaSeparator, challengerNumber)
-		betNumbers = append(betNumbers, types.BetNumber(betNumberStr))
-	}
-
-	return betNumbers, nil
-}
-
 // QuinellaPlaceWheelToQuinellaBetNumbers ワイドながし変換
 func (b *betNumberConverter) QuinellaPlaceWheelToQuinellaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error) {
 	// 複数の買い目がまとめられてるものをバラす
@@ -107,6 +83,72 @@ func (b *betNumberConverter) QuinellaPlaceWheelToQuinellaBetNumbers(ctx context.
 		} else {
 			betNumberStr = fmt.Sprintf("%02d%s%02d", challengerNumber, types.QuinellaSeparator, pivotalNumber)
 		}
+		betNumbers = append(betNumbers, types.BetNumber(betNumberStr))
+	}
+
+	return betNumbers, nil
+}
+
+func (b *betNumberConverter) QuinellaPlaceFormationToQuinellaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error) {
+	// 複数の買い目がまとめられてるものをバラす
+	separator1 := "／"
+	separator2 := "；"
+	values := strings.Split(rawBetNumber, separator1)
+
+	values1 := strings.Split(values[0], separator2)
+	values2 := strings.Split(values[1], separator2)
+
+	betNumberMap := map[string]string{}
+	var betNumbers []types.BetNumber
+
+	for i := 0; i < len(values1); i++ {
+		challengerNumber1, err := strconv.Atoi(values1[i])
+		if err != nil {
+			return nil, err
+		}
+		for j := 0; j < len(values2); j++ {
+			challengerNumber2, err := strconv.Atoi(values2[j])
+			if err != nil {
+				return nil, err
+			}
+
+			if challengerNumber1 == challengerNumber2 {
+				continue
+			}
+
+			betNumberStr := fmt.Sprintf("%02d%s%02d", challengerNumber1, types.QuinellaSeparator, challengerNumber2)
+			if _, ok := betNumberMap[betNumberStr]; !ok {
+				betNumberMap[betNumberStr] = betNumberStr
+			}
+		}
+	}
+
+	for _, betNumber := range betNumberMap {
+		betNumbers = append(betNumbers, types.BetNumber(betNumber))
+	}
+
+	return betNumbers, nil
+}
+
+// ExactaWheelOfFirstToExactaBetNumbers 馬単1着ながし変換
+func (b *betNumberConverter) ExactaWheelOfFirstToExactaBetNumbers(ctx context.Context, rawBetNumber string) ([]types.BetNumber, error) {
+	// 複数の買い目がまとめられてるものをバラす
+	separator1 := "／"
+	separator2 := "；"
+	values1 := strings.Split(rawBetNumber, separator1)
+	pivotalNumber, err := strconv.Atoi(values1[0]) // 軸
+	if err != nil {
+		return nil, err
+	}
+	strChallengerNumbers := strings.Split(values1[1], separator2) // 相手
+	var betNumbers []types.BetNumber
+	for _, strChallengerNumber := range strChallengerNumbers {
+		var betNumberStr string
+		challengerNumber, err := strconv.Atoi(strChallengerNumber)
+		if err != nil {
+			return nil, err
+		}
+		betNumberStr = fmt.Sprintf("%02d%s%02d", pivotalNumber, types.ExactaSeparator, challengerNumber)
 		betNumbers = append(betNumbers, types.BetNumber(betNumberStr))
 	}
 
@@ -169,7 +211,6 @@ func (b *betNumberConverter) TrioFormationToTrioBetNumbers(ctx context.Context, 
 	}
 
 	return betNumbers, nil
-
 }
 
 // TrioWheelOfFirstToTrioBetNumbers 三連複1着ながし変換

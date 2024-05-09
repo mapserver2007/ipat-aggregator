@@ -28,7 +28,7 @@ func (t *ticketAggregator) MonthlyResult(ctx context.Context, tickets []*ticket_
 	ticketResultMap := map[int]*spreadsheet_entity.TicketResult{}
 	for month, monthTickets := range ticketsGroup {
 		ticketResultMap[month] = t.TicketResult(ctx, monthTickets, races, racingNumbers, types.Win, types.Place, types.Quinella, types.QuinellaWheel,
-			types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel,
+			types.Exacta, types.ExactaWheelOfFirst, types.QuinellaPlace, types.QuinellaPlaceWheel, types.QuinellaPlaceFormation,
 			types.Trio, types.TrioFormation, types.TrioWheelOfFirst, types.TrioWheelOfSecond, types.TrioBox,
 			types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecond, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti)
 	}

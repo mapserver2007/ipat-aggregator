@@ -5,5 +5,5 @@ const (
 	CacheDir = "cache2"
 
 	RaceStartDate = "20230805"
-	RaceEndDate   = "20240420"
+	RaceEndDate   = "20240505"
 )

@@ -117,15 +117,19 @@ func NewAggregation() *controller.Aggregation {
 	distanceCategory := summary_service.NewDistanceCategory()
 	raceCourse := summary_service.NewRaceCourse()
 	spreadSheetSummaryGateway := gateway.NewSpreadSheetSummaryGateway()
-	spreadSheetRepository := infrastructure.NewSpreadSummeryRepository(spreadSheetSummaryGateway)
+	spreadSheetTicketSummaryGateway := gateway.NewSpreadSheetTicketSummaryGateway()
+	spreadSheetRepository := infrastructure.NewSpreadSummeryRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway)
 	summary := aggregation_service.NewSummary(term, ticket, class, courseCategory, distanceCategory, raceCourse, spreadSheetRepository)
-	aggregation := aggregation_usecase.NewAggregation(summary)
-	controllerAggregation := controller.NewAggregation(aggregation)
-	return controllerAggregation
+	aggregation_usecaseSummary := aggregation_usecase.NewSummary(summary)
+	ticketSummary := aggregation_service.NewTicketSummary(term, spreadSheetRepository)
+	aggregation_usecaseTicketSummary := aggregation_usecase.NewTicketSummary(ticketSummary)
+	list := aggregation_usecase.NewList()
+	aggregation := controller.NewAggregation(aggregation_usecaseSummary, aggregation_usecaseTicketSummary, list)
+	return aggregation
 }
 
 // wire.go:
 
 var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, gateway.NewNetKeibaGateway)
 
-var AggregationSet = wire.NewSet(aggregation_usecase.NewAggregation, aggregation_service.NewSummary, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSummeryRepository, gateway.NewSpreadSheetSummaryGateway)
+var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSummeryRepository, gateway.NewSpreadSheetSummaryGateway, gateway.NewSpreadSheetTicketSummaryGateway)

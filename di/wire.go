@@ -115,8 +115,11 @@ var MasterSet = wire.NewSet(
 )
 
 var AggregationSet = wire.NewSet(
-	aggregation_usecase.NewAggregation,
+	aggregation_usecase.NewSummary,
+	aggregation_usecase.NewTicketSummary,
+	aggregation_usecase.NewList,
 	aggregation_service.NewSummary,
+	aggregation_service.NewTicketSummary,
 	summary_service.NewTerm,
 	summary_service.NewTicket,
 	summary_service.NewClass,
@@ -125,6 +128,7 @@ var AggregationSet = wire.NewSet(
 	summary_service.NewRaceCourse,
 	infrastructure.NewSpreadSummeryRepository,
 	gateway.NewSpreadSheetSummaryGateway,
+	gateway.NewSpreadSheetTicketSummaryGateway,
 )
 
 func NewMaster() *controller.Master {

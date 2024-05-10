@@ -7,4 +7,5 @@ import (
 
 type SpreadSheetRepository interface {
 	WriteSummary(ctx context.Context, summary *spreadsheet_entity.Summary) error
+	WriteTicketSummary(ctx context.Context, ticketSummaryMap map[int]*spreadsheet_entity.TicketSummary) error
 }

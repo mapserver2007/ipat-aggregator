@@ -69,16 +69,6 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		return nil, err
 	}
 
-	raceDateMap, _, err := m.raceIdService.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var raceIds []types.RaceId
-	for _, ids := range raceDateMap {
-		raceIds = append(raceIds, ids...)
-	}
-
 	jockeys, _, err := m.jockeyService.Get(ctx)
 	if err != nil {
 		return nil, err

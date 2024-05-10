@@ -8,14 +8,17 @@ import (
 )
 
 type spreadSummeryRepository struct {
-	summaryGateway gateway.SpreadSheetSummaryGateway
+	summaryGateway       gateway.SpreadSheetSummaryGateway
+	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway
 }
 
 func NewSpreadSummeryRepository(
 	summaryGateway gateway.SpreadSheetSummaryGateway,
+	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway,
 ) repository.SpreadSheetRepository {
 	return &spreadSummeryRepository{
-		summaryGateway: summaryGateway,
+		summaryGateway:       summaryGateway,
+		ticketSummaryGateway: ticketSummaryGateway,
 	}
 }
 
@@ -32,6 +35,26 @@ func (s *spreadSummeryRepository) WriteSummary(
 		return err
 	}
 	err = s.summaryGateway.Style(ctx, summary)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSummeryRepository) WriteTicketSummary(
+	ctx context.Context,
+	ticketSummaryMap map[int]*spreadsheet_entity.TicketSummary,
+) error {
+	err := s.ticketSummaryGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.ticketSummaryGateway.Write(ctx, ticketSummaryMap)
+	if err != nil {
+		return err
+	}
+	err = s.ticketSummaryGateway.Style(ctx, ticketSummaryMap)
 	if err != nil {
 		return err
 	}

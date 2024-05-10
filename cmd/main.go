@@ -10,6 +10,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
+	"github.com/mapserver2007/ipat-aggregator/config"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
 )
@@ -71,8 +72,8 @@ func debug(ctx context.Context) {
 	// 実験
 	masterCtrl := di.NewMaster()
 	master, err := masterCtrl.Execute(ctx, &controller.MasterInput{
-		StartDate: analysisRaceStartDate,
-		EndDate:   analysisRaceEndDate,
+		StartDate: config.RaceStartDate,
+		EndDate:   config.RaceEndDate,
 	})
 	if err != nil {
 		log.Println("master error")
@@ -83,7 +84,10 @@ func debug(ctx context.Context) {
 	err = aggregationCtrl.Execute(ctx, &controller.AggregationInput{
 		Master: master,
 	})
-
+	if err != nil {
+		log.Println("aggregation error")
+		panic(err)
+	}
 }
 
 func prediction(

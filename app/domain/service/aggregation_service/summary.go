@@ -134,10 +134,10 @@ func (s *summaryService) Create(
 	}
 
 	monthlyResultMap := map[int]*spreadsheet_entity.TicketResult{}
-	for currentMonth, tickets := range dateTimeTicketMap {
+	for currentMonth, raceTickets := range dateTimeTicketMap {
 		key, _ := strconv.Atoi(currentMonth.Format("200601"))
 		nextMonth = currentMonth.AddDate(0, 1, 0)
-		monthlyResultMap[key] = s.createTermResult(ctx, tickets, currentMonth, nextMonth)
+		monthlyResultMap[key] = s.createTermResult(ctx, raceTickets, currentMonth, nextMonth)
 	}
 
 	return spreadsheet_entity.NewSummary(

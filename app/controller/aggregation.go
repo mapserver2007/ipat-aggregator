@@ -10,20 +10,43 @@ type AggregationInput struct {
 }
 
 type Aggregation struct {
-	aggregationUseCase aggregation_usecase.Aggregation
+	aggregationSummaryUseCase       aggregation_usecase.Summary
+	aggregationTicketSummaryUseCase aggregation_usecase.TicketSummary
+	aggregationListUseCase          aggregation_usecase.List
 }
 
 func NewAggregation(
-	aggregationUseCase aggregation_usecase.Aggregation,
+	aggregationSummaryUseCase aggregation_usecase.Summary,
+	aggregationTicketSummaryUseCase aggregation_usecase.TicketSummary,
+	aggregationListUseCase aggregation_usecase.List,
 ) *Aggregation {
 	return &Aggregation{
-		aggregationUseCase: aggregationUseCase,
+		aggregationSummaryUseCase:       aggregationSummaryUseCase,
+		aggregationTicketSummaryUseCase: aggregationTicketSummaryUseCase,
+		aggregationListUseCase:          aggregationListUseCase,
 	}
 }
 
 func (a *Aggregation) Execute(ctx context.Context, input *AggregationInput) error {
-	return a.aggregationUseCase.Execute(ctx, &aggregation_usecase.AggregationInput{
+	err := a.aggregationSummaryUseCase.Execute(ctx, &aggregation_usecase.SummaryInput{
 		Tickets: input.Master.Tickets,
 		Races:   input.Master.Races,
 	})
+	if err != nil {
+		return err
+	}
+
+	err = a.aggregationTicketSummaryUseCase.Execute(ctx, &aggregation_usecase.TicketSummaryInput{
+		Tickets: input.Master.Tickets,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = a.aggregationListUseCase.Execute(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

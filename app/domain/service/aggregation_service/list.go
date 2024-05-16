@@ -1,4 +1,4 @@
-package service
+package aggregation_service
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"golang.org/x/exp/slices"
 	"sort"
@@ -20,44 +22,70 @@ const (
 	thresholdOfLowerLimitPayment = 0.15
 )
 
-type ListService interface {
-	Create(ctx context.Context, tickets []*ticket_csv_entity.Ticket, racingNumbers []*data_cache_entity.RacingNumber, races []*data_cache_entity.Race, jockeys []*data_cache_entity.Jockey) ([]*list_entity.ListRow, error)
-	Convert(ctx context.Context, listRows []*list_entity.ListRow, jockeys []*data_cache_entity.Jockey) ([]*spreadsheet_entity.Row, []*spreadsheet_entity.Style)
+var ticketSortOrders = []types.TicketType{
+	types.Win,
+	types.Exacta,
+	types.ExactaWheelOfFirst,
+	types.Trifecta,
+	types.TrifectaWheelOfFirst,
+	types.TrifectaWheelOfSecond,
+	types.TrifectaFormation,
+	types.TrifectaWheelOfFirstMulti,
+	types.TrifectaWheelOfSecondMulti,
+	types.QuinellaWheel,
+	types.QuinellaPlaceWheel,
+	types.Quinella,
+	types.QuinellaPlace,
+	types.QuinellaPlaceFormation,
+	types.TrioWheelOfFirst,
+	types.TrioWheelOfSecond,
+	types.Trio,
+	types.TrioFormation,
+	types.TrioBox,
+	types.Place,
+	types.BracketQuinella,
+}
+
+type List interface {
+	Create(ctx context.Context, tickets []*ticket_csv_entity.RaceTicket, races []*data_cache_entity.Race, jockeys []*data_cache_entity.Jockey) ([]*spreadsheet_entity.ListRow, error)
+	Write(ctx context.Context, listRows []*spreadsheet_entity.ListRow) error
 }
 
 type listService struct {
-	raceConverter       RaceConverter
-	ticketConverter     TicketConverter
-	raceEntityConverter RaceEntityConverter
+	raceEntityConverter   converter.RaceEntityConverter
+	JockeyEntityConverter converter.JockeyEntityConverter
+	spreadSheetRepository repository.SpreadSheetRepository
 }
 
-func NewListService(
-	raceConverter RaceConverter,
-	ticketConverter TicketConverter,
-	raceEntityConverter RaceEntityConverter,
-) ListService {
+func NewList(
+	raceEntityConverter converter.RaceEntityConverter,
+	JockeyEntityConverter converter.JockeyEntityConverter,
+	spreadSheetRepository repository.SpreadSheetRepository,
+) List {
 	return &listService{
-		raceConverter:       raceConverter,
-		ticketConverter:     ticketConverter,
-		raceEntityConverter: raceEntityConverter,
+		raceEntityConverter:   raceEntityConverter,
+		JockeyEntityConverter: JockeyEntityConverter,
+		spreadSheetRepository: spreadSheetRepository,
 	}
 }
 
 func (l *listService) Create(
 	ctx context.Context,
-	tickets []*ticket_csv_entity.Ticket,
-	racingNumbers []*data_cache_entity.RacingNumber,
+	tickets []*ticket_csv_entity.RaceTicket,
 	races []*data_cache_entity.Race,
 	jockeys []*data_cache_entity.Jockey,
-) ([]*list_entity.ListRow, error) {
-	var listRows []*list_entity.ListRow
-	raceMap := l.raceConverter.ConvertToRaceMap(ctx, races)
-	ticketsMap := l.ticketConverter.ConvertToRaceIdMap(ctx, tickets, racingNumbers)
-	jockeyMap := map[types.JockeyId]*data_cache_entity.Jockey{}
+) ([]*spreadsheet_entity.ListRow, error) {
+	var listRows []*spreadsheet_entity.ListRow
+	raceMap := converter.ConvertToMap(races, func(race *data_cache_entity.Race) types.RaceId {
+		return race.RaceId()
+	})
+	raceTicketsMap := converter.ConvertToSliceMap(tickets, func(ticket *ticket_csv_entity.RaceTicket) types.RaceId {
+		return ticket.RaceId()
+	})
+	jockeyMap := converter.ConvertToMap(jockeys, func(jockey *data_cache_entity.Jockey) types.JockeyId {
+		return jockey.JockeyId()
+	})
 
-	for _, jockey := range jockeys {
-		jockeyMap[jockey.JockeyId()] = jockey
-	}
 	getJockeyName := func(jockeyId types.JockeyId) string {
 		jockey, ok := jockeyMap[jockeyId]
 		if ok {
@@ -66,7 +94,7 @@ func (l *listService) Create(
 		return "(不明)"
 	}
 
-	for raceId, ticketsByRaceId := range ticketsMap {
+	for raceId, raceTickets := range raceTicketsMap {
 		race, ok := raceMap[raceId]
 		if !ok {
 			return nil, fmt.Errorf("unknown raceId: %s", raceId)
@@ -77,9 +105,9 @@ func (l *listService) Create(
 		})
 
 		var rawPayment, rawPayout int
-		for _, ticket := range ticketsByRaceId {
-			rawPayment += ticket.Payment().Value()
-			rawPayout += ticket.Payout().Value()
+		for _, raceTicket := range raceTickets {
+			rawPayment += raceTicket.Ticket().Payment().Value()
+			rawPayout += raceTicket.Ticket().Payout().Value()
 		}
 
 		var (
@@ -88,34 +116,38 @@ func (l *listService) Create(
 			hitTickets        []*list_entity.Ticket
 		)
 
-		ticketTypeMap := l.ticketConverter.ConvertToTicketTypeMap(ctx, ticketsByRaceId)
-		payoutResultMap := l.raceConverter.ConvertToPayoutResultsMap(ctx, race.PayoutResults())
+		ticketTypeMap := converter.ConvertToSliceMap(raceTickets, func(raceTicket *ticket_csv_entity.RaceTicket) types.TicketType {
+			return raceTicket.Ticket().TicketType()
+		})
+		payoutResultMap := converter.ConvertToSliceMap(race.PayoutResults(), func(payoutResult *data_cache_entity.PayoutResult) types.TicketType {
+			return payoutResult.TicketType()
+		})
 
 		status := types.PredictUncompleted
-		for _, ticketType := range l.ticketSortOrder() {
-			ticketsByTicketType, ok := ticketTypeMap[ticketType]
-			if !ok || len(ticketsByTicketType) == 0 {
+		for _, ticketType := range ticketSortOrders {
+			ticketTypeRaceTickets, ok := ticketTypeMap[ticketType]
+			if !ok || len(ticketTypeRaceTickets) == 0 {
 				continue
 			}
 
 			// 本命候補がいる場合
 			if status.Included(types.FavoriteCandidate) {
-				favorites, rivals, status = l.getFavoritesAndRivals(ctx, ticketsByTicketType, types.FavoriteCandidate, favorites, nil, rawPayment)
+				favorites, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.FavoriteCandidate, favorites, nil, rawPayment)
 			}
 
 			// 対抗候補がいる場合
 			if status.Included(types.RivalCandidate) {
-				_, rivals, status = l.getFavoritesAndRivals(ctx, ticketsByTicketType, types.RivalCandidate, rivals, nil, rawPayment)
+				_, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.RivalCandidate, rivals, nil, rawPayment)
 			}
 
 			// 本命が決定済み、対抗が未決定
 			if status.Included(types.FavoriteCompleted) {
-				_, rivals, status = l.getFavoritesAndRivals(ctx, ticketsByTicketType, types.FavoriteCompleted, nil, favorites, rawPayment)
+				_, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.FavoriteCompleted, nil, favorites, rawPayment)
 			}
 
 			// 本命、対抗が未決定
 			if status.Matched(types.PredictUncompleted) {
-				favorites, rivals, status = l.getFavoritesAndRivals(ctx, ticketsByTicketType, types.PredictUncompleted, nil, nil, rawPayment)
+				favorites, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.PredictUncompleted, nil, nil, rawPayment)
 			}
 
 			// 本命または対抗が決定してる場合、処理を抜ける
@@ -129,7 +161,7 @@ func (l *listService) Create(
 			// 候補になっている馬番絡みの払い戻し金額が最大の馬番に絞り込み、本命候補とする
 			// 同額の場合は複数返る
 			// それ以外の馬番は対抗候補とする
-			favoriteCandidates, rivalCandidates, isFound := l.getBetNumbersByMaxPayout(ctx, favorites, ticketsByRaceId)
+			favoriteCandidates, rivalCandidates, isFound := l.getBetNumbersByMaxPayout(ctx, favorites, raceTickets)
 			if isFound {
 				favorites = favoriteCandidates
 				rivals = rivalCandidates
@@ -137,7 +169,7 @@ func (l *listService) Create(
 			for _, raceResult := range raceResults {
 				// 本命候補が複数の場合、人気が高い方を本命とする
 				betNumber := types.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber()))
-				if containsInSlices(favorites, betNumber) {
+				if l.containsInSlices(favorites, betNumber) {
 					for _, candidate := range favorites {
 						// 本命馬番にマッチしないものはすべて対抗候補に回す
 						if candidate != betNumber {
@@ -166,19 +198,23 @@ func (l *listService) Create(
 			} else if len(rivals) >= 2 {
 				// 候補になっている馬番絡みの払い戻し金額が最大の馬番に絞り込む
 				// 同額の場合は複数返る
-				rivalCandidates, _, isFound := l.getBetNumbersByMaxPayout(ctx, rivals, ticketsByRaceId)
+				rivalCandidates, _, isFound := l.getBetNumbersByMaxPayout(ctx, rivals, raceTickets)
 				if isFound {
 					rivals = rivalCandidates
 				}
 				// 対抗が複数存在する場合、人気が高いものを採用する
 				for _, raceResult := range raceResults {
 					betNumber := types.NewBetNumber(fmt.Sprintf("%02d", raceResult.HorseNumber()))
-					if containsInSlices(rivals, betNumber) {
+					if l.containsInSlices(rivals, betNumber) {
 						rivals = []types.BetNumber{betNumber}
 						break
 					}
 				}
 			}
+		}
+
+		if len(favorites) >= 2 || len(rivals) >= 2 {
+			return nil, fmt.Errorf("failed to find favorite or rival")
 		}
 
 		if favorites != nil && len(favorites) > 0 {
@@ -189,22 +225,22 @@ func (l *listService) Create(
 		}
 
 		// 本命対抗検出ロジック内だと最後の券種に到達する前にbreakするケースがあるためもう一度ループを回す
-		for _, ticketType := range l.ticketSortOrder() {
-			ticketsByTicketType, ok := ticketTypeMap[ticketType]
-			if !ok || len(ticketsByTicketType) == 0 {
+		for _, ticketType := range ticketSortOrders {
+			ticketTypeRaceTickets, ok := ticketTypeMap[ticketType]
+			if !ok || len(ticketTypeRaceTickets) == 0 {
 				continue
 			}
-			for _, ticketByTicketType := range ticketsByTicketType {
-				payoutResults, ok := payoutResultMap[ticketByTicketType.TicketType().OriginTicketType()]
+			for _, raceTicket := range ticketTypeRaceTickets {
+				payoutResults, ok := payoutResultMap[raceTicket.Ticket().TicketType().OriginTicketType()]
 				if !ok {
-					return nil, fmt.Errorf("unknown payout result in ticketType %s", ticketByTicketType.TicketType().OriginTicketType().Name())
+					return nil, fmt.Errorf("unknown payout result in ticketType %s", raceTicket.Ticket().TicketType().OriginTicketType().Name())
 				}
-				if ticketByTicketType.TicketResult() == types.TicketHit {
+				if raceTicket.Ticket().TicketResult() == types.TicketHit {
 					for _, payoutResult := range payoutResults {
 						for idx := range payoutResult.Numbers() {
-							if payoutResult.Numbers()[idx] == ticketByTicketType.BetNumber() {
+							if payoutResult.Numbers()[idx] == raceTicket.Ticket().BetNumber() {
 								hitTickets = append(hitTickets, list_entity.NewTicket(
-									ticketByTicketType,
+									raceTicket.Ticket(),
 									payoutResult.Numbers()[idx],
 									payoutResult.Odds()[idx],
 									payoutResult.Populars()[idx],
@@ -224,177 +260,76 @@ func (l *listService) Create(
 		for _, raceResult := range raceResults {
 			if len(favorite) > 0 && raceResult.HorseNumber() == favorite.List()[0] {
 				favoriteHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
-				jockeyId := types.JockeyId(raceResult.JockeyId())
-
-				favoriteJockey = list_entity.NewJockey(jockeyId, getJockeyName(jockeyId))
+				jockey, ok := jockeyMap[types.JockeyId(raceResult.JockeyId())]
+				if !ok {
+					jockey = data_cache_entity.NewJockey(99999, "(不明)")
+				}
+				favoriteJockey = l.JockeyEntityConverter.DataCacheToList(jockey)
 			}
 			if len(rival) > 0 && raceResult.HorseNumber() == rival.List()[0] {
 				rivalHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
-				jockeyId := types.JockeyId(raceResult.JockeyId())
-				rivalJockey = list_entity.NewJockey(jockeyId, getJockeyName(jockeyId))
+				jockey, ok := jockeyMap[types.JockeyId(raceResult.JockeyId())]
+				if !ok {
+					jockey = data_cache_entity.NewJockey(99999, "(不明)")
+				}
+				rivalJockey = l.JockeyEntityConverter.DataCacheToList(jockey)
 			}
 		}
 
 		// 単複のみなど対抗が存在しない場合
 		if rivalHorse == nil {
 			rivalHorse = list_entity.NewHorse("-", "-", 0)
-			rivalJockey = list_entity.NewJockey(99999, getJockeyName(99999))
+			rivalJockey = l.JockeyEntityConverter.DataCacheToList(data_cache_entity.NewJockey(99999, "(不明)"))
 		}
 
 		sort.Slice(raceResults, func(i, j int) bool {
 			return raceResults[i].OrderNo() < raceResults[j].OrderNo()
 		})
 
-		listRows = append(listRows, list_entity.NewListRow(
-			l.raceEntityConverter.DataCacheToList(race),
+		listRace := l.raceEntityConverter.DataCacheToList(race)
+
+		listRows = append(listRows, spreadsheet_entity.NewListRow(
+			listRace,
 			favoriteHorse,
 			rivalHorse,
 			favoriteJockey,
 			rivalJockey,
+			listRace.RaceResults()[0],
+			list_entity.NewJockey(
+				types.JockeyId(listRace.RaceResults()[0].JockeyId()),
+				getJockeyName(types.JockeyId(listRace.RaceResults()[0].JockeyId())),
+			),
+			listRace.RaceResults()[1],
+			list_entity.NewJockey(
+				types.JockeyId(listRace.RaceResults()[1].JockeyId()),
+				getJockeyName(types.JockeyId(listRace.RaceResults()[1].JockeyId())),
+			),
+			hitTickets,
 			types.Payment(rawPayment),
 			types.Payout(rawPayout),
-			hitTickets,
-			status,
 		))
-
-		if len(favorites) >= 2 || len(rivals) >= 2 {
-			return nil, fmt.Errorf("failed to find favorite or rival")
-		}
 	}
+
+	sort.SliceStable(listRows, func(i, j int) bool {
+		return listRows[i].Data().RaceStartTime() > listRows[j].Data().RaceStartTime()
+	})
+	sort.SliceStable(listRows, func(i, j int) bool {
+		return listRows[i].Data().RaceDate() > listRows[j].Data().RaceDate()
+	})
 
 	return listRows, nil
 }
 
-func (l *listService) Convert(
+func (l *listService) Write(
 	ctx context.Context,
-	listRows []*list_entity.ListRow,
-	jockeys []*data_cache_entity.Jockey,
-) ([]*spreadsheet_entity.Row, []*spreadsheet_entity.Style) {
-	var (
-		rows   []*spreadsheet_entity.Row
-		styles []*spreadsheet_entity.Style
-	)
-
-	jockeyMap := map[types.JockeyId]*data_cache_entity.Jockey{}
-	for _, jockey := range jockeys {
-		jockeyMap[jockey.JockeyId()] = jockey
-	}
-
-	getJockeyName := func(jockeyId types.JockeyId) string {
-		jockey, ok := jockeyMap[jockeyId]
-		if ok {
-			return jockey.JockeyName()
-		}
-		return "(不明)"
-	}
-
-	sort.SliceStable(listRows, func(i, j int) bool {
-		return listRows[i].Race().StartTime() > listRows[j].Race().StartTime()
-	})
-	sort.SliceStable(listRows, func(i, j int) bool {
-		return listRows[i].Race().RaceDate() > listRows[j].Race().RaceDate()
-	})
-
-	for _, row := range listRows {
-		rows = append(rows, spreadsheet_entity.NewRow(
-			row.Race().RaceDate(),
-			row.Race().Class(),
-			row.Race().CourseCategory(),
-			row.Race().Distance(),
-			row.Race().TrackCondition(),
-			row.Race().RaceName(),
-			row.Race().Url(),
-			row.Payment(),
-			row.Payout(),
-			row.FavoriteHorse(),
-			row.FavoriteJockey(),
-			row.RivalHorse(),
-			row.RivalJockey(),
-			row.Race().RaceResults()[0],
-			list_entity.NewJockey(
-				types.JockeyId(row.Race().RaceResults()[0].JockeyId()),
-				getJockeyName(types.JockeyId(row.Race().RaceResults()[0].JockeyId())),
-			),
-			row.Race().RaceResults()[1],
-			list_entity.NewJockey(
-				types.JockeyId(row.Race().RaceResults()[1].JockeyId()),
-				getJockeyName(types.JockeyId(row.Race().RaceResults()[1].JockeyId())),
-			),
-		))
-
-		classColor := types.NoneColor
-		switch row.Race().Class() {
-		case types.Grade1, types.Jpn1:
-			classColor = types.FirstColor
-		case types.Grade2, types.Jpn2:
-			classColor = types.SecondColor
-		case types.Grade3, types.Jpn3:
-			classColor = types.ThirdColor
-		}
-
-		favoriteHorseColor := types.NoneColor
-		rivalHorseColor := types.NoneColor
-		firstPlaceHorseColor := types.NoneColor
-		secondPlaceHorseColor := types.NoneColor
-
-		switch row.FavoriteHorse().HorseName() {
-		case row.Race().RaceResults()[0].HorseName():
-			favoriteHorseColor = types.FirstColor
-		case row.Race().RaceResults()[1].HorseName():
-			favoriteHorseColor = types.SecondColor
-		case row.Race().RaceResults()[2].HorseName():
-			favoriteHorseColor = types.ThirdColor
-		}
-
-		switch row.RivalHorse().HorseName() {
-		case row.Race().RaceResults()[0].HorseName():
-			rivalHorseColor = types.FirstColor
-		case row.Race().RaceResults()[1].HorseName():
-			rivalHorseColor = types.SecondColor
-		case row.Race().RaceResults()[2].HorseName():
-			rivalHorseColor = types.ThirdColor
-		}
-
-		switch row.Race().RaceResults()[0].PopularNumber() {
-		case 1:
-			firstPlaceHorseColor = types.FirstColor
-		case 2:
-			firstPlaceHorseColor = types.SecondColor
-		case 3:
-			firstPlaceHorseColor = types.ThirdColor
-		}
-
-		switch row.Race().RaceResults()[1].PopularNumber() {
-		case 1:
-			secondPlaceHorseColor = types.FirstColor
-		case 2:
-			secondPlaceHorseColor = types.SecondColor
-		case 3:
-			secondPlaceHorseColor = types.ThirdColor
-		}
-
-		var comments []string
-		for _, ticket := range row.HitTickets() {
-			comments = append(comments, fmt.Sprintf("%s %s %s倍 %d円 %d人気",
-				ticket.TicketType().OriginTicketType().Name(), ticket.BetNumber().String(), ticket.Odds(), ticket.Payout(), ticket.Popular()))
-		}
-
-		styles = append(styles, spreadsheet_entity.NewStyle(
-			classColor,
-			comments,
-			favoriteHorseColor,
-			rivalHorseColor,
-			firstPlaceHorseColor,
-			secondPlaceHorseColor,
-		))
-	}
-
-	return rows, styles
+	listRows []*spreadsheet_entity.ListRow,
+) error {
+	return l.spreadSheetRepository.WriteList(ctx, listRows)
 }
 
 func (l *listService) getFavoritesAndRivals(
 	ctx context.Context,
-	tickets []*ticket_csv_entity.Ticket,
+	raceTickets []*ticket_csv_entity.RaceTicket,
 	status types.PredictStatus,
 	includeBetNumbers []types.BetNumber,
 	excludeBetNumbers []types.BetNumber,
@@ -414,13 +349,15 @@ func (l *listService) getFavoritesAndRivals(
 
 	if status.Included(types.FavoriteCandidate | types.RivalCandidate) {
 		// 本命・対抗候補が複数いる場合
-		for _, ticket := range tickets {
-			if containsInSlices(includeBetNumbers, ticket.BetNumber()) {
-				refinedTickets = append(refinedTickets, ticket)
+		for _, raceTicket := range raceTickets {
+			if l.containsInSlices(includeBetNumbers, raceTicket.Ticket().BetNumber()) {
+				refinedTickets = append(refinedTickets, raceTicket.Ticket())
 			}
 		}
 	} else {
-		refinedTickets = tickets
+		for _, raceTicket := range raceTickets {
+			refinedTickets = append(refinedTickets, raceTicket.Ticket())
+		}
 	}
 
 	// 指定馬番の金額が最も大きいものを返す
@@ -521,7 +458,7 @@ func (l *listService) getMaxBetNumbers(
 		size := len(nums)
 		weight := weightOfFirstPlace
 
-		if size >= 1 && !containsInSlices(excludeBetNumbers, types.BetNumber(strconv.Itoa(nums[0]))) {
+		if size >= 1 && !l.containsInSlices(excludeBetNumbers, types.BetNumber(strconv.Itoa(nums[0]))) {
 			// 1着付け
 			if _, ok := betNumberPaymentMap[nums[0]]; !ok {
 				betNumberPaymentMap[nums[0]] = ticket.Payment().Value()
@@ -529,7 +466,7 @@ func (l *listService) getMaxBetNumbers(
 				betNumberPaymentMap[nums[0]] += ticket.Payment().Value()
 			}
 		}
-		if size >= 2 && !containsInSlices(excludeBetNumbers, types.BetNumber(strconv.Itoa(nums[1]))) {
+		if size >= 2 && !l.containsInSlices(excludeBetNumbers, types.BetNumber(strconv.Itoa(nums[1]))) {
 			// 2着付け
 			if isExactaOrTrifecta(ticket.TicketType()) {
 				weight = weightOfSecondPlace
@@ -540,7 +477,7 @@ func (l *listService) getMaxBetNumbers(
 				betNumberPaymentMap[nums[1]] += int(float64(ticket.Payment()) * weight)
 			}
 		}
-		if size >= 3 && !containsInSlices(excludeBetNumbers, types.BetNumber(strconv.Itoa(nums[2]))) {
+		if size >= 3 && !l.containsInSlices(excludeBetNumbers, types.BetNumber(strconv.Itoa(nums[2]))) {
 			// 3着付け
 			if isExactaOrTrifecta(ticket.TicketType()) {
 				weight = weightOfThirdPlace
@@ -594,7 +531,7 @@ func (l *listService) getMaxBetNumbers(
 func (l *listService) getBetNumbersByMaxPayout(
 	ctx context.Context,
 	candidateBetNumbers []types.BetNumber,
-	tickets []*ticket_csv_entity.Ticket,
+	raceTickets []*ticket_csv_entity.RaceTicket,
 ) (
 	[]types.BetNumber,
 	[]types.BetNumber,
@@ -607,15 +544,15 @@ func (l *listService) getBetNumbersByMaxPayout(
 	)
 	totalPaymentMap := map[types.BetNumber]int{}
 
-	for _, ticket := range tickets {
-		if ticket.TicketResult() != types.TicketHit {
+	for _, raceTicket := range raceTickets {
+		if raceTicket.Ticket().TicketResult() != types.TicketHit {
 			continue
 		}
 		isFoundCandidate = true
 		for _, candidateBetNumber := range candidateBetNumbers {
 			rawCandidateBetNumber, _ := strconv.Atoi(candidateBetNumber.String())
-			if slices.Contains(ticket.BetNumber().List(), rawCandidateBetNumber) {
-				totalPaymentMap[candidateBetNumber] += ticket.Payment().Value()
+			if slices.Contains(raceTicket.Ticket().BetNumber().List(), rawCandidateBetNumber) {
+				totalPaymentMap[candidateBetNumber] += raceTicket.Ticket().Payment().Value()
 			} else {
 				totalPaymentMap[candidateBetNumber] += 0
 			}
@@ -647,33 +584,7 @@ func (l *listService) getBetNumbersByMaxPayout(
 	return maxKeys, otherKeys, true
 }
 
-func (l *listService) ticketSortOrder() []types.TicketType {
-	return []types.TicketType{
-		types.Win,
-		types.Exacta,
-		types.ExactaWheelOfFirst,
-		types.Trifecta,
-		types.TrifectaWheelOfFirst,
-		types.TrifectaWheelOfSecond,
-		types.TrifectaFormation,
-		types.TrifectaWheelOfFirstMulti,
-		types.TrifectaWheelOfSecondMulti,
-		types.QuinellaWheel,
-		types.QuinellaPlaceWheel,
-		types.Quinella,
-		types.QuinellaPlace,
-		types.QuinellaPlaceFormation,
-		types.TrioWheelOfFirst,
-		types.TrioWheelOfSecond,
-		types.Trio,
-		types.TrioFormation,
-		types.TrioBox,
-		types.Place,
-		types.BracketQuinella,
-	}
-}
-
-func containsInSlices(betNumbers []types.BetNumber, betNumber types.BetNumber) bool {
+func (l *listService) containsInSlices(betNumbers []types.BetNumber, betNumber types.BetNumber) bool {
 	var (
 		slice1 []int
 		slice2 []int

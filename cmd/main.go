@@ -17,7 +17,7 @@ import (
 
 const (
 	analysisRaceStartDate = "20230805"
-	analysisRaceEndDate   = "20240505"
+	analysisRaceEndDate   = "20240512"
 	enableAnalysis        = false
 	enablePrediction      = false
 	enableAggregate       = false
@@ -69,7 +69,6 @@ func main() {
 }
 
 func debug(ctx context.Context) {
-	// 実験
 	masterCtrl := di.NewMaster()
 	master, err := masterCtrl.Execute(ctx, &controller.MasterInput{
 		StartDate: config.RaceStartDate,

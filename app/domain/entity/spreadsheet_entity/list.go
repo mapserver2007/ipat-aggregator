@@ -12,6 +12,24 @@ type List struct {
 	styles []*Style
 }
 
+func NewList(
+	rows []*Row,
+	styles []*Style,
+) *List {
+	return &List{
+		rows:   rows,
+		styles: styles,
+	}
+}
+
+func (l *List) Rows() []*Row {
+	return l.rows
+}
+
+func (l *List) Styles() []*Style {
+	return l.styles
+}
+
 type Row struct {
 	raceDate                string
 	class                   string
@@ -51,26 +69,14 @@ func NewRow(
 	payment types.Payment,
 	payout types.Payout,
 	favoriteHorse *list_entity.Horse,
-	favoriteJockey string,
+	favoriteJockey *list_entity.Jockey,
 	rivalHorse *list_entity.Horse,
-	rivalJockey string,
+	rivalJockey *list_entity.Jockey,
 	firstPlaceResult *list_entity.RaceResult,
-	firstPlaceJockey string,
+	firstPlaceJockey *list_entity.Jockey,
 	secondPlaceResult *list_entity.RaceResult,
-	secondPlaceJockey string,
+	secondPlaceJockey *list_entity.Jockey,
 ) *Row {
-	convertToFormat := func(jockey string, popular int) (string, string) {
-		if popular == 0 {
-			return "-", "-"
-		}
-		return jockey, strconv.Itoa(popular)
-	}
-
-	favoriteJockeyName, favoriteHorsePopular := convertToFormat(favoriteJockey, favoriteHorse.PopularNumber())
-	rivalJockeyName, rivalHorsePopular := convertToFormat(rivalJockey, rivalHorse.PopularNumber())
-	firstPlaceJockeyName, firstPlaceHorsePopular := convertToFormat(firstPlaceJockey, firstPlaceResult.PopularNumber())
-	secondPlaceJockeyName, secondPlaceHorsePopular := convertToFormat(secondPlaceJockey, secondPlaceResult.PopularNumber())
-
 	return &Row{
 		raceDate:                raceDate.Format("2006/01/02"),
 		class:                   class.String(),
@@ -82,20 +88,20 @@ func NewRow(
 		payment:                 payment.Value(),
 		payout:                  payout.Value(),
 		favoriteHorse:           favoriteHorse.HorseName(),
-		favoriteHorsePopular:    favoriteHorsePopular,
+		favoriteHorsePopular:    strconv.Itoa(favoriteHorse.PopularNumber()),
 		favoriteHorseOdds:       favoriteHorse.Odds(),
-		favoriteJockey:          favoriteJockeyName,
+		favoriteJockey:          favoriteJockey.JockeyName(),
 		rivalHorse:              rivalHorse.HorseName(),
-		rivalJockey:             rivalJockeyName,
-		rivalHorsePopular:       rivalHorsePopular,
+		rivalJockey:             rivalJockey.JockeyName(),
+		rivalHorsePopular:       strconv.Itoa(rivalHorse.PopularNumber()),
 		rivalHorseOdds:          rivalHorse.Odds(),
 		firstPlaceHorse:         firstPlaceResult.HorseName(),
-		firstPlaceJockey:        firstPlaceJockeyName,
-		firstPlaceHorsePopular:  firstPlaceHorsePopular,
+		firstPlaceJockey:        firstPlaceJockey.JockeyName(),
+		firstPlaceHorsePopular:  firstPlaceResult.HorseName(),
 		firstPlaceHorseOdds:     firstPlaceResult.Odds(),
 		secondPlaceHorse:        secondPlaceResult.HorseName(),
-		secondPlaceJockey:       secondPlaceJockeyName,
-		secondPlaceHorsePopular: secondPlaceHorsePopular,
+		secondPlaceJockey:       secondPlaceJockey.JockeyName(),
+		secondPlaceHorsePopular: secondPlaceResult.HorseName(),
 		secondPlaceHorseOdds:    secondPlaceResult.Odds(),
 	}
 }

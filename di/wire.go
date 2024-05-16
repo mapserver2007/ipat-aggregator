@@ -120,6 +120,7 @@ var AggregationSet = wire.NewSet(
 	aggregation_usecase.NewList,
 	aggregation_service.NewSummary,
 	aggregation_service.NewTicketSummary,
+	aggregation_service.NewList,
 	summary_service.NewTerm,
 	summary_service.NewTicket,
 	summary_service.NewClass,
@@ -129,6 +130,9 @@ var AggregationSet = wire.NewSet(
 	infrastructure.NewSpreadSummeryRepository,
 	gateway.NewSpreadSheetSummaryGateway,
 	gateway.NewSpreadSheetTicketSummaryGateway,
+	gateway.NewSpreadSheetListGateway,
+	converter.NewRaceEntityConverter,
+	converter.NewJockeyEntityConverter,
 )
 
 func NewMaster() *controller.Master {

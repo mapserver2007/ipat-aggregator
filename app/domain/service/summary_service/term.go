@@ -47,6 +47,7 @@ func (t *termService) Create(ctx context.Context, input *TermInput) *TermOutput 
 			if _, ok := raceIdTicketsMap[raceTicket.RaceId()]; !ok {
 				raceIdTicketsMap[raceTicket.RaceId()] = make([]*ticket_csv_entity.Ticket, 0)
 			}
+
 			raceIdTicketsMap[raceTicket.RaceId()] = append(raceIdTicketsMap[raceTicket.RaceId()], raceTicket.Ticket())
 		}
 	}

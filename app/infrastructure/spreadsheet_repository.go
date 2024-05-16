@@ -10,15 +10,18 @@ import (
 type spreadSummeryRepository struct {
 	summaryGateway       gateway.SpreadSheetSummaryGateway
 	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway
+	listGateway          gateway.SpreadSheetListGateway
 }
 
 func NewSpreadSummeryRepository(
 	summaryGateway gateway.SpreadSheetSummaryGateway,
 	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway,
+	listGateway gateway.SpreadSheetListGateway,
 ) repository.SpreadSheetRepository {
 	return &spreadSummeryRepository{
 		summaryGateway:       summaryGateway,
 		ticketSummaryGateway: ticketSummaryGateway,
+		listGateway:          listGateway,
 	}
 }
 
@@ -55,6 +58,28 @@ func (s *spreadSummeryRepository) WriteTicketSummary(
 		return err
 	}
 	err = s.ticketSummaryGateway.Style(ctx, ticketSummaryMap)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSummeryRepository) WriteList(
+	ctx context.Context,
+	listRows []*spreadsheet_entity.ListRow,
+) error {
+	err := s.listGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.listGateway.Write(ctx, listRows)
+	if err != nil {
+		return err
+	}
+
+	err = s.listGateway.Style(ctx, listRows)
 	if err != nil {
 		return err
 	}

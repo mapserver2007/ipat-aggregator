@@ -2,6 +2,7 @@ package converter
 
 import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 )
@@ -10,6 +11,7 @@ type RaceEntityConverter interface {
 	DataCacheToRaw(input *data_cache_entity.Race) *raw_entity.Race
 	NetKeibaToRaw(input *netkeiba_entity.Race) *raw_entity.Race
 	RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race
+	DataCacheToList(input *data_cache_entity.Race) *list_entity.Race
 }
 
 type raceEntityConverter struct{}
@@ -156,5 +158,35 @@ func (r *raceEntityConverter) RawToDataCache(input *raw_entity.Race) *data_cache
 		input.RaceWeightCondition,
 		raceResults,
 		payoutResults,
+	)
+}
+
+func (r *raceEntityConverter) DataCacheToList(input *data_cache_entity.Race) *list_entity.Race {
+	raceResults := make([]*list_entity.RaceResult, 0, len(input.RaceResults()))
+	for _, raceResult := range input.RaceResults() {
+		raceResults = append(raceResults, list_entity.NewRaceResult(
+			raceResult.OrderNo(),
+			raceResult.HorseName(),
+			raceResult.BracketNumber(),
+			raceResult.HorseNumber(),
+			raceResult.JockeyId(),
+			raceResult.Odds(),
+			raceResult.PopularNumber(),
+		))
+	}
+
+	return list_entity.NewRace(
+		input.RaceId(),
+		input.RaceNumber(),
+		input.RaceName(),
+		input.StartTime(),
+		input.Class(),
+		input.RaceCourseId(),
+		input.CourseCategory(),
+		input.RaceDate(),
+		input.Distance(),
+		input.TrackCondition(),
+		input.Url(),
+		raceResults,
 	)
 }

@@ -2,6 +2,7 @@ package converter
 
 import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 )
@@ -10,6 +11,7 @@ type JockeyEntityConverter interface {
 	DataCacheToRaw(input *data_cache_entity.Jockey) *raw_entity.Jockey
 	RawToDataCache(input *raw_entity.Jockey) *data_cache_entity.Jockey
 	NetKeibaToRaw(input *netkeiba_entity.Jockey) *raw_entity.Jockey
+	DataCacheToList(input *data_cache_entity.Jockey) *list_entity.Jockey
 }
 
 type jockeyEntityConverter struct{}
@@ -37,4 +39,11 @@ func (j *jockeyEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Jockey) *ra
 		JockeyId:   input.Id(),
 		JockeyName: input.Name(),
 	}
+}
+
+func (j *jockeyEntityConverter) DataCacheToList(input *data_cache_entity.Jockey) *list_entity.Jockey {
+	return list_entity.NewJockey(
+		input.JockeyId(),
+		input.JockeyName(),
+	)
 }

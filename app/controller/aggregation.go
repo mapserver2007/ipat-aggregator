@@ -43,7 +43,11 @@ func (a *Aggregation) Execute(ctx context.Context, input *AggregationInput) erro
 		return err
 	}
 
-	err = a.aggregationListUseCase.Execute(ctx)
+	err = a.aggregationListUseCase.Execute(ctx, &aggregation_usecase.ListInput{
+		Tickets: input.Master.Tickets,
+		Races:   input.Master.Races,
+		Jockeys: input.Master.Jockeys,
+	})
 	if err != nil {
 		return err
 	}

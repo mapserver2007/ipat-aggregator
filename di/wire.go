@@ -16,7 +16,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
@@ -51,17 +50,6 @@ func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
 		service.NewTicketConverter,
 		service.NewSpreadSheetService,
 		infrastructure.NewMarkerDataRepository,
-	)
-	return nil
-}
-
-func InitializeListUseCase() *list_usecase.ListUseCase {
-	wire.Build(
-		list_usecase.NewListUseCase,
-		service.NewListService,
-		service.NewRaceConverter,
-		service.NewTicketConverter,
-		service.NewRaceEntityConverter,
 	)
 	return nil
 }
@@ -150,17 +138,3 @@ func NewAggregation() *controller.Aggregation {
 	)
 	return nil
 }
-
-//var AnalysisSet = wire.NewSet(
-//	analysis_usecase.NewAnalysis2,
-//	//analysis_service.NewTrio,
-//
-//)
-//
-//func NewAnalysis() *controller.NewAnalysis {
-//	wire.Build(
-//		AnalysisSet,
-//		controller.NewAnalysis,
-//	)
-//	return nil
-//}

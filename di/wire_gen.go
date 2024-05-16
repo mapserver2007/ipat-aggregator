@@ -19,7 +19,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/list_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
@@ -54,15 +53,6 @@ func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
 	ticketConverter := service.NewTicketConverter(raceConverter)
 	analysisUseCase := analysis_usecase.NewAnalysisUseCase(markerDataRepository, analysisService, ticketConverter)
 	return analysisUseCase
-}
-
-func InitializeListUseCase() *list_usecase.ListUseCase {
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
-	raceEntityConverter := service.NewRaceEntityConverter()
-	listService := service.NewListService(raceConverter, ticketConverter, raceEntityConverter)
-	listUseCase := list_usecase.NewListUseCase(listService)
-	return listUseCase
 }
 
 func InitializeTicketUseCase() *ticket_usecase.TicketUseCase {

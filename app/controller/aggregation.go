@@ -5,14 +5,14 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 )
 
-type AggregationInput struct {
-	Master *MasterOutput
-}
-
 type Aggregation struct {
 	aggregationSummaryUseCase       aggregation_usecase.Summary
 	aggregationTicketSummaryUseCase aggregation_usecase.TicketSummary
 	aggregationListUseCase          aggregation_usecase.List
+}
+
+type AggregationInput struct {
+	Master *MasterOutput
 }
 
 func NewAggregation(

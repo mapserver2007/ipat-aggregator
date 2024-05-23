@@ -8,7 +8,9 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/controller"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/aggregation_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
@@ -115,12 +117,23 @@ var AggregationSet = wire.NewSet(
 	summary_service.NewCourseCategory,
 	summary_service.NewDistanceCategory,
 	summary_service.NewRaceCourse,
-	infrastructure.NewSpreadSummeryRepository,
+	infrastructure.NewSpreadSheetRepository,
+	converter.NewRaceEntityConverter,
+	converter.NewJockeyEntityConverter,
+)
+
+var AnalysisSet = wire.NewSet(
+	analysis_usecase.NewAnalysis2,
+	analysis_service.NewPlace,
+	filter_service.NewAnalysisFilter,
+	infrastructure.NewSpreadSheetRepository,
+)
+
+var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetSummaryGateway,
 	gateway.NewSpreadSheetTicketSummaryGateway,
 	gateway.NewSpreadSheetListGateway,
-	converter.NewRaceEntityConverter,
-	converter.NewJockeyEntityConverter,
+	gateway.NewSpreadSheetAnalysisPlaceGateway,
 )
 
 func NewMaster() *controller.Master {
@@ -134,7 +147,17 @@ func NewMaster() *controller.Master {
 func NewAggregation() *controller.Aggregation {
 	wire.Build(
 		AggregationSet,
+		SpreadSheetGatewaySet,
 		controller.NewAggregation,
+	)
+	return nil
+}
+
+func NewAnalysis() *controller.Analysis {
+	wire.Build(
+		AnalysisSet,
+		SpreadSheetGatewaySet,
+		controller.NewAnalysis,
 	)
 	return nil
 }

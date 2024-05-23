@@ -12,6 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"io"
+	"log"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -314,6 +315,7 @@ func (p *predictionDataRepository) fetchOdds(ctx context.Context, url string) ([
 
 	var oddsInfo *raw_entity.OddsInfo
 	if err := json.Unmarshal(body, &oddsInfo); err != nil {
+		log.Println(ctx, fmt.Sprintf("Odds is not published: %s", url))
 		return nil, err
 	}
 

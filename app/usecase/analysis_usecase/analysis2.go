@@ -8,39 +8,36 @@ import (
 )
 
 type Analysis2 interface {
-	WinAndPlace(ctx context.Context, input *WinAndPlaceInput) error
-	Trio(ctx context.Context, input *TrioInput) error
+	Execute(ctx context.Context, input *AnalysisInput) error
 }
 
-type WinAndPlaceInput struct {
+type AnalysisInput struct {
 	Markers []*marker_csv_entity.AnalysisMarker
 	Races   []*data_cache_entity.Race
-}
-
-type TrioInput struct {
-	Markers []*marker_csv_entity.AnalysisMarker
-	Races   []*data_cache_entity.Race
-	Odds    []*data_cache_entity.Odds
 }
 
 type analysis struct {
-	trioService analysis_service.Trio
+	placeService analysis_service.Place
 }
 
 func NewAnalysis2(
-	trioService analysis_service.Trio,
+	placeService analysis_service.Place,
 ) Analysis2 {
 	return &analysis{
-		trioService: trioService,
+		placeService: placeService,
 	}
 }
 
-func (a *analysis) WinAndPlace(ctx context.Context, input *WinAndPlaceInput) error {
-	//TODO implement me
-	panic("implement me")
-}
+func (a *analysis) Execute(ctx context.Context, input *AnalysisInput) error {
+	placeCalculables, err := a.placeService.Create(ctx, input.Markers, input.Races)
+	if err != nil {
+		return err
+	}
+	firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters := a.placeService.Convert(ctx, placeCalculables)
+	err = a.placeService.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters)
+	if err != nil {
+		return err
+	}
 
-func (a *analysis) Trio(ctx context.Context, input *TrioInput) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }

@@ -7,35 +7,26 @@ import (
 	"strconv"
 )
 
-type List struct {
-	rows   []*Row
-	styles []*Style
+type ListRow struct {
+	data  *ListData
+	style *ListStyle
 }
 
-func NewList(
-	rows []*Row,
-	styles []*Style,
-) *List {
-	return &List{
-		rows:   rows,
-		styles: styles,
-	}
+func (l *ListRow) Data() *ListData {
+	return l.data
 }
 
-func (l *List) Rows() []*Row {
-	return l.rows
+func (l *ListRow) Style() *ListStyle {
+	return l.style
 }
 
-func (l *List) Styles() []*Style {
-	return l.styles
-}
-
-type Row struct {
+type ListData struct {
 	raceDate                string
+	raceStartTime           string
 	class                   string
 	courseCategory          string
 	distance                string
-	traceCondition          string
+	trackCondition          string
 	raceName                string
 	url                     string
 	payment                 int
@@ -58,161 +49,115 @@ type Row struct {
 	secondPlaceHorseOdds    string
 }
 
-func NewRow(
-	raceDate types.RaceDate,
-	class types.GradeClass,
-	courseCategory types.CourseCategory,
-	distance int,
-	traceCondition types.TrackCondition,
-	raceName string,
-	url string,
-	payment types.Payment,
-	payout types.Payout,
-	favoriteHorse *list_entity.Horse,
-	favoriteJockey *list_entity.Jockey,
-	rivalHorse *list_entity.Horse,
-	rivalJockey *list_entity.Jockey,
-	firstPlaceResult *list_entity.RaceResult,
-	firstPlaceJockey *list_entity.Jockey,
-	secondPlaceResult *list_entity.RaceResult,
-	secondPlaceJockey *list_entity.Jockey,
-) *Row {
-	return &Row{
-		raceDate:                raceDate.Format("2006/01/02"),
-		class:                   class.String(),
-		courseCategory:          courseCategory.String(),
-		distance:                fmt.Sprintf("%dm", distance),
-		traceCondition:          traceCondition.String(),
-		raceName:                raceName,
-		url:                     url,
-		payment:                 payment.Value(),
-		payout:                  payout.Value(),
-		favoriteHorse:           favoriteHorse.HorseName(),
-		favoriteHorsePopular:    strconv.Itoa(favoriteHorse.PopularNumber()),
-		favoriteHorseOdds:       favoriteHorse.Odds(),
-		favoriteJockey:          favoriteJockey.JockeyName(),
-		rivalHorse:              rivalHorse.HorseName(),
-		rivalJockey:             rivalJockey.JockeyName(),
-		rivalHorsePopular:       strconv.Itoa(rivalHorse.PopularNumber()),
-		rivalHorseOdds:          rivalHorse.Odds(),
-		firstPlaceHorse:         firstPlaceResult.HorseName(),
-		firstPlaceJockey:        firstPlaceJockey.JockeyName(),
-		firstPlaceHorsePopular:  firstPlaceResult.HorseName(),
-		firstPlaceHorseOdds:     firstPlaceResult.Odds(),
-		secondPlaceHorse:        secondPlaceResult.HorseName(),
-		secondPlaceJockey:       secondPlaceJockey.JockeyName(),
-		secondPlaceHorsePopular: secondPlaceResult.HorseName(),
-		secondPlaceHorseOdds:    secondPlaceResult.Odds(),
-	}
+func (l *ListData) RaceDate() string {
+	return l.raceDate
 }
 
-func (r *Row) RaceDate() string {
-	return r.raceDate
+func (l *ListData) RaceStartTime() string {
+	return l.raceStartTime
 }
 
-func (r *Row) Class() string {
-	return r.class
+func (l *ListData) Class() string {
+	return l.class
 }
 
-func (r *Row) CourseCategory() string {
-	return r.courseCategory
+func (l *ListData) CourseCategory() string {
+	return l.courseCategory
 }
 
-func (r *Row) Distance() string {
-	return r.distance
+func (l *ListData) Distance() string {
+	return l.distance
 }
 
-func (r *Row) TraceCondition() string {
-	return r.traceCondition
+func (l *ListData) TraceCondition() string {
+	return l.trackCondition
 }
 
-func (r *Row) RaceName() string {
-	return r.raceName
+func (l *ListData) RaceName() string {
+	return l.raceName
 }
 
-func (r *Row) Url() string {
-	return r.url
+func (l *ListData) Url() string {
+	return l.url
 }
 
-func (r *Row) Payment() int {
-	return r.payment
+func (l *ListData) Payment() int {
+	return l.payment
 }
 
-func (r *Row) Payout() int {
-	return r.payout
+func (l *ListData) Payout() int {
+	return l.payout
 }
 
-func (r *Row) PayoutRate() string {
-	return fmt.Sprintf("%.0f%s", float64(r.Payout())*float64(100)/float64(r.Payment()), "%")
+func (l *ListData) PayoutRate() string {
+	return fmt.Sprintf("%.0f%s", float64(l.Payout())*float64(100)/float64(l.Payment()), "%")
 }
 
-func (r *Row) FavoriteHorse() string {
-	return r.favoriteHorse
+func (l *ListData) FavoriteHorse() string {
+	return l.favoriteHorse
 }
 
-func (r *Row) FavoriteHorsePopular() string {
-	return r.favoriteHorsePopular
+func (l *ListData) FavoriteJockey() string {
+	return l.favoriteJockey
 }
 
-func (r *Row) FavoriteHorseOdds() string {
-	return r.favoriteHorseOdds
+func (l *ListData) FavoriteHorsePopular() string {
+	return l.favoriteHorsePopular
 }
 
-func (r *Row) FavoriteJockey() string {
-	return r.favoriteJockey
+func (l *ListData) FavoriteHorseOdds() string {
+	return l.favoriteHorseOdds
 }
 
-func (r *Row) RivalHorse() string {
-	return r.rivalHorse
+func (l *ListData) RivalHorse() string {
+	return l.rivalHorse
 }
 
-func (r *Row) RivalJockey() string {
-	return r.rivalJockey
+func (l *ListData) RivalJockey() string {
+	return l.rivalJockey
 }
 
-func (r *Row) RivalHorsePopular() string {
-	return r.rivalHorsePopular
+func (l *ListData) RivalHorsePopular() string {
+	return l.rivalHorsePopular
 }
 
-func (r *Row) RivalHorseOdds() string {
-	return r.rivalHorseOdds
+func (l *ListData) RivalHorseOdds() string {
+	return l.rivalHorseOdds
 }
 
-func (r *Row) FirstPlaceHorse() string {
-	return r.firstPlaceHorse
+func (l *ListData) FirstPlaceHorse() string {
+	return l.firstPlaceHorse
 }
 
-func (r *Row) FirstPlaceJockey() string {
-	return r.firstPlaceJockey
+func (l *ListData) FirstPlaceJockey() string {
+	return l.firstPlaceJockey
 }
 
-func (r *Row) FirstPlaceHorsePopular() string {
-	return r.firstPlaceHorsePopular
+func (l *ListData) FirstPlaceHorsePopular() string {
+	return l.firstPlaceHorsePopular
 }
 
-func (r *Row) FirstPlaceHorseOdds() string {
-	return r.firstPlaceHorseOdds
+func (l *ListData) FirstPlaceHorseOdds() string {
+	return l.firstPlaceHorseOdds
 }
 
-func (r *Row) SecondPlaceHorse() string {
-	return r.secondPlaceHorse
+func (l *ListData) SecondPlaceHorse() string {
+	return l.secondPlaceHorse
 }
 
-func (r *Row) SecondPlaceJockey() string {
-	return r.secondPlaceJockey
-
+func (l *ListData) SecondPlaceJockey() string {
+	return l.secondPlaceJockey
 }
 
-func (r *Row) SecondPlaceHorsePopular() string {
-	return r.secondPlaceHorsePopular
+func (l *ListData) SecondPlaceHorsePopular() string {
+	return l.secondPlaceHorsePopular
 }
 
-func (r *Row) SecondPlaceHorseOdds() string {
-	return r.secondPlaceHorseOdds
-
+func (l *ListData) SecondPlaceHorseOdds() string {
+	return l.secondPlaceHorseOdds
 }
 
-type Style struct {
+type ListStyle struct {
 	classColor            types.CellColorType
 	payoutComments        []string
 	favoriteHorseColor    types.CellColorType
@@ -221,15 +166,131 @@ type Style struct {
 	secondPlaceHorseColor types.CellColorType
 }
 
-func NewStyle(
-	classColor types.CellColorType,
-	payoutComments []string,
-	favoriteHorseColor types.CellColorType,
-	rivalHorseColor types.CellColorType,
-	firstPlaceHorseColor types.CellColorType,
-	secondPlaceHorseColor types.CellColorType,
-) *Style {
-	return &Style{
+func (l *ListStyle) ClassColor() types.CellColorType {
+	return l.classColor
+}
+
+func (l *ListStyle) PayoutComments() []string {
+	return l.payoutComments
+}
+
+func (l *ListStyle) FavoriteHorseColor() types.CellColorType {
+	return l.favoriteHorseColor
+}
+
+func (l *ListStyle) RivalHorseColor() types.CellColorType {
+	return l.rivalHorseColor
+}
+
+func (l *ListStyle) FirstPlaceHorseColor() types.CellColorType {
+	return l.firstPlaceHorseColor
+}
+
+func (l *ListStyle) SecondPlaceHorseColor() types.CellColorType {
+	return l.secondPlaceHorseColor
+}
+
+func NewListRow(
+	race *list_entity.Race,
+	favoriteHorse *list_entity.Horse,
+	rivalHorse *list_entity.Horse,
+	favoriteJockey *list_entity.Jockey,
+	rivalJockey *list_entity.Jockey,
+	firstPlaceResult *list_entity.RaceResult,
+	firstPlaceJockey *list_entity.Jockey,
+	secondPlaceResult *list_entity.RaceResult,
+	secondPlaceJockey *list_entity.Jockey,
+	tickets []*list_entity.Ticket,
+	payment types.Payment,
+	payout types.Payout,
+) *ListRow {
+	var payoutComments []string
+	for _, ticket := range tickets {
+		payoutComments = append(payoutComments, fmt.Sprintf("%s %s %s倍 %d円 %d人気",
+			ticket.TicketType().OriginTicketType().Name(), ticket.BetNumber().String(), ticket.Odds(), ticket.Payout(), ticket.Popular()))
+	}
+
+	listData := &ListData{
+		raceName:                race.RaceName(),
+		raceDate:                race.RaceDate().Format("2006/01/02"),
+		raceStartTime:           race.StartTime(),
+		class:                   race.Class().String(),
+		courseCategory:          race.CourseCategory().String(),
+		distance:                fmt.Sprintf("%dm", race.Distance()),
+		trackCondition:          race.TrackCondition().String(),
+		url:                     race.Url(),
+		payment:                 payment.Value(),
+		payout:                  payout.Value(),
+		favoriteHorse:           favoriteHorse.HorseName(),
+		favoriteJockey:          favoriteJockey.JockeyName(),
+		favoriteHorsePopular:    strconv.Itoa(favoriteHorse.PopularNumber()),
+		favoriteHorseOdds:       favoriteHorse.Odds(),
+		rivalHorse:              rivalHorse.HorseName(),
+		rivalJockey:             rivalJockey.JockeyName(),
+		rivalHorsePopular:       strconv.Itoa(rivalHorse.PopularNumber()),
+		rivalHorseOdds:          rivalHorse.Odds(),
+		firstPlaceHorse:         firstPlaceResult.HorseName(),
+		firstPlaceJockey:        firstPlaceJockey.JockeyName(),
+		firstPlaceHorsePopular:  strconv.Itoa(firstPlaceResult.PopularNumber()),
+		firstPlaceHorseOdds:     firstPlaceResult.Odds(),
+		secondPlaceHorse:        secondPlaceResult.HorseName(),
+		secondPlaceJockey:       secondPlaceJockey.JockeyName(),
+		secondPlaceHorsePopular: strconv.Itoa(secondPlaceResult.PopularNumber()),
+		secondPlaceHorseOdds:    secondPlaceResult.Odds(),
+	}
+
+	classColor := types.NoneColor
+	favoriteHorseColor := types.NoneColor
+	rivalHorseColor := types.NoneColor
+	firstPlaceHorseColor := types.NoneColor
+	secondPlaceHorseColor := types.NoneColor
+
+	switch race.Class() {
+	case types.Grade1, types.Jpn1:
+		classColor = types.FirstColor
+	case types.Grade2, types.Jpn2:
+		classColor = types.SecondColor
+	case types.Grade3, types.Jpn3:
+		classColor = types.ThirdColor
+	}
+
+	switch favoriteHorse.HorseName() {
+	case race.RaceResults()[0].HorseName():
+		favoriteHorseColor = types.FirstColor
+	case race.RaceResults()[1].HorseName():
+		favoriteHorseColor = types.SecondColor
+	case race.RaceResults()[2].HorseName():
+		favoriteHorseColor = types.ThirdColor
+	}
+
+	switch rivalHorse.HorseName() {
+	case race.RaceResults()[0].HorseName():
+		rivalHorseColor = types.FirstColor
+	case race.RaceResults()[1].HorseName():
+		rivalHorseColor = types.SecondColor
+	case race.RaceResults()[2].HorseName():
+		rivalHorseColor = types.ThirdColor
+	}
+
+	switch race.RaceResults()[0].PopularNumber() {
+	case 1:
+		firstPlaceHorseColor = types.FirstColor
+	case 2:
+		firstPlaceHorseColor = types.SecondColor
+	case 3:
+		firstPlaceHorseColor = types.ThirdColor
+	}
+
+	switch race.RaceResults()[1].PopularNumber() {
+	case 1:
+		secondPlaceHorseColor = types.FirstColor
+	case 2:
+		secondPlaceHorseColor = types.SecondColor
+	case 3:
+		secondPlaceHorseColor = types.ThirdColor
+	}
+
+	listStyle := &ListStyle{
 		classColor:            classColor,
 		payoutComments:        payoutComments,
 		favoriteHorseColor:    favoriteHorseColor,
@@ -237,28 +298,9 @@ func NewStyle(
 		firstPlaceHorseColor:  firstPlaceHorseColor,
 		secondPlaceHorseColor: secondPlaceHorseColor,
 	}
-}
 
-func (s *Style) ClassColor() types.CellColorType {
-	return s.classColor
-}
-
-func (s *Style) PayoutComments() []string {
-	return s.payoutComments
-}
-
-func (s *Style) FavoriteHorseColor() types.CellColorType {
-	return s.favoriteHorseColor
-}
-
-func (s *Style) RivalHorseColor() types.CellColorType {
-	return s.rivalHorseColor
-}
-
-func (s *Style) FirstPlaceHorseColor() types.CellColorType {
-	return s.firstPlaceHorseColor
-}
-
-func (s *Style) SecondPlaceHorseColor() types.CellColorType {
-	return s.secondPlaceHorseColor
+	return &ListRow{
+		data:  listData,
+		style: listStyle,
+	}
 }

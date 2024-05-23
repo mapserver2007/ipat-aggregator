@@ -363,8 +363,9 @@ func (b TicketType) Value() int {
 type TicketResult int
 
 const (
-	TicketHit   TicketResult = 1
-	TicketUnHit TicketResult = 2
+	TicketNoBet TicketResult = iota
+	TicketHit
+	TicketUnHit
 )
 
 type BetNumber string

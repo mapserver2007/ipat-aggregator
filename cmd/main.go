@@ -17,7 +17,7 @@ import (
 
 const (
 	analysisRaceStartDate = "20230805"
-	analysisRaceEndDate   = "20240512"
+	analysisRaceEndDate   = "20240519"
 	enableAnalysis        = false
 	enablePrediction      = false
 	enableDebug           = true
@@ -72,6 +72,15 @@ func debug(ctx context.Context) {
 	})
 	if err != nil {
 		log.Println("aggregation error")
+		panic(err)
+	}
+
+	analysisCtrl := di.NewAnalysis()
+	err = analysisCtrl.Execute(ctx, &controller.AnalysisInput{
+		Master: master,
+	})
+	if err != nil {
+		log.Println("analysis error")
 		panic(err)
 	}
 }

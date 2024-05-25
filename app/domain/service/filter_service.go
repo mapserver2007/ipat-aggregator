@@ -12,7 +12,8 @@ import (
 type FilterService interface {
 	CreateAnalysisFilters(ctx context.Context, race *data_cache_entity.Race, raceResultByMarker *data_cache_entity.RaceResult) []filter.Id
 	CreatePredictionFilters(ctx context.Context, race *prediction_entity.Race) (filter.Id, filter.Id)
-	GetAnalysisFilters() []filter.Id
+	GetWinPlaceAnalysisFilters() []filter.Id
+	GetTrioAnalysisFilters() []filter.Id
 }
 
 type filterService struct {
@@ -35,11 +36,15 @@ func (f *filterService) CreateAnalysisFilters(
 	filterIds = append(filterIds, f.createRaceCourseFilter(ctx, race.RaceCourseId())...)
 	filterIds = append(filterIds, f.createEntriesFilter(ctx, race.Entries())...)
 
-	switch raceResultByMarker.JockeyId() {
-	case 5339, 1088, 5366, 5509, 5585: // C.ルメール, 川田将雅, R.ムーア, J.モレイラ, D.レーン
-		filterIds = append(filterIds, filter.TopJockey)
-	default:
-		filterIds = append(filterIds, filter.OtherJockey)
+	// 単複以外だとこのフィルタが微妙なので、将来的には消すかもしれない
+	// 連系だと相手が下位騎手の場合があり、上位騎手同士の組み合わせだとデータ数が一気に減ってしまうため効果が薄い
+	if raceResultByMarker != nil {
+		switch raceResultByMarker.JockeyId() {
+		case 5339, 1088, 5366, 5509, 5585: // C.ルメール, 川田将雅, R.ムーア, J.モレイラ, D.レーン
+			filterIds = append(filterIds, filter.TopJockey)
+		default:
+			filterIds = append(filterIds, filter.OtherJockey)
+		}
 	}
 
 	return filterIds
@@ -192,7 +197,7 @@ func (f *filterService) createEntriesFilter(ctx context.Context, entries int) []
 	return filterIds
 }
 
-func (f *filterService) GetAnalysisFilters() []filter.Id {
+func (f *filterService) GetWinPlaceAnalysisFilters() []filter.Id {
 	return []filter.Id{
 		filter.All,
 		filter.TurfShortDistance1,
@@ -207,34 +212,27 @@ func (f *filterService) GetAnalysisFilters() []filter.Id {
 		filter.DirtMiddleDistance1,
 		filter.DirtMiddleDistance2,
 		filter.DirtLongDistance,
-		filter.GoodTrackTurfShortDistance1CentralCourse,
-		filter.GoodTrackTurfShortDistance2CentralCourse,
-		filter.GoodTrackTurfShortDistance3CentralCourse,
-		filter.GoodTrackTurfMiddleDistance1CentralCourse,
-		filter.GoodTrackTurfMiddleDistance2CentralCourse,
-		filter.GoodTrackTurfLongDistanceCentralCourse,
-		filter.GoodTrackDirtShortDistance1CentralCourse,
-		filter.GoodTrackDirtShortDistance2CentralCourse,
-		filter.GoodTrackDirtShortDistance3CentralCourse,
-		filter.GoodTrackDirtMiddleDistance2CentralCourse,
-		filter.GoodTrackDirtLongDistanceCentralCourse,
 		filter.TurfClass1,
-		filter.TurfClass2,
-		filter.TurfClass3,
-		filter.TurfClass4,
-		filter.TurfClass5,
-		filter.TurfClass6,
 		filter.DirtClass1,
-		filter.DirtClass2,
-		filter.DirtClass3,
-		filter.DirtClass4,
-		filter.DirtClass5,
+		filter.TurfClass6,
 		filter.DirtClass6,
-		filter.DirtBadConditionClass1,
-		filter.DirtBadConditionClass2,
-		filter.DirtBadConditionClass3,
-		filter.DirtBadConditionClass4,
-		filter.DirtBadConditionClass5,
-		filter.DirtBadConditionClass6,
+		filter.TurfLargeNumberOfHorses,
+		filter.TurfSmallNumberOfHorses,
+		filter.DirtLargeNumberOfHorses,
+		filter.DirtSmallNumberOfHorses,
+	}
+}
+
+func (f *filterService) GetTrioAnalysisFilters() []filter.Id {
+	return []filter.Id{
+		filter.All,
+		filter.TurfClass1,
+		filter.DirtClass1,
+		filter.TurfClass6,
+		filter.DirtClass6,
+		filter.TurfLargeNumberOfHorses,
+		filter.TurfSmallNumberOfHorses,
+		filter.DirtLargeNumberOfHorses,
+		filter.DirtSmallNumberOfHorses,
 	}
 }

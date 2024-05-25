@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
@@ -11,6 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"log"
 	net_url "net/url"
+	"sort"
 	"time"
 )
 
@@ -20,6 +22,7 @@ const (
 	jockeyFileName             = "jockey.json"
 	raceIdFileName             = "race_id.json"
 	analysisRaceResultFilePath = "races/race_result_%d.json"
+	analysisRaceOddsFilePath   = "odds/odds_%d.json"
 )
 
 type DataCacheUseCase struct {
@@ -28,11 +31,13 @@ type DataCacheUseCase struct {
 	jockeyDataRepository        repository.JockeyDataRepository
 	raceIdDataRepository        repository.RaceIdDataRepository
 	markerDataRepository        repository.MarkerDataRepository
+	oddsDataRepository          repository.OddsDataRepository
 	netKeibaService             service.NetKeibaService
 	raceConverter               service.RaceConverter
 	racingNumberEntityConverter service.RacingNumberEntityConverter
 	raceEntityConverter         service.RaceEntityConverter
 	jockeyEntityConverter       service.JockeyEntityConverter
+	oddsEntityConverter         service.OddsEntityConverter
 }
 
 func NewDataCacheUseCase(
@@ -41,11 +46,13 @@ func NewDataCacheUseCase(
 	jockeyDataRepository repository.JockeyDataRepository,
 	raceIdDataRepository repository.RaceIdDataRepository,
 	markerDataRepository repository.MarkerDataRepository,
+	oddsDataRepository repository.OddsDataRepository,
 	netKeibaService service.NetKeibaService,
 	raceConverter service.RaceConverter,
 	racingNumberConverter service.RacingNumberEntityConverter,
 	raceEntityConverter service.RaceEntityConverter,
 	jockeyEntityConverter service.JockeyEntityConverter,
+	oddsEntityConverter service.OddsEntityConverter,
 ) *DataCacheUseCase {
 	return &DataCacheUseCase{
 		racingNumberDataRepository:  racingNumberRepository,
@@ -53,11 +60,13 @@ func NewDataCacheUseCase(
 		jockeyDataRepository:        jockeyDataRepository,
 		raceIdDataRepository:        raceIdDataRepository,
 		markerDataRepository:        markerDataRepository,
+		oddsDataRepository:          oddsDataRepository,
 		netKeibaService:             netKeibaService,
 		raceConverter:               raceConverter,
 		racingNumberEntityConverter: racingNumberConverter,
 		raceEntityConverter:         raceEntityConverter,
 		jockeyEntityConverter:       jockeyEntityConverter,
+		oddsEntityConverter:         oddsEntityConverter,
 	}
 }
 
@@ -71,11 +80,12 @@ func (d *DataCacheUseCase) Read(
 	map[types.RaceDate][]types.RaceId,
 	[]types.RaceDate,
 	[]*data_cache_entity.Race,
+	[]*data_cache_entity.Odds,
 	error,
 ) {
 	rawRacingNumbers, err := d.racingNumberDataRepository.Read(ctx, racingNumberFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 	racingNumbers := make([]*data_cache_entity.RacingNumber, 0, len(rawRacingNumbers))
 	for _, rawRacingNumber := range rawRacingNumbers {
@@ -84,7 +94,7 @@ func (d *DataCacheUseCase) Read(
 
 	rawRaces, err := d.raceDataRepository.Read(ctx, raceResultFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 	ticketRaces := make([]*data_cache_entity.Race, 0, len(rawRaces))
 	for _, rawRace := range rawRaces {
@@ -93,7 +103,7 @@ func (d *DataCacheUseCase) Read(
 
 	rawJockeys, excludeJockeyIds, err := d.jockeyDataRepository.Read(ctx, jockeyFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 	jockeys := make([]*data_cache_entity.Jockey, 0, len(rawJockeys))
 	for _, rawJockey := range rawJockeys {
@@ -102,37 +112,52 @@ func (d *DataCacheUseCase) Read(
 
 	rawRaceDates, rawExcludeDates, err := d.raceIdDataRepository.Read(ctx, raceIdFileName)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
-	raceIdMap := map[types.RaceDate][]types.RaceId{}
+	raceDateMap := map[types.RaceDate][]types.RaceId{}
 	for _, rawRaceDate := range rawRaceDates {
 		var raceIds []types.RaceId
 		for _, rawRaceId := range rawRaceDate.RaceIds {
 			raceIds = append(raceIds, types.RaceId(rawRaceId))
 		}
 		raceDate := types.RaceDate(rawRaceDate.RaceDate)
-		raceIdMap[raceDate] = raceIds
+		raceDateMap[raceDate] = raceIds
 	}
 	excludeDates := make([]types.RaceDate, 0, len(rawExcludeDates))
 	for _, rawExcludeDate := range rawExcludeDates {
 		if err != nil {
-			return nil, nil, nil, nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, nil, nil, nil, err
 		}
 		excludeDates = append(excludeDates, types.RaceDate(rawExcludeDate))
 	}
 
 	analysisRaces := make([]*data_cache_entity.Race, 0)
-	for raceDate := range raceIdMap {
+	for _, raceDate := range service.SortedRaceDateKeys(raceDateMap) {
 		rawPredictRaces, err := d.raceDataRepository.Read(ctx, fmt.Sprintf(analysisRaceResultFilePath, raceDate.Value()))
 		if err != nil {
-			return nil, nil, nil, nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, nil, nil, nil, err
 		}
 		for _, rawPredictRace := range rawPredictRaces {
 			analysisRaces = append(analysisRaces, d.raceEntityConverter.RawToDataCache(rawPredictRace))
 		}
 	}
 
-	return racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, nil
+	analysisOdds := make([]*data_cache_entity.Odds, 0)
+
+	for _, raceDate := range service.SortedRaceDateKeys(raceDateMap) {
+		rawRaceOddsList, err := d.oddsDataRepository.Read(ctx, fmt.Sprintf(analysisRaceOddsFilePath, raceDate.Value()))
+		if err != nil {
+			return nil, nil, nil, nil, nil, nil, nil, nil, err
+		}
+		for _, rawRaceOdds := range rawRaceOddsList {
+			raceId := types.RaceId(rawRaceOdds.RaceId)
+			for _, rawOdds := range rawRaceOdds.Odds {
+				analysisOdds = append(analysisOdds, d.oddsEntityConverter.RawToDataCache(rawOdds, raceId, raceDate))
+			}
+		}
+	}
+
+	return racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceDateMap, excludeDates, analysisRaces, analysisOdds, nil
 }
 
 func (d *DataCacheUseCase) Write(
@@ -142,10 +167,12 @@ func (d *DataCacheUseCase) Write(
 	ticketRaces []*data_cache_entity.Race,
 	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []int,
-	raceIdMap map[types.RaceDate][]types.RaceId,
+	raceDateMap map[types.RaceDate][]types.RaceId,
 	excludeDates []types.RaceDate,
 	analysisRaces []*data_cache_entity.Race,
+	analysisOdds []*data_cache_entity.Odds,
 	startDate, endDate string,
+	markers []*marker_csv_entity.AnalysisMarker,
 ) error {
 	urls, _ := d.netKeibaService.CreateRacingNumberUrls(ctx, tickets, racingNumbers)
 	newRawRacingNumbers := make([]*raw_entity.RacingNumber, 0, len(racingNumbers)+len(urls))
@@ -153,7 +180,7 @@ func (d *DataCacheUseCase) Write(
 		newRawRacingNumbers = append(newRawRacingNumbers, d.racingNumberEntityConverter.DataCacheToRaw(racingNumber))
 	}
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch racingNumber from "+url)
 		fetchRacingNumbers, err := d.racingNumberDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -184,7 +211,7 @@ func (d *DataCacheUseCase) Write(
 		newRaces = append(newRaces, d.raceEntityConverter.DataCacheToRaw(race))
 	}
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch race from "+url)
 		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -213,7 +240,7 @@ func (d *DataCacheUseCase) Write(
 	}
 	var newExcludeJockeyIds []int
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch jockey from "+url)
 		jockey, err := d.jockeyDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -238,13 +265,15 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 
-	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, startDate, endDate, raceIdMap, excludeDates)
+	urls, err = d.netKeibaService.CreateRaceIdUrls(ctx, startDate, endDate, raceDateMap, excludeDates)
 	if err != nil {
 		return err
 	}
 	var newRawRaceDates []*raw_entity.RaceDate
 	var newRawExcludeDates []int
-	for raceDate, raceIds := range raceIdMap {
+
+	for _, raceDate := range service.SortedRaceDateKeys(raceDateMap) {
+		raceIds := raceDateMap[raceDate]
 		rawRaceIds := make([]string, 0, len(raceIds))
 		for _, raceId := range raceIds {
 			rawRaceIds = append(rawRaceIds, raceId.String())
@@ -259,7 +288,7 @@ func (d *DataCacheUseCase) Write(
 	}
 
 	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 1)
 		u, err := net_url.Parse(url)
 		if err != nil {
 			return err
@@ -295,21 +324,74 @@ func (d *DataCacheUseCase) Write(
 		return err
 	}
 
-	analysisRaceIdsMap := map[types.RaceId]types.RaceDate{}
+	markerHorseNumberMap := map[types.RaceId][]int{}
+	for _, marker := range markers {
+		horseNumbers := make([]int, 0, len(marker.MarkerMap()))
+		for _, horseNumber := range marker.MarkerMap() {
+			horseNumbers = append(horseNumbers, horseNumber)
+		}
+		markerHorseNumberMap[marker.RaceId()] = horseNumbers
+	}
+
+	enableRaceIdMap := map[types.RaceId]types.RaceDate{}
 	for _, rawRaceDate := range raceIdInfo.RaceDates {
 		for _, rawRaceId := range rawRaceDate.RaceIds {
-			analysisRaceIdsMap[types.RaceId(rawRaceId)] = types.RaceDate(rawRaceDate.RaceDate)
+			raceId := types.RaceId(rawRaceId)
+			if _, ok := markerHorseNumberMap[raceId]; ok {
+				enableRaceIdMap[types.RaceId(rawRaceId)] = types.RaceDate(rawRaceDate.RaceDate)
+			}
 		}
 	}
 
-	urls, err = d.netKeibaService.CreateAnalysisRaceUrls(ctx, analysisRaces, analysisRaceIdsMap)
+	raceUrls, err := d.netKeibaService.CreateAnalysisRaceUrls(ctx, analysisRaces, enableRaceIdMap)
 	if err != nil {
 		return err
 	}
-	raceMap := map[types.RaceDate][]*raw_entity.Race{}
 
-	for _, url := range urls {
-		time.Sleep(time.Second * 1)
+	oddsUrls, err := d.netKeibaService.CreateOddsUrls(ctx, analysisOdds, enableRaceIdMap)
+	if err != nil {
+		return err
+	}
+
+	raceMap := map[types.RaceDate][]*raw_entity.Race{}
+	for _, race := range analysisRaces {
+		if _, ok := raceMap[race.RaceDate()]; !ok {
+			raceMap[race.RaceDate()] = make([]*raw_entity.Race, 0)
+		}
+		raceMap[race.RaceDate()] = append(raceMap[race.RaceDate()], d.raceEntityConverter.DataCacheToRaw(race))
+	}
+
+	oddsMap := map[types.RaceDate][]*raw_entity.RaceOdds{}
+
+	raceIdOddsMap := map[types.RaceId][]*data_cache_entity.Odds{}
+	for _, odds := range analysisOdds {
+		if _, ok := raceIdOddsMap[odds.RaceId()]; !ok {
+			raceIdOddsMap[odds.RaceId()] = make([]*data_cache_entity.Odds, 0)
+		}
+		raceIdOddsMap[odds.RaceId()] = append(raceIdOddsMap[odds.RaceId()], odds)
+	}
+
+	for _, raceId := range service.SortedRaceIdKeys(raceIdOddsMap) {
+		oddsList := raceIdOddsMap[raceId]
+		raceDate := oddsList[0].RaceDate()
+		rawOddsList := make([]*raw_entity.Odds, 0, len(oddsList))
+		for _, odds := range oddsList {
+			rawOddsList = append(rawOddsList, d.oddsEntityConverter.DataCacheToRaw(odds))
+		}
+
+		if _, ok := oddsMap[raceDate]; !ok {
+			oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
+		}
+
+		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
+			RaceId:   raceId.String(),
+			RaceDate: raceDate.Value(),
+			Odds:     rawOddsList,
+		})
+	}
+
+	for _, url := range raceUrls {
+		time.Sleep(time.Millisecond * 1)
 		log.Println(ctx, "fetch analysisRace from "+url)
 		fetchRace, err := d.raceDataRepository.Fetch(ctx, url)
 		if err != nil {
@@ -330,5 +412,83 @@ func (d *DataCacheUseCase) Write(
 		}
 	}
 
+	for _, url := range oddsUrls {
+		newOdds := make([]*raw_entity.Odds, 0, 20) // 6頭BOXは20点
+		time.Sleep(time.Millisecond * 1)
+		log.Println(ctx, "fetch analysisOdds from "+url)
+		fetchOdds, err := d.oddsDataRepository.Fetch(ctx, url)
+		if err != nil {
+			return err
+		}
+
+		sort.Slice(fetchOdds, func(i, j int) bool {
+			return fetchOdds[i].RaceDate().Value() < fetchOdds[i].RaceDate().Value()
+		})
+
+		u, err := net_url.Parse(url)
+		if err != nil {
+			return err
+		}
+		raceId := u.Query().Get("race_id")
+		horseNumbers, ok := markerHorseNumberMap[types.RaceId(raceId)]
+		if !ok {
+			// 分析印がないレース(新馬、障害など)はスキップ
+			continue
+		}
+
+		var raceDate types.RaceDate
+		if len(fetchOdds) > 0 {
+			raceDate = fetchOdds[0].RaceDate()
+		}
+
+		for _, netKeibaFetchOdds := range fetchOdds {
+			if containsInSliceAll(horseNumbers, netKeibaFetchOdds.HorseNumbers()) {
+				newOdds = append(newOdds, d.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
+			}
+		}
+
+		if _, ok := oddsMap[raceDate]; !ok {
+			oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
+		}
+
+		sort.Slice(newOdds, func(i, j int) bool {
+			return newOdds[i].Popular < newOdds[j].Popular
+		})
+
+		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
+			RaceId:   raceId,
+			RaceDate: raceDate.Value(),
+			Odds:     newOdds,
+		})
+	}
+
+	for _, raceDate := range service.SortedRaceDateKeys(oddsMap) {
+		rawRaceOddsList := oddsMap[raceDate]
+		raceOddsInfo := raw_entity.RaceOddsInfo{
+			RaceOdds: rawRaceOddsList,
+		}
+		filePath := fmt.Sprintf(analysisRaceOddsFilePath, raceDate.Value())
+		err = d.oddsDataRepository.Write(ctx, filePath, &raceOddsInfo)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func containsInSliceAll(slice1, slice2 []int) bool {
+	for _, val2 := range slice2 {
+		found := false
+		for _, val1 := range slice1 {
+			if val1 == val2 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }

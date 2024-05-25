@@ -279,17 +279,21 @@ const (
 	Place
 	BracketQuinella
 	Quinella
+	QuinellaWheel
 	Exacta
 	ExactaWheelOfFirst
 	QuinellaPlace
 	QuinellaPlaceWheel
+	QuinellaPlaceFormation
 	Trio
 	TrioFormation
 	TrioWheelOfFirst
 	TrioWheelOfSecond
+	TrioBox
 	Trifecta
 	TrifectaFormation
 	TrifectaWheelOfFirst
+	TrifectaWheelOfSecond
 	TrifectaWheelOfFirstMulti
 	TrifectaWheelOfSecondMulti
 	AllTicketType
@@ -300,17 +304,21 @@ var ticketTypeMap = map[TicketType]string{
 	Place:                      "複勝",
 	BracketQuinella:            "枠連",
 	Quinella:                   "馬連",
+	QuinellaWheel:              "馬連ながし",
 	Exacta:                     "馬単",
 	ExactaWheelOfFirst:         "馬単1着ながし",
 	QuinellaPlace:              "ワイド",
 	QuinellaPlaceWheel:         "ワイドながし",
+	QuinellaPlaceFormation:     "ワイドフォーメーション",
 	Trio:                       "3連複",
 	TrioFormation:              "3連複フォーメーション",
 	TrioWheelOfFirst:           "3連複軸1頭ながし",
 	TrioWheelOfSecond:          "3連複軸2頭ながし",
+	TrioBox:                    "3連複ＢＯＸ",
 	Trifecta:                   "3連単",
 	TrifectaFormation:          "3連単フォーメーション",
 	TrifectaWheelOfFirst:       "3連単1着ながし",
+	TrifectaWheelOfSecond:      "3連単2着ながし",
 	TrifectaWheelOfFirstMulti:  "3連単軸1頭ながしマルチ",
 	TrifectaWheelOfSecondMulti: "3連単軸2頭ながしマルチ",
 	AllTicketType:              "全券種合計",
@@ -334,13 +342,15 @@ func (b TicketType) Name() string {
 
 func (b TicketType) OriginTicketType() TicketType {
 	switch b {
+	case QuinellaWheel:
+		return Quinella
 	case ExactaWheelOfFirst:
 		return Exacta
-	case QuinellaPlaceWheel:
+	case QuinellaPlaceWheel, QuinellaPlaceFormation:
 		return QuinellaPlace
-	case TrioFormation, TrioWheelOfFirst, TrioWheelOfSecond:
+	case TrioFormation, TrioWheelOfFirst, TrioWheelOfSecond, TrioBox:
 		return Trio
-	case TrifectaFormation, TrifectaWheelOfFirst, TrifectaWheelOfFirstMulti, TrifectaWheelOfSecondMulti:
+	case TrifectaFormation, TrifectaWheelOfFirst, TrifectaWheelOfSecond, TrifectaWheelOfFirstMulti, TrifectaWheelOfSecondMulti:
 		return Trifecta
 	}
 	return b
@@ -353,8 +363,9 @@ func (b TicketType) Value() int {
 type TicketResult int
 
 const (
-	TicketHit   TicketResult = 1
-	TicketUnHit TicketResult = 2
+	TicketNoBet TicketResult = iota
+	TicketHit
+	TicketUnHit
 )
 
 type BetNumber string
@@ -685,6 +696,7 @@ const (
 	Star                            // ☆
 	Check                           // ✓
 	NoMarker      Marker = 9        // 無
+	AnyMarker     Marker = 0        // 印(any)
 )
 
 var markerMap = map[Marker]string{
@@ -695,6 +707,7 @@ var markerMap = map[Marker]string{
 	Star:          "☆",
 	Check:         "✓",
 	NoMarker:      "無",
+	AnyMarker:     "印",
 }
 
 func NewMarker(value int) (Marker, error) {
@@ -821,17 +834,33 @@ const (
 	WinOddsRange6
 	WinOddsRange7
 	WinOddsRange8
+	TrioOddsRange1
+	TrioOddsRange2
+	TrioOddsRange3
+	TrioOddsRange4
+	TrioOddsRange5
+	TrioOddsRange6
+	TrioOddsRange7
+	TrioOddsRange8
 )
 
 var oddsRangeMap = map[OddsRangeType]string{
-	WinOddsRange1: "1.0~1.5",
-	WinOddsRange2: "1.6-2.0",
-	WinOddsRange3: "2.1-2.9",
-	WinOddsRange4: "3.0-4.9",
-	WinOddsRange5: "5.0-9.9",
-	WinOddsRange6: "10.0-19.9",
-	WinOddsRange7: "20.0-49.9",
-	WinOddsRange8: "50.0-",
+	WinOddsRange1:  "1.0-1.5",
+	WinOddsRange2:  "1.6-2.0",
+	WinOddsRange3:  "2.1-2.9",
+	WinOddsRange4:  "3.0-4.9",
+	WinOddsRange5:  "5.0-9.9",
+	WinOddsRange6:  "10.0-19.9",
+	WinOddsRange7:  "20.0-49.9",
+	WinOddsRange8:  "50.0-",
+	TrioOddsRange1: "1.0-9.9",
+	TrioOddsRange2: "10.0-19.9",
+	TrioOddsRange3: "20.0-29.9",
+	TrioOddsRange4: "30.0-49.9",
+	TrioOddsRange5: "50.0-99.9",
+	TrioOddsRange6: "100-299",
+	TrioOddsRange7: "300-499",
+	TrioOddsRange8: "500-",
 }
 
 func (m OddsRangeType) Value() int {

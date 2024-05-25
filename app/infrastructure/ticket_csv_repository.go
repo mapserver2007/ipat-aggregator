@@ -103,20 +103,28 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 ) ([]types.BetNumber, error) {
 	ticketType := types.NewTicketType(rawTicketType)
 	switch ticketType {
-	case types.ExactaWheelOfFirst:
-		return t.betNumberConverter.ExactaWheelOfFirstToExactaBetNumbers(ctx, rawBetNumber)
+	case types.QuinellaWheel:
+		return t.betNumberConverter.QuinellaWheelToQuinellaBetNumbers(ctx, rawBetNumber)
 	case types.QuinellaPlaceWheel:
 		return t.betNumberConverter.QuinellaPlaceWheelToQuinellaBetNumbers(ctx, rawBetNumber)
+	case types.QuinellaPlaceFormation:
+		return t.betNumberConverter.QuinellaPlaceFormationToQuinellaBetNumbers(ctx, rawBetNumber)
+	case types.ExactaWheelOfFirst:
+		return t.betNumberConverter.ExactaWheelOfFirstToExactaBetNumbers(ctx, rawBetNumber)
 	case types.TrioFormation:
 		return t.betNumberConverter.TrioFormationToTrioBetNumbers(ctx, rawBetNumber)
 	case types.TrioWheelOfFirst:
 		return t.betNumberConverter.TrioWheelOfFirstToTrioBetNumbers(ctx, rawBetNumber)
 	case types.TrioWheelOfSecond:
 		return t.betNumberConverter.TrioWheelOfSecondToTrioBetNumbers(ctx, rawBetNumber)
+	case types.TrioBox:
+		return t.betNumberConverter.TrioBoxToTrioBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaFormation:
 		return t.betNumberConverter.TrifectaFormationToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaWheelOfFirst:
 		return t.betNumberConverter.TrifectaWheelOfFirstToTrifectaBetNumbers(ctx, rawBetNumber)
+	case types.TrifectaWheelOfSecond:
+		return t.betNumberConverter.TrifectaWheelOfSecondToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti:
 		return t.betNumberConverter.TrifectaWheelMultiToTrifectaBetNumbers(ctx, rawBetNumber)
 	case types.UnknownTicketType:
@@ -128,13 +136,17 @@ func (t *ticketCsvRepository) convertToSubTicketTypeBetNumbers(
 
 func (t *ticketCsvRepository) extractPayment(rawTicketType, rawPayment string) string {
 	ticketType := types.NewTicketType(rawTicketType)
-	if types.ExactaWheelOfFirst == ticketType ||
+	if types.QuinellaWheel == ticketType ||
 		types.QuinellaPlaceWheel == ticketType ||
+		types.QuinellaPlaceFormation == ticketType ||
+		types.ExactaWheelOfFirst == ticketType ||
 		types.TrioFormation == ticketType ||
 		types.TrioWheelOfFirst == ticketType ||
 		types.TrioWheelOfSecond == ticketType ||
+		types.TrioBox == ticketType ||
 		types.TrifectaFormation == ticketType ||
 		types.TrifectaWheelOfFirst == ticketType ||
+		types.TrifectaWheelOfSecond == ticketType ||
 		types.TrifectaWheelOfFirstMulti == ticketType ||
 		types.TrifectaWheelOfSecondMulti == ticketType {
 		// 3連複軸1頭ながし, 馬単、3連単1着流し:

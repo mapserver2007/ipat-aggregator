@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 type raceIdDataRepository struct {
@@ -79,6 +80,10 @@ func (r *raceIdDataRepository) Fetch(ctx context.Context, url string) ([]string,
 	var rawRaceIds []string
 	r.client.OnHTML(".RaceList_DataItem > a:first-child", func(e *colly.HTMLElement) {
 		regex := regexp.MustCompile(`race_id=(\d+)`)
+		raceTitle := e.DOM.Find(".ItemTitle").Text()
+		if strings.Contains(raceTitle, "障害") || strings.Contains(raceTitle, "新馬") {
+			return
+		}
 		matches := regex.FindAllStringSubmatch(e.Attr("href"), -1)
 		raceId := matches[0][1]
 		rawRaceIds = append(rawRaceIds, raceId)

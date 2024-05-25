@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/mapserver2007/ipat-aggregator/app/controller"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
@@ -9,23 +10,30 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/spreadsheet_usecase"
+	"github.com/mapserver2007/ipat-aggregator/config"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"log"
 )
 
 const (
-	analysisRaceStartDate = "20230819"
-	analysisRaceEndDate   = "20240309"
-	enableAnalysis        = true
-	enablePrediction      = false
-	enableAggregate       = false
+	analysisRaceStartDate = "20230805"
+	analysisRaceEndDate   = "20240525"
+	enableAnalysis        = false
+	enablePrediction      = true
+	enableDebug           = false
 )
 
 func main() {
 	ctx := context.Background()
 	log.Println(ctx, "start")
 
-	tickets, racingNumbers, ticketRaces, jockeys, analysisRaces, markers, err := masterFile(ctx)
+	if enableDebug {
+		debug(ctx)
+		return
+	}
+
+	_, _, _, _, analysisRaces, analysisOdds, markers, err := masterFile(ctx)
+
 	if err != nil {
 		panic(err)
 	}
@@ -38,25 +46,43 @@ func main() {
 	}
 
 	if enableAnalysis {
-		err = analysis(ctx, markers, analysisRaces)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	if enableAggregate {
-		err = list(ctx, tickets, racingNumbers, ticketRaces, jockeys)
-		if err != nil {
-			panic(err)
-		}
-
-		err = summary(ctx, tickets, racingNumbers, ticketRaces)
+		err = analysis(ctx, markers, analysisRaces, analysisOdds)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	log.Println(ctx, "end")
+}
+
+func debug(ctx context.Context) {
+	masterCtrl := di.NewMaster()
+	master, err := masterCtrl.Execute(ctx, &controller.MasterInput{
+		StartDate: config.RaceStartDate,
+		EndDate:   config.RaceEndDate,
+	})
+	if err != nil {
+		log.Println("master error")
+		panic(err)
+	}
+
+	aggregationCtrl := di.NewAggregation()
+	err = aggregationCtrl.Execute(ctx, &controller.AggregationInput{
+		Master: master,
+	})
+	if err != nil {
+		log.Println("aggregation error")
+		panic(err)
+	}
+
+	analysisCtrl := di.NewAnalysis()
+	err = analysisCtrl.Execute(ctx, &controller.AnalysisInput{
+		Master: master,
+	})
+	if err != nil {
+		log.Println("analysis error")
+		panic(err)
+	}
 }
 
 func prediction(
@@ -111,6 +137,7 @@ func masterFile(
 	[]*data_cache_entity.Race,
 	[]*data_cache_entity.Jockey,
 	[]*data_cache_entity.Race,
+	[]*data_cache_entity.Odds,
 	[]*marker_csv_entity.AnalysisMarker,
 	error,
 ) {
@@ -119,44 +146,49 @@ func masterFile(
 
 	tickets, err := ticketUseCase.Read(ctx)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, err
 	}
 
 	dataCacheUseCase := di.InitializeDataCacheUseCase()
 
-	racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, err := dataCacheUseCase.Read(ctx)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
-	}
-
-	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisRaceStartDate, analysisRaceEndDate)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
-	}
-
-	racingNumbers, ticketRaces, jockeys, _, _, _, analysisRaces, err = dataCacheUseCase.Read(ctx)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
-	}
-
 	markers, err := analysisUseCase.Read(ctx)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, err
 	}
 
-	return tickets, racingNumbers, ticketRaces, jockeys, analysisRaces, markers, nil
+	racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisOdds, err := dataCacheUseCase.Read(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	err = dataCacheUseCase.Write(ctx, tickets, racingNumbers, ticketRaces, jockeys, excludeJockeyIds, raceIdMap, excludeDates, analysisRaces, analysisOdds, analysisRaceStartDate, analysisRaceEndDate, markers)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	racingNumbers, ticketRaces, jockeys, _, _, _, analysisRaces, analysisOdds, err = dataCacheUseCase.Read(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	return tickets, racingNumbers, ticketRaces, jockeys, analysisRaces, analysisOdds, markers, nil
 }
 
 func analysis(
 	ctx context.Context,
 	markers []*marker_csv_entity.AnalysisMarker,
 	races []*data_cache_entity.Race,
+	odds []*data_cache_entity.Odds,
 ) error {
 	spreadSheetService := service.NewSpreadSheetService()
-	analysisService := service.NewAnalysisService(spreadSheetService)
 	filterService := service.NewFilterService()
+	analysisService := service.NewAnalysisService(filterService, spreadSheetService)
 	analysisUseCase := di.InitializeMarkerAnalysisUseCase()
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
+	spreadSheetMarkerAnalysisRepository, err := infrastructure.NewSpreadSheetMarkerAnalysisRepository(spreadSheetService)
+	if err != nil {
+		return err
+	}
+	spreadSheetTrioAnalysisRepository, err := infrastructure.NewSpreadSheetTrioAnalysisRepository(spreadSheetService)
 	if err != nil {
 		return err
 	}
@@ -166,70 +198,11 @@ func analysis(
 		return err
 	}
 
-	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetRepository, analysisService, filterService)
-	err = spreadSheetUseCase.Write(ctx, analysisData)
+	spreadSheetUseCase := spreadsheet_usecase.NewMarkerAnalysisUseCase(spreadSheetMarkerAnalysisRepository, spreadSheetTrioAnalysisRepository, analysisService, filterService)
+	err = spreadSheetUseCase.Write(ctx, analysisData, races, odds, markers)
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func list(
-	ctx context.Context,
-	tickets []*ticket_csv_entity.Ticket,
-	racingNumbers []*data_cache_entity.RacingNumber,
-	races []*data_cache_entity.Race,
-	jockeys []*data_cache_entity.Jockey,
-) error {
-	listUseCase := di.InitializeListUseCase()
-	rows, err := listUseCase.Read(ctx, tickets, racingNumbers, races, jockeys)
-	if err != nil {
-		return err
-	}
-
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
-	raceEntityConverter := service.NewRaceEntityConverter()
-	spreadSheetService := service.NewSpreadSheetService()
-	listService := service.NewListService(raceConverter, ticketConverter, raceEntityConverter)
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetListRepository(spreadSheetService)
-	spreadSheetUseCase := spreadsheet_usecase.NewListUseCase(listService, spreadSheetRepository)
-	spreadSheetUseCase.Write(ctx, rows, jockeys)
-
-	return nil
-}
-
-func summary(
-	ctx context.Context,
-	tickets []*ticket_csv_entity.Ticket,
-	racingNumbers []*data_cache_entity.RacingNumber,
-	races []*data_cache_entity.Race,
-) error {
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
-	ticketAggregator := service.NewTicketAggregator(ticketConverter)
-	summaryService := service.NewSummaryService(ticketAggregator)
-	spreadSheetRepository, err := infrastructure.NewSpreadSheetSummaryRepository()
-	if err != nil {
-		return err
-	}
-
-	spreadSheetUseCase := spreadsheet_usecase.NewSummaryUseCase(summaryService, spreadSheetRepository)
-	err = spreadSheetUseCase.Write(ctx, tickets, racingNumbers, races)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ticketSummary(
-	ctx context.Context,
-	tickets []*ticket_csv_entity.Ticket,
-	racingNumbers []*data_cache_entity.RacingNumber,
-	races []*data_cache_entity.Race,
-) error {
 
 	return nil
 }

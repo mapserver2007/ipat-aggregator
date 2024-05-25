@@ -7,31 +7,48 @@ import (
 )
 
 type Calculable struct {
-	odds    decimal.Decimal
-	number  types.BetNumber
-	popular int
-	orderNo int
-	entries int
-	filters []filter.Id
+	raceId     types.RaceId
+	ticketType types.TicketType
+	odds       decimal.Decimal
+	number     types.BetNumber
+	popular    int
+	orderNo    int
+	entries    int
+	filters    []filter.Id
+	isHitRace  bool
 }
 
 func NewCalculable(
+	raceId types.RaceId,
+	ticketType types.TicketType,
 	odds string,
 	number types.BetNumber,
 	popular int,
 	orderNo int,
 	entries int,
 	filters []filter.Id,
+	isHitRace bool,
 ) *Calculable {
 	decimalOdds, _ := decimal.NewFromString(odds)
 	return &Calculable{
-		odds:    decimalOdds,
-		number:  number,
-		popular: popular,
-		orderNo: orderNo,
-		entries: entries,
-		filters: filters,
+		raceId:     raceId,
+		ticketType: ticketType,
+		odds:       decimalOdds,
+		number:     number,
+		popular:    popular,
+		orderNo:    orderNo,
+		entries:    entries,
+		filters:    filters,
+		isHitRace:  isHitRace,
 	}
+}
+
+func (n *Calculable) RaceId() types.RaceId {
+	return n.raceId
+}
+
+func (n *Calculable) TicketType() types.TicketType {
+	return n.ticketType
 }
 
 func (n *Calculable) Odds() decimal.Decimal {
@@ -56,4 +73,8 @@ func (n *Calculable) Entries() int {
 
 func (n *Calculable) Filters() []filter.Id {
 	return n.filters
+}
+
+func (n *Calculable) IsHitRace() bool {
+	return n.isHitRace
 }

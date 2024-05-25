@@ -12,26 +12,22 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 )
 
 type AnalysisUseCase struct {
 	markerDataRepository repository.MarkerDataRepository
 	analysisService      service.AnalysisService
-	filterService        service.FilterService
 	ticketConverter      service.TicketConverter
 }
 
 func NewAnalysisUseCase(
 	markerDataRepository repository.MarkerDataRepository,
 	analysisService service.AnalysisService,
-	filterService service.FilterService,
 	ticketConverter service.TicketConverter,
 ) *AnalysisUseCase {
 	return &AnalysisUseCase{
 		markerDataRepository: markerDataRepository,
 		analysisService:      analysisService,
-		filterService:        filterService,
 		ticketConverter:      ticketConverter,
 	}
 }
@@ -71,66 +67,10 @@ func (p *AnalysisUseCase) CreateAnalysisData(
 			raceResultMap[raceResult.HorseNumber()] = raceResult
 		}
 
-		for _, payoutResult := range race.PayoutResults() {
-			hitMarkerCombinationIds := p.analysisService.GetHitMarkerCombinationIds(ctx, payoutResult, marker)
-			for _, markerCombinationId := range hitMarkerCombinationIds {
-				// 集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
-				if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
-					hitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
-					if err != nil {
-						return nil, err
-					}
-					horseNumber, ok := marker.MarkerMap()[hitMarker]
-					if !ok && hitMarker != types.NoMarker {
-						return nil, fmt.Errorf("marker %s is not found in markerMap", hitMarker.String())
-					}
-					if raceResult, ok := raceResultMap[horseNumber]; ok {
-						calculable := analysis_entity.NewCalculable(
-							raceResult.Odds(),
-							types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
-							raceResult.PopularNumber(),
-							raceResult.OrderNo(),
-							race.Entries(),
-							p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
-						)
-
-						err = p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
-						if err != nil {
-							return nil, err
-						}
-					}
-				}
-			}
-
-			unHitMarkerCombinationIds := p.analysisService.GetUnHitMarkerCombinationIds(ctx, payoutResult, marker)
-			for _, markerCombinationId := range unHitMarkerCombinationIds {
-				// 集計については単複のみ(他の券種は組合せのオッズの取得ができないため)
-				if markerCombinationId.TicketType() == types.Win || markerCombinationId.TicketType() == types.Place {
-					unHitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
-					if err != nil {
-						return nil, err
-					}
-					horseNumber, ok := marker.MarkerMap()[unHitMarker]
-					if !ok && unHitMarker != types.NoMarker {
-						return nil, fmt.Errorf("marker %s is not found in markerMap", unHitMarker.String())
-					}
-					if raceResult, ok := raceResultMap[horseNumber]; ok {
-						calculable := analysis_entity.NewCalculable(
-							raceResult.Odds(),
-							types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
-							raceResult.PopularNumber(),
-							raceResult.OrderNo(),
-							race.Entries(),
-							p.filterService.CreateAnalysisFilters(ctx, race, raceResult),
-						)
-
-						err = p.analysisService.AddAnalysisData(ctx, markerCombinationId, race, calculable)
-						if err != nil {
-							return nil, err
-						}
-					}
-				}
-			}
+		// TODO oddsを渡す
+		err := p.analysisService.AddAnalysisData(ctx, marker, race)
+		if err != nil {
+			return nil, err
 		}
 	}
 

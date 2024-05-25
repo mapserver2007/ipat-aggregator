@@ -7,7 +7,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"google.golang.org/api/sheets/v4"
 	"log"
 )
@@ -41,7 +40,6 @@ func NewSpreadSheetMarkerAnalysisRepository(
 func (s *spreadSheetMarkerAnalysisRepository) Write(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,
-	filters []filter.Id,
 ) error {
 	for _, spreadSheetConfig := range s.spreadSheetConfigs {
 		var sheetMarker types.Marker
@@ -172,8 +170,8 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 		}
 
 		allMarkerCombinationIds := analysisData.AllMarkerCombinationIds()
-		markerCombinationMap := analysisData.MarkerCombinationMapByFilter()
-		raceCountMap := analysisData.RaceCountMapByFilter()
+		markerCombinationFilterMap := analysisData.MarkerCombinationFilterMap()
+		oddsRanceCountFilterMap := analysisData.OddsRangeCountFilterMap()
 
 		oddsRanges := []types.OddsRangeType{
 			types.WinOddsRange1,
@@ -186,11 +184,13 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 			types.WinOddsRange8,
 		}
 
-		for idx, f := range filters {
+		for idx, f := range analysisData.Filters() {
+			ticketTypeRaceCountMap := analysisData.RaceCountFilterMap()[f]
 			rowPosition := idx + 1
 			for _, markerCombinationId := range allMarkerCombinationIds {
-				data, ok := markerCombinationMap[f][markerCombinationId]
+				data, ok := markerCombinationFilterMap[f][markerCombinationId]
 				if ok {
+					raceCount := ticketTypeRaceCountMap[markerCombinationId.TicketType()]
 					switch markerCombinationId.TicketType() {
 					case types.Win:
 						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
@@ -202,13 +202,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 						}
 
 						oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 1)
-						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-						raceCount := 0
-						for _, oddsRange := range oddsRanges {
-							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
-								raceCount += n
-							}
-						}
+						oddsRangeRaceCountMap := oddsRanceCountFilterMap[f][markerCombinationId]
 
 						matchCount := 0
 						for _, calculable := range data.Calculables() {
@@ -258,7 +252,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 
 						inOrder2oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 2)
 						inOrder3oddsRangeMap := s.createHitWinOddsRangeMap(ctx, data, 3)
-						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
+						oddsRangeRaceCountMap := oddsRanceCountFilterMap[f][markerCombinationId]
 						raceCount := 0
 						for _, oddsRange := range oddsRanges {
 							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
@@ -319,8 +313,9 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 						}...)
 					}
 				}
-				data, ok = markerCombinationMap[f][markerCombinationId]
+				data, ok = markerCombinationFilterMap[f][markerCombinationId]
 				if ok {
+					raceCount := ticketTypeRaceCountMap[markerCombinationId.TicketType()]
 					switch markerCombinationId.TicketType() {
 					case types.Win:
 						marker, err := types.NewMarker(markerCombinationId.Value() % 10)
@@ -332,13 +327,6 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 						}
 
 						oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 1)
-						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-						raceCount := 0
-						for _, oddsRange := range oddsRanges {
-							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
-								raceCount += n
-							}
-						}
 						matchCount := 0
 						for _, calculable := range data.Calculables() {
 							if calculable.OrderNo() > 1 {
@@ -372,13 +360,6 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 
 						inOrder2oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 2)
 						inOrder3oddsRangeMap := s.createUnHitWinOddsRangeMap(ctx, data, 3)
-						oddsRangeRaceCountMap := raceCountMap[f][markerCombinationId]
-						raceCount := 0
-						for _, oddsRange := range oddsRanges {
-							if n, ok := oddsRangeRaceCountMap[oddsRange]; ok {
-								raceCount += n
-							}
-						}
 
 						orderNo2UnMatchCount := 0
 						orderNo3UnMatchCount := 0
@@ -417,7 +398,7 @@ func (s *spreadSheetMarkerAnalysisRepository) Write(
 		}
 
 		for idx, values := range valuesList {
-			writeRange := fmt.Sprintf("%s!%s", spreadSheetConfig.SheetName(), fmt.Sprintf("A%d", idx*(len(filters)+1)+1))
+			writeRange := fmt.Sprintf("%s!%s", spreadSheetConfig.SheetName(), fmt.Sprintf("A%d", idx*(len(markerCombinationFilterMap)+1)+1))
 			_, err := s.client.Spreadsheets.Values.Update(spreadSheetConfig.SpreadSheetId(), writeRange, &sheets.ValueRange{
 				Values: values,
 			}).ValueInputOption("USER_ENTERED").Do()
@@ -519,9 +500,9 @@ func (s *spreadSheetMarkerAnalysisRepository) createUnHitWinOddsRangeMap(
 func (s *spreadSheetMarkerAnalysisRepository) Style(
 	ctx context.Context,
 	analysisData *spreadsheet_entity.AnalysisData,
-	filters []filter.Id,
 ) error {
 	var requests []*sheets.Request
+	filters := analysisData.Filters()
 	for _, spreadSheetConfig := range s.spreadSheetConfigs {
 		var sheetMarker types.Marker
 		switch spreadSheetConfig.SheetName() {
@@ -830,8 +811,8 @@ func (s *spreadSheetMarkerAnalysisRepository) Style(
 			}
 			return types.NoneColor
 		}
-		markerCombinationMap := analysisData.MarkerCombinationMapByFilter()
-		raceCountMap := analysisData.RaceCountMapByFilter()
+		markerCombinationMap := analysisData.MarkerCombinationFilterMap()
+		raceCountMap := analysisData.OddsRangeCountFilterMap()
 
 		for idx, f := range filters {
 			colorTypeList[idx] = make([]types.CellColorType, 24)

@@ -12,12 +12,14 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"io"
+	"log"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type predictionDataRepository struct {
@@ -122,74 +124,77 @@ func (p *predictionDataRepository) fetchRace(
 	raceId := queryParams.Get("race_id")
 
 	p.client.OnHTML("div.RaceList_Item02", func(e *colly.HTMLElement) {
+		e.ForEach("h1", func(_ int, ce *colly.HTMLElement) {
+			regex := regexp.MustCompile(`(.+)\s`)
+			matches := regex.FindAllStringSubmatch(ce.DOM.Text(), -1)
+			raceName = ConvertFromEucJPToUtf8(matches[0][1])
+			gradeClass = types.AllowanceClass
+			if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
+				gradeClass = types.Grade1
+			} else if len(ce.DOM.Find(".Icon_GradeType2").Nodes) > 0 {
+				gradeClass = types.Grade2
+			} else if len(ce.DOM.Find(".Icon_GradeType3").Nodes) > 0 {
+				gradeClass = types.Grade3
+			} else if len(ce.DOM.Find(".Icon_GradeType5").Nodes) > 0 {
+				if strings.Contains(raceName, "障害") {
+					gradeClass = types.JumpOpenClass
+				} else {
+					gradeClass = types.OpenClass
+				}
+			} else if len(ce.DOM.Find(".Icon_GradeType10").Nodes) > 0 {
+				gradeClass = types.JumpGrade1
+			} else if len(ce.DOM.Find(".Icon_GradeType11").Nodes) > 0 {
+				gradeClass = types.JumpGrade2
+			} else if len(ce.DOM.Find(".Icon_GradeType12").Nodes) > 0 {
+				gradeClass = types.JumpGrade3
+			} else if len(ce.DOM.Find(".Icon_GradeType15").Nodes) > 0 {
+				gradeClass = types.ListedClass
+			} else if len(ce.DOM.Find(".Icon_GradeType16").Nodes) > 0 { // 3勝クラス
+				gradeClass = types.ThreeWinClass
+			} else if len(ce.DOM.Find(".Icon_GradeType17").Nodes) > 0 { // 2勝クラス
+				gradeClass = types.TwoWinClass
+			} else if len(ce.DOM.Find(".Icon_GradeType18").Nodes) > 0 { // 1勝クラス
+				gradeClass = types.OneWinClass
+			} else if len(ce.DOM.Find(".Icon_GradeType19").Nodes) > 0 {
+				gradeClass = types.Jpn1
+			} else if len(ce.DOM.Find(".Icon_GradeType20").Nodes) > 0 {
+				gradeClass = types.Jpn2
+			} else if len(ce.DOM.Find(".Icon_GradeType21").Nodes) > 0 {
+				gradeClass = types.Jpn3
+			} else if len(ce.DOM.Find(".Icon_GradeType4").Nodes) > 0 {
+				gradeClass = types.LocalGrade
+			} else {
+				// 条件戦の特別戦、OP、L以外の平場はアイコンが無いのでレース名からクラスを判定する
+				if strings.Contains(raceName, "新馬") {
+					gradeClass = types.MakeDebut
+				} else if strings.Contains(raceName, "未勝利") {
+					if strings.Contains(raceName, "障害") {
+						gradeClass = types.JumpMaiden
+					} else {
+						gradeClass = types.Maiden
+					}
+				} else if strings.Contains(raceName, "1勝クラス") {
+					gradeClass = types.OneWinClass
+				} else if strings.Contains(raceName, "2勝クラス") {
+					gradeClass = types.TwoWinClass
+				} else if strings.Contains(raceName, "3勝クラス") {
+					gradeClass = types.ThreeWinClass
+				}
+			}
+		})
 		e.ForEach("div", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 0:
-				regex := regexp.MustCompile(`(.+)\s`)
-				matches := regex.FindAllStringSubmatch(ce.DOM.Text(), -1)
-				raceName = ConvertFromEucJPToUtf8(matches[0][1])
-				gradeClass = types.AllowanceClass
-				if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
-					gradeClass = types.Grade1
-				} else if len(ce.DOM.Find(".Icon_GradeType2").Nodes) > 0 {
-					gradeClass = types.Grade2
-				} else if len(ce.DOM.Find(".Icon_GradeType3").Nodes) > 0 {
-					gradeClass = types.Grade3
-				} else if len(ce.DOM.Find(".Icon_GradeType5").Nodes) > 0 {
-					if strings.Contains(raceName, "障害") {
-						gradeClass = types.JumpOpenClass
-					} else {
-						gradeClass = types.OpenClass
-					}
-				} else if len(ce.DOM.Find(".Icon_GradeType10").Nodes) > 0 {
-					gradeClass = types.JumpGrade1
-				} else if len(ce.DOM.Find(".Icon_GradeType11").Nodes) > 0 {
-					gradeClass = types.JumpGrade2
-				} else if len(ce.DOM.Find(".Icon_GradeType12").Nodes) > 0 {
-					gradeClass = types.JumpGrade3
-				} else if len(ce.DOM.Find(".Icon_GradeType15").Nodes) > 0 {
-					gradeClass = types.ListedClass
-				} else if len(ce.DOM.Find(".Icon_GradeType16").Nodes) > 0 { // 3勝クラス
-					gradeClass = types.ThreeWinClass
-				} else if len(ce.DOM.Find(".Icon_GradeType17").Nodes) > 0 { // 2勝クラス
-					gradeClass = types.TwoWinClass
-				} else if len(ce.DOM.Find(".Icon_GradeType18").Nodes) > 0 { // 1勝クラス
-					gradeClass = types.OneWinClass
-				} else if len(ce.DOM.Find(".Icon_GradeType19").Nodes) > 0 {
-					gradeClass = types.Jpn1
-				} else if len(ce.DOM.Find(".Icon_GradeType20").Nodes) > 0 {
-					gradeClass = types.Jpn2
-				} else if len(ce.DOM.Find(".Icon_GradeType21").Nodes) > 0 {
-					gradeClass = types.Jpn3
-				} else if len(ce.DOM.Find(".Icon_GradeType4").Nodes) > 0 {
-					gradeClass = types.LocalGrade
-				} else {
-					// 条件戦の特別戦、OP、L以外の平場はアイコンが無いのでレース名からクラスを判定する
-					if strings.Contains(raceName, "新馬") {
-						gradeClass = types.MakeDebut
-					} else if strings.Contains(raceName, "未勝利") {
-						if strings.Contains(raceName, "障害") {
-							gradeClass = types.JumpMaiden
-						} else {
-							gradeClass = types.Maiden
-						}
-					} else if strings.Contains(raceName, "1勝クラス") {
-						gradeClass = types.OneWinClass
-					} else if strings.Contains(raceName, "2勝クラス") {
-						gradeClass = types.TwoWinClass
-					} else if strings.Contains(raceName, "3勝クラス") {
-						gradeClass = types.ThreeWinClass
-					}
-				}
-			case 1:
 				text := ConvertFromEucJPToUtf8(ce.DOM.Text())
-				regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
+				regex := regexp.MustCompile(`(\d+:\d+).+(ダ|芝|障)(\d+)(?:[\s\S]*馬場:(.+))?`)
 				matches := regex.FindAllStringSubmatch(text, -1)
 				startTime = matches[0][1]
 				courseCategory = types.NewCourseCategory(matches[0][2])
 				distance, _ = strconv.Atoi(matches[0][3])
 
 				trackConditionText := matches[0][4]
+				// 前日の早い段階では馬場が確定していないため、matches[0][4]は空になる場合があるので暫定で初期値は良にしておく
+				trackCondition = types.GoodToFirm
 				if strings.Contains(trackConditionText, "良") {
 					trackCondition = types.GoodToFirm
 				} else if strings.Contains(trackConditionText, "稍") {
@@ -199,7 +204,7 @@ func (p *predictionDataRepository) fetchRace(
 				} else if strings.Contains(trackConditionText, "不") {
 					trackCondition = types.Soft
 				}
-			case 2:
+			case 1:
 				ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
 					switch j {
 					case 5:
@@ -227,7 +232,6 @@ func (p *predictionDataRepository) fetchRace(
 				})
 			}
 		})
-
 	})
 
 	err = p.client.Visit(raceUrl)
@@ -311,15 +315,25 @@ func (p *predictionDataRepository) fetchOdds(ctx context.Context, url string) ([
 
 	var oddsInfo *raw_entity.OddsInfo
 	if err := json.Unmarshal(body, &oddsInfo); err != nil {
+		log.Println(ctx, fmt.Sprintf("Odds is not published: %s", url))
+		return nil, err
+	}
+
+	dateTime, err := time.Parse("2006-01-02 15:04:05", oddsInfo.Data.OfficialDatetime)
+	if err != nil {
+		return nil, err
+	}
+	raceDate, err := types.NewRaceDate(dateTime.Format("20060102"))
+	if err != nil {
 		return nil, err
 	}
 
 	var odds []*netkeiba_entity.Odds
-	for rawNumber, list := range oddsInfo.Data.Odds.List {
+	for rawNumber, list := range oddsInfo.Data.Odds.Wins {
 		popularNumber, _ := strconv.Atoi(list[2])
 		horseNumber, _ := strconv.Atoi(rawNumber)
 		odds = append(odds, netkeiba_entity.NewOdds(
-			list[0], popularNumber, horseNumber,
+			types.Win, list[0], popularNumber, []int{horseNumber}, raceDate,
 		))
 	}
 

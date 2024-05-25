@@ -125,6 +125,7 @@ var AggregationSet = wire.NewSet(
 var AnalysisSet = wire.NewSet(
 	analysis_usecase.NewAnalysis2,
 	analysis_service.NewPlace,
+	analysis_service.NewTrio,
 	filter_service.NewAnalysisFilter,
 	infrastructure.NewSpreadSheetRepository,
 )

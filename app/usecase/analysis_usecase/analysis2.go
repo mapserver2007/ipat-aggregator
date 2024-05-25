@@ -18,17 +18,23 @@ type AnalysisInput struct {
 
 type analysis struct {
 	placeService analysis_service.Place
+	trioService  analysis_service.Trio
 }
 
 func NewAnalysis2(
 	placeService analysis_service.Place,
+	trioService analysis_service.Trio,
 ) Analysis2 {
 	return &analysis{
 		placeService: placeService,
+		trioService:  trioService,
 	}
 }
 
 func (a *analysis) Execute(ctx context.Context, input *AnalysisInput) error {
+
+	//a.trioService.Create(ctx, input.Markers, input.Races)
+
 	placeCalculables, err := a.placeService.Create(ctx, input.Markers, input.Races)
 	if err != nil {
 		return err

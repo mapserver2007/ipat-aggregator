@@ -133,7 +133,8 @@ func NewAnalysis() *controller.Analysis {
 	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
 	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway)
 	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
-	analysis2 := analysis_usecase.NewAnalysis2(place)
+	trio := analysis_service.NewTrio(analysisFilter)
+	analysis2 := analysis_usecase.NewAnalysis2(place, trio)
 	analysis := controller.NewAnalysis(analysis2)
 	return analysis
 }
@@ -144,6 +145,6 @@ var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, 
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
-var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis2, analysis_service.NewPlace, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
+var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis2, analysis_service.NewPlace, analysis_service.NewTrio, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
 
 var SpreadSheetGatewaySet = wire.NewSet(gateway.NewSpreadSheetSummaryGateway, gateway.NewSpreadSheetTicketSummaryGateway, gateway.NewSpreadSheetListGateway, gateway.NewSpreadSheetAnalysisPlaceGateway)

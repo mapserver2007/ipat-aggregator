@@ -323,10 +323,6 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 		secondFilterMap := secondPlaceMap[sheetMarker]
 		thirdFilterMap := thirdPlaceMap[sheetMarker]
 
-		_ = firstFilterMap
-		_ = secondFilterMap
-		_ = thirdFilterMap
-
 		for rowIdx, analysisFilter := range analysisFilters {
 			firstPlace := firstFilterMap[analysisFilter]
 			secondPlace := secondFilterMap[analysisFilter]

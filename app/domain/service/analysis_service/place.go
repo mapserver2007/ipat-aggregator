@@ -104,6 +104,7 @@ func (p *placeService) Create(
 				raceResult.PopularNumber(),
 				raceResult.OrderNo(),
 				race.Entries(),
+				raceResult.JockeyId(),
 				filters,
 			))
 		}

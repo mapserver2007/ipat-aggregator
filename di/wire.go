@@ -12,6 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/prediction_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
@@ -130,6 +131,14 @@ var AnalysisSet = wire.NewSet(
 	infrastructure.NewSpreadSheetRepository,
 )
 
+var PredictionSet = wire.NewSet(
+	prediction_usecase.NewPrediction,
+	prediction_service.NewOdds,
+	infrastructure.NewOddsRepository,
+	infrastructure.NewRaceRepository,
+	gateway.NewNetKeibaGateway,
+)
+
 var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetSummaryGateway,
 	gateway.NewSpreadSheetTicketSummaryGateway,
@@ -159,6 +168,16 @@ func NewAnalysis() *controller.Analysis {
 		AnalysisSet,
 		SpreadSheetGatewaySet,
 		controller.NewAnalysis,
+	)
+	return nil
+}
+
+func NewPrediction() *controller.Prediction {
+	wire.Build(
+		PredictionSet,
+		AnalysisSet,
+		SpreadSheetGatewaySet,
+		controller.NewPrediction,
 	)
 	return nil
 }

@@ -32,7 +32,7 @@ func NewAnalysis2(
 }
 
 func (a *analysis) Execute(ctx context.Context, input *AnalysisInput) error {
-
+	// TODO 3連複は後で実装
 	//a.trioService.Create(ctx, input.Markers, input.Races)
 
 	placeCalculables, err := a.placeService.Create(ctx, input.Markers, input.Races)

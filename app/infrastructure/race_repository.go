@@ -52,6 +52,7 @@ func (r *raceRepository) List(
 
 	return fileNames, nil
 }
+
 func (r *raceRepository) Read(
 	ctx context.Context,
 	path string,
@@ -113,11 +114,22 @@ func (r *raceRepository) Write(
 	return nil
 }
 
-func (r *raceRepository) Fetch(
+func (r *raceRepository) FetchRace(
 	ctx context.Context,
 	url string,
 ) (*netkeiba_entity.Race, error) {
 	race, err := r.netKeibaGateway.FetchRace(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	return race, nil
+}
+
+func (r *raceRepository) FetchRaceCard(
+	ctx context.Context,
+	url string,
+) (*netkeiba_entity.Race, error) {
+	race, err := r.netKeibaGateway.FetchRaceCard(ctx, url)
 	if err != nil {
 		return nil, err
 	}

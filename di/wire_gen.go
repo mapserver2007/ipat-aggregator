@@ -15,6 +15,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/prediction_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
@@ -139,6 +140,23 @@ func NewAnalysis() *controller.Analysis {
 	return analysis
 }
 
+func NewPrediction() *controller.Prediction {
+	netKeibaGateway := gateway.NewNetKeibaGateway()
+	oddsRepository := infrastructure.NewOddsRepository(netKeibaGateway)
+	raceRepository := infrastructure.NewRaceRepository(netKeibaGateway)
+	odds := prediction_service.NewOdds(oddsRepository, raceRepository)
+	analysisFilter := filter_service.NewAnalysisFilter()
+	spreadSheetSummaryGateway := gateway.NewSpreadSheetSummaryGateway()
+	spreadSheetTicketSummaryGateway := gateway.NewSpreadSheetTicketSummaryGateway()
+	spreadSheetListGateway := gateway.NewSpreadSheetListGateway()
+	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
+	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway)
+	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
+	prediction := prediction_usecase.NewPrediction(odds, place)
+	controllerPrediction := controller.NewPrediction(prediction)
+	return controllerPrediction
+}
+
 // wire.go:
 
 var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, gateway.NewNetKeibaGateway)
@@ -146,5 +164,7 @@ var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
 var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis2, analysis_service.NewPlace, analysis_service.NewTrio, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
+
+var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, gateway.NewNetKeibaGateway)
 
 var SpreadSheetGatewaySet = wire.NewSet(gateway.NewSpreadSheetSummaryGateway, gateway.NewSpreadSheetTicketSummaryGateway, gateway.NewSpreadSheetListGateway, gateway.NewSpreadSheetAnalysisPlaceGateway)

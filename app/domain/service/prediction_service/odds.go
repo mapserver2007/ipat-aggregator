@@ -21,8 +21,8 @@ const (
 )
 
 type Odds interface {
-	Get(ctx context.Context, raceId types.RaceId) (*prediction_entity.Race2, error)
-	Convert(ctx context.Context, predictionRaces []*prediction_entity.Race2, predictionMarkers []*marker_csv_entity.PredictionMarker, calculables []*analysis_entity.PlaceCalculable) (map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[types.RaceCourse][]types.RaceId)
+	Get(ctx context.Context, raceId types.RaceId) (*prediction_entity.Race, error)
+	Convert(ctx context.Context, predictionRaces []*prediction_entity.Race, predictionMarkers []*marker_csv_entity.PredictionMarker, calculables []*analysis_entity.PlaceCalculable) (map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[types.RaceCourse][]types.RaceId)
 	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
 }
 
@@ -50,7 +50,7 @@ func NewOdds(
 func (p *oddsService) Get(
 	ctx context.Context,
 	raceId types.RaceId,
-) (*prediction_entity.Race2, error) {
+) (*prediction_entity.Race, error) {
 	odds, err := p.oddRepository.Fetch(ctx, fmt.Sprintf(oddsUrl, raceId, 1))
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (p *oddsService) Get(
 		}
 	}
 
-	predictionRace := prediction_entity.NewRace2(
+	predictionRace := prediction_entity.NewRace(
 		raceCard.RaceId(),
 		raceCard.RaceName(),
 		raceCard.RaceNumber(),
@@ -107,7 +107,7 @@ func (p *oddsService) Get(
 
 func (p *oddsService) Convert(
 	ctx context.Context,
-	predictionRaces []*prediction_entity.Race2,
+	predictionRaces []*prediction_entity.Race,
 	predictionMarkers []*marker_csv_entity.PredictionMarker,
 	calculables []*analysis_entity.PlaceCalculable,
 ) (

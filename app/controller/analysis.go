@@ -6,7 +6,7 @@ import (
 )
 
 type Analysis struct {
-	analysisUseCase analysis_usecase.Analysis2
+	analysisUseCase analysis_usecase.Analysis
 }
 
 type AnalysisInput struct {
@@ -14,7 +14,7 @@ type AnalysisInput struct {
 }
 
 func NewAnalysis(
-	analysisUseCase analysis_usecase.Analysis2,
+	analysisUseCase analysis_usecase.Analysis,
 ) *Analysis {
 	return &Analysis{
 		analysisUseCase: analysisUseCase,

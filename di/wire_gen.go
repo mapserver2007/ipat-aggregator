@@ -9,7 +9,6 @@ package di
 import (
 	"github.com/google/wire"
 	"github.com/mapserver2007/ipat-aggregator/app/controller"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/aggregation_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
@@ -21,61 +20,11 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/data_cache_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
-	"github.com/mapserver2007/ipat-aggregator/app/usecase/ticket_usecase"
 )
 
 // Injectors from wire.go:
-
-func InitializeDataCacheUseCase() *data_cache_usecase.DataCacheUseCase {
-	racingNumberDataRepository := infrastructure.NewRacingNumberDataRepository()
-	raceDataRepository := infrastructure.NewRaceDataRepository()
-	jockeyDataRepository := infrastructure.NewJockeyDataRepository()
-	raceIdDataRepository := infrastructure.NewRaceIdDataRepository()
-	markerDataRepository := infrastructure.NewMarkerDataRepository()
-	oddsDataRepository := infrastructure.NewOddsDataRepository()
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
-	netKeibaService := service.NewNetKeibaService(raceConverter, ticketConverter)
-	racingNumberEntityConverter := service.NewRacingNumberEntityConverter()
-	raceEntityConverter := service.NewRaceEntityConverter()
-	jockeyEntityConverter := service.NewJockeyEntityConverter()
-	oddsEntityConverter := service.NewOddsEntityConverter()
-	dataCacheUseCase := data_cache_usecase.NewDataCacheUseCase(racingNumberDataRepository, raceDataRepository, jockeyDataRepository, raceIdDataRepository, markerDataRepository, oddsDataRepository, netKeibaService, raceConverter, racingNumberEntityConverter, raceEntityConverter, jockeyEntityConverter, oddsEntityConverter)
-	return dataCacheUseCase
-}
-
-func InitializeMarkerAnalysisUseCase() *analysis_usecase.AnalysisUseCase {
-	markerDataRepository := infrastructure.NewMarkerDataRepository()
-	filterService := service.NewFilterService()
-	spreadSheetService := service.NewSpreadSheetService()
-	analysisService := service.NewAnalysisService(filterService, spreadSheetService)
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
-	analysisUseCase := analysis_usecase.NewAnalysisUseCase(markerDataRepository, analysisService, ticketConverter)
-	return analysisUseCase
-}
-
-func InitializeTicketUseCase() *ticket_usecase.TicketUseCase {
-	betNumberConverter := service.NewBetNumberConverter()
-	ticketCsvRepository := infrastructure.NewTicketCsvRepository(betNumberConverter)
-	ticketUseCase := ticket_usecase.NewTicketUseCase(ticketCsvRepository)
-	return ticketUseCase
-}
-
-func InitializePredictionUseCase() *prediction_usecase.PredictionUseCase {
-	raceConverter := service.NewRaceConverter()
-	ticketConverter := service.NewTicketConverter(raceConverter)
-	netKeibaService := service.NewNetKeibaService(raceConverter, ticketConverter)
-	raceIdDataRepository := infrastructure.NewRaceIdDataRepository()
-	predictionDataRepository := infrastructure.NewPredictionDataRepository()
-	raceEntityConverter := service.NewRaceEntityConverter()
-	filterService := service.NewFilterService()
-	predictionUseCase := prediction_usecase.NewPredictionUseCase(netKeibaService, raceIdDataRepository, predictionDataRepository, raceEntityConverter, filterService)
-	return predictionUseCase
-}
 
 func NewMaster() *controller.Master {
 	betNumberConverter := master_service.NewBetNumberConverter()
@@ -137,9 +86,9 @@ func NewAnalysis() *controller.Analysis {
 	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetPredictionGateway)
 	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
 	trio := analysis_service.NewTrio(analysisFilter)
-	analysis2 := analysis_usecase.NewAnalysis2(place, trio)
-	analysis := controller.NewAnalysis(analysis2)
-	return analysis
+	analysis := analysis_usecase.NewAnalysis(place, trio)
+	controllerAnalysis := controller.NewAnalysis(analysis)
+	return controllerAnalysis
 }
 
 func NewPrediction() *controller.Prediction {
@@ -167,7 +116,7 @@ var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, 
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
-var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis2, analysis_service.NewPlace, analysis_service.NewTrio, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
+var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
 
 var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, filter_service.NewPredictionFilter, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, gateway.NewNetKeibaGateway)
 

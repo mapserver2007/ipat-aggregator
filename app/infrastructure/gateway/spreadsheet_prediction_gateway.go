@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	spreadSheetPredictionFileName = "spreadsheet_prediction2.json"
+	spreadSheetPredictionFileName = "spreadsheet_prediction.json"
 )
 
 type SpreadSheetPredictionGateway interface {

@@ -1,11 +1,13 @@
 package list_entity
 
+import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
+
 type RaceResult struct {
 	orderNo       int
 	horseName     string
 	bracketNumber int
 	horseNumber   int
-	jockeyId      int
+	jockeyId      types.JockeyId
 	odds          string
 	popularNumber int
 }
@@ -15,7 +17,7 @@ func NewRaceResult(
 	horseName string,
 	bracketNumber int,
 	horseNumber int,
-	jockeyId int,
+	jockeyId types.JockeyId,
 	odds string,
 	popularNumber int,
 ) *RaceResult {
@@ -46,7 +48,7 @@ func (r *RaceResult) HorseNumber() int {
 	return r.horseNumber
 }
 
-func (r *RaceResult) JockeyId() int {
+func (r *RaceResult) JockeyId() types.JockeyId {
 	return r.jockeyId
 }
 

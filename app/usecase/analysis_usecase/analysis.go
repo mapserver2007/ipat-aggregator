@@ -2,77 +2,48 @@ package analysis_usecase
 
 import (
 	"context"
-	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"log"
-	"os"
-	"path/filepath"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
 )
 
-type AnalysisUseCase struct {
-	markerDataRepository repository.MarkerDataRepository
-	analysisService      service.AnalysisService
-	ticketConverter      service.TicketConverter
+type Analysis interface {
+	Execute(ctx context.Context, input *AnalysisInput) error
 }
 
-func NewAnalysisUseCase(
-	markerDataRepository repository.MarkerDataRepository,
-	analysisService service.AnalysisService,
-	ticketConverter service.TicketConverter,
-) *AnalysisUseCase {
-	return &AnalysisUseCase{
-		markerDataRepository: markerDataRepository,
-		analysisService:      analysisService,
-		ticketConverter:      ticketConverter,
+type AnalysisInput struct {
+	Markers []*marker_csv_entity.AnalysisMarker
+	Races   []*data_cache_entity.Race
+}
+
+type analysis struct {
+	placeService analysis_service.Place
+	trioService  analysis_service.Trio
+}
+
+func NewAnalysis(
+	placeService analysis_service.Place,
+	trioService analysis_service.Trio,
+) Analysis {
+	return &analysis{
+		placeService: placeService,
+		trioService:  trioService,
 	}
 }
 
-func (p *AnalysisUseCase) Read(ctx context.Context) ([]*marker_csv_entity.AnalysisMarker, error) {
-	rootPath, err := os.Getwd()
+func (a *analysis) Execute(ctx context.Context, input *AnalysisInput) error {
+	// TODO 3連複は後で実装
+	//a.trioService.Create(ctx, input.Markers, input.Races)
+
+	placeCalculables, err := a.placeService.Create(ctx, input.Markers, input.Races)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	dirPath, err := filepath.Abs(rootPath + "/csv")
+	firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters := a.placeService.Convert(ctx, placeCalculables)
+	err = a.placeService.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters)
 	if err != nil {
-		return nil, err
-	}
-	filePath := fmt.Sprintf("%s/%s", dirPath, "analysis_marker.csv")
-	return p.markerDataRepository.Read(ctx, filePath)
-}
-
-func (p *AnalysisUseCase) CreateAnalysisData(
-	ctx context.Context,
-	markers []*marker_csv_entity.AnalysisMarker,
-	races []*data_cache_entity.Race,
-) (*analysis_entity.Layer1, error) {
-	raceMap := map[types.RaceId]*data_cache_entity.Race{}
-	for _, race := range races {
-		raceMap[race.RaceId()] = race
+		return err
 	}
 
-	for _, marker := range markers {
-		race, ok := raceMap[marker.RaceId()]
-		if !ok {
-			log.Println(ctx, fmt.Sprintf("raceId: %s is not found in races", marker.RaceId()))
-			continue
-		}
-
-		raceResultMap := map[int]*data_cache_entity.RaceResult{}
-		for _, raceResult := range race.RaceResults() {
-			raceResultMap[raceResult.HorseNumber()] = raceResult
-		}
-
-		// TODO oddsを渡す
-		err := p.analysisService.AddAnalysisData(ctx, marker, race)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return p.analysisService.GetAnalysisData(), nil
+	return nil
 }

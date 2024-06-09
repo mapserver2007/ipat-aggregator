@@ -9,6 +9,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 )
@@ -118,7 +119,19 @@ func (o *oddsRepository) Fetch(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Odds, error) {
-	odds, err := o.netKeibaGateway.FetchOdds(ctx, url)
+	queryParams, err := neturl.ParseQuery(url)
+	if err != nil {
+		return nil, err
+	}
+	ticketType := queryParams.Get("type")
+
+	var odds []*netkeiba_entity.Odds
+	switch ticketType {
+	case "1": // win
+		odds, err = o.netKeibaGateway.FetchWinOdds(ctx, url)
+	case "7": // trio
+		odds, err = o.netKeibaGateway.FetchTrioOdds(ctx, url)
+	}
 	if err != nil {
 		return nil, err
 	}

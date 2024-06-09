@@ -1,6 +1,9 @@
 package prediction_entity
 
-import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
+import (
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+)
 
 type Race struct {
 	raceId                 types.RaceId
@@ -17,6 +20,7 @@ type Race struct {
 	url                    string
 	raceResultHorseNumbers []int
 	odds                   []*Odds
+	predictionFilter       filter.Id
 }
 
 func NewRace(
@@ -34,6 +38,7 @@ func NewRace(
 	url string,
 	raceResultHorseNumbers []int,
 	odds []*Odds,
+	predictionFilter filter.Id,
 ) *Race {
 	return &Race{
 		raceId:                 types.RaceId(raceId),
@@ -50,6 +55,7 @@ func NewRace(
 		url:                    url,
 		raceResultHorseNumbers: raceResultHorseNumbers,
 		odds:                   odds,
+		predictionFilter:       predictionFilter,
 	}
 }
 
@@ -107,4 +113,8 @@ func (r *Race) RaceResultHorseNumbers() []int {
 
 func (r *Race) Odds() []*Odds {
 	return r.odds
+}
+
+func (r *Race) PredictionFilter() filter.Id {
+	return r.predictionFilter
 }

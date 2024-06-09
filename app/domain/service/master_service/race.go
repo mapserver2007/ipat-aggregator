@@ -80,7 +80,7 @@ func (r *raceService) CreateOrUpdate(
 
 	for _, url := range urls {
 		time.Sleep(time.Millisecond)
-		race, err := r.raceRepository.Fetch(ctx, url)
+		race, err := r.raceRepository.FetchRace(ctx, url)
 		if err != nil {
 			return err
 		}

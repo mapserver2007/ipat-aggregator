@@ -1,9 +1,8 @@
 package config
 
 const (
-	CsvDir   = "csv"
-	CacheDir = "cache2"
-
-	RaceStartDate = "20230805"
-	RaceEndDate   = "20240525"
+	CsvDir        = "csv"
+	CacheDir      = "cache"
+	RaceStartDate = "20230729"
+	RaceEndDate   = "20240609"
 )

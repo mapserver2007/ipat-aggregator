@@ -16,6 +16,7 @@ type PlaceCalculable struct {
 	popular             int
 	orderNo             int
 	entries             int
+	jockeyId            types.JockeyId
 	filters             []filter.Id
 }
 
@@ -28,6 +29,7 @@ func NewPlaceCalculable(
 	popular int,
 	orderNo int,
 	entries int,
+	jockeyId types.JockeyId,
 	filters []filter.Id,
 ) *PlaceCalculable {
 	decimalOdds, _ := decimal.NewFromString(odds)
@@ -43,6 +45,7 @@ func NewPlaceCalculable(
 		popular:             popular,
 		orderNo:             orderNo,
 		entries:             entries,
+		jockeyId:            jockeyId,
 		filters:             filters,
 	}
 }
@@ -81,6 +84,10 @@ func (n *PlaceCalculable) OrderNo() int {
 
 func (n *PlaceCalculable) Entries() int {
 	return n.entries
+}
+
+func (n *PlaceCalculable) JockeyId() types.JockeyId {
+	return n.jockeyId
 }
 
 func (n *PlaceCalculable) Filters() []filter.Id {

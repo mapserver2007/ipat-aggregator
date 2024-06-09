@@ -2,67 +2,59 @@ package prediction_usecase
 
 import (
 	"context"
-	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/service"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"log"
-	"os"
-	"path/filepath"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/prediction_service"
 )
 
-type PredictionUseCase struct {
-	netKeibaService          service.NetKeibaService
-	raceIdDataRepository     repository.RaceIdDataRepository
-	predictionDataRepository repository.PredictionDataRepository
-	raceEntityConverter      service.RaceEntityConverter
-	filterService            service.FilterService
+type Prediction interface {
+	Execute(ctx context.Context, input *PredictionInput) error
 }
 
-func NewPredictionUseCase(
-	netKeibaService service.NetKeibaService,
-	raceIdDataRepository repository.RaceIdDataRepository,
-	predictionDataRepository repository.PredictionDataRepository,
-	raceEntityConverter service.RaceEntityConverter,
-	filterService service.FilterService,
-) *PredictionUseCase {
-	return &PredictionUseCase{
-		netKeibaService:          netKeibaService,
-		raceIdDataRepository:     raceIdDataRepository,
-		predictionDataRepository: predictionDataRepository,
-		raceEntityConverter:      raceEntityConverter,
-		filterService:            filterService,
+type PredictionInput struct {
+	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
+	PredictionMarkers []*marker_csv_entity.PredictionMarker
+	Races             []*data_cache_entity.Race
+}
+
+type prediction struct {
+	predictionOddsService prediction_service.Odds
+	placeService          analysis_service.Place
+}
+
+func NewPrediction(
+	predictionOddsService prediction_service.Odds,
+	placeService analysis_service.Place,
+) Prediction {
+	return &prediction{
+		predictionOddsService: predictionOddsService,
+		placeService:          placeService,
 	}
 }
 
-func (p *PredictionUseCase) Read(ctx context.Context) ([]*marker_csv_entity.PredictionMarker, error) {
-	rootPath, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	dirPath, err := filepath.Abs(rootPath + "/csv")
-	if err != nil {
-		return nil, err
-	}
-	filePath := fmt.Sprintf("%s/%s", dirPath, "prediction_marker.csv")
-	return p.predictionDataRepository.Read(ctx, filePath)
-}
-
-func (p *PredictionUseCase) Fetch(ctx context.Context, raceIds []types.RaceId) ([]*prediction_entity.Race, error) {
-	raceUrls, oddsUrls, raceResultUrls := p.netKeibaService.CreatePredictionRaceUrls(ctx, raceIds)
-	var races []*prediction_entity.Race
-	for i := 0; i < len(raceUrls); i++ {
-		log.Println(ctx, "fetch prediction data from "+raceUrls[i])
-		log.Println(ctx, "fetch prediction data from "+oddsUrls[i])
-		log.Println(ctx, "fetch prediction data from "+raceResultUrls[i])
-		race, odds, err := p.predictionDataRepository.Fetch(ctx, raceUrls[i], oddsUrls[i], raceResultUrls[i])
+func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error {
+	predictionMarkers := input.PredictionMarkers
+	predictionRaces := make([]*prediction_entity.Race, 0, len(predictionMarkers))
+	for _, marker := range predictionMarkers {
+		predictionRace, err := p.predictionOddsService.Get(ctx, marker.RaceId())
 		if err != nil {
-			return nil, err
+			return err
 		}
-		races = append(races, p.raceEntityConverter.NetKeibaToPrediction(race, odds))
+		predictionRaces = append(predictionRaces, predictionRace)
 	}
 
-	return races, nil
+	calculables, err := p.placeService.Create(ctx, input.AnalysisMarkers, input.Races)
+	if err != nil {
+		return err
+	}
+
+	firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap := p.predictionOddsService.Convert(ctx, predictionRaces, predictionMarkers, calculables)
+	err = p.predictionOddsService.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

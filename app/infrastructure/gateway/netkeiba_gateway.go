@@ -68,7 +68,7 @@ func (n *netKeibaGateway) FetchRace(
 		raceName          string
 		trackCondition    types.TrackCondition
 		startTime         string
-		raceTimes         []string
+		raceTime          string
 		courseCategory    types.CourseCategory
 		distance, entries int
 		gradeClass        types.GradeClass
@@ -80,6 +80,7 @@ func (n *netKeibaGateway) FetchRace(
 		e.ForEach("tr.HorseList", func(i int, ce *colly.HTMLElement) {
 			var numbers []int
 			var oddsList []string
+			var raceTimes []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
 			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
@@ -93,6 +94,7 @@ func (n *netKeibaGateway) FetchRace(
 					oddsList = append(oddsList, ce2.DOM.Text())
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
+				raceTime = raceTimes[0]
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
@@ -121,6 +123,7 @@ func (n *netKeibaGateway) FetchRace(
 					oddsList = append(oddsList, ce2.DOM.Text())
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
+				raceTime = raceTimes[0]
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
@@ -145,6 +148,7 @@ func (n *netKeibaGateway) FetchRace(
 		e.ForEach("#All_Result_Table > tbody > tr", func(i int, ce *colly.HTMLElement) {
 			var numbers []int
 			var oddsList []string
+			var raceTimes []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
 			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
@@ -158,6 +162,7 @@ func (n *netKeibaGateway) FetchRace(
 					oddsList = append(oddsList, ce2.DOM.Text())
 				})
 				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
+				raceTime = raceTimes[0]
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
@@ -566,7 +571,7 @@ func (n *netKeibaGateway) FetchRace(
 		raceName,
 		organizer,
 		url,
-		raceTimes[0],
+		raceTime,
 		startTime,
 		entries,
 		distance,

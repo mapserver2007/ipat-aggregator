@@ -16,11 +16,11 @@ import (
 )
 
 const (
-	analysisRaceStartDate = "20230805"
-	analysisRaceEndDate   = "20240525"
+	analysisRaceStartDate = "20230729"
+	analysisRaceEndDate   = "20240608"
 	enableAnalysis        = false
-	enablePrediction      = true
-	enableDebug           = false
+	enablePrediction      = false
+	enableDebug           = true
 )
 
 func main() {
@@ -66,21 +66,30 @@ func debug(ctx context.Context) {
 		panic(err)
 	}
 
-	aggregationCtrl := di.NewAggregation()
-	err = aggregationCtrl.Execute(ctx, &controller.AggregationInput{
-		Master: master,
-	})
-	if err != nil {
-		log.Println("aggregation error")
-		panic(err)
-	}
+	//aggregationCtrl := di.NewAggregation()
+	//err = aggregationCtrl.Execute(ctx, &controller.AggregationInput{
+	//	Master: master,
+	//})
+	//if err != nil {
+	//	log.Println("aggregation error")
+	//	panic(err)
+	//}
+	//
+	//analysisCtrl := di.NewAnalysis()
+	//err = analysisCtrl.Execute(ctx, &controller.AnalysisInput{
+	//	Master: master,
+	//})
+	//if err != nil {
+	//	log.Println("analysis error")
+	//	panic(err)
+	//}
 
-	analysisCtrl := di.NewAnalysis()
-	err = analysisCtrl.Execute(ctx, &controller.AnalysisInput{
+	predictionCtrl := di.NewPrediction()
+	err = predictionCtrl.Execute(ctx, &controller.PredictionInput{
 		Master: master,
 	})
 	if err != nil {
-		log.Println("analysis error")
+		log.Println("prediction error")
 		panic(err)
 	}
 }

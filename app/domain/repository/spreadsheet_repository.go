@@ -12,4 +12,5 @@ type SpreadSheetRepository interface {
 	WriteTicketSummary(ctx context.Context, ticketSummaryMap map[int]*spreadsheet_entity.TicketSummary) error
 	WriteList(ctx context.Context, listRows []*spreadsheet_entity.ListRow) error
 	WriteAnalysisPlace(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, filters []filter.Id) error
+	WritePrediction(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
 }

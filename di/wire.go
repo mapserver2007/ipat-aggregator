@@ -134,6 +134,7 @@ var AnalysisSet = wire.NewSet(
 var PredictionSet = wire.NewSet(
 	prediction_usecase.NewPrediction,
 	prediction_service.NewOdds,
+	filter_service.NewPredictionFilter,
 	infrastructure.NewOddsRepository,
 	infrastructure.NewRaceRepository,
 	gateway.NewNetKeibaGateway,
@@ -144,6 +145,7 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetTicketSummaryGateway,
 	gateway.NewSpreadSheetListGateway,
 	gateway.NewSpreadSheetAnalysisPlaceGateway,
+	gateway.NewSpreadSheetPredictionGateway,
 )
 
 func NewMaster() *controller.Master {

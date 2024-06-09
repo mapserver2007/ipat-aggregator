@@ -328,8 +328,6 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 			secondPlace := secondFilterMap[analysisFilter]
 			thirdPlace := thirdFilterMap[analysisFilter]
 
-			firstPlace.RateStyle()
-
 			for colIdx := 0; colIdx < 8; colIdx++ {
 				var cellColorType types.CellColorType
 				switch colIdx {

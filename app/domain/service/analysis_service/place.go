@@ -284,7 +284,6 @@ func (p *placeService) Convert(
 						if calculable.OrderNo() >= 4 {
 							oddsRangeUnHitCountSlice[22]++
 						}
-
 					} else if odds >= 50.0 {
 						switch calculable.OrderNo() {
 						case 1:

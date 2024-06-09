@@ -14,6 +14,7 @@ type spreadSheetRepository struct {
 	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway
 	listGateway          gateway.SpreadSheetListGateway
 	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway
+	predictionGateway    gateway.SpreadSheetPredictionGateway
 }
 
 func NewSpreadSheetRepository(
@@ -21,12 +22,14 @@ func NewSpreadSheetRepository(
 	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway,
 	listGateway gateway.SpreadSheetListGateway,
 	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway,
+	predictionGateway gateway.SpreadSheetPredictionGateway,
 ) repository.SpreadSheetRepository {
 	return &spreadSheetRepository{
 		summaryGateway:       summaryGateway,
 		ticketSummaryGateway: ticketSummaryGateway,
 		listGateway:          listGateway,
 		analysisPlaceGateway: analysisPlaceGateway,
+		predictionGateway:    predictionGateway,
 	}
 }
 
@@ -110,6 +113,31 @@ func (s *spreadSheetRepository) WriteAnalysisPlace(
 	}
 
 	err = s.analysisPlaceGateway.Style(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WritePrediction(
+	ctx context.Context,
+	firstPlaceMap,
+	secondPlaceMap,
+	thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
+	raceCourseMap map[types.RaceCourse][]types.RaceId,
+) error {
+	err := s.predictionGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.predictionGateway.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
+	if err != nil {
+		return err
+	}
+
+	err = s.predictionGateway.Style(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
 	if err != nil {
 		return err
 	}

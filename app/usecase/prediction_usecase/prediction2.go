@@ -35,8 +35,9 @@ func NewPrediction(
 }
 
 func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error {
-	predictionRaces := make([]*prediction_entity.Race, 0, len(input.PredictionMarkers))
-	for _, marker := range input.PredictionMarkers {
+	predictionMarkers := input.PredictionMarkers
+	predictionRaces := make([]*prediction_entity.Race2, 0, len(predictionMarkers))
+	for _, marker := range predictionMarkers {
 		predictionRace, err := p.predictionOddsService.Get(ctx, marker.RaceId())
 		if err != nil {
 			return err
@@ -49,7 +50,8 @@ func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error 
 		return err
 	}
 
-	err = p.predictionOddsService.Convert(ctx, predictionRaces, calculables)
+	firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap := p.predictionOddsService.Convert(ctx, predictionRaces, predictionMarkers, calculables)
+	err = p.predictionOddsService.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
 	if err != nil {
 		return err
 	}

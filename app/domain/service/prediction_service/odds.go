@@ -16,7 +16,7 @@ import (
 
 const (
 	raceCardUrl   = "https://race.netkeiba.com/race/shutuba.html?race_id=%s"
-	oddsUrl       = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=%d&action=update"
+	oddsUrl       = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=1&action=update"
 	raceResultUrl = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%s"
 )
 
@@ -51,7 +51,7 @@ func (p *oddsService) Get(
 	ctx context.Context,
 	raceId types.RaceId,
 ) (*prediction_entity.Race, error) {
-	odds, err := p.oddRepository.Fetch(ctx, fmt.Sprintf(oddsUrl, raceId, 1))
+	odds, err := p.oddRepository.Fetch(ctx, fmt.Sprintf(oddsUrl, raceId))
 	if err != nil {
 		return nil, err
 	}

@@ -8,12 +8,6 @@ import (
 	"log"
 )
 
-const (
-	enableAggregation = false
-	enableAnalysis    = true
-	enablePrediction  = false
-)
-
 func main() {
 	ctx := context.Background()
 	log.Println(ctx, "start")
@@ -28,7 +22,7 @@ func main() {
 		panic(err)
 	}
 
-	if enableAggregation {
+	if config.EnableAggregation {
 		aggregationCtrl := di.NewAggregation()
 		err = aggregationCtrl.Execute(ctx, &controller.AggregationInput{
 			Master: master,
@@ -39,7 +33,7 @@ func main() {
 		}
 	}
 
-	if enableAnalysis {
+	if config.EnableAnalysis {
 		analysisCtrl := di.NewAnalysis()
 		err = analysisCtrl.Execute(ctx, &controller.AnalysisInput{
 			Master: master,
@@ -50,7 +44,7 @@ func main() {
 		}
 	}
 
-	if enablePrediction {
+	if config.EnablePrediction {
 		predictionCtrl := di.NewPrediction()
 		err = predictionCtrl.Execute(ctx, &controller.PredictionInput{
 			Master: master,

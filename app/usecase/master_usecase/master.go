@@ -33,7 +33,7 @@ type master struct {
 	raceIdService           master_service.RaceId
 	raceService             master_service.Race
 	jockeyService           master_service.Jockey
-	oddsService             master_service.Odds
+	trioOddsService         master_service.TrioOdds
 	analysisMarkerService   master_service.AnalysisMarker
 	predictionMarkerService master_service.PredictionMarker
 }
@@ -43,7 +43,7 @@ func NewMaster(
 	raceIdService master_service.RaceId,
 	raceService master_service.Race,
 	jockeyService master_service.Jockey,
-	oddsService master_service.Odds,
+	trioOddsService master_service.TrioOdds,
 	analysisMarkerService master_service.AnalysisMarker,
 	predictionMarkerService master_service.PredictionMarker,
 ) Master {
@@ -52,7 +52,7 @@ func NewMaster(
 		raceIdService:           raceIdService,
 		raceService:             raceService,
 		jockeyService:           jockeyService,
-		oddsService:             oddsService,
+		trioOddsService:         trioOddsService,
 		analysisMarkerService:   analysisMarkerService,
 		predictionMarkerService: predictionMarkerService,
 	}
@@ -74,7 +74,7 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		return nil, err
 	}
 
-	odds, err := m.oddsService.Get(ctx)
+	odds, err := m.trioOddsService.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	odds, err := m.oddsService.Get(ctx)
+	odds, err := m.trioOddsService.Get(ctx)
 	if err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.oddsService.CreateOrUpdate(ctx, odds, markers)
+	err = m.trioOddsService.CreateOrUpdate(ctx, odds, markers)
 	if err != nil {
 		return err
 	}

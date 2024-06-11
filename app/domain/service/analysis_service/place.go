@@ -12,6 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"log"
 	"strconv"
 )
 
@@ -76,6 +77,10 @@ func (p *placeService) Create(
 		// 不的中の印
 		markerCombinationIds = append(markerCombinationIds, p.getUnHitMarkerCombinationIds(numbers, marker)...)
 
+		var (
+			raceCalculables []*analysis_entity.PlaceCalculable
+			isRaceCanceled  bool
+		)
 		// 的中か不的中かは、着順から判断できるためcalculableの中でフラグ管理しない
 		for _, markerCombinationId := range markerCombinationIds {
 			hitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
@@ -95,7 +100,14 @@ func (p *placeService) Create(
 				return nil, fmt.Errorf("horseNumber not found: %v", horseNumber)
 			}
 
-			calculables = append(calculables, analysis_entity.NewPlaceCalculable(
+			// 取り消しの馬かつ、印対象だったばあいそのレースは集計対象外
+			if raceResult.Odds() == "0" {
+				log.Println(fmt.Sprintf("exclude analysis data for canceled, raceId: %s", race.RaceId()))
+				isRaceCanceled = true
+				break
+			}
+
+			raceCalculables = append(raceCalculables, analysis_entity.NewPlaceCalculable(
 				race.RaceId(),
 				race.RaceDate(),
 				markerCombinationId,
@@ -107,6 +119,10 @@ func (p *placeService) Create(
 				raceResult.JockeyId(),
 				filters,
 			))
+		}
+
+		if !isRaceCanceled {
+			calculables = append(calculables, raceCalculables...)
 		}
 	}
 

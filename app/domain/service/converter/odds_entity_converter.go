@@ -45,7 +45,7 @@ func (o *oddsEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Odds) *raw_en
 	numbers := input.HorseNumbers()
 	strNumbers := make([]string, len(numbers))
 	for i, number := range numbers {
-		strNumbers[i] = strconv.Itoa(number)
+		strNumbers[i] = strconv.Itoa(number.Value())
 	}
 	number := strings.Join(strNumbers, types.QuinellaSeparator)
 	return &raw_entity.Odds{

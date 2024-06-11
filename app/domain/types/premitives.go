@@ -83,15 +83,6 @@ func NewRaceIdForOverseas(
 	return RaceId(rawRaceId)
 }
 
-type RacingNumberId string
-
-func NewRacingNumberId(
-	date RaceDate,
-	raceCourse RaceCourse,
-) RacingNumberId {
-	return RacingNumberId(fmt.Sprintf("%d_%s", date, raceCourse.Value()))
-}
-
 type RaceDate int
 
 func NewRaceDate(s string) (RaceDate, error) {
@@ -269,6 +260,12 @@ func NewOrganizer(value int) Organizer {
 		return OverseaOrganizer
 	}
 	return UnknownOrganizer
+}
+
+type HorseNumber int
+
+func (h HorseNumber) Value() int {
+	return int(h)
 }
 
 type TicketType int
@@ -898,16 +895,3 @@ const (
 	SecondColor
 	ThirdColor
 )
-
-type InOrder int
-
-const (
-	OutOfPlace InOrder = iota
-	FirstPlace
-	SecondPlace
-	ThirdPlace
-)
-
-func (i InOrder) Value() int {
-	return int(i)
-}

@@ -18,7 +18,7 @@ type Race struct {
 	raceWeightCondition    types.RaceWeightCondition
 	raceCourseId           types.RaceCourse
 	url                    string
-	raceResultHorseNumbers []int
+	raceResultHorseNumbers []types.HorseNumber
 	odds                   []*Odds
 	predictionFilter       filter.Id
 }
@@ -36,10 +36,15 @@ func NewRace(
 	raceWeightCondition int,
 	raceCourseId string,
 	url string,
-	raceResultHorseNumbers []int,
+	rawRaceResultHorseNumbers []int,
 	odds []*Odds,
 	predictionFilter filter.Id,
 ) *Race {
+	raceResultHorseNumbers := make([]types.HorseNumber, len(rawRaceResultHorseNumbers))
+	for idx := range rawRaceResultHorseNumbers {
+		raceResultHorseNumbers[idx] = types.HorseNumber(rawRaceResultHorseNumbers[idx])
+	}
+
 	return &Race{
 		raceId:                 types.RaceId(raceId),
 		raceName:               raceName,
@@ -107,7 +112,7 @@ func (r *Race) Url() string {
 	return r.url
 }
 
-func (r *Race) RaceResultHorseNumbers() []int {
+func (r *Race) RaceResultHorseNumbers() []types.HorseNumber {
 	return r.raceResultHorseNumbers
 }
 

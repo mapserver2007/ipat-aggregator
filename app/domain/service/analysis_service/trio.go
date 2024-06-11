@@ -43,7 +43,7 @@ func (t *trioService) Create15(
 	})
 
 	for _, race := range races {
-		raceResultMap := converter.ConvertToMap(race.RaceResults(), func(raceResult *data_cache_entity.RaceResult) int {
+		raceResultMap := converter.ConvertToMap(race.RaceResults(), func(raceResult *data_cache_entity.RaceResult) types.HorseNumber {
 			return raceResult.HorseNumber()
 		})
 

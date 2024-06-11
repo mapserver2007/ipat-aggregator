@@ -6,7 +6,7 @@ type Odds struct {
 	ticketType    types.TicketType
 	odds          string
 	popularNumber int
-	horseNumbers  []int
+	horseNumbers  []types.HorseNumber
 	raceDate      types.RaceDate
 }
 
@@ -14,7 +14,7 @@ func NewOdds(
 	ticketType types.TicketType,
 	odds string,
 	popularNumber int,
-	horseNumbers []int,
+	horseNumbers []types.HorseNumber,
 	raceDate types.RaceDate,
 ) *Odds {
 	return &Odds{
@@ -38,7 +38,7 @@ func (o *Odds) PopularNumber() int {
 	return o.popularNumber
 }
 
-func (o *Odds) HorseNumbers() []int {
+func (o *Odds) HorseNumbers() []types.HorseNumber {
 	return o.horseNumbers
 }
 

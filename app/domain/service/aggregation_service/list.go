@@ -258,17 +258,17 @@ func (l *listService) Create(
 		)
 
 		for _, raceResult := range raceResults {
-			if len(favorite) > 0 && raceResult.HorseNumber() == favorite.List()[0] {
+			if len(favorite) > 0 && raceResult.HorseNumber().Value() == favorite.List()[0] {
 				favoriteHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
-				jockey, ok := jockeyMap[types.JockeyId(raceResult.JockeyId())]
+				jockey, ok := jockeyMap[raceResult.JockeyId()]
 				if !ok {
 					jockey = data_cache_entity.NewJockey(99999, "(不明)")
 				}
 				favoriteJockey = l.JockeyEntityConverter.DataCacheToList(jockey)
 			}
-			if len(rival) > 0 && raceResult.HorseNumber() == rival.List()[0] {
+			if len(rival) > 0 && raceResult.HorseNumber().Value() == rival.List()[0] {
 				rivalHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
-				jockey, ok := jockeyMap[types.JockeyId(raceResult.JockeyId())]
+				jockey, ok := jockeyMap[raceResult.JockeyId()]
 				if !ok {
 					jockey = data_cache_entity.NewJockey(99999, "(不明)")
 				}

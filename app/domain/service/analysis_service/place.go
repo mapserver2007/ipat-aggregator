@@ -48,7 +48,7 @@ func (p *placeService) Create(
 
 	var calculables []*analysis_entity.PlaceCalculable
 	for _, race := range races {
-		raceResultMap := converter.ConvertToMap(race.RaceResults(), func(raceResult *data_cache_entity.RaceResult) int {
+		raceResultMap := converter.ConvertToMap(race.RaceResults(), func(raceResult *data_cache_entity.RaceResult) types.HorseNumber {
 			return raceResult.HorseNumber()
 		})
 
@@ -68,7 +68,7 @@ func (p *placeService) Create(
 
 		// 馬番はレース結果の上位3頭から取る
 		// 払い戻し結果から取ってしまうと、複勝2着払いの場合にとれなくなるため
-		numbers := make([]int, 0, 3)
+		numbers := make([]types.HorseNumber, 0, 3)
 		for _, raceResult := range race.RaceResults()[:3] {
 			numbers = append(numbers, raceResult.HorseNumber())
 		}
@@ -112,7 +112,7 @@ func (p *placeService) Create(
 				race.RaceDate(),
 				markerCombinationId,
 				raceResult.Odds(),
-				types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
+				types.BetNumber(strconv.Itoa(raceResult.HorseNumber().Value())), // 単複のみなのでbetNumberにそのまま置き換え可能
 				raceResult.PopularNumber(),
 				raceResult.OrderNo(),
 				race.Entries(),
@@ -425,7 +425,7 @@ func (p *placeService) Write(
 }
 
 func (p *placeService) getHitMarkerCombinationIds(
-	numbers []int,
+	numbers []types.HorseNumber,
 	marker *marker_csv_entity.AnalysisMarker,
 ) []types.MarkerCombinationId {
 	var markerCombinationIds []types.MarkerCombinationId
@@ -452,7 +452,7 @@ func (p *placeService) getHitMarkerCombinationIds(
 }
 
 func (p *placeService) getUnHitMarkerCombinationIds(
-	numbers []int,
+	numbers []types.HorseNumber,
 	marker *marker_csv_entity.AnalysisMarker,
 ) []types.MarkerCombinationId {
 	unHitMarkerCombinationIdMap := map[types.MarkerCombinationId]bool{

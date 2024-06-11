@@ -39,7 +39,9 @@ func (a *analysis) Execute(ctx context.Context, input *AnalysisInput) error {
 	if err != nil {
 		return err
 	}
+
 	firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters := a.placeService.Convert(ctx, placeCalculables)
+
 	err = a.placeService.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters)
 	if err != nil {
 		return err

@@ -807,9 +807,10 @@ func (n *netKeibaGateway) FetchWinOdds(
 	var odds []*netkeiba_entity.Odds
 	for rawNumber, list := range oddsInfo.Data.Odds.Wins {
 		popularNumber, _ := strconv.Atoi(list[2])
-		horseNumber, _ := strconv.Atoi(rawNumber)
+		rawHorseNumber, _ := strconv.Atoi(rawNumber)
+		horseNumber := types.HorseNumber(rawHorseNumber)
 		odds = append(odds, netkeiba_entity.NewOdds(
-			types.Win, list[0], popularNumber, []int{horseNumber}, raceDate,
+			types.Win, list[0], popularNumber, []types.HorseNumber{horseNumber}, raceDate,
 		))
 	}
 
@@ -847,12 +848,15 @@ func (n *netKeibaGateway) FetchTrioOdds(
 
 	var odds []*netkeiba_entity.Odds
 	for rawNumber, list := range oddsInfo.Data.Odds.Trios {
-		horseNumber1, _ := strconv.Atoi(rawNumber[0:2])
-		horseNumber2, _ := strconv.Atoi(rawNumber[2:4])
-		horseNumber3, _ := strconv.Atoi(rawNumber[4:6])
+		rawHorseNumber1, _ := strconv.Atoi(rawNumber[0:2])
+		rawHorseNumber2, _ := strconv.Atoi(rawNumber[2:4])
+		rawHorseNumber3, _ := strconv.Atoi(rawNumber[4:6])
+		horseNumber1 := types.HorseNumber(rawHorseNumber1)
+		horseNumber2 := types.HorseNumber(rawHorseNumber2)
+		horseNumber3 := types.HorseNumber(rawHorseNumber3)
 		popularNumber, _ := strconv.Atoi(list[2])
 		odds = append(odds, netkeiba_entity.NewOdds(
-			types.Trio, list[0], popularNumber, []int{horseNumber1, horseNumber2, horseNumber3}, raceDate,
+			types.Trio, list[0], popularNumber, []types.HorseNumber{horseNumber1, horseNumber2, horseNumber3}, raceDate,
 		))
 	}
 

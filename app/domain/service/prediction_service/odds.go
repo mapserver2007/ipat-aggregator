@@ -139,7 +139,7 @@ func (p *oddsService) Convert(
 			race.Url(),
 			race.PredictionFilter(),
 		)
-		horseNumberOddsMap := map[int]decimal.Decimal{}
+		horseNumberOddsMap := map[types.HorseNumber]decimal.Decimal{}
 		for _, o := range race.Odds() {
 			horseNumberOddsMap[o.HorseNumber()] = o.Odds()
 		}

@@ -75,9 +75,9 @@ func (o *oddsService) CreateOrUpdate(
 		return nil
 	}
 
-	markerHorseNumberMap := map[types.RaceId][]int{}
+	markerHorseNumberMap := map[types.RaceId][]types.HorseNumber{}
 	for _, marker := range markers {
-		horseNumbers := make([]int, 0, len(marker.MarkerMap()))
+		horseNumbers := make([]types.HorseNumber, 0, len(marker.MarkerMap()))
 		for _, horseNumber := range marker.MarkerMap() {
 			horseNumbers = append(horseNumbers, horseNumber)
 		}
@@ -213,7 +213,7 @@ func (o *oddsService) parseUrl(
 	return types.RaceId(raceId), nil
 }
 
-func (o *oddsService) containsInSliceAll(slice1, slice2 []int) bool {
+func (o *oddsService) containsInSliceAll(slice1, slice2 []types.HorseNumber) bool {
 	for _, val2 := range slice2 {
 		found := false
 		for _, val1 := range slice1 {

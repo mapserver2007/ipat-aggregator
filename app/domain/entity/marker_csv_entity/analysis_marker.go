@@ -8,7 +8,7 @@ import (
 type AnalysisMarker struct {
 	raceDate  types.RaceDate
 	raceId    types.RaceId
-	markerMap map[types.Marker]int
+	markerMap map[types.Marker]types.HorseNumber
 }
 
 func NewAnalysisMarker(
@@ -26,25 +26,25 @@ func NewAnalysisMarker(
 		return nil, err
 	}
 
-	markerMap := map[types.Marker]int{}
+	markerMap := map[types.Marker]types.HorseNumber{}
 
 	horseNumber1, _ := strconv.Atoi(rawHorseNumber1)
-	markerMap[types.Favorite] = horseNumber1
+	markerMap[types.Favorite] = types.HorseNumber(horseNumber1)
 
 	horseNumber2, _ := strconv.Atoi(rawHorseNumber2)
-	markerMap[types.Rival] = horseNumber2
+	markerMap[types.Rival] = types.HorseNumber(horseNumber2)
 
 	horseNumber3, _ := strconv.Atoi(rawHorseNumber3)
-	markerMap[types.BrackTriangle] = horseNumber3
+	markerMap[types.BrackTriangle] = types.HorseNumber(horseNumber3)
 
 	horseNumber4, _ := strconv.Atoi(rawHorseNumber4)
-	markerMap[types.WhiteTriangle] = horseNumber4
+	markerMap[types.WhiteTriangle] = types.HorseNumber(horseNumber4)
 
 	horseNumber5, _ := strconv.Atoi(rawHorseNumber5)
-	markerMap[types.Star] = horseNumber5
+	markerMap[types.Star] = types.HorseNumber(horseNumber5)
 
 	horseNumber6, _ := strconv.Atoi(rawHorseNumber6)
-	markerMap[types.Check] = horseNumber6
+	markerMap[types.Check] = types.HorseNumber(horseNumber6)
 
 	return &AnalysisMarker{
 		raceDate:  raceDate,
@@ -61,7 +61,7 @@ func (a *AnalysisMarker) RaceId() types.RaceId {
 	return a.raceId
 }
 
-func (a *AnalysisMarker) Favorite() int {
+func (a *AnalysisMarker) Favorite() types.HorseNumber {
 	horseNumber, ok := a.markerMap[types.Favorite]
 	if !ok {
 		return 0
@@ -69,7 +69,7 @@ func (a *AnalysisMarker) Favorite() int {
 	return horseNumber
 }
 
-func (a *AnalysisMarker) Rival() int {
+func (a *AnalysisMarker) Rival() types.HorseNumber {
 	horseNumber, ok := a.markerMap[types.Rival]
 	if !ok {
 		return 0
@@ -77,7 +77,7 @@ func (a *AnalysisMarker) Rival() int {
 	return horseNumber
 }
 
-func (a *AnalysisMarker) BrackTriangle() int {
+func (a *AnalysisMarker) BrackTriangle() types.HorseNumber {
 	horseNumber, ok := a.markerMap[types.BrackTriangle]
 	if !ok {
 		return 0
@@ -85,7 +85,7 @@ func (a *AnalysisMarker) BrackTriangle() int {
 	return horseNumber
 }
 
-func (a *AnalysisMarker) WhiteTriangle() int {
+func (a *AnalysisMarker) WhiteTriangle() types.HorseNumber {
 	horseNumber, ok := a.markerMap[types.WhiteTriangle]
 	if !ok {
 		return 0
@@ -93,7 +93,7 @@ func (a *AnalysisMarker) WhiteTriangle() int {
 	return horseNumber
 }
 
-func (a *AnalysisMarker) Star() int {
+func (a *AnalysisMarker) Star() types.HorseNumber {
 	horseNumber, ok := a.markerMap[types.Star]
 	if !ok {
 		return 0
@@ -101,7 +101,7 @@ func (a *AnalysisMarker) Star() int {
 	return horseNumber
 }
 
-func (a *AnalysisMarker) Check() int {
+func (a *AnalysisMarker) Check() types.HorseNumber {
 	horseNumber, ok := a.markerMap[types.Check]
 	if !ok {
 		return 0
@@ -109,6 +109,6 @@ func (a *AnalysisMarker) Check() int {
 	return horseNumber
 }
 
-func (a *AnalysisMarker) MarkerMap() map[types.Marker]int {
+func (a *AnalysisMarker) MarkerMap() map[types.Marker]types.HorseNumber {
 	return a.markerMap
 }

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	enableAggregation = true
-	enableAnalysis    = false
+	enableAggregation = false
+	enableAnalysis    = true
 	enablePrediction  = false
 )
 

@@ -8,7 +8,7 @@ type Odds struct {
 	ticketType    types.TicketType
 	number        types.BetNumber
 	popularNumber int
-	odds          string
+	odds          []string
 }
 
 func NewOdds(
@@ -17,7 +17,7 @@ func NewOdds(
 	ticketType types.TicketType,
 	number types.BetNumber,
 	popularNumber int,
-	odds string,
+	odds []string,
 ) *Odds {
 	return &Odds{
 		raceId:        raceId,
@@ -50,6 +50,6 @@ func (o *Odds) PopularNumber() int {
 
 }
 
-func (o *Odds) Odds() string {
+func (o *Odds) Odds() []string {
 	return o.odds
 }

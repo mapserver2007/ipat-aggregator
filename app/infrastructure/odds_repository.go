@@ -129,6 +129,8 @@ func (o *oddsRepository) Fetch(
 	switch ticketType {
 	case "1": // win
 		odds, err = o.netKeibaGateway.FetchWinOdds(ctx, url)
+	case "2": // place
+		odds, err = o.netKeibaGateway.FetchPlaceOdds(ctx, url)
 	case "7": // trio
 		odds, err = o.netKeibaGateway.FetchTrioOdds(ctx, url)
 	}

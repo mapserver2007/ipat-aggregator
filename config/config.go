@@ -7,5 +7,5 @@ const (
 	RaceEndDate       = "20240609"
 	EnableAggregation = false
 	EnableAnalysis    = false
-	EnablePrediction  = true
+	EnablePrediction  = false
 )

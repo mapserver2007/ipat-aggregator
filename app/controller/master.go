@@ -17,7 +17,7 @@ type MasterOutput struct {
 	Tickets           []*ticket_csv_entity.RaceTicket
 	Races             []*data_cache_entity.Race
 	Jockeys           []*data_cache_entity.Jockey
-	Odds              []*data_cache_entity.Odds
+	TrioOdds          []*data_cache_entity.Odds
 	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
 	PredictionMarkers []*marker_csv_entity.PredictionMarker
 }
@@ -50,7 +50,7 @@ func (m *Master) Execute(ctx context.Context, input *MasterInput) (*MasterOutput
 		Tickets:           output.Tickets,
 		Races:             output.Races,
 		Jockeys:           output.Jockeys,
-		Odds:              output.Odds,
+		TrioOdds:          output.TrioOdds,
 		AnalysisMarkers:   output.AnalysisMarkers,
 		PredictionMarkers: output.PredictionMarkers,
 	}, nil

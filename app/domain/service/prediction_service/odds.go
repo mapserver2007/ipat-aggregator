@@ -70,7 +70,7 @@ func (p *oddsService) Get(
 	var predictionOdds []*prediction_entity.Odds
 	for _, nkOdds := range odds {
 		predictionOdds = append(predictionOdds, prediction_entity.NewOdds(
-			nkOdds.Odds(),
+			nkOdds.Odds()[0],
 			nkOdds.PopularNumber(),
 			nkOdds.HorseNumbers()[0],
 		))

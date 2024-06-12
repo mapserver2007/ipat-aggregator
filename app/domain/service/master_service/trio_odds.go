@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	oddsUrl      = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=7&action=update"
-	oddsFileName = "odds_%d.json"
+	trioOddsUrl      = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=7&action=update"
+	trioOddsFileName = "odds_%d.json"
 )
 
 type TrioOdds interface {
@@ -136,7 +136,7 @@ func (o *trioOddsService) CreateOrUpdate(
 		raceOddsInfo := raw_entity.RaceOddsInfo{
 			RaceOdds: rawRaceOddsList,
 		}
-		err := o.oddsRepository.Write(ctx, fmt.Sprintf("%s/odds/trio/%s", config.CacheDir, fmt.Sprintf(oddsFileName, raceDate.Value())), &raceOddsInfo)
+		err := o.oddsRepository.Write(ctx, fmt.Sprintf("%s/odds/trio/%s", config.CacheDir, fmt.Sprintf(trioOddsFileName, raceDate.Value())), &raceOddsInfo)
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (o *trioOddsService) createOddsUrls(
 
 	for _, marker := range markers {
 		if _, ok := oddsMap[marker.RaceId()]; !ok {
-			trioOddsUrls = append(trioOddsUrls, fmt.Sprintf(oddsUrl, marker.RaceId()))
+			trioOddsUrls = append(trioOddsUrls, fmt.Sprintf(trioOddsUrl, marker.RaceId()))
 		}
 	}
 

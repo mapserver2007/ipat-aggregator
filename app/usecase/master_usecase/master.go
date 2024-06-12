@@ -23,7 +23,9 @@ type MasterOutput struct {
 	Tickets           []*ticket_csv_entity.RaceTicket
 	Races             []*data_cache_entity.Race
 	Jockeys           []*data_cache_entity.Jockey
-	Odds              []*data_cache_entity.Odds
+	WinOdds           []*data_cache_entity.Odds
+	PlaceOdds         []*data_cache_entity.Odds
+	TrioOdds          []*data_cache_entity.Odds
 	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
 	PredictionMarkers []*marker_csv_entity.PredictionMarker
 }
@@ -33,6 +35,7 @@ type master struct {
 	raceIdService           master_service.RaceId
 	raceService             master_service.Race
 	jockeyService           master_service.Jockey
+	placeOddsService        master_service.PlaceOdds
 	trioOddsService         master_service.TrioOdds
 	analysisMarkerService   master_service.AnalysisMarker
 	predictionMarkerService master_service.PredictionMarker
@@ -43,6 +46,7 @@ func NewMaster(
 	raceIdService master_service.RaceId,
 	raceService master_service.Race,
 	jockeyService master_service.Jockey,
+	placeOddsService master_service.PlaceOdds,
 	trioOddsService master_service.TrioOdds,
 	analysisMarkerService master_service.AnalysisMarker,
 	predictionMarkerService master_service.PredictionMarker,
@@ -52,6 +56,7 @@ func NewMaster(
 		raceIdService:           raceIdService,
 		raceService:             raceService,
 		jockeyService:           jockeyService,
+		placeOddsService:        placeOddsService,
 		trioOddsService:         trioOddsService,
 		analysisMarkerService:   analysisMarkerService,
 		predictionMarkerService: predictionMarkerService,
@@ -74,7 +79,12 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		return nil, err
 	}
 
-	odds, err := m.trioOddsService.Get(ctx)
+	placeOdds, err := m.placeOddsService.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	trioOdds, err := m.trioOddsService.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +103,8 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		Tickets:           raceTickets,
 		Races:             races,
 		Jockeys:           jockeys,
-		Odds:              odds,
+		PlaceOdds:         placeOdds,
+		TrioOdds:          trioOdds,
 		AnalysisMarkers:   analysisMarkers,
 		PredictionMarkers: predictionMarkers,
 	}, nil
@@ -173,7 +184,12 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	odds, err := m.trioOddsService.Get(ctx)
+	placeOdds, err := m.placeOddsService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	trioOdds, err := m.trioOddsService.Get(ctx)
 	if err != nil {
 		return err
 	}
@@ -183,7 +199,12 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.trioOddsService.CreateOrUpdate(ctx, odds, markers)
+	err = m.placeOddsService.CreateOrUpdate(ctx, placeOdds, markers)
+	if err != nil {
+		return err
+	}
+
+	err = m.trioOddsService.CreateOrUpdate(ctx, trioOdds, markers)
 	if err != nil {
 		return err
 	}

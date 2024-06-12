@@ -27,6 +27,7 @@ var MasterSet = wire.NewSet(
 	master_service.NewRaceId,
 	master_service.NewRace,
 	master_service.NewJockey,
+	master_service.NewPlaceOdds,
 	master_service.NewTrioOdds,
 	master_service.NewAnalysisMarker,
 	master_service.NewPredictionMarker,

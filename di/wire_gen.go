@@ -41,12 +41,13 @@ func NewMaster() *controller.Master {
 	jockey := master_service.NewJockey(jockeyRepository, jockeyEntityConverter)
 	oddsRepository := infrastructure.NewOddsRepository(netKeibaGateway)
 	oddsEntityConverter := converter.NewOddsEntityConverter()
+	placeOdds := master_service.NewPlaceOdds(oddsRepository, oddsEntityConverter)
 	trioOdds := master_service.NewTrioOdds(oddsRepository, oddsEntityConverter)
 	analysisMarkerRepository := infrastructure.NewAnalysisMarkerRepository()
 	analysisMarker := master_service.NewAnalysisMarker(analysisMarkerRepository)
 	predictionMarkerRepository := infrastructure.NewPredictionMarkerRepository()
 	predictionMarker := master_service.NewPredictionMarker(predictionMarkerRepository)
-	master := master_usecase.NewMaster(ticket, raceId, race, jockey, trioOdds, analysisMarker, predictionMarker)
+	master := master_usecase.NewMaster(ticket, raceId, race, jockey, placeOdds, trioOdds, analysisMarker, predictionMarker)
 	controllerMaster := controller.NewMaster(master)
 	return controllerMaster
 }
@@ -112,7 +113,7 @@ func NewPrediction() *controller.Prediction {
 
 // wire.go:
 
-var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewTrioOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, gateway.NewNetKeibaGateway)
+var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewPlaceOdds, master_service.NewTrioOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, gateway.NewNetKeibaGateway)
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 

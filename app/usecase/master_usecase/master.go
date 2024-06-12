@@ -35,6 +35,7 @@ type master struct {
 	raceIdService           master_service.RaceId
 	raceService             master_service.Race
 	jockeyService           master_service.Jockey
+	winOddsService          master_service.WinOdds
 	placeOddsService        master_service.PlaceOdds
 	trioOddsService         master_service.TrioOdds
 	analysisMarkerService   master_service.AnalysisMarker
@@ -46,6 +47,7 @@ func NewMaster(
 	raceIdService master_service.RaceId,
 	raceService master_service.Race,
 	jockeyService master_service.Jockey,
+	winOddsService master_service.WinOdds,
 	placeOddsService master_service.PlaceOdds,
 	trioOddsService master_service.TrioOdds,
 	analysisMarkerService master_service.AnalysisMarker,
@@ -56,6 +58,7 @@ func NewMaster(
 		raceIdService:           raceIdService,
 		raceService:             raceService,
 		jockeyService:           jockeyService,
+		winOddsService:          winOddsService,
 		placeOddsService:        placeOddsService,
 		trioOddsService:         trioOddsService,
 		analysisMarkerService:   analysisMarkerService,
@@ -75,6 +78,11 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 	}
 
 	jockeys, _, err := m.jockeyService.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	winOdds, err := m.winOddsService.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +111,7 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		Tickets:           raceTickets,
 		Races:             races,
 		Jockeys:           jockeys,
+		WinOdds:           winOdds,
 		PlaceOdds:         placeOdds,
 		TrioOdds:          trioOdds,
 		AnalysisMarkers:   analysisMarkers,
@@ -184,6 +193,11 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
+	winOdds, err := m.winOddsService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
 	placeOdds, err := m.placeOddsService.Get(ctx)
 	if err != nil {
 		return err
@@ -195,6 +209,11 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	}
 
 	markers, err := m.analysisMarkerService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = m.winOddsService.CreateOrUpdate(ctx, winOdds, markers)
 	if err != nil {
 		return err
 	}

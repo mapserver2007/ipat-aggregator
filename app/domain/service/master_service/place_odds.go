@@ -119,7 +119,7 @@ func (p *placeOddsService) CreateOrUpdate(
 		raceOddsInfo := raw_entity.RaceOddsInfo{
 			RaceOdds: rawRaceOddsList,
 		}
-		err := p.oddsRepository.Write(ctx, fmt.Sprintf("%s/odds/place/%s", config.CacheDir, fmt.Sprintf(trioOddsFileName, raceDate.Value())), &raceOddsInfo)
+		err := p.oddsRepository.Write(ctx, fmt.Sprintf("%s/odds/place/%s", config.CacheDir, fmt.Sprintf(placeOddsFileName, raceDate.Value())), &raceOddsInfo)
 		if err != nil {
 			return err
 		}

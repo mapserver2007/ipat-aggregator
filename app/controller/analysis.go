@@ -25,5 +25,9 @@ func (a *Analysis) Execute(ctx context.Context, input *AnalysisInput) error {
 	return a.analysisUseCase.Execute(ctx, &analysis_usecase.AnalysisInput{
 		Markers: input.Master.AnalysisMarkers,
 		Races:   input.Master.Races,
+		Odds: &analysis_usecase.AnalysisOddsInput{
+			Win:   input.Master.WinOdds,
+			Place: input.Master.PlaceOdds,
+		},
 	})
 }

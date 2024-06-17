@@ -147,7 +147,7 @@ type PlaceRateStyle struct {
 	oddsRange8CellColorType types.CellColorType
 }
 
-func NewPlaceStyle(
+func NewPlaceRateStyle(
 	data *PlaceRateData,
 ) *PlaceRateStyle {
 	rateColorTypeFunc := func(rate float64) types.CellColorType {

@@ -59,11 +59,11 @@ func (t *trioService) Create15(
 			continue
 		}
 
-		filters := t.filterService.Create(ctx, race)
+		//filters := t.filterService.Create(ctx, race)
 
 		_ = raceResultMap
 		_ = marker
-		_ = filters
+		//_ = filters
 
 	}
 

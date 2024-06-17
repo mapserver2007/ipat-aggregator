@@ -27,199 +27,155 @@ const (
 )
 
 const (
-	Turf                Id = 0x01
-	Dirt                Id = 0x02
-	ShortDistance1      Id = 0x04
-	ShortDistance2      Id = 0x08
-	ShortDistance3      Id = 0x10
-	MiddleDistance1     Id = 0x20
-	MiddleDistance2     Id = 0x40
-	MiddleDistance3     Id = 0x80
-	LongDistance        Id = 0x100
-	TopJockey           Id = 0x200
-	OtherJockey         Id = 0x400
-	Class1              Id = 0x800
-	Class2              Id = 0x1000
-	Class3              Id = 0x2000
-	Class4              Id = 0x4000
-	Class5              Id = 0x8000
-	Class6              Id = 0x10000
-	GoodTrack           Id = 0x20000
-	BadTrack            Id = 0x40000
-	SmallNumberOfHorses Id = 0x80000
-	LargeNumberOfHorses Id = 0x100000
-	CentralCourse       Id = 0x200000
-	LocalCourse         Id = 0x400000
-	Class234            Id = 0x7000
-	Class56             Id = 0x18000
-	ShortDistance       Id = 0x1C
-	MiddleDistance      Id = 0xE0
-	// 以下距離フィルタ
-	Turf2         Id = 0x100000000
-	Dirt2         Id = 0x80000000
-	Distance1000m Id = 0x40000000
-	Distance1150m Id = 0x20000000
-	Distance1200m Id = 0x10000000
-	Distance1300m Id = 0x8000000
-	Distance1400m Id = 0x4000000
-	Distance1500m Id = 0x2000000
-	Distance1600m Id = 0x1000000
-	Distance1700m Id = 0x800000
-	Distance1800m Id = 0x400000
-	Distance1900m Id = 0x200000
-	Distance2000m Id = 0x100000
-	Distance2100m Id = 0x80000
-	Distance2200m Id = 0x40000
-	Distance2300m Id = 0x20000
-	Distance2400m Id = 0x10000
-	Distance2500m Id = 0x8000
-	Distance2600m Id = 0x4000
-	Distance3000m Id = 0x2000
-	Distance3200m Id = 0x1000
-	Distance3400m Id = 0x800
-	Distance3600m Id = 0x400
-	Tokyo         Id = 0x200
-	Nakayama      Id = 0x100
-	Kyoto         Id = 0x80
-	Hanshin       Id = 0x40
-	Niigata       Id = 0x20
-	Chukyo        Id = 0x10
-	Sapporo       Id = 0x8
-	Hakodate      Id = 0x4
-	Fukushima     Id = 0x2
-	Kokura        Id = 0x1
+	Turf2         Id = 0x100000000000
+	Dirt2         Id = 0x80000000000
+	Distance1000m Id = 0x40000000000
+	Distance1150m Id = 0x20000000000
+	Distance1200m Id = 0x10000000000
+	Distance1300m Id = 0x8000000000
+	Distance1400m Id = 0x4000000000
+	Distance1500m Id = 0x2000000000
+	Distance1600m Id = 0x1000000000
+	Distance1700m Id = 0x800000000
+	Distance1800m Id = 0x400000000
+	Distance1900m Id = 0x200000000
+	Distance2000m Id = 0x100000000
+	Distance2100m Id = 0x80000000
+	Distance2200m Id = 0x40000000
+	Distance2300m Id = 0x20000000
+	Distance2400m Id = 0x10000000
+	Distance2500m Id = 0x8000000
+	Distance2600m Id = 0x4000000
+	Distance3000m Id = 0x2000000
+	Distance3200m Id = 0x1000000
+	Distance3400m Id = 0x800000
+	Distance3600m Id = 0x400000
+	Tokyo         Id = 0x200000
+	Nakayama      Id = 0x100000
+	Kyoto         Id = 0x80000
+	Hanshin       Id = 0x40000
+	Niigata       Id = 0x20000
+	Chukyo        Id = 0x10000
+	Sapporo       Id = 0x8000
+	Hakodate      Id = 0x4000
+	Fukushima     Id = 0x2000
+	Kokura        Id = 0x1000
+	GoodToFirm    Id = 0x800
+	Good          Id = 0x400
+	Yielding      Id = 0x200
+	Soft          Id = 0x100
+	Maiden        Id = 0x80
+	OneWinClass   Id = 0x40
+	TwoWinClass   Id = 0x20
+	ThreeWinClass Id = 0x10
+	OpenListed    Id = 0x8
+	Grade3        Id = 0x4
+	Grade2        Id = 0x2
+	Grade1        Id = 0x1
 )
 
 const (
-	All2               Id = 0x1FFFFFFFF
-	NiigataTurf1000m   Id = 0x140000020
-	HakodateTurf1000m  Id = 0x140000004
-	NakayamaTurf1200m  Id = 0x110000100
-	KyotoTurf1200m     Id = 0x110000080
-	HanshinTurf1200m   Id = 0x110000040
-	NiigataTurf1200m   Id = 0x110000020
-	ChukyoTurf1200m    Id = 0x110000010
-	SapporoTurf1200m   Id = 0x110000008
-	HakodateTurf1200m  Id = 0x110000004
-	FukushimaTurf1200m Id = 0x110000002
-	KokuraTurf1200m    Id = 0x110000001
-	TokyoTurf1400m     Id = 0x104000200
-	KyotoTurf1400m     Id = 0x104000080
-	HanshinTurf1400m   Id = 0x104000040
-	NiigataTurf1400m   Id = 0x104000020
-	ChukyoTurf1400m    Id = 0x104000010
-	SapporoTurf1500m   Id = 0x102000010
-	NakayamaTurf1600m  Id = 0x101000100
-	TokyoTurf1600m     Id = 0x101000200
-	KyotoTurf1600m     Id = 0x101000080
-	HanshinTurf1600m   Id = 0x101000040
-	ChukyoTurf1600m    Id = 0x101000010
-	NakayamaTurf1800m  Id = 0x100400100
-	TokyoTurf1800m     Id = 0x100400200
-	KyotoTurf1800m     Id = 0x100400080
-	HanshinTurf1800m   Id = 0x100400040
-	NiigataTurf1800m   Id = 0x100400020
-	SapporoTurf1800m   Id = 0x100400008
-	HakodateTurf1800m  Id = 0x100400004
-	FukushimaTurf1800m Id = 0x100400002
-	KokuraTurf1800m    Id = 0x100400001
-	NakayamaTurf2000m  Id = 0x100100100
-	TokyoTurf2000m     Id = 0x100100200
-	KyotoTurf2000m     Id = 0x100100080
-	NiigataTurf2000m   Id = 0x100100020
-	ChukyoTurf2000m    Id = 0x100100010
-	SapporoTurf2000m   Id = 0x100100008
-	HakodateTurf2000m  Id = 0x100100004
-	FukushimaTurf2000m Id = 0x100100002
-	KokuraTurf2000m    Id = 0x100100001
-	NakayamaTurf2200m  Id = 0x100040200
-	KyotoTurf2200m     Id = 0x100040080
-	HanshinTurf2200m   Id = 0x100040040
-	NiigataTurf2200m   Id = 0x100040020
-	ChukyoTurf2200m    Id = 0x100040010
-	TokyoTurf2300m     Id = 0x100020200
-	TokyoTurf2400m     Id = 0x100010200
-	KyotoTurf2400m     Id = 0x100010080
-	HanshinTurf2400m   Id = 0x100010040
-	NiigataTurf2400m   Id = 0x100010020
-	NakayamaTurf2500m  Id = 0x100008100
-	TokyoTurf2500m     Id = 0x100008200
-	HanshinTurf2600m   Id = 0x100004040
-	SapporoTurf2600m   Id = 0x100004008
-	HakodateTurf2600m  Id = 0x100004004
-	FukushimaTurf2600m Id = 0x100004002
-	KokuraTurf2600m    Id = 0x100004001
-	HanshinTurf3000m   Id = 0x100002040
-	ChukyoTurf3000m    Id = 0x100002010
-	KyotoTurf3200m     Id = 0x100001080
-	TokyoTurf3400m     Id = 0x100000A00
-	NakayamaTurf3600m  Id = 0x100000500
-	SapporoDirt1000m   Id = 0xC0000008
-	HakodateDirt1000m  Id = 0xC0000004
-	KokuraDirt1000m    Id = 0xC0000001
-	FukushimaDirt1150m Id = 0xA0000002
-	NakayamaDirt1200m  Id = 0x90000100
-	KyotoDirt1200m     Id = 0x90000080
-	NiigataDirt1200m   Id = 0x90000020
-	ChukyoDirt1200m    Id = 0x90000010
-	TokyoDirt1300m     Id = 0x88000200
-	TokyoDirt1400m     Id = 0x84000200
-	KyotoDirt1400m     Id = 0x84000080
-	HanshinDirt1400m   Id = 0x84000040
-	ChukyoDirt1400m    Id = 0x84000010
-	TokyoDirt1600m     Id = 0x81000200
-	SapporoDirt1700m   Id = 0x80800008
-	HakodateDirt1700m  Id = 0x80800004
-	FukushimaDirt1700m Id = 0x80800002
-	KokuraDirt1700m    Id = 0x80800001
-	NakayamaDirt1800m  Id = 0x80400100
-	KyotoDirt1800m     Id = 0x80400080
-	HanshinDirt1800m   Id = 0x80400040
-	NiigataDirt1800m   Id = 0x80400020
-	ChukyoDirt1800m    Id = 0x80400010
-	KyotoDirt1900m     Id = 0x80200080
-	ChukyoDirt1900m    Id = 0x80200010
-	HanshinDirt2000m   Id = 0x80100040
-	TokyoDirt2100m     Id = 0x80080200
-	NakayamaDirt2400m  Id = 0x80010100
-	SapporoDirt2400m   Id = 0x80010008
-	HakodateDirt2400m  Id = 0x80010004
-	FukushimaDirt2400m Id = 0x80010002
-	KokuraDirt2400m    Id = 0x80010001
-	NakayamaDirt2500m  Id = 0x80008100
-	NiigataDirt2500m   Id = 0x80008020
+	All2               Id = 0x1FFFFFFFFFFF
+	NiigataTurf1000m   Id = 0x140000020000
+	HakodateTurf1000m  Id = 0x140000004000
+	NakayamaTurf1200m  Id = 0x110000100000
+	KyotoTurf1200m     Id = 0x110000080000
+	HanshinTurf1200m   Id = 0x110000040000
+	NiigataTurf1200m   Id = 0x110000020000
+	ChukyoTurf1200m    Id = 0x110000010000
+	SapporoTurf1200m   Id = 0x110000008000
+	HakodateTurf1200m  Id = 0x110000004000
+	FukushimaTurf1200m Id = 0x110000002000
+	KokuraTurf1200m    Id = 0x110000001000
+	TokyoTurf1400m     Id = 0x104000200000
+	KyotoTurf1400m     Id = 0x104000080000
+	HanshinTurf1400m   Id = 0x104000040000
+	NiigataTurf1400m   Id = 0x104000020000
+	ChukyoTurf1400m    Id = 0x104000010000
+	SapporoTurf1500m   Id = 0x102000010000
+	NakayamaTurf1600m  Id = 0x101000100000
+	TokyoTurf1600m     Id = 0x101000200000
+	KyotoTurf1600m     Id = 0x101000080000
+	HanshinTurf1600m   Id = 0x101000040000
+	ChukyoTurf1600m    Id = 0x101000010000
+	NakayamaTurf1800m  Id = 0x100400100000
+	TokyoTurf1800m     Id = 0x100400200000
+	KyotoTurf1800m     Id = 0x100400080000
+	HanshinTurf1800m   Id = 0x100400040000
+	NiigataTurf1800m   Id = 0x100400020000
+	SapporoTurf1800m   Id = 0x100400008000
+	HakodateTurf1800m  Id = 0x100400004000
+	FukushimaTurf1800m Id = 0x100400002000
+	KokuraTurf1800m    Id = 0x100400001000
+	NakayamaTurf2000m  Id = 0x100100100000
+	TokyoTurf2000m     Id = 0x100100200000
+	KyotoTurf2000m     Id = 0x100100080000
+	NiigataTurf2000m   Id = 0x100100020000
+	ChukyoTurf2000m    Id = 0x100100010000
+	SapporoTurf2000m   Id = 0x100100008000
+	HakodateTurf2000m  Id = 0x100100004000
+	FukushimaTurf2000m Id = 0x100100002000
+	KokuraTurf2000m    Id = 0x100100001000
+	NakayamaTurf2200m  Id = 0x100040200000
+	KyotoTurf2200m     Id = 0x100040080000
+	HanshinTurf2200m   Id = 0x100040040000
+	NiigataTurf2200m   Id = 0x100040020000
+	ChukyoTurf2200m    Id = 0x100040010000
+	TokyoTurf2300m     Id = 0x100020200000
+	TokyoTurf2400m     Id = 0x100010200000
+	KyotoTurf2400m     Id = 0x100010080000
+	HanshinTurf2400m   Id = 0x100010040000
+	NiigataTurf2400m   Id = 0x100010020000
+	NakayamaTurf2500m  Id = 0x100008100000
+	TokyoTurf2500m     Id = 0x100008200000
+	HanshinTurf2600m   Id = 0x100004040000
+	SapporoTurf2600m   Id = 0x100004008000
+	HakodateTurf2600m  Id = 0x100004004000
+	FukushimaTurf2600m Id = 0x100004002000
+	KokuraTurf2600m    Id = 0x100004001000
+	HanshinTurf3000m   Id = 0x100002040000
+	ChukyoTurf3000m    Id = 0x100002010000
+	KyotoTurf3200m     Id = 0x100001080000
+	TokyoTurf3400m     Id = 0x100000A00000
+	NakayamaTurf3600m  Id = 0x100000500000
+	SapporoDirt1000m   Id = 0xC0000008000
+	HakodateDirt1000m  Id = 0xC0000004000
+	KokuraDirt1000m    Id = 0xC0000001000
+	FukushimaDirt1150m Id = 0xA0000002000
+	NakayamaDirt1200m  Id = 0x90000100000
+	KyotoDirt1200m     Id = 0x90000080000
+	NiigataDirt1200m   Id = 0x90000020000
+	ChukyoDirt1200m    Id = 0x90000010000
+	TokyoDirt1300m     Id = 0x88000200000
+	TokyoDirt1400m     Id = 0x84000200000
+	KyotoDirt1400m     Id = 0x84000080000
+	HanshinDirt1400m   Id = 0x84000040000
+	ChukyoDirt1400m    Id = 0x84000010000
+	TokyoDirt1600m     Id = 0x81000200000
+	SapporoDirt1700m   Id = 0x80800008000
+	HakodateDirt1700m  Id = 0x80800004000
+	FukushimaDirt1700m Id = 0x80800002000
+	KokuraDirt1700m    Id = 0x80800001000
+	NakayamaDirt1800m  Id = 0x80400100000
+	KyotoDirt1800m     Id = 0x80400080000
+	HanshinDirt1800m   Id = 0x80400040000
+	NiigataDirt1800m   Id = 0x80400020000
+	ChukyoDirt1800m    Id = 0x80400010000
+	KyotoDirt1900m     Id = 0x80200080000
+	ChukyoDirt1900m    Id = 0x80200010000
+	HanshinDirt2000m   Id = 0x80100040000
+	TokyoDirt2100m     Id = 0x80080200000
+	NakayamaDirt2400m  Id = 0x80010100000
+	SapporoDirt2400m   Id = 0x80010008000
+	HakodateDirt2400m  Id = 0x80010004000
+	FukushimaDirt2400m Id = 0x80010002000
+	KokuraDirt2400m    Id = 0x80010001000
+	NakayamaDirt2500m  Id = 0x80008100000
+	NiigataDirt2500m   Id = 0x80008020000
 )
 
 var filterIdMap = map[Id]string{
 	All: "全レース",
-	// 以下基本フィルタ
-	Turf:                "芝",
-	Dirt:                "ダート",
-	ShortDistance1:      "1000~1200m",
-	ShortDistance2:      "1201~1400m",
-	ShortDistance3:      "1401~1600m",
-	MiddleDistance1:     "1601~1700m",
-	MiddleDistance2:     "1701~1800m",
-	MiddleDistance3:     "1801~2000m",
-	LongDistance:        "2001m~",
-	TopJockey:           "上位騎手",
-	OtherJockey:         "その他騎手",
-	Class1:              "未勝利",
-	Class2:              "1勝",
-	Class3:              "2勝",
-	Class4:              "3勝",
-	Class5:              "OP・L",
-	Class6:              "重賞",
-	GoodTrack:           "良",
-	BadTrack:            "稍重不",
-	SmallNumberOfHorses: "少",
-	LargeNumberOfHorses: "多",
-	CentralCourse:       "中央",
-	LocalCourse:         "ローカル",
-	Class234:            "123勝",
-	Class56:             "OP・重賞",
-	ShortDistance:       "1000~1600m",
-	MiddleDistance:      "1601~2000m",
 	// 以下組み合わせフィルタ
 	TurfShortDistance1:      "芝~1200m",
 	TurfShortDistance2:      "芝~1400m",
@@ -243,6 +199,30 @@ var filterIdMap = map[Id]string{
 	DirtSmallNumberOfHorses: "ダ少頭数",
 	// 以下距離・場所フィルタ
 	All2:               "全レース",
+	Turf2:              "芝",
+	Dirt2:              "ダート",
+	Tokyo:              "東京",
+	Nakayama:           "中山",
+	Kyoto:              "京都",
+	Hanshin:            "阪神",
+	Niigata:            "新潟",
+	Chukyo:             "中京",
+	Sapporo:            "札幌",
+	Hakodate:           "函館",
+	Fukushima:          "福島",
+	Kokura:             "小倉",
+	GoodToFirm:         "良",
+	Good:               "稍重",
+	Yielding:           "重",
+	Soft:               "不良",
+	Maiden:             "未勝利",
+	OneWinClass:        "1勝クラス",
+	TwoWinClass:        "2勝クラス",
+	ThreeWinClass:      "3勝クラス",
+	OpenListed:         "OP・L",
+	Grade3:             "G3",
+	Grade2:             "G2",
+	Grade1:             "G1",
 	NiigataTurf1000m:   "新潟芝1000m",
 	HakodateTurf1000m:  "函館芝1000m",
 	NakayamaTurf1200m:  "中山芝1200m",

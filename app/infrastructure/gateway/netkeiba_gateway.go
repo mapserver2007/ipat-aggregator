@@ -808,6 +808,10 @@ func (n *netKeibaGateway) FetchWinOdds(
 	var odds []*netkeiba_entity.Odds
 	for rawNumber, list := range oddsInfo.Data.Odds.Wins {
 		popularNumber, _ := strconv.Atoi(list[2])
+		// 9999人気の値は取り消しという仕様なので除外する
+		if popularNumber == 9999 {
+			continue
+		}
 		rawHorseNumber, _ := strconv.Atoi(rawNumber)
 		horseNumber := types.HorseNumber(rawHorseNumber)
 		odds = append(odds, netkeiba_entity.NewOdds(
@@ -851,6 +855,10 @@ func (n *netKeibaGateway) FetchPlaceOdds(
 	var odds []*netkeiba_entity.Odds
 	for rawNumber, list := range oddsInfo.Data.Odds.Places {
 		popularNumber, _ := strconv.Atoi(list[2])
+		// 9999人気の値は取り消しという仕様なので除外する
+		if popularNumber == 9999 {
+			continue
+		}
 		rawHorseNumber, _ := strconv.Atoi(rawNumber)
 		horseNumber := types.HorseNumber(rawHorseNumber)
 		odds = append(odds, netkeiba_entity.NewOdds(

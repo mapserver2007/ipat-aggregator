@@ -11,6 +11,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"log"
 	neturl "net/url"
 	"sort"
 	"time"
@@ -166,6 +167,10 @@ func (p *placeOddsService) createOddsMap(
 	for _, raceId := range service.SortedRaceIdKeys(raceIdOddsMap) {
 		oddsList := raceIdOddsMap[raceId]
 		raceDate := oddsList[0].RaceDate()
+		if raceDate.Value() == 0 {
+			// TODO raceDateが0になるバグが完全になくなったら消す
+			log.Println(fmt.Sprintf("raceDate is 0: %s", raceId))
+		}
 		rawOddsList := make([]*raw_entity.Odds, 0, len(oddsList))
 		for _, odds := range oddsList {
 			rawOddsList = append(rawOddsList, p.oddsEntityConverter.DataCacheToRaw(odds))

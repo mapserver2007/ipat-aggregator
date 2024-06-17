@@ -68,6 +68,7 @@ var AnalysisSet = wire.NewSet(
 	analysis_usecase.NewAnalysis,
 	analysis_service.NewPlace,
 	analysis_service.NewTrio,
+	analysis_service.NewPlaceAllIn,
 	filter_service.NewAnalysisFilter,
 	infrastructure.NewSpreadSheetRepository,
 )
@@ -86,6 +87,7 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetTicketSummaryGateway,
 	gateway.NewSpreadSheetListGateway,
 	gateway.NewSpreadSheetAnalysisPlaceGateway,
+	gateway.NewSpreadSheetAnalysisPlaceAllInGateway,
 	gateway.NewSpreadSheetPredictionGateway,
 )
 

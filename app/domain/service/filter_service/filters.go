@@ -91,3 +91,41 @@ func DistanceFilters(distance int) []filter.Id {
 	}
 	return filterIds
 }
+
+func TrackConditionFilters(trackCondition types.TrackCondition) []filter.Id {
+	var filterIds []filter.Id
+	switch trackCondition {
+	case types.GoodToFirm:
+		filterIds = append(filterIds, filter.GoodToFirm)
+	case types.Good:
+		filterIds = append(filterIds, filter.Good)
+	case types.Yielding:
+		filterIds = append(filterIds, filter.Yielding)
+	case types.Soft:
+		filterIds = append(filterIds, filter.Soft)
+	}
+	return filterIds
+}
+
+func ClassFilters(class types.GradeClass) []filter.Id {
+	var filterIds []filter.Id
+	switch class {
+	case types.Grade1:
+		filterIds = append(filterIds, filter.Grade1)
+	case types.Grade2:
+		filterIds = append(filterIds, filter.Grade2)
+	case types.Grade3:
+		filterIds = append(filterIds, filter.Grade3)
+	case types.OpenClass, types.ListedClass:
+		filterIds = append(filterIds, filter.OpenListed)
+	case types.ThreeWinClass:
+		filterIds = append(filterIds, filter.ThreeWinClass)
+	case types.TwoWinClass:
+		filterIds = append(filterIds, filter.TwoWinClass)
+	case types.OneWinClass:
+		filterIds = append(filterIds, filter.OneWinClass)
+	case types.Maiden:
+		filterIds = append(filterIds, filter.Maiden)
+	}
+	return filterIds
+}

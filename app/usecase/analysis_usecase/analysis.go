@@ -57,10 +57,6 @@ func (a *analysis) Execute(ctx context.Context, input *AnalysisInput) error {
 	}
 
 	if config.EnableAnalysisPlaceAllIn {
-		// TODO
-		// クラス別は一定の相関が見られずあまり役に立たない
-		// コース距離別は面白いように相関が見られるのでこれを拡張する
-		// コース距離＋馬場状態でフィルタかける
 		placeAllInCalculables, err := a.placeAllInService.Create(ctx, input.Markers, input.Races, input.Odds.Win, input.Odds.Place)
 		if err != nil {
 			return err

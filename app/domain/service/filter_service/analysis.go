@@ -32,6 +32,5 @@ func (f *filterService) CreatePlaceAllInFilters(ctx context.Context, race *data_
 	filterIds = append(filterIds, DistanceFilters(race.Distance())...)
 	filterIds = append(filterIds, RaceCourseFilters(race.RaceCourseId())...)
 	filterIds = append(filterIds, TrackConditionFilters(race.TrackCondition())...)
-	filterIds = append(filterIds, ClassFilters(race.Class())...)
 	return filterIds
 }

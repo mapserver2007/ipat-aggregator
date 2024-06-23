@@ -27,7 +27,7 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 			OrderNo:       raceResult.OrderNo(),
 			HorseName:     raceResult.HorseName(),
 			BracketNumber: raceResult.BracketNumber(),
-			HorseNumber:   raceResult.HorseNumber(),
+			HorseNumber:   raceResult.HorseNumber().Value(),
 			JockeyId:      raceResult.JockeyId().Value(),
 			Odds:          raceResult.Odds(),
 			PopularNumber: raceResult.PopularNumber(),

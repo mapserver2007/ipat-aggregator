@@ -9,9 +9,9 @@ func CourseCategoryFilters(courseCategory types.CourseCategory) []filter.Id {
 	var filterIds []filter.Id
 	switch courseCategory {
 	case types.Turf:
-		filterIds = append(filterIds, filter.Turf2)
+		filterIds = append(filterIds, filter.Turf)
 	case types.Dirt:
-		filterIds = append(filterIds, filter.Dirt2)
+		filterIds = append(filterIds, filter.Dirt)
 	}
 	return filterIds
 }
@@ -88,6 +88,21 @@ func DistanceFilters(distance int) []filter.Id {
 		filterIds = append(filterIds, filter.Distance3400m)
 	case 3600:
 		filterIds = append(filterIds, filter.Distance3600m)
+	}
+	return filterIds
+}
+
+func TrackConditionFilters(trackCondition types.TrackCondition) []filter.Id {
+	var filterIds []filter.Id
+	switch trackCondition {
+	case types.GoodToFirm:
+		filterIds = append(filterIds, filter.GoodToFirm)
+	case types.Good:
+		filterIds = append(filterIds, filter.Good)
+	case types.Yielding:
+		filterIds = append(filterIds, filter.Yielding)
+	case types.Soft:
+		filterIds = append(filterIds, filter.Soft)
 	}
 	return filterIds
 }

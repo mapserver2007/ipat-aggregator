@@ -127,7 +127,7 @@ func (s *spreadSheetPredictionGateway) Write(
 						continue
 					}
 					if values[0][0][1] == "" {
-						title := fmt.Sprintf("%s%dR %s %s", predictionRace.RaceCourseId().Name(), predictionRace.RaceNumber(), predictionRace.RaceName(), predictionRace.Filter().String())
+						title := fmt.Sprintf("%s%dR %s %s", predictionRace.RaceCourseId().Name(), predictionRace.RaceNumber(), predictionRace.RaceName(), predictionRace.FilterName())
 						raceCount := markerPlaceMap[types.Favorite].RateData().RaceCount()
 						values[0][0][1] = fmt.Sprintf("=HYPERLINK(\"%s\",\"%s(%d)\")", predictionRace.Url(), title, raceCount)
 					}

@@ -4,17 +4,17 @@ import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
 
 type Odds struct {
 	ticketType    types.TicketType
-	odds          string
+	odds          []string
 	popularNumber int
-	horseNumbers  []int
+	horseNumbers  []types.HorseNumber
 	raceDate      types.RaceDate
 }
 
 func NewOdds(
 	ticketType types.TicketType,
-	odds string,
+	odds []string,
 	popularNumber int,
-	horseNumbers []int,
+	horseNumbers []types.HorseNumber,
 	raceDate types.RaceDate,
 ) *Odds {
 	return &Odds{
@@ -30,7 +30,7 @@ func (o *Odds) TicketType() types.TicketType {
 	return o.ticketType
 }
 
-func (o *Odds) Odds() string {
+func (o *Odds) Odds() []string {
 	return o.odds
 }
 
@@ -38,7 +38,7 @@ func (o *Odds) PopularNumber() int {
 	return o.popularNumber
 }
 
-func (o *Odds) HorseNumbers() []int {
+func (o *Odds) HorseNumbers() []types.HorseNumber {
 	return o.horseNumbers
 }
 

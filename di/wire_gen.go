@@ -41,12 +41,14 @@ func NewMaster() *controller.Master {
 	jockey := master_service.NewJockey(jockeyRepository, jockeyEntityConverter)
 	oddsRepository := infrastructure.NewOddsRepository(netKeibaGateway)
 	oddsEntityConverter := converter.NewOddsEntityConverter()
-	odds := master_service.NewOdds(oddsRepository, oddsEntityConverter)
+	winOdds := master_service.NewWinOdds(oddsRepository, oddsEntityConverter)
+	placeOdds := master_service.NewPlaceOdds(oddsRepository, oddsEntityConverter)
+	trioOdds := master_service.NewTrioOdds(oddsRepository, oddsEntityConverter)
 	analysisMarkerRepository := infrastructure.NewAnalysisMarkerRepository()
 	analysisMarker := master_service.NewAnalysisMarker(analysisMarkerRepository)
 	predictionMarkerRepository := infrastructure.NewPredictionMarkerRepository()
 	predictionMarker := master_service.NewPredictionMarker(predictionMarkerRepository)
-	master := master_usecase.NewMaster(ticket, raceId, race, jockey, odds, analysisMarker, predictionMarker)
+	master := master_usecase.NewMaster(ticket, raceId, race, jockey, winOdds, placeOdds, trioOdds, analysisMarker, predictionMarker)
 	controllerMaster := controller.NewMaster(master)
 	return controllerMaster
 }
@@ -62,8 +64,9 @@ func NewAggregation() *controller.Aggregation {
 	spreadSheetTicketSummaryGateway := gateway.NewSpreadSheetTicketSummaryGateway()
 	spreadSheetListGateway := gateway.NewSpreadSheetListGateway()
 	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
+	spreadSheetAnalysisPlaceAllInGateway := gateway.NewSpreadSheetAnalysisPlaceAllInGateway()
 	spreadSheetPredictionGateway := gateway.NewSpreadSheetPredictionGateway()
-	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetPredictionGateway)
+	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetAnalysisPlaceAllInGateway, spreadSheetPredictionGateway)
 	summary := aggregation_service.NewSummary(term, ticket, class, courseCategory, distanceCategory, raceCourse, spreadSheetRepository)
 	aggregation_usecaseSummary := aggregation_usecase.NewSummary(summary)
 	ticketSummary := aggregation_service.NewTicketSummary(term, spreadSheetRepository)
@@ -82,11 +85,13 @@ func NewAnalysis() *controller.Analysis {
 	spreadSheetTicketSummaryGateway := gateway.NewSpreadSheetTicketSummaryGateway()
 	spreadSheetListGateway := gateway.NewSpreadSheetListGateway()
 	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
+	spreadSheetAnalysisPlaceAllInGateway := gateway.NewSpreadSheetAnalysisPlaceAllInGateway()
 	spreadSheetPredictionGateway := gateway.NewSpreadSheetPredictionGateway()
-	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetPredictionGateway)
+	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetAnalysisPlaceAllInGateway, spreadSheetPredictionGateway)
 	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
 	trio := analysis_service.NewTrio(analysisFilter)
-	analysis := analysis_usecase.NewAnalysis(place, trio)
+	placeAllIn := analysis_service.NewPlaceAllIn(analysisFilter, spreadSheetRepository)
+	analysis := analysis_usecase.NewAnalysis(place, trio, placeAllIn)
 	controllerAnalysis := controller.NewAnalysis(analysis)
 	return controllerAnalysis
 }
@@ -99,8 +104,9 @@ func NewPrediction() *controller.Prediction {
 	spreadSheetTicketSummaryGateway := gateway.NewSpreadSheetTicketSummaryGateway()
 	spreadSheetListGateway := gateway.NewSpreadSheetListGateway()
 	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
+	spreadSheetAnalysisPlaceAllInGateway := gateway.NewSpreadSheetAnalysisPlaceAllInGateway()
 	spreadSheetPredictionGateway := gateway.NewSpreadSheetPredictionGateway()
-	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetPredictionGateway)
+	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetAnalysisPlaceAllInGateway, spreadSheetPredictionGateway)
 	predictionFilter := filter_service.NewPredictionFilter()
 	odds := prediction_service.NewOdds(oddsRepository, raceRepository, spreadSheetRepository, predictionFilter)
 	analysisFilter := filter_service.NewAnalysisFilter()
@@ -112,12 +118,12 @@ func NewPrediction() *controller.Prediction {
 
 // wire.go:
 
-var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, gateway.NewNetKeibaGateway)
+var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewWinOdds, master_service.NewPlaceOdds, master_service.NewTrioOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, gateway.NewNetKeibaGateway)
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
-var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
+var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, analysis_service.NewPlaceAllIn, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
 
 var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, filter_service.NewPredictionFilter, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, gateway.NewNetKeibaGateway)
 
-var SpreadSheetGatewaySet = wire.NewSet(gateway.NewSpreadSheetSummaryGateway, gateway.NewSpreadSheetTicketSummaryGateway, gateway.NewSpreadSheetListGateway, gateway.NewSpreadSheetAnalysisPlaceGateway, gateway.NewSpreadSheetPredictionGateway)
+var SpreadSheetGatewaySet = wire.NewSet(gateway.NewSpreadSheetSummaryGateway, gateway.NewSpreadSheetTicketSummaryGateway, gateway.NewSpreadSheetListGateway, gateway.NewSpreadSheetAnalysisPlaceGateway, gateway.NewSpreadSheetAnalysisPlaceAllInGateway, gateway.NewSpreadSheetPredictionGateway)

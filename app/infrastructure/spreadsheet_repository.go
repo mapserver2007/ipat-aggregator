@@ -10,11 +10,12 @@ import (
 )
 
 type spreadSheetRepository struct {
-	summaryGateway       gateway.SpreadSheetSummaryGateway
-	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway
-	listGateway          gateway.SpreadSheetListGateway
-	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway
-	predictionGateway    gateway.SpreadSheetPredictionGateway
+	summaryGateway            gateway.SpreadSheetSummaryGateway
+	ticketSummaryGateway      gateway.SpreadSheetTicketSummaryGateway
+	listGateway               gateway.SpreadSheetListGateway
+	analysisPlaceGateway      gateway.SpreadSheetAnalysisPlaceGateway
+	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway
+	predictionGateway         gateway.SpreadSheetPredictionGateway
 }
 
 func NewSpreadSheetRepository(
@@ -22,14 +23,16 @@ func NewSpreadSheetRepository(
 	ticketSummaryGateway gateway.SpreadSheetTicketSummaryGateway,
 	listGateway gateway.SpreadSheetListGateway,
 	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway,
+	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway,
 	predictionGateway gateway.SpreadSheetPredictionGateway,
 ) repository.SpreadSheetRepository {
 	return &spreadSheetRepository{
-		summaryGateway:       summaryGateway,
-		ticketSummaryGateway: ticketSummaryGateway,
-		listGateway:          listGateway,
-		analysisPlaceGateway: analysisPlaceGateway,
-		predictionGateway:    predictionGateway,
+		summaryGateway:            summaryGateway,
+		ticketSummaryGateway:      ticketSummaryGateway,
+		listGateway:               listGateway,
+		analysisPlaceGateway:      analysisPlaceGateway,
+		analysisPlaceAllInGateway: analysisPlaceAllInGateway,
+		predictionGateway:         predictionGateway,
 	}
 }
 
@@ -113,6 +116,29 @@ func (s *spreadSheetRepository) WriteAnalysisPlace(
 	}
 
 	err = s.analysisPlaceGateway.Style(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WriteAnalysisPlaceAllIn(
+	ctx context.Context,
+	placeAllInMap map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn,
+	filters []filter.Id,
+) error {
+	err := s.analysisPlaceAllInGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.analysisPlaceAllInGateway.Write(ctx, placeAllInMap, filters)
+	if err != nil {
+		return err
+	}
+
+	err = s.analysisPlaceAllInGateway.Style(ctx, placeAllInMap, filters)
 	if err != nil {
 		return err
 	}

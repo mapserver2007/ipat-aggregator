@@ -27,7 +27,9 @@ var MasterSet = wire.NewSet(
 	master_service.NewRaceId,
 	master_service.NewRace,
 	master_service.NewJockey,
-	master_service.NewOdds,
+	master_service.NewWinOdds,
+	master_service.NewPlaceOdds,
+	master_service.NewTrioOdds,
 	master_service.NewAnalysisMarker,
 	master_service.NewPredictionMarker,
 	master_service.NewBetNumberConverter,
@@ -66,6 +68,7 @@ var AnalysisSet = wire.NewSet(
 	analysis_usecase.NewAnalysis,
 	analysis_service.NewPlace,
 	analysis_service.NewTrio,
+	analysis_service.NewPlaceAllIn,
 	filter_service.NewAnalysisFilter,
 	infrastructure.NewSpreadSheetRepository,
 )
@@ -84,6 +87,7 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetTicketSummaryGateway,
 	gateway.NewSpreadSheetListGateway,
 	gateway.NewSpreadSheetAnalysisPlaceGateway,
+	gateway.NewSpreadSheetAnalysisPlaceAllInGateway,
 	gateway.NewSpreadSheetPredictionGateway,
 )
 

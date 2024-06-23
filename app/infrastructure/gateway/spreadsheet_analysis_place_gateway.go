@@ -164,13 +164,18 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 		thirdFilterMap := thirdPlaceMap[sheetMarker]
 
 		for _, analysisFilter := range analysisFilters {
+			var filterName string
+			for _, f := range analysisFilter.OriginFilters() {
+				filterName += f.String()
+			}
+
 			firstPlace := firstFilterMap[analysisFilter]
 			secondPlace := secondFilterMap[analysisFilter]
 			thirdPlace := thirdFilterMap[analysisFilter]
 
 			valuesList[0] = append(valuesList[0], [][]interface{}{
 				{
-					firstPlace.RateData().FilterName(),
+					filterName,
 					firstPlace.RateData().RaceCount(),
 					firstPlace.RateData().HitRateFormat(),
 					firstPlace.RateData().OddsRange1RateFormat(),
@@ -203,7 +208,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 			}...)
 			valuesList[1] = append(valuesList[1], [][]interface{}{
 				{
-					firstPlace.HitCountData().FilterName(),
+					filterName,
 					firstPlace.HitCountData().RaceCount(),
 					firstPlace.HitCountData().HitCount(),
 					firstPlace.HitCountData().OddsRange1Count(),
@@ -236,7 +241,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 			}...)
 			valuesList[2] = append(valuesList[2], [][]interface{}{
 				{
-					firstPlace.UnHitCountData().FilterName(),
+					filterName,
 					firstPlace.UnHitCountData().RaceCount(),
 					firstPlace.UnHitCountData().UnHitCount(),
 					firstPlace.UnHitCountData().OddsRange1Count(),

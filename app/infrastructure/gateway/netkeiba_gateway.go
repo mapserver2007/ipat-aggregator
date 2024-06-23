@@ -24,6 +24,7 @@ type NetKeibaGateway interface {
 	FetchRaceCard(ctx context.Context, url string) (*netkeiba_entity.Race, error)
 	FetchJockey(ctx context.Context, url string) (*netkeiba_entity.Jockey, error)
 	FetchWinOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
+	FetchPlaceOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 }
 
@@ -807,9 +808,61 @@ func (n *netKeibaGateway) FetchWinOdds(
 	var odds []*netkeiba_entity.Odds
 	for rawNumber, list := range oddsInfo.Data.Odds.Wins {
 		popularNumber, _ := strconv.Atoi(list[2])
-		horseNumber, _ := strconv.Atoi(rawNumber)
+		// 9999人気の値は取り消しという仕様なので除外する
+		if popularNumber == 9999 {
+			continue
+		}
+		rawHorseNumber, _ := strconv.Atoi(rawNumber)
+		horseNumber := types.HorseNumber(rawHorseNumber)
 		odds = append(odds, netkeiba_entity.NewOdds(
-			types.Win, list[0], popularNumber, []int{horseNumber}, raceDate,
+			types.Win, []string{list[0], list[1]}, popularNumber, []types.HorseNumber{horseNumber}, raceDate,
+		))
+	}
+
+	return odds, nil
+}
+
+func (n *netKeibaGateway) FetchPlaceOdds(
+	ctx context.Context,
+	url string,
+) ([]*netkeiba_entity.Odds, error) {
+	log.Println(ctx, fmt.Sprintf("fetching place odds from %s", url))
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var oddsInfo *raw_entity.OddsInfo
+	if err := json.Unmarshal(body, &oddsInfo); err != nil {
+		log.Println(ctx, fmt.Sprintf("Odds is not published: %s", url))
+		return nil, err
+	}
+
+	dateTime, err := time.Parse("2006-01-02 15:04:05", oddsInfo.Data.OfficialDatetime)
+	if err != nil {
+		return nil, err
+	}
+	raceDate, err := types.NewRaceDate(dateTime.Format("20060102"))
+	if err != nil {
+		return nil, err
+	}
+
+	var odds []*netkeiba_entity.Odds
+	for rawNumber, list := range oddsInfo.Data.Odds.Places {
+		popularNumber, _ := strconv.Atoi(list[2])
+		// 9999人気の値は取り消しという仕様なので除外する
+		if popularNumber == 9999 {
+			continue
+		}
+		rawHorseNumber, _ := strconv.Atoi(rawNumber)
+		horseNumber := types.HorseNumber(rawHorseNumber)
+		odds = append(odds, netkeiba_entity.NewOdds(
+			types.Place, []string{list[0], list[1]}, popularNumber, []types.HorseNumber{horseNumber}, raceDate,
 		))
 	}
 
@@ -847,12 +900,15 @@ func (n *netKeibaGateway) FetchTrioOdds(
 
 	var odds []*netkeiba_entity.Odds
 	for rawNumber, list := range oddsInfo.Data.Odds.Trios {
-		horseNumber1, _ := strconv.Atoi(rawNumber[0:2])
-		horseNumber2, _ := strconv.Atoi(rawNumber[2:4])
-		horseNumber3, _ := strconv.Atoi(rawNumber[4:6])
+		rawHorseNumber1, _ := strconv.Atoi(rawNumber[0:2])
+		rawHorseNumber2, _ := strconv.Atoi(rawNumber[2:4])
+		rawHorseNumber3, _ := strconv.Atoi(rawNumber[4:6])
+		horseNumber1 := types.HorseNumber(rawHorseNumber1)
+		horseNumber2 := types.HorseNumber(rawHorseNumber2)
+		horseNumber3 := types.HorseNumber(rawHorseNumber3)
 		popularNumber, _ := strconv.Atoi(list[2])
 		odds = append(odds, netkeiba_entity.NewOdds(
-			types.Trio, list[0], popularNumber, []int{horseNumber1, horseNumber2, horseNumber3}, raceDate,
+			types.Trio, []string{list[0], list[1]}, popularNumber, []types.HorseNumber{horseNumber1, horseNumber2, horseNumber3}, raceDate,
 		))
 	}
 

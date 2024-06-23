@@ -10,13 +10,14 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
 	"time"
 )
 
 const (
 	raceCardUrl   = "https://race.netkeiba.com/race/shutuba.html?race_id=%s"
-	oddsUrl       = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=%d&action=update"
+	oddsUrl       = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=1&action=update"
 	raceResultUrl = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%s"
 )
 
@@ -51,7 +52,7 @@ func (p *oddsService) Get(
 	ctx context.Context,
 	raceId types.RaceId,
 ) (*prediction_entity.Race, error) {
-	odds, err := p.oddRepository.Fetch(ctx, fmt.Sprintf(oddsUrl, raceId, 1))
+	odds, err := p.oddRepository.Fetch(ctx, fmt.Sprintf(oddsUrl, raceId))
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (p *oddsService) Get(
 	var predictionOdds []*prediction_entity.Odds
 	for _, nkOdds := range odds {
 		predictionOdds = append(predictionOdds, prediction_entity.NewOdds(
-			nkOdds.Odds(),
+			nkOdds.Odds()[0],
 			nkOdds.PopularNumber(),
 			nkOdds.HorseNumbers()[0],
 		))
@@ -137,9 +138,9 @@ func (p *oddsService) Convert(
 			race.RaceCourseId(),
 			race.CourseCategory(),
 			race.Url(),
-			race.PredictionFilter(),
+			race.PredictionFilters(),
 		)
-		horseNumberOddsMap := map[int]decimal.Decimal{}
+		horseNumberOddsMap := map[types.HorseNumber]decimal.Decimal{}
 		for _, o := range race.Odds() {
 			horseNumberOddsMap[o.HorseNumber()] = o.Odds()
 		}
@@ -149,6 +150,11 @@ func (p *oddsService) Convert(
 		thirdPlaceMap[*predictionRace] = map[types.Marker]*spreadsheet_entity.PredictionPlace{}
 		raceCourseMap[race.RaceCourseId()] = append(raceCourseMap[race.RaceCourseId()], race.RaceId())
 		predictionMarker := predictionMarkerMap[race.RaceId()]
+
+		var predictionFilter filter.Id
+		for _, f := range race.PredictionFilters() {
+			predictionFilter |= f
+		}
 
 		for _, marker := range []types.Marker{types.Favorite, types.Rival, types.BrackTriangle, types.WhiteTriangle, types.Star, types.Check} {
 			raceIdMap := map[types.RaceId]bool{}
@@ -213,7 +219,8 @@ func (p *oddsService) Convert(
 
 				match := true
 				for _, f := range calculable.Filters() {
-					if f&race.PredictionFilter() == 0 {
+
+					if f&predictionFilter == 0 {
 						match = false
 						break
 					}
@@ -390,33 +397,27 @@ func (p *oddsService) Convert(
 
 			firstPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				firstPlaceOddsRangeHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				secondPlaceOddsRangeHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				thirdPlaceOddsRangeHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 
 			firstPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				firstPlaceOddsRangeUnHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				secondPlaceOddsRangeUnHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				thirdPlaceOddsRangeUnHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 

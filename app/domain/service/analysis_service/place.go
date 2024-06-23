@@ -12,6 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"github.com/shopspring/decimal"
 	"strconv"
 )
 
@@ -47,7 +48,7 @@ func (p *placeService) Create(
 
 	var calculables []*analysis_entity.PlaceCalculable
 	for _, race := range races {
-		raceResultMap := converter.ConvertToMap(race.RaceResults(), func(raceResult *data_cache_entity.RaceResult) int {
+		raceResultMap := converter.ConvertToMap(race.RaceResults(), func(raceResult *data_cache_entity.RaceResult) types.HorseNumber {
 			return raceResult.HorseNumber()
 		})
 
@@ -63,11 +64,11 @@ func (p *placeService) Create(
 			continue
 		}
 
-		filters := p.filterService.Create(ctx, race)
+		filters := p.filterService.CreatePlaceFilters(ctx, race)
 
 		// 馬番はレース結果の上位3頭から取る
 		// 払い戻し結果から取ってしまうと、複勝2着払いの場合にとれなくなるため
-		numbers := make([]int, 0, 3)
+		numbers := make([]types.HorseNumber, 0, 3)
 		for _, raceResult := range race.RaceResults()[:3] {
 			numbers = append(numbers, raceResult.HorseNumber())
 		}
@@ -76,6 +77,10 @@ func (p *placeService) Create(
 		// 不的中の印
 		markerCombinationIds = append(markerCombinationIds, p.getUnHitMarkerCombinationIds(numbers, marker)...)
 
+		var (
+			raceCalculables []*analysis_entity.PlaceCalculable
+			isRaceCanceled  bool
+		)
 		// 的中か不的中かは、着順から判断できるためcalculableの中でフラグ管理しない
 		for _, markerCombinationId := range markerCombinationIds {
 			hitMarker, err := types.NewMarker(markerCombinationId.Value() % 10)
@@ -95,18 +100,30 @@ func (p *placeService) Create(
 				return nil, fmt.Errorf("horseNumber not found: %v", horseNumber)
 			}
 
-			calculables = append(calculables, analysis_entity.NewPlaceCalculable(
+			// 取り消しの馬かつ、印対象だったばあいそのレースは集計対象外
+			decimalOdds, _ := decimal.NewFromString(raceResult.Odds())
+			if decimalOdds.IsZero() {
+				//log.Println(fmt.Sprintf("exclude analysis data for canceled, raceId: %s", race.RaceId()))
+				isRaceCanceled = true
+				break
+			}
+
+			raceCalculables = append(raceCalculables, analysis_entity.NewPlaceCalculable(
 				race.RaceId(),
 				race.RaceDate(),
 				markerCombinationId,
 				raceResult.Odds(),
-				types.BetNumber(strconv.Itoa(raceResult.HorseNumber())), // 単複のみなのでbetNumberにそのまま置き換え可能
+				types.BetNumber(strconv.Itoa(raceResult.HorseNumber().Value())), // 単複のみなのでbetNumberにそのまま置き換え可能
 				raceResult.PopularNumber(),
 				raceResult.OrderNo(),
 				race.Entries(),
 				raceResult.JockeyId(),
 				filters,
 			))
+		}
+
+		if !isRaceCanceled {
+			calculables = append(calculables, raceCalculables...)
 		}
 	}
 
@@ -125,7 +142,7 @@ func (p *placeService) Convert(
 	firstPlaceMap := map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
 	secondPlaceMap := map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
 	thirdPlaceMap := map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
-	analysisFilters := p.filterService.Get(ctx)
+	analysisFilters := p.getFilters()
 
 	markers := []types.Marker{
 		types.Favorite, types.Rival, types.BrackTriangle, types.WhiteTriangle, types.Star, types.Check,
@@ -140,19 +157,18 @@ func (p *placeService) Convert(
 			raceIdMap := map[types.RaceId]bool{}
 			oddsRangeHitCountSlice := make([]int, 24)
 			oddsRangeUnHitCountSlice := make([]int, 24)
+
 			for _, calculable := range calculables {
 				if calculable.Marker() != marker {
 					continue
 				}
 
-				match := true
+				var calcFilter filter.Id
 				for _, f := range calculable.Filters() {
-					if f&analysisFilter == 0 {
-						match = false
-						break
-					}
+					calcFilter |= f
 				}
-				if match {
+
+				if analysisFilter == filter.All || analysisFilter&calcFilter == analysisFilter {
 					if _, ok := raceIdMap[calculable.RaceId()]; !ok {
 						raceIdMap[calculable.RaceId()] = true
 					}
@@ -324,33 +340,27 @@ func (p *placeService) Convert(
 
 			firstPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				firstPlaceOddsRangeHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				secondPlaceOddsRangeHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				thirdPlaceOddsRangeHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 
 			firstPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				firstPlaceOddsRangeUnHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				secondPlaceOddsRangeUnHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				thirdPlaceOddsRangeUnHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 
@@ -358,19 +368,19 @@ func (p *placeService) Convert(
 				firstPlaceOddsRangeHitCountData,
 				firstPlaceOddsRangeUnHitCountData,
 			)
-			firstPlaceOddsRangeRateStyle := spreadsheet_entity.NewPlaceStyle(firstPlaceOddsRangeRateData)
+			firstPlaceOddsRangeRateStyle := spreadsheet_entity.NewPlaceRateStyle(firstPlaceOddsRangeRateData)
 
 			secondPlaceOddsRangeRateData := spreadsheet_entity.NewPlaceRateData(
 				secondPlaceOddsRangeHitCountData,
 				secondPlaceOddsRangeUnHitCountData,
 			)
-			secondPlaceOddsRangeRateStyle := spreadsheet_entity.NewPlaceStyle(secondPlaceOddsRangeRateData)
+			secondPlaceOddsRangeRateStyle := spreadsheet_entity.NewPlaceRateStyle(secondPlaceOddsRangeRateData)
 
 			thirdPlaceOddsRangeRateData := spreadsheet_entity.NewPlaceRateData(
 				thirdPlaceOddsRangeHitCountData,
 				thirdPlaceOddsRangeUnHitCountData,
 			)
-			thirdPlaceOddsRangeRateStyle := spreadsheet_entity.NewPlaceStyle(thirdPlaceOddsRangeRateData)
+			thirdPlaceOddsRangeRateStyle := spreadsheet_entity.NewPlaceRateStyle(thirdPlaceOddsRangeRateData)
 
 			firstPlaceMap[marker][analysisFilter] = spreadsheet_entity.NewAnalysisPlace(
 				firstPlaceOddsRangeRateData,
@@ -409,7 +419,7 @@ func (p *placeService) Write(
 }
 
 func (p *placeService) getHitMarkerCombinationIds(
-	numbers []int,
+	numbers []types.HorseNumber,
 	marker *marker_csv_entity.AnalysisMarker,
 ) []types.MarkerCombinationId {
 	var markerCombinationIds []types.MarkerCombinationId
@@ -436,7 +446,7 @@ func (p *placeService) getHitMarkerCombinationIds(
 }
 
 func (p *placeService) getUnHitMarkerCombinationIds(
-	numbers []int,
+	numbers []types.HorseNumber,
 	marker *marker_csv_entity.AnalysisMarker,
 ) []types.MarkerCombinationId {
 	unHitMarkerCombinationIdMap := map[types.MarkerCombinationId]bool{
@@ -474,4 +484,110 @@ func (p *placeService) getUnHitMarkerCombinationIds(
 	}
 
 	return unHitMarkerCombinationIds
+}
+
+func (p *placeService) getFilters() []filter.Id {
+	return []filter.Id{
+		filter.All,
+		filter.Turf | filter.Niigata | filter.Distance1000m,
+		filter.Turf | filter.Hakodate | filter.Distance1000m,
+		filter.Turf | filter.Nakayama | filter.Distance1200m,
+		filter.Turf | filter.Kyoto | filter.Distance1200m,
+		filter.Turf | filter.Hanshin | filter.Distance1200m,
+		filter.Turf | filter.Niigata | filter.Distance1200m,
+		filter.Turf | filter.Chukyo | filter.Distance1200m,
+		filter.Turf | filter.Sapporo | filter.Distance1200m,
+		filter.Turf | filter.Hakodate | filter.Distance1200m,
+		filter.Turf | filter.Fukushima | filter.Distance1200m,
+		filter.Turf | filter.Kokura | filter.Distance1200m,
+		filter.Turf | filter.Tokyo | filter.Distance1400m,
+		filter.Turf | filter.Kyoto | filter.Distance1400m,
+		filter.Turf | filter.Hanshin | filter.Distance1400m,
+		filter.Turf | filter.Niigata | filter.Distance1400m,
+		filter.Turf | filter.Chukyo | filter.Distance1400m,
+		filter.Turf | filter.Sapporo | filter.Distance1500m,
+		filter.Turf | filter.Nakayama | filter.Distance1600m,
+		filter.Turf | filter.Tokyo | filter.Distance1600m,
+		filter.Turf | filter.Kyoto | filter.Distance1600m,
+		filter.Turf | filter.Hanshin | filter.Distance1600m,
+		filter.Turf | filter.Niigata | filter.Distance1600m,
+		filter.Turf | filter.Chukyo | filter.Distance1600m,
+		filter.Turf | filter.Nakayama | filter.Distance1800m,
+		filter.Turf | filter.Tokyo | filter.Distance1800m,
+		filter.Turf | filter.Kyoto | filter.Distance1800m,
+		filter.Turf | filter.Hanshin | filter.Distance1800m,
+		filter.Turf | filter.Niigata | filter.Distance1800m,
+		filter.Turf | filter.Sapporo | filter.Distance1800m,
+		filter.Turf | filter.Hakodate | filter.Distance1800m,
+		filter.Turf | filter.Fukushima | filter.Distance1800m,
+		filter.Turf | filter.Kokura | filter.Distance1800m,
+		filter.Turf | filter.Nakayama | filter.Distance2000m,
+		filter.Turf | filter.Tokyo | filter.Distance2000m,
+		filter.Turf | filter.Kyoto | filter.Distance2000m,
+		filter.Turf | filter.Hanshin | filter.Distance2000m,
+		filter.Turf | filter.Niigata | filter.Distance2000m,
+		filter.Turf | filter.Chukyo | filter.Distance2000m,
+		filter.Turf | filter.Sapporo | filter.Distance2000m,
+		filter.Turf | filter.Hakodate | filter.Distance2000m,
+		filter.Turf | filter.Fukushima | filter.Distance2000m,
+		filter.Turf | filter.Kokura | filter.Distance2000m,
+		filter.Turf | filter.Nakayama | filter.Distance2200m,
+		filter.Turf | filter.Kyoto | filter.Distance2200m,
+		filter.Turf | filter.Hanshin | filter.Distance2200m,
+		filter.Turf | filter.Niigata | filter.Distance2200m,
+		filter.Turf | filter.Chukyo | filter.Distance2200m,
+		filter.Turf | filter.Tokyo | filter.Distance2300m,
+		filter.Turf | filter.Tokyo | filter.Distance2400m,
+		filter.Turf | filter.Kyoto | filter.Distance2400m,
+		filter.Turf | filter.Hanshin | filter.Distance2400m,
+		filter.Turf | filter.Niigata | filter.Distance2400m,
+		filter.Turf | filter.Nakayama | filter.Distance2500m,
+		filter.Turf | filter.Tokyo | filter.Distance2500m,
+		filter.Turf | filter.Hanshin | filter.Distance2600m,
+		filter.Turf | filter.Sapporo | filter.Distance2600m,
+		filter.Turf | filter.Hakodate | filter.Distance2600m,
+		filter.Turf | filter.Fukushima | filter.Distance2600m,
+		filter.Turf | filter.Kokura | filter.Distance2600m,
+		filter.Turf | filter.Kyoto | filter.Distance3000m,
+		filter.Turf | filter.Hanshin | filter.Distance3000m,
+		//filter.Turf | filter.Chukyo | filter.Distance3000m, // 現在はほぼ使われていない
+		filter.Turf | filter.Kyoto | filter.Distance3200m,
+		filter.Turf | filter.Tokyo | filter.Distance3400m,
+		filter.Turf | filter.Nakayama | filter.Distance3600m,
+		filter.Dirt | filter.Sapporo | filter.Distance1000m,
+		filter.Dirt | filter.Hakodate | filter.Distance1000m,
+		filter.Dirt | filter.Kokura | filter.Distance1000m,
+		filter.Dirt | filter.Fukushima | filter.Distance1150m,
+		filter.Dirt | filter.Nakayama | filter.Distance1200m,
+		filter.Dirt | filter.Kyoto | filter.Distance1200m,
+		filter.Dirt | filter.Hanshin | filter.Distance1200m,
+		filter.Dirt | filter.Niigata | filter.Distance1200m,
+		filter.Dirt | filter.Chukyo | filter.Distance1200m,
+		filter.Dirt | filter.Tokyo | filter.Distance1300m,
+		filter.Dirt | filter.Tokyo | filter.Distance1400m,
+		filter.Dirt | filter.Kyoto | filter.Distance1400m,
+		filter.Dirt | filter.Hanshin | filter.Distance1400m,
+		filter.Dirt | filter.Chukyo | filter.Distance1400m,
+		filter.Dirt | filter.Tokyo | filter.Distance1600m,
+		filter.Dirt | filter.Sapporo | filter.Distance1700m,
+		filter.Dirt | filter.Hakodate | filter.Distance1700m,
+		filter.Dirt | filter.Fukushima | filter.Distance1700m,
+		filter.Dirt | filter.Kokura | filter.Distance1700m,
+		filter.Dirt | filter.Nakayama | filter.Distance1800m,
+		filter.Dirt | filter.Kyoto | filter.Distance1800m,
+		filter.Dirt | filter.Hanshin | filter.Distance1800m,
+		filter.Dirt | filter.Niigata | filter.Distance1800m,
+		filter.Dirt | filter.Chukyo | filter.Distance1800m,
+		filter.Dirt | filter.Kyoto | filter.Distance1900m,
+		filter.Dirt | filter.Chukyo | filter.Distance1900m,
+		filter.Dirt | filter.Hanshin | filter.Distance2000m,
+		filter.Dirt | filter.Tokyo | filter.Distance2100m,
+		filter.Dirt | filter.Nakayama | filter.Distance2400m,
+		filter.Dirt | filter.Sapporo | filter.Distance2400m,
+		filter.Dirt | filter.Hakodate | filter.Distance2400m,
+		filter.Dirt | filter.Fukushima | filter.Distance2400m,
+		filter.Dirt | filter.Kokura | filter.Distance2400m,
+		filter.Dirt | filter.Nakayama | filter.Distance2500m,
+		filter.Dirt | filter.Niigata | filter.Distance2500m,
+	}
 }

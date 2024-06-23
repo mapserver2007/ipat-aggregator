@@ -6,8 +6,8 @@ const (
 	RaceStartDate            = "20230729"
 	RaceEndDate              = "20240623"
 	EnableAggregation        = false
-	EnableAnalysis           = true
-	EnableAnalysisPlace      = true
+	EnableAnalysis           = false
+	EnableAnalysisPlace      = false
 	EnableAnalysisPlaceAllIn = false
 	EnablePrediction         = false
 )

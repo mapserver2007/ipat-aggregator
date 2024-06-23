@@ -9,9 +9,9 @@ func CourseCategoryFilters(courseCategory types.CourseCategory) []filter.Id {
 	var filterIds []filter.Id
 	switch courseCategory {
 	case types.Turf:
-		filterIds = append(filterIds, filter.Turf2)
+		filterIds = append(filterIds, filter.Turf)
 	case types.Dirt:
-		filterIds = append(filterIds, filter.Dirt2)
+		filterIds = append(filterIds, filter.Dirt)
 	}
 	return filterIds
 }

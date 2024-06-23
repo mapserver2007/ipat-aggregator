@@ -17,7 +17,6 @@ type PlaceRateData struct {
 	oddsRange6Rate float64
 	oddsRange7Rate float64
 	oddsRange8Rate float64
-	filterName     string
 }
 
 func NewPlaceRateData(
@@ -45,7 +44,6 @@ func NewPlaceRateData(
 		oddsRange6Rate: oddsRange6Rate,
 		oddsRange7Rate: oddsRange7Rate,
 		oddsRange8Rate: oddsRange8Rate,
-		filterName:     hitCountData.FilterName(),
 	}
 }
 
@@ -123,10 +121,6 @@ func (p *PlaceRateData) OddsRange8Rate() float64 {
 
 func (p *PlaceRateData) OddsRange8RateFormat() string {
 	return p.rateFormat(p.oddsRange8Rate)
-}
-
-func (p *PlaceRateData) FilterName() string {
-	return p.filterName
 }
 
 func (p *PlaceRateData) rateFormat(rate float64) string {

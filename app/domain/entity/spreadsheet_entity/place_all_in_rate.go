@@ -74,7 +74,6 @@ func NewPlaceAllInRateData(
 		winOdds37HitData: NewPlaceAllInHitData(hitCountData.WinOdds37Count(), unHitCountData.WinOdds37Count()),
 		winOdds38HitData: NewPlaceAllInHitData(hitCountData.WinOdds38Count(), unHitCountData.WinOdds38Count()),
 		winOdds39HitData: NewPlaceAllInHitData(hitCountData.WinOdds39Count(), unHitCountData.WinOdds39Count()),
-		filterName:       hitCountData.FilterName(),
 	}
 }
 

@@ -12,7 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
-	"log"
+	"github.com/shopspring/decimal"
 	"strconv"
 )
 
@@ -101,8 +101,9 @@ func (p *placeService) Create(
 			}
 
 			// 取り消しの馬かつ、印対象だったばあいそのレースは集計対象外
-			if raceResult.Odds() == "0" {
-				log.Println(fmt.Sprintf("exclude analysis data for canceled, raceId: %s", race.RaceId()))
+			decimalOdds, _ := decimal.NewFromString(raceResult.Odds())
+			if decimalOdds.IsZero() {
+				//log.Println(fmt.Sprintf("exclude analysis data for canceled, raceId: %s", race.RaceId()))
 				isRaceCanceled = true
 				break
 			}
@@ -156,19 +157,18 @@ func (p *placeService) Convert(
 			raceIdMap := map[types.RaceId]bool{}
 			oddsRangeHitCountSlice := make([]int, 24)
 			oddsRangeUnHitCountSlice := make([]int, 24)
+
 			for _, calculable := range calculables {
 				if calculable.Marker() != marker {
 					continue
 				}
 
-				match := true
+				var calcFilter filter.Id
 				for _, f := range calculable.Filters() {
-					if f&analysisFilter == 0 {
-						match = false
-						break
-					}
+					calcFilter |= f
 				}
-				if match {
+
+				if analysisFilter == filter.All2 || analysisFilter&calcFilter == analysisFilter {
 					if _, ok := raceIdMap[calculable.RaceId()]; !ok {
 						raceIdMap[calculable.RaceId()] = true
 					}
@@ -340,33 +340,27 @@ func (p *placeService) Convert(
 
 			firstPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				firstPlaceOddsRangeHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				secondPlaceOddsRangeHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				thirdPlaceOddsRangeHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 
 			firstPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				firstPlaceOddsRangeUnHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				secondPlaceOddsRangeUnHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				thirdPlaceOddsRangeUnHitCountSlice,
-				analysisFilter,
 				len(raceIdMap),
 			)
 
@@ -495,101 +489,105 @@ func (p *placeService) getUnHitMarkerCombinationIds(
 func (p *placeService) getFilters() []filter.Id {
 	return []filter.Id{
 		filter.All2,
-		filter.NiigataTurf1000m,
-		filter.HakodateTurf1000m,
-		filter.NakayamaTurf1200m,
-		filter.KyotoTurf1200m,
-		filter.HanshinTurf1200m,
-		filter.NiigataTurf1200m,
-		filter.ChukyoTurf1200m,
-		filter.SapporoTurf1200m,
-		filter.HakodateTurf1200m,
-		filter.FukushimaTurf1200m,
-		filter.KokuraTurf1200m,
-		filter.TokyoTurf1400m,
-		filter.KyotoTurf1400m,
-		filter.HanshinTurf1400m,
-		filter.NiigataTurf1400m,
-		filter.ChukyoTurf1400m,
-		filter.SapporoTurf1500m,
-		filter.NakayamaTurf1600m,
-		filter.TokyoTurf1600m,
-		filter.KyotoTurf1600m,
-		filter.HanshinTurf1600m,
-		filter.ChukyoTurf1600m,
-		filter.NakayamaTurf1800m,
-		filter.TokyoTurf1800m,
-		filter.KyotoTurf1800m,
-		filter.HanshinTurf1800m,
-		filter.NiigataTurf1800m,
-		filter.SapporoTurf1800m,
-		filter.HakodateTurf1800m,
-		filter.FukushimaTurf1800m,
-		filter.KokuraTurf1800m,
-		filter.NakayamaTurf2000m,
-		filter.TokyoTurf2000m,
-		filter.KyotoTurf2000m,
-		filter.NiigataTurf2000m,
-		filter.ChukyoTurf2000m,
-		filter.SapporoTurf2000m,
-		filter.HakodateTurf2000m,
-		filter.FukushimaTurf2000m,
-		filter.KokuraTurf2000m,
-		filter.NakayamaTurf2200m,
-		filter.KyotoTurf2200m,
-		filter.HanshinTurf2200m,
-		filter.NiigataTurf2200m,
-		filter.ChukyoTurf2200m,
-		filter.TokyoTurf2300m,
-		filter.TokyoTurf2400m,
-		filter.KyotoTurf2400m,
-		filter.HanshinTurf2400m,
-		filter.NiigataTurf2400m,
-		filter.NakayamaTurf2500m,
-		filter.TokyoTurf2500m,
-		filter.HanshinTurf2600m,
-		filter.SapporoTurf2600m,
-		filter.HakodateTurf2600m,
-		filter.FukushimaTurf2600m,
-		filter.KokuraTurf2600m,
-		filter.HanshinTurf3000m,
-		filter.ChukyoTurf3000m,
-		filter.KyotoTurf3200m,
-		filter.TokyoTurf3400m,
-		filter.NakayamaTurf3600m,
-		filter.SapporoDirt1000m,
-		filter.HakodateDirt1000m,
-		filter.KokuraDirt1000m,
-		filter.FukushimaDirt1150m,
-		filter.NakayamaDirt1200m,
-		filter.KyotoDirt1200m,
-		filter.NiigataDirt1200m,
-		filter.ChukyoDirt1200m,
-		filter.TokyoDirt1300m,
-		filter.TokyoDirt1400m,
-		filter.KyotoDirt1400m,
-		filter.HanshinDirt1400m,
-		filter.ChukyoDirt1400m,
-		filter.TokyoDirt1600m,
-		filter.SapporoDirt1700m,
-		filter.HakodateDirt1700m,
-		filter.FukushimaDirt1700m,
-		filter.KokuraDirt1700m,
-		filter.NakayamaDirt1800m,
-		filter.KyotoDirt1800m,
-		filter.HanshinDirt1800m,
-		filter.NiigataDirt1800m,
-		filter.ChukyoDirt1800m,
-		filter.KyotoDirt1900m,
-		filter.ChukyoDirt1900m,
-		filter.HanshinDirt2000m,
-		filter.TokyoDirt2100m,
-		filter.NakayamaDirt2400m,
-		filter.SapporoDirt2400m,
-		filter.HakodateDirt2400m,
-		filter.FukushimaDirt2400m,
-		filter.KokuraDirt2400m,
-		filter.NakayamaDirt2500m,
-		filter.NiigataDirt2500m,
+		filter.Turf2 | filter.Niigata | filter.Distance1000m,
+		filter.Turf2 | filter.Hakodate | filter.Distance1000m,
+		filter.Turf2 | filter.Nakayama | filter.Distance1200m,
+		filter.Turf2 | filter.Kyoto | filter.Distance1200m,
+		filter.Turf2 | filter.Hanshin | filter.Distance1200m,
+		filter.Turf2 | filter.Niigata | filter.Distance1200m,
+		filter.Turf2 | filter.Chukyo | filter.Distance1200m,
+		filter.Turf2 | filter.Sapporo | filter.Distance1200m,
+		filter.Turf2 | filter.Hakodate | filter.Distance1200m,
+		filter.Turf2 | filter.Fukushima | filter.Distance1200m,
+		filter.Turf2 | filter.Kokura | filter.Distance1200m,
+		filter.Turf2 | filter.Tokyo | filter.Distance1400m,
+		filter.Turf2 | filter.Kyoto | filter.Distance1400m,
+		filter.Turf2 | filter.Hanshin | filter.Distance1400m,
+		filter.Turf2 | filter.Niigata | filter.Distance1400m,
+		filter.Turf2 | filter.Chukyo | filter.Distance1400m,
+		filter.Turf2 | filter.Sapporo | filter.Distance1500m,
+		filter.Turf2 | filter.Nakayama | filter.Distance1600m,
+		filter.Turf2 | filter.Tokyo | filter.Distance1600m,
+		filter.Turf2 | filter.Kyoto | filter.Distance1600m,
+		filter.Turf2 | filter.Hanshin | filter.Distance1600m,
+		filter.Turf2 | filter.Niigata | filter.Distance1600m,
+		filter.Turf2 | filter.Chukyo | filter.Distance1600m,
+		filter.Turf2 | filter.Nakayama | filter.Distance1800m,
+		filter.Turf2 | filter.Tokyo | filter.Distance1800m,
+		filter.Turf2 | filter.Kyoto | filter.Distance1800m,
+		filter.Turf2 | filter.Hanshin | filter.Distance1800m,
+		filter.Turf2 | filter.Niigata | filter.Distance1800m,
+		filter.Turf2 | filter.Sapporo | filter.Distance1800m,
+		filter.Turf2 | filter.Hakodate | filter.Distance1800m,
+		filter.Turf2 | filter.Fukushima | filter.Distance1800m,
+		filter.Turf2 | filter.Kokura | filter.Distance1800m,
+		filter.Turf2 | filter.Nakayama | filter.Distance2000m,
+		filter.Turf2 | filter.Tokyo | filter.Distance2000m,
+		filter.Turf2 | filter.Kyoto | filter.Distance2000m,
+		filter.Turf2 | filter.Hanshin | filter.Distance2000m,
+		filter.Turf2 | filter.Niigata | filter.Distance2000m,
+		filter.Turf2 | filter.Chukyo | filter.Distance2000m,
+		filter.Turf2 | filter.Sapporo | filter.Distance2000m,
+		filter.Turf2 | filter.Hakodate | filter.Distance2000m,
+		filter.Turf2 | filter.Fukushima | filter.Distance2000m,
+		filter.Turf2 | filter.Kokura | filter.Distance2000m,
+		filter.Turf2 | filter.Nakayama | filter.Distance2200m,
+		filter.Turf2 | filter.Kyoto | filter.Distance2200m,
+		filter.Turf2 | filter.Hanshin | filter.Distance2200m,
+		filter.Turf2 | filter.Niigata | filter.Distance2200m,
+		filter.Turf2 | filter.Chukyo | filter.Distance2200m,
+		filter.Turf2 | filter.Tokyo | filter.Distance2300m,
+		filter.Turf2 | filter.Tokyo | filter.Distance2400m,
+		filter.Turf2 | filter.Kyoto | filter.Distance2400m,
+		filter.Turf2 | filter.Hanshin | filter.Distance2400m,
+		filter.Turf2 | filter.Niigata | filter.Distance2400m,
+		filter.Turf2 | filter.Nakayama | filter.Distance2500m,
+		filter.Turf2 | filter.Tokyo | filter.Distance2500m,
+		filter.Turf2 | filter.Hanshin | filter.Distance2600m,
+		filter.Turf2 | filter.Sapporo | filter.Distance2600m,
+		filter.Turf2 | filter.Hakodate | filter.Distance2600m,
+		filter.Turf2 | filter.Fukushima | filter.Distance2600m,
+		filter.Turf2 | filter.Kokura | filter.Distance2600m,
+		filter.Turf2 | filter.Kyoto | filter.Distance3000m,
+		filter.Turf2 | filter.Hanshin | filter.Distance3000m,
+		//filter.Turf2 | filter.Chukyo | filter.Distance3000m, // 現在はほぼ使われていない
+		filter.Turf2 | filter.Kyoto | filter.Distance3200m,
+		filter.Turf2 | filter.Tokyo | filter.Distance3400m,
+		filter.Turf2 | filter.Nakayama | filter.Distance3600m,
+		filter.Dirt2 | filter.Sapporo | filter.Distance1000m,
+		filter.Dirt2 | filter.Hakodate | filter.Distance1000m,
+		filter.Dirt2 | filter.Kokura | filter.Distance1000m,
+		filter.Dirt2 | filter.Fukushima | filter.Distance1150m,
+		filter.Dirt2 | filter.Nakayama | filter.Distance1200m,
+		filter.Dirt2 | filter.Kyoto | filter.Distance1200m,
+		filter.Dirt2 | filter.Hanshin | filter.Distance1200m,
+		filter.Dirt2 | filter.Niigata | filter.Distance1200m,
+		filter.Dirt2 | filter.Chukyo | filter.Distance1200m,
+		filter.Dirt2 | filter.Tokyo | filter.Distance1300m,
+		filter.Dirt2 | filter.Tokyo | filter.Distance1400m,
+		filter.Dirt2 | filter.Kyoto | filter.Distance1400m,
+		filter.Dirt2 | filter.Hanshin | filter.Distance1400m,
+		filter.Dirt2 | filter.Chukyo | filter.Distance1400m,
+		filter.Dirt2 | filter.Tokyo | filter.Distance1600m,
+		filter.Dirt2 | filter.Sapporo | filter.Distance1700m,
+		filter.Dirt2 | filter.Hakodate | filter.Distance1700m,
+		filter.Dirt2 | filter.Fukushima | filter.Distance1700m,
+		filter.Dirt2 | filter.Kokura | filter.Distance1700m,
+		filter.Dirt2 | filter.Nakayama | filter.Distance1800m,
+		filter.Dirt2 | filter.Kyoto | filter.Distance1800m,
+		filter.Dirt2 | filter.Hanshin | filter.Distance1800m,
+		filter.Dirt2 | filter.Niigata | filter.Distance1800m,
+		filter.Dirt2 | filter.Chukyo | filter.Distance1800m,
+		filter.Dirt2 | filter.Kyoto | filter.Distance1900m,
+		filter.Dirt2 | filter.Chukyo | filter.Distance1900m,
+		filter.Dirt2 | filter.Hanshin | filter.Distance2000m,
+		filter.Dirt2 | filter.Tokyo | filter.Distance2100m,
+		filter.Dirt2 | filter.Nakayama | filter.Distance2400m,
+		filter.Dirt2 | filter.Sapporo | filter.Distance2400m,
+		filter.Dirt2 | filter.Hakodate | filter.Distance2400m,
+		filter.Dirt2 | filter.Fukushima | filter.Distance2400m,
+		filter.Dirt2 | filter.Kokura | filter.Distance2400m,
+		filter.Dirt2 | filter.Nakayama | filter.Distance2500m,
+		filter.Dirt2 | filter.Niigata | filter.Distance2500m,
 	}
 }

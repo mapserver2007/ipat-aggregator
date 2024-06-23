@@ -51,12 +51,17 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
 	for idx, analysisFilter := range analysisFilters {
 		placeAllIn, ok := placeAllInMap[analysisFilter]
 		if !ok {
-			return fmt.Errorf("placeAllInMap filter is not found: %d", analysisFilter)
+			return fmt.Errorf("placeAllInMap filter is not found: %d", analysisFilter.OriginFilters())
+		}
+
+		var filterName string
+		for _, f := range analysisFilter.OriginFilters() {
+			filterName += f.String()
 		}
 
 		valuesList[idx+1] = [][]interface{}{
 			{
-				analysisFilter.String(),
+				filterName,
 				placeAllIn.RateData().WinOdds11HitData().HitRateFormat(),
 				placeAllIn.RateData().WinOdds12HitData().HitRateFormat(),
 				placeAllIn.RateData().WinOdds13HitData().HitRateFormat(),
@@ -93,7 +98,11 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
 	for idx, values := range valuesList {
 		time.Sleep(time.Second)
 		if idx > 0 {
-			log.Println(ctx, fmt.Sprintf("write analysis place all in filter %s start", analysisFilters[idx-1].String()))
+			var filterName string
+			for _, f := range analysisFilters[idx-1].OriginFilters() {
+				filterName += f.String()
+			}
+			log.Println(ctx, fmt.Sprintf("write analysis place all in filter %s start", filterName))
 		}
 		writeRange := fmt.Sprintf("%s!%s", config.SheetName(), fmt.Sprintf("A%d", idx+1))
 		_, err := client.Spreadsheets.Values.Update(config.SpreadSheetId(), writeRange, &sheets.ValueRange{
@@ -125,9 +134,40 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Style(
 	for rowIdx, analysisFilter := range analysisFilters {
 		placeAllIn, ok := placeAllInMap[analysisFilter]
 		if !ok {
-			return fmt.Errorf("placeAllInMap filter is not found: %d", analysisFilter)
+			return fmt.Errorf("placeAllInMap filter is not found: %d", analysisFilter.OriginFilters())
 		}
 
+		cellComments := []string{
+			s.getCellComments(placeAllIn.RateData().WinOdds11HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds12HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds13HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds14HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds15HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds16HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds17HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds18HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds19HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds20HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds21HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds22HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds23HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds24HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds25HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds26HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds27HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds28HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds29HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds30HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds31HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds32HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds33HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds34HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds35HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds36HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds37HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds38HitData()),
+			s.getCellComments(placeAllIn.RateData().WinOdds39HitData()),
+		}
 		cellColorTypes := []types.CellColorType{
 			placeAllIn.RateStyle().WinOdds11CellColorType(),
 			placeAllIn.RateStyle().WinOdds12CellColorType(),
@@ -179,6 +219,25 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Style(
 					},
 				},
 			}...)
+			if len(cellComments[colIdx]) > 0 {
+				requests = append(requests, []*sheets.Request{
+					{
+						RepeatCell: &sheets.RepeatCellRequest{
+							Fields: "note",
+							Range: &sheets.GridRange{
+								SheetId:          config.SheetId(),
+								StartColumnIndex: 1 + int64(colIdx),
+								StartRowIndex:    1 + int64(rowIdx),
+								EndColumnIndex:   2 + int64(colIdx),
+								EndRowIndex:      2 + int64(rowIdx),
+							},
+							Cell: &sheets.CellData{
+								Note: cellComments[colIdx],
+							},
+						},
+					},
+				}...)
+			}
 		}
 	}
 
@@ -330,6 +389,15 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Clear(ctx context.Context) error 
 	}
 
 	return nil
+}
+
+func (s *spreadSheetAnalysisPlaceAllInGateway) getCellComments(
+	data *spreadsheet_entity.PlaceAllInHitData,
+) string {
+	if data.HitCount()+data.UnHitCount() == 0 {
+		return ""
+	}
+	return fmt.Sprintf("的中%d, 不的中%d", data.HitCount(), data.UnHitCount())
 }
 
 func (s *spreadSheetAnalysisPlaceAllInGateway) getCellColor(

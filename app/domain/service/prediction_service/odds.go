@@ -10,6 +10,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
 	"time"
 )
@@ -137,7 +138,7 @@ func (p *oddsService) Convert(
 			race.RaceCourseId(),
 			race.CourseCategory(),
 			race.Url(),
-			race.PredictionFilter(),
+			race.PredictionFilters(),
 		)
 		horseNumberOddsMap := map[types.HorseNumber]decimal.Decimal{}
 		for _, o := range race.Odds() {
@@ -149,6 +150,11 @@ func (p *oddsService) Convert(
 		thirdPlaceMap[*predictionRace] = map[types.Marker]*spreadsheet_entity.PredictionPlace{}
 		raceCourseMap[race.RaceCourseId()] = append(raceCourseMap[race.RaceCourseId()], race.RaceId())
 		predictionMarker := predictionMarkerMap[race.RaceId()]
+
+		var predictionFilter filter.Id
+		for _, f := range race.PredictionFilters() {
+			predictionFilter |= f
+		}
 
 		for _, marker := range []types.Marker{types.Favorite, types.Rival, types.BrackTriangle, types.WhiteTriangle, types.Star, types.Check} {
 			raceIdMap := map[types.RaceId]bool{}
@@ -213,7 +219,8 @@ func (p *oddsService) Convert(
 
 				match := true
 				for _, f := range calculable.Filters() {
-					if f&race.PredictionFilter() == 0 {
+
+					if f&predictionFilter == 0 {
 						match = false
 						break
 					}
@@ -390,33 +397,27 @@ func (p *oddsService) Convert(
 
 			firstPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				firstPlaceOddsRangeHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				secondPlaceOddsRangeHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(
 				thirdPlaceOddsRangeHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 
 			firstPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				firstPlaceOddsRangeUnHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			secondPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				secondPlaceOddsRangeUnHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 			thirdPlaceOddsRangeUnHitCountData := spreadsheet_entity.NewPlaceUnHitCountData(
 				thirdPlaceOddsRangeUnHitCountSlice,
-				race.PredictionFilter(),
 				len(raceIdMap),
 			)
 

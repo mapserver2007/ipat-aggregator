@@ -1,7 +1,5 @@
 package spreadsheet_entity
 
-import "github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
-
 type PlaceUnHitCountData struct {
 	raceCount       int
 	unHitCount      int
@@ -13,12 +11,10 @@ type PlaceUnHitCountData struct {
 	oddsRange6Count int
 	oddsRange7Count int
 	oddsRange8Count int
-	filterName      string
 }
 
 func NewPlaceUnHitCountData(
 	oddsRangeCountSlice []int,
-	filter filter.Id,
 	raceCount int,
 ) *PlaceUnHitCountData {
 	unHitCount := 0
@@ -37,7 +33,6 @@ func NewPlaceUnHitCountData(
 		oddsRange6Count: oddsRangeCountSlice[5],
 		oddsRange7Count: oddsRangeCountSlice[6],
 		oddsRange8Count: oddsRangeCountSlice[7],
-		filterName:      filter.String(),
 	}
 }
 
@@ -79,8 +74,4 @@ func (p *PlaceUnHitCountData) OddsRange7Count() int {
 
 func (p *PlaceUnHitCountData) OddsRange8Count() int {
 	return p.oddsRange8Count
-}
-
-func (p *PlaceUnHitCountData) FilterName() string {
-	return p.filterName
 }

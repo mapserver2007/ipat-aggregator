@@ -19,9 +19,9 @@ func NewAnalysisFilter() AnalysisFilter {
 
 func (f *filterService) CreatePlaceFilters(ctx context.Context, race *data_cache_entity.Race) []filter.Id {
 	var filterIds []filter.Id
+	filterIds = append(filterIds, RaceCourseFilters(race.RaceCourseId())...)
 	filterIds = append(filterIds, CourseCategoryFilters(race.CourseCategory())...)
 	filterIds = append(filterIds, DistanceFilters(race.Distance())...)
-	filterIds = append(filterIds, RaceCourseFilters(race.RaceCourseId())...)
 
 	return filterIds
 }

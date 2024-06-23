@@ -24,7 +24,6 @@ type PredictionRateData struct {
 	oddsRange6Hit  bool
 	oddsRange7Hit  bool
 	oddsRange8Hit  bool
-	filterName     string
 }
 
 func NewPredictionRateData(
@@ -61,7 +60,6 @@ func NewPredictionRateData(
 		oddsRange6Hit:  hitSlice[5],
 		oddsRange7Hit:  hitSlice[6],
 		oddsRange8Hit:  hitSlice[7],
-		filterName:     hitCountData.FilterName(),
 	}
 }
 
@@ -171,10 +169,6 @@ func (p *PredictionRateData) OddsRange7Hit() bool {
 
 func (p *PredictionRateData) OddsRange8Hit() bool {
 	return p.oddsRange8Hit
-}
-
-func (p *PredictionRateData) FilterName() string {
-	return p.filterName
 }
 
 func (p *PredictionRateData) rateFormat(rate float64) string {

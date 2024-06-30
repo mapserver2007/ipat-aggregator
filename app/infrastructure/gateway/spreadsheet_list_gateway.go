@@ -85,7 +85,12 @@ func (s *spreadSheetListGateway) Write(
 			row.Data().FavoriteHorseOdds(),
 			row.Data().RivalHorse(),
 			row.Data().RivalJockey(),
-			row.Data().RivalHorsePopular(),
+			func(s string) string {
+				if s == "0" {
+					return "-"
+				}
+				return s
+			}(row.Data().RivalHorsePopular()),
 			row.Data().RivalHorseOdds(),
 			row.Data().FirstPlaceHorse(),
 			row.Data().FirstPlaceJockey(),

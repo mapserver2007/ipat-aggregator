@@ -279,7 +279,7 @@ func (l *listService) Create(
 		// 単複のみなど対抗が存在しない場合
 		if rivalHorse == nil {
 			rivalHorse = list_entity.NewHorse("-", "-", 0)
-			rivalJockey = l.JockeyEntityConverter.DataCacheToList(data_cache_entity.NewJockey(99999, "(不明)"))
+			rivalJockey = l.JockeyEntityConverter.DataCacheToList(data_cache_entity.NewJockey(99999, "-"))
 		}
 
 		sort.Slice(raceResults, func(i, j int) bool {
@@ -296,13 +296,13 @@ func (l *listService) Create(
 			rivalJockey,
 			listRace.RaceResults()[0],
 			list_entity.NewJockey(
-				types.JockeyId(listRace.RaceResults()[0].JockeyId()),
-				getJockeyName(types.JockeyId(listRace.RaceResults()[0].JockeyId())),
+				listRace.RaceResults()[0].JockeyId(),
+				getJockeyName(listRace.RaceResults()[0].JockeyId()),
 			),
 			listRace.RaceResults()[1],
 			list_entity.NewJockey(
-				types.JockeyId(listRace.RaceResults()[1].JockeyId()),
-				getJockeyName(types.JockeyId(listRace.RaceResults()[1].JockeyId())),
+				listRace.RaceResults()[1].JockeyId(),
+				getJockeyName(listRace.RaceResults()[1].JockeyId()),
 			),
 			hitTickets,
 			types.Payment(rawPayment),

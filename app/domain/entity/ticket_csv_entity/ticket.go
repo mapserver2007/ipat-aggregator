@@ -7,7 +7,6 @@ import (
 
 type Ticket struct {
 	raceDate     types.RaceDate
-	entryNo      int
 	raceCourse   types.RaceCourse
 	raceNo       int
 	betNumber    types.BetNumber
@@ -20,7 +19,6 @@ type Ticket struct {
 func NewTicket(
 	betNumber types.BetNumber,
 	rawRaceDate,
-	rawEntryNo,
 	rawRaceCourse,
 	rawRaceNo,
 	rawTicketType string,
@@ -29,11 +27,6 @@ func NewTicket(
 	rawPayout string,
 ) (*Ticket, error) {
 	raceDate, err := types.NewRaceDate(rawRaceDate)
-	if err != nil {
-		return nil, err
-	}
-
-	entryNo, err := strconv.Atoi(rawEntryNo)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +60,6 @@ func NewTicket(
 
 	return &Ticket{
 		raceDate:     raceDate,
-		entryNo:      entryNo,
 		raceCourse:   raceCourse,
 		raceNo:       raceNo,
 		betNumber:    betNumber,
@@ -80,10 +72,6 @@ func NewTicket(
 
 func (t *Ticket) RaceDate() types.RaceDate {
 	return t.raceDate
-}
-
-func (t *Ticket) EntryNo() int {
-	return t.entryNo
 }
 
 func (t *Ticket) RaceCourse() types.RaceCourse {

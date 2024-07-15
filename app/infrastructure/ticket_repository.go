@@ -16,6 +16,10 @@ import (
 	"strings"
 )
 
+const (
+	ticketPatDataSuffix = "_tohyo"
+)
+
 type ticketRepository struct {
 	betNumberConverter master_service.BetNumberConverter
 }
@@ -47,7 +51,7 @@ func (t *ticketRepository) List(ctx context.Context, path string) ([]string, err
 
 	fileNames := make([]string, 0, len(files))
 	for _, file := range files {
-		if !strings.Contains(file, "_tohyo") {
+		if !strings.Contains(file, ticketPatDataSuffix) {
 			continue
 		}
 		fileNames = append(fileNames, filepath.Base(file))
@@ -78,7 +82,6 @@ func (t *ticketRepository) Read(ctx context.Context, path string) ([]*ticket_csv
 		}
 
 		rawRaceDate := record[0]
-		rawRaceEntryNo := record[1]
 		rawRaceCourse := record[3]
 		rawRaceNo := record[5]
 		rawTicketType := record[6]
@@ -106,7 +109,6 @@ func (t *ticketRepository) Read(ctx context.Context, path string) ([]*ticket_csv
 			ticket, err := ticket_csv_entity.NewTicket(
 				betNumber,
 				rawRaceDate,
-				rawRaceEntryNo,
 				rawRaceCourse,
 				rawRaceNo,
 				rawTicketType,

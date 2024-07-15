@@ -56,6 +56,10 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
 
 		var filterName string
 		for _, f := range analysisFilter.OriginFilters() {
+			if f == filter.Place {
+				// フィルタ名称表示に券種を出す必要がないので除外する
+				continue
+			}
 			filterName += f.String()
 		}
 

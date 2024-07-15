@@ -110,7 +110,7 @@ func (p *placeAllInService) Create(
 			}
 		}
 
-		filters := p.filterService.CreatePlaceAllInFilters(ctx, race)
+		filters := p.filterService.CreatePlaceAllInFilters(ctx, race, markerCombinationId)
 
 		raceCalculables = append(raceCalculables, analysis_entity.NewPlaceAllInCalculable(
 			race.RaceId(),
@@ -401,6 +401,38 @@ func (p *placeAllInService) getFilters() []filter.Id {
 		filter.Dirt | filter.Good,
 		filter.Dirt | filter.Yielding,
 		filter.Dirt | filter.Soft,
+		filter.Turf | filter.Place | filter.Favorite,
+		filter.Turf | filter.Place | filter.Rival,
+		filter.Turf | filter.Place | filter.BrackTriangle,
+		filter.Turf | filter.Place | filter.WhiteTriangle,
+		filter.Turf | filter.Place | filter.Star,
+		filter.Turf | filter.Place | filter.Check,
+		filter.Dirt | filter.Place | filter.Favorite,
+		filter.Dirt | filter.Place | filter.Rival,
+		filter.Dirt | filter.Place | filter.BrackTriangle,
+		filter.Dirt | filter.Place | filter.WhiteTriangle,
+		filter.Dirt | filter.Place | filter.Star,
+		filter.Dirt | filter.Place | filter.Check,
+		filter.Turf | filter.Tokyo,
+		filter.Turf | filter.Nakayama,
+		filter.Turf | filter.Kyoto,
+		filter.Turf | filter.Hanshin,
+		filter.Turf | filter.Niigata,
+		filter.Turf | filter.Chukyo,
+		filter.Turf | filter.Sapporo,
+		filter.Turf | filter.Hakodate,
+		filter.Turf | filter.Fukushima,
+		filter.Turf | filter.Kokura,
+		filter.Dirt | filter.Tokyo,
+		filter.Dirt | filter.Nakayama,
+		filter.Dirt | filter.Kyoto,
+		filter.Dirt | filter.Hanshin,
+		filter.Dirt | filter.Niigata,
+		filter.Dirt | filter.Chukyo,
+		filter.Dirt | filter.Sapporo,
+		filter.Dirt | filter.Hakodate,
+		filter.Dirt | filter.Fukushima,
+		filter.Dirt | filter.Kokura,
 		filter.Turf | filter.Niigata | filter.Distance1000m,
 		filter.Turf | filter.Hakodate | filter.Distance1000m,
 		filter.Turf | filter.Nakayama | filter.Distance1200m,

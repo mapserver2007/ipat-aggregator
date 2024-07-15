@@ -106,3 +106,41 @@ func TrackConditionFilters(trackCondition types.TrackCondition) []filter.Id {
 	}
 	return filterIds
 }
+
+func MarkerFilters(markerCombinationId types.MarkerCombinationId) []filter.Id {
+	var filterIds []filter.Id
+	marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
+	switch marker {
+	case types.Favorite:
+		filterIds = append(filterIds, filter.Favorite)
+	case types.Rival:
+		filterIds = append(filterIds, filter.Rival)
+	case types.BrackTriangle:
+		filterIds = append(filterIds, filter.BrackTriangle)
+	case types.WhiteTriangle:
+		filterIds = append(filterIds, filter.WhiteTriangle)
+	case types.Star:
+		filterIds = append(filterIds, filter.Star)
+	case types.Check:
+		filterIds = append(filterIds, filter.Check)
+	}
+
+	switch markerCombinationId.TicketType() {
+	case types.Win:
+		filterIds = append(filterIds, filter.Win)
+	case types.Place:
+		filterIds = append(filterIds, filter.Place)
+	case types.Quinella:
+		filterIds = append(filterIds, filter.Quinella)
+	case types.Exacta:
+		filterIds = append(filterIds, filter.Exacta)
+	case types.QuinellaPlace:
+		filterIds = append(filterIds, filter.QuinellaPlace)
+	case types.Trio:
+		filterIds = append(filterIds, filter.Trio)
+	case types.Trifecta:
+		filterIds = append(filterIds, filter.Trifecta)
+	}
+
+	return filterIds
+}

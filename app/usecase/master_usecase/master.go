@@ -40,6 +40,7 @@ type master struct {
 	trioOddsService         master_service.TrioOdds
 	analysisMarkerService   master_service.AnalysisMarker
 	predictionMarkerService master_service.PredictionMarker
+	umacaTicketService      master_service.UmacaTicket
 }
 
 func NewMaster(
@@ -52,6 +53,7 @@ func NewMaster(
 	trioOddsService master_service.TrioOdds,
 	analysisMarkerService master_service.AnalysisMarker,
 	predictionMarkerService master_service.PredictionMarker,
+	umacaTicketService master_service.UmacaTicket,
 ) Master {
 	return &master{
 		ticketService:           ticketService,
@@ -63,6 +65,7 @@ func NewMaster(
 		trioOddsService:         trioOddsService,
 		analysisMarkerService:   analysisMarkerService,
 		predictionMarkerService: predictionMarkerService,
+		umacaTicketService:      umacaTicketService,
 	}
 }
 
@@ -140,12 +143,25 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
+	err = m.umacaTicketService.CreateOrUpdate(ctx, races)
+	if err != nil {
+		return err
+	}
+
+	umacaRaceTickets, err := m.umacaTicketService.Get(ctx, races)
+	if err != nil {
+		return err
+	}
+
 	// 地方・海外のレースデータを取得するために馬券情報を取得する
 	// 中央は期間から自動計算するが、地方・海外は馬券情報からRaceIdを割り出して取得する
 	raceTickets, err := m.ticketService.Get(ctx, races)
 	if err != nil {
 		return err
 	}
+
+	// patとumacaのデータを統合
+	raceTickets = append(raceTickets, umacaRaceTickets...)
 
 	raceDateMapForNAROrOversea := map[types.RaceDate][]types.RaceId{}
 	for _, raceTicket := range raceTickets {

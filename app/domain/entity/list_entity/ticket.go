@@ -30,10 +30,6 @@ func (t *Ticket) RaceDate() types.RaceDate {
 	return t.ticket.RaceDate()
 }
 
-func (t *Ticket) EntryNo() int {
-	return t.ticket.EntryNo()
-}
-
 func (t *Ticket) RaceCourse() types.RaceCourse {
 	return t.ticket.RaceCourse()
 }

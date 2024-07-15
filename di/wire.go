@@ -33,6 +33,7 @@ var MasterSet = wire.NewSet(
 	master_service.NewAnalysisMarker,
 	master_service.NewPredictionMarker,
 	master_service.NewBetNumberConverter,
+	master_service.NewUmacaTicket,
 	converter.NewRaceEntityConverter,
 	converter.NewJockeyEntityConverter,
 	converter.NewOddsEntityConverter,
@@ -43,6 +44,7 @@ var MasterSet = wire.NewSet(
 	infrastructure.NewOddsRepository,
 	infrastructure.NewAnalysisMarkerRepository,
 	infrastructure.NewPredictionMarkerRepository,
+	infrastructure.NewUmacaTicketRepository,
 	gateway.NewNetKeibaGateway,
 )
 

@@ -193,8 +193,9 @@ func (o *trioOddsService) createOddsMap(
 		}
 
 		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
-			RaceId: raceId.String(),
-			Odds:   rawOddsList,
+			RaceId:   raceId.String(),
+			RaceDate: raceDate.Value(),
+			Odds:     rawOddsList,
 		})
 	}
 

@@ -78,10 +78,10 @@ func (n *netKeibaGateway) FetchRace(
 	raceWeightCondition := types.FixedWeight
 
 	n.client.OnHTML("#All_Result_Table", func(e *colly.HTMLElement) {
+		raceTime = e.DOM.Find(".Time > .RaceTime").Eq(0).Text()
 		e.ForEach("tr.HorseList", func(i int, ce *colly.HTMLElement) {
 			var numbers []int
 			var oddsList []string
-			var raceTimes []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
 			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
@@ -94,8 +94,7 @@ func (n *netKeibaGateway) FetchRace(
 				ce.ForEach(".Odds span", func(j int, ce2 *colly.HTMLElement) {
 					oddsList = append(oddsList, ce2.DOM.Text())
 				})
-				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
-				raceTime = raceTimes[0]
+
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
@@ -123,8 +122,6 @@ func (n *netKeibaGateway) FetchRace(
 				ce.ForEach(".Odds span", func(j int, ce2 *colly.HTMLElement) {
 					oddsList = append(oddsList, ce2.DOM.Text())
 				})
-				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
-				raceTime = raceTimes[0]
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
@@ -149,7 +146,6 @@ func (n *netKeibaGateway) FetchRace(
 		e.ForEach("#All_Result_Table > tbody > tr", func(i int, ce *colly.HTMLElement) {
 			var numbers []int
 			var oddsList []string
-			var raceTimes []string
 			query := ce.Request.URL.Query()
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
 			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
@@ -162,8 +158,6 @@ func (n *netKeibaGateway) FetchRace(
 				ce.ForEach(".Odds span", func(j int, ce2 *colly.HTMLElement) {
 					oddsList = append(oddsList, ce2.DOM.Text())
 				})
-				raceTimes = append(raceTimes, ce.DOM.Find(".Time > .RaceTime").Text())
-				raceTime = raceTimes[0]
 				popularNumber, _ := strconv.Atoi(oddsList[0])
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)

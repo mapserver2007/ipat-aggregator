@@ -10,6 +10,7 @@ type Race struct {
 	raceNumber          int
 	raceCourseId        types.RaceCourse
 	raceName            string
+	organizer           types.Organizer
 	url                 string
 	time                string
 	startTime           string
@@ -30,6 +31,7 @@ func NewRace(
 	raceNumber int,
 	raceCourseId string,
 	raceName string,
+	organizer int,
 	url string,
 	time string,
 	startTime string,
@@ -49,6 +51,7 @@ func NewRace(
 		raceNumber:          raceNumber,
 		raceCourseId:        types.RaceCourse(raceCourseId),
 		raceName:            raceName,
+		organizer:           types.NewOrganizer(organizer),
 		url:                 url,
 		time:                time,
 		startTime:           startTime,
@@ -82,6 +85,10 @@ func (r *Race) RaceCourseId() types.RaceCourse {
 
 func (r *Race) RaceName() string {
 	return r.raceName
+}
+
+func (r *Race) Organizer() types.Organizer {
+	return r.organizer
 }
 
 func (r *Race) Url() string {

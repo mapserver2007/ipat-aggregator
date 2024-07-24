@@ -6,6 +6,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"sort"
 )
 
 const (
@@ -35,6 +36,10 @@ func (m *analysisMarkerService) Get(
 	if err != nil {
 		return nil, err
 	}
+
+	sort.Slice(markers, func(i, j int) bool {
+		return markers[i].RaceId() < markers[j].RaceId()
+	})
 
 	return markers, nil
 }

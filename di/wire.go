@@ -34,18 +34,22 @@ var MasterSet = wire.NewSet(
 	master_service.NewPredictionMarker,
 	master_service.NewBetNumberConverter,
 	master_service.NewUmacaTicket,
+	master_service.NewRaceForecast,
 	converter.NewRaceEntityConverter,
 	converter.NewJockeyEntityConverter,
 	converter.NewOddsEntityConverter,
+	converter.NewRaceForecastEntityConverter,
 	infrastructure.NewTicketRepository,
 	infrastructure.NewRaceIdRepository,
 	infrastructure.NewRaceRepository,
+	infrastructure.NewRaceForecastRepository,
 	infrastructure.NewJockeyRepository,
 	infrastructure.NewOddsRepository,
 	infrastructure.NewAnalysisMarkerRepository,
 	infrastructure.NewPredictionMarkerRepository,
 	infrastructure.NewUmacaTicketRepository,
 	gateway.NewNetKeibaGateway,
+	gateway.NewTospoGateway,
 )
 
 var AggregationSet = wire.NewSet(
@@ -71,6 +75,7 @@ var AnalysisSet = wire.NewSet(
 	analysis_service.NewPlace,
 	analysis_service.NewTrio,
 	analysis_service.NewPlaceAllIn,
+	analysis_service.NewPlaceUnHit,
 	filter_service.NewAnalysisFilter,
 	infrastructure.NewSpreadSheetRepository,
 )
@@ -82,6 +87,7 @@ var PredictionSet = wire.NewSet(
 	infrastructure.NewOddsRepository,
 	infrastructure.NewRaceRepository,
 	gateway.NewNetKeibaGateway,
+	gateway.NewTospoGateway,
 )
 
 var SpreadSheetGatewaySet = wire.NewSet(

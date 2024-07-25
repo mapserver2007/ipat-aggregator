@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sort"
 )
 
 type TospoGateway interface {
@@ -89,6 +90,10 @@ func (t *tospoGateway) FetchForecast(
 		))
 	}
 
+	sort.Slice(forecasts, func(i, j int) bool {
+		return forecasts[i].HorseNumber() < forecasts[j].HorseNumber()
+	})
+
 	return forecasts, nil
 }
 
@@ -131,6 +136,10 @@ func (t *tospoGateway) FetchTrainingComment(
 			raceTrainingComment.Prediction,
 		))
 	}
+
+	sort.Slice(trainingComments, func(i, j int) bool {
+		return trainingComments[i].HorseNumber() < trainingComments[j].HorseNumber()
+	})
 
 	return trainingComments, nil
 }

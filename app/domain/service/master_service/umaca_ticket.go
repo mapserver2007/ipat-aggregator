@@ -23,6 +23,7 @@ const (
 type UmacaTicket interface {
 	Get(ctx context.Context, races []*data_cache_entity.Race) ([]*ticket_csv_entity.RaceTicket, error)
 	CreateOrUpdate(ctx context.Context, races []*data_cache_entity.Race) error
+	GetMaster(ctx context.Context) ([]*umaca_csv_entity.UmacaMaster, error)
 }
 
 type umacaTicketService struct {
@@ -96,10 +97,7 @@ func (u *umacaTicketService) CreateOrUpdate(
 		raceMap[race.RaceId()] = race
 	}
 
-	masters, err := u.umacaTicketRepository.GetMaster(ctx, fmt.Sprintf("%s/%s", config.CsvDir, umacaMasterFileName))
-	if err != nil {
-		return err
-	}
+	masters, err := u.GetMaster(ctx)
 
 	raceDateMap := map[types.RaceDate][]*umaca_csv_entity.UmacaMaster{}
 	for _, master := range masters {
@@ -225,6 +223,15 @@ func (u *umacaTicketService) CreateOrUpdate(
 	}
 
 	return nil
+}
+
+func (u *umacaTicketService) GetMaster(ctx context.Context) ([]*umaca_csv_entity.UmacaMaster, error) {
+	masters, err := u.umacaTicketRepository.GetMaster(ctx, fmt.Sprintf("%s/%s", config.CsvDir, umacaMasterFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	return masters, nil
 }
 
 func (u *umacaTicketService) getWeekdayName(

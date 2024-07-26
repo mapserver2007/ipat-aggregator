@@ -7,6 +7,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"strconv"
 )
 
 type Master interface {
@@ -34,6 +35,7 @@ type master struct {
 	ticketService           master_service.Ticket
 	raceIdService           master_service.RaceId
 	raceService             master_service.Race
+	raceForecastService     master_service.RaceForecast
 	jockeyService           master_service.Jockey
 	winOddsService          master_service.WinOdds
 	placeOddsService        master_service.PlaceOdds
@@ -47,6 +49,7 @@ func NewMaster(
 	ticketService master_service.Ticket,
 	raceIdService master_service.RaceId,
 	raceService master_service.Race,
+	raceForecastService master_service.RaceForecast,
 	jockeyService master_service.Jockey,
 	winOddsService master_service.WinOdds,
 	placeOddsService master_service.PlaceOdds,
@@ -59,6 +62,7 @@ func NewMaster(
 		ticketService:           ticketService,
 		raceIdService:           raceIdService,
 		raceService:             raceService,
+		raceForecastService:     raceForecastService,
 		jockeyService:           jockeyService,
 		winOddsService:          winOddsService,
 		placeOddsService:        placeOddsService,
@@ -143,6 +147,46 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
+	umacaMasters, err := m.umacaTicketService.GetMaster(ctx)
+	if err != nil {
+		return err
+	}
+	// umaca投票データに追加されたraceIdは未キャッシュなので更新する
+	latestEndDate, err := types.NewRaceDate(input.EndDate)
+	if err != nil {
+		return err
+	}
+	for _, umacaMaster := range umacaMasters {
+		if latestEndDate.Value() < umacaMaster.RaceDate().Value() {
+			latestEndDate = umacaMaster.RaceDate()
+		}
+	}
+
+	err = m.raceIdService.CreateOrUpdate(ctx, input.StartDate, strconv.Itoa(latestEndDate.Value()))
+	if err != nil {
+		return err
+	}
+
+	raceDateMap, _, err = m.raceIdService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	races, err = m.raceService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
+	if err != nil {
+		return err
+	}
+
+	races, err = m.raceService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = m.umacaTicketService.CreateOrUpdate(ctx, races)
 	if err != nil {
 		return err
@@ -195,6 +239,17 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	}
 
 	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
+	if err != nil {
+		return err
+	}
+
+	// tospoデータ差分更新
+	races, err = m.raceService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = m.raceForecastService.CreateOrUpdate(ctx, races)
 	if err != nil {
 		return err
 	}

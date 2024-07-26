@@ -262,6 +262,10 @@ func NewOrganizer(value int) Organizer {
 	return UnknownOrganizer
 }
 
+func (o Organizer) Value() int {
+	return int(o)
+}
+
 type HorseNumber int
 
 func (h HorseNumber) Value() int {

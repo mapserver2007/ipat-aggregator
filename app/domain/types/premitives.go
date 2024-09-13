@@ -153,6 +153,7 @@ const (
 	Meydan         = "J0"
 	SantaAnitaPark = "F3"
 	KingAbdulaziz  = "P0"
+	York           = "AH"
 	Overseas       = "99" // その他海外
 )
 
@@ -184,6 +185,7 @@ var raceCourseMap = map[RaceCourse]string{
 	Meydan:         "メイダン（ＵＡＥ）",
 	SantaAnitaPark: "サンタアニタパーク（アメリカ）",
 	KingAbdulaziz:  "Ｋアブドゥルアジーズ（サウジアラビア）",
+	York:           "ヨーク（イギリス）",
 	Overseas:       "海外",
 	UnknownPlace:   "不明",
 }
@@ -235,7 +237,7 @@ func (r RaceCourse) NAR() bool {
 
 func (r RaceCourse) Oversea() bool {
 	switch r {
-	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark, KingAbdulaziz:
+	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark, KingAbdulaziz, York:
 		return true
 	}
 	return false

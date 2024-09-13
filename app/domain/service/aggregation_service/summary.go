@@ -120,7 +120,7 @@ func (s *summaryService) Create(
 	for _, raceCourse := range raceCourses {
 		raceCourseResultMap[raceCourse] = s.createRaceCourseResult(ctx, tickets, races, []types.RaceCourse{raceCourse})
 	}
-	raceCourseResultMap[types.Overseas] = s.createRaceCourseResult(ctx, tickets, races, []types.RaceCourse{types.Longchamp, types.Deauville, types.Shatin, types.Meydan, types.SantaAnitaPark, types.KingAbdulaziz})
+	raceCourseResultMap[types.Overseas] = s.createRaceCourseResult(ctx, tickets, races, []types.RaceCourse{types.Longchamp, types.Deauville, types.Shatin, types.Meydan, types.SantaAnitaPark, types.KingAbdulaziz, types.York})
 
 	dateTimeTicketMap := map[time.Time][]*ticket_csv_entity.RaceTicket{}
 	for _, raceTicket := range tickets {

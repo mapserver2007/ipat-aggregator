@@ -4,13 +4,13 @@ const (
 	CsvDir                         = "csv"
 	CacheDir                       = "cache"
 	RaceStartDate                  = "20230729"
-	RaceEndDate                    = "20240721"
+	RaceEndDate                    = "20240916"
 	AnalysisPlaceUnHitWinUpperOdds = 1.1
 	AnalysisPlaceUnHitWinLowerOdds = 1.9
 	EnableAggregation              = false
-	EnableAnalysis                 = false
-	EnableAnalysisPlace            = false
-	EnableAnalysisPlaceAllIn       = false
+	EnableAnalysis                 = true
+	EnableAnalysisPlace            = true
+	EnableAnalysisPlaceAllIn       = true
 	EnableAnalysisPlaceUnHit       = false
 	EnablePrediction               = false
 )

@@ -42,6 +42,5 @@ func (p *placeUnHitService) Convert(
 		}
 	}
 
-	//TODO implement me
-	panic("implement me")
+	return nil
 }

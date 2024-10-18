@@ -15,12 +15,6 @@ import (
 	"time"
 )
 
-const (
-	raceCardUrl   = "https://race.netkeiba.com/race/shutuba.html?race_id=%s"
-	oddsUrl       = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=1&action=update"
-	raceResultUrl = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%s"
-)
-
 type Odds interface {
 	Get(ctx context.Context, raceId types.RaceId) (*prediction_entity.Race, error)
 	Convert(ctx context.Context, predictionRaces []*prediction_entity.Race, predictionMarkers []*marker_csv_entity.PredictionMarker, calculables []*analysis_entity.PlaceCalculable) (map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[types.RaceCourse][]types.RaceId)
@@ -98,6 +92,7 @@ func (p *oddsService) Get(
 		raceCard.RaceWeightCondition(),
 		raceCard.RaceCourseId(),
 		raceCard.Url(),
+		nil,
 		raceResultHorseNumbers,
 		predictionOdds,
 		p.filterService.Create(ctx, raceCard),

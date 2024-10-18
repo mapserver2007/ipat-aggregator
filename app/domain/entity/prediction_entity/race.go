@@ -18,6 +18,7 @@ type Race struct {
 	raceWeightCondition    types.RaceWeightCondition
 	raceCourseId           types.RaceCourse
 	url                    string
+	raceEntryHorses        []*RaceEntryHorse
 	raceResultHorseNumbers []types.HorseNumber
 	odds                   []*Odds
 	predictionFilters      []filter.Id
@@ -36,6 +37,7 @@ func NewRace(
 	raceWeightCondition int,
 	raceCourseId string,
 	url string,
+	raceEntryHorses []*RaceEntryHorse,
 	rawRaceResultHorseNumbers []int,
 	odds []*Odds,
 	predictionFilters []filter.Id,
@@ -58,6 +60,7 @@ func NewRace(
 		raceWeightCondition:    types.RaceWeightCondition(raceWeightCondition),
 		raceCourseId:           types.RaceCourse(raceCourseId),
 		url:                    url,
+		raceEntryHorses:        raceEntryHorses,
 		raceResultHorseNumbers: raceResultHorseNumbers,
 		odds:                   odds,
 		predictionFilters:      predictionFilters,
@@ -110,6 +113,10 @@ func (r *Race) RaceCourseId() types.RaceCourse {
 
 func (r *Race) Url() string {
 	return r.url
+}
+
+func (r *Race) RaceEntryHorses() []*RaceEntryHorse {
+	return r.raceEntryHorses
 }
 
 func (r *Race) RaceResultHorseNumbers() []types.HorseNumber {

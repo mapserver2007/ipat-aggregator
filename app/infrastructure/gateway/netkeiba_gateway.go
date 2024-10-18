@@ -23,18 +23,21 @@ type NetKeibaGateway interface {
 	FetchRace(ctx context.Context, url string) (*netkeiba_entity.Race, error)
 	FetchRaceCard(ctx context.Context, url string) (*netkeiba_entity.Race, error)
 	FetchJockey(ctx context.Context, url string) (*netkeiba_entity.Jockey, error)
+	FetchHorse(ctx context.Context, url string) (*netkeiba_entity.Horse, error)
 	FetchWinOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchPlaceOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 }
 
 type netKeibaGateway struct {
-	client *colly.Collector
+	collector NetKeibaCollector
 }
 
-func NewNetKeibaGateway() NetKeibaGateway {
+func NewNetKeibaGateway(
+	collector NetKeibaCollector,
+) NetKeibaGateway {
 	return &netKeibaGateway{
-		client: colly.NewCollector(),
+		collector: collector,
 	}
 }
 
@@ -43,7 +46,7 @@ func (n *netKeibaGateway) FetchRaceId(
 	url string,
 ) ([]string, error) {
 	var rawRaceIds []string
-	n.client.OnHTML(".RaceList_DataItem > a:first-child", func(e *colly.HTMLElement) {
+	n.collector.Client().OnHTML(".RaceList_DataItem > a:first-child", func(e *colly.HTMLElement) {
 		regex := regexp.MustCompile(`race_id=(\d+)`)
 		matches := regex.FindAllStringSubmatch(e.Attr("href"), -1)
 		raceId := matches[0][1]
@@ -51,7 +54,7 @@ func (n *netKeibaGateway) FetchRaceId(
 	})
 
 	log.Println(ctx, fmt.Sprintf("fetching race id from %s", url))
-	err := n.client.Visit(url)
+	err := n.collector.Client().Visit(url)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +80,7 @@ func (n *netKeibaGateway) FetchRace(
 	raceSexCondition := types.NoRaceSexCondition
 	raceWeightCondition := types.FixedWeight
 
-	n.client.OnHTML("#All_Result_Table", func(e *colly.HTMLElement) {
+	n.collector.Client().OnHTML("#All_Result_Table", func(e *colly.HTMLElement) {
 		raceTime = e.DOM.Find(".Time > .RaceTime").Eq(0).Text()
 		e.ForEach("tr.HorseList", func(i int, ce *colly.HTMLElement) {
 			var numbers []int
@@ -107,7 +110,7 @@ func (n *netKeibaGateway) FetchRace(
 
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
-					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
+					ce.DOM.Find(".Horse_Name > a").Text(),
 					numbers[0],
 					numbers[1],
 					jockeyId,
@@ -134,7 +137,7 @@ func (n *netKeibaGateway) FetchRace(
 
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
-					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
+					ce.DOM.Find(".Horse_Name > a").Text(),
 					numbers[0],
 					numbers[1],
 					jockeyId,
@@ -170,7 +173,7 @@ func (n *netKeibaGateway) FetchRace(
 
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
-					ConvertFromEucJPToUtf8(ce.DOM.Find(".Horse_Name > a").Text()),
+					ce.DOM.Find(".Horse_Name > a").Text(),
 					numbers[0],
 					numbers[1],
 					jockeyId,
@@ -181,11 +184,11 @@ func (n *netKeibaGateway) FetchRace(
 		})
 	})
 
-	n.client.OnHTML("div.RaceList_Item02", func(e *colly.HTMLElement) {
+	n.collector.Client().OnHTML("div.RaceList_Item02", func(e *colly.HTMLElement) {
 		e.ForEach("h1", func(_ int, ce *colly.HTMLElement) {
 			regex := regexp.MustCompile(`(.+)\s`)
 			matches := regex.FindAllStringSubmatch(ce.DOM.Text(), -1)
-			raceName = ConvertFromEucJPToUtf8(matches[0][1])
+			raceName = Trim(matches[0][1])
 			gradeClass = types.AllowanceClass
 			if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
 				gradeClass = types.Grade1
@@ -247,7 +250,7 @@ func (n *netKeibaGateway) FetchRace(
 			if currentOrganizer == types.JRA {
 				switch i {
 				case 0:
-					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+					text := ce.DOM.Text()
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
 					startTime = matches[0][1]
@@ -266,14 +269,13 @@ func (n *netKeibaGateway) FetchRace(
 					}
 				case 1:
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
+						text := ce.DOM.Text()
 						switch j {
 						case 5:
-							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 							if strings.Contains(text, "牝") {
 								raceSexCondition = types.FillyAndMareLimited
 							}
 						case 6:
-							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 							if text == types.AgeWeight.String() {
 								raceWeightCondition = types.AgeWeight
 							} else if text == types.FixedWeight.String() {
@@ -284,7 +286,6 @@ func (n *netKeibaGateway) FetchRace(
 								raceWeightCondition = types.HandicapWeight
 							}
 						case 7:
-							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 							regex := regexp.MustCompile(`(\d+)頭`)
 							matches := regex.FindAllStringSubmatch(text, -1)
 							entries, _ = strconv.Atoi(matches[0][1])
@@ -296,7 +297,7 @@ func (n *netKeibaGateway) FetchRace(
 				case 0:
 					regex := regexp.MustCompile(`(.+)\s`)
 					matches := regex.FindAllStringSubmatch(ce.DOM.Text(), -1)
-					raceName = ConvertFromEucJPToUtf8(matches[0][1])
+					raceName = matches[0][1]
 					gradeClass = types.AllowanceClass
 					if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
 						gradeClass = types.Grade1
@@ -314,7 +315,7 @@ func (n *netKeibaGateway) FetchRace(
 						gradeClass = types.LocalGrade
 					}
 				case 1:
-					text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+					text := ce.DOM.Text()
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
 					startTime = matches[0][1]
@@ -335,7 +336,7 @@ func (n *netKeibaGateway) FetchRace(
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
 						switch j {
 						case 5:
-							text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+							text := ce.DOM.Text()
 							regex := regexp.MustCompile(`(\d+)頭`)
 							matches := regex.FindAllStringSubmatch(text, -1)
 							entries, _ = strconv.Atoi(matches[0][1])
@@ -345,7 +346,7 @@ func (n *netKeibaGateway) FetchRace(
 			} else if currentOrganizer == types.OverseaOrganizer {
 				switch i {
 				case 0:
-					raceName = ConvertFromEucJPToUtf8(ce.DOM.Text())
+					raceName = ce.DOM.Text()
 					gradeClass = types.NonGrade
 					if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
 						gradeClass = types.Grade1
@@ -356,7 +357,7 @@ func (n *netKeibaGateway) FetchRace(
 					}
 				case 1:
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
-						text := ConvertFromEucJPToUtf8(ce2.DOM.Text())
+						text := ce2.DOM.Text()
 						switch j {
 						case 0:
 							regex := regexp.MustCompile(`(ダ|芝)(\d+)`)
@@ -402,7 +403,7 @@ func (n *netKeibaGateway) FetchRace(
 		})
 	})
 
-	n.client.OnHTML("div.Result_Pay_Back table tbody", func(e *colly.HTMLElement) {
+	n.collector.Client().OnHTML("div.Result_Pay_Back table tbody", func(e *colly.HTMLElement) {
 		ticketTypeMap := map[string]types.TicketType{
 			"Tansho":  types.Win,
 			"Fukusho": types.Place,
@@ -424,14 +425,14 @@ func (n *netKeibaGateway) FetchRace(
 			ticketType, _ := ticketTypeMap[ticketClassName]
 
 			readNumber := func(ce2 *colly.HTMLElement) string {
-				str := ConvertFromEucJPToUtf8(ce2.DOM.Text())
+				str := ce2.DOM.Text()
 				if len(str) == 1 {
 					str = fmt.Sprintf("0%s", str)
 				}
 				return str
 			}
 			readOdds := func(ce2 *colly.HTMLElement) []string {
-				values := strings.Split(ConvertFromEucJPToUtf8(ce2.DOM.Text()), "円")
+				values := strings.Split(ce2.DOM.Text(), "円")
 				values = values[0 : len(values)-1]
 				var fixValues []string
 				for _, value := range values {
@@ -442,7 +443,7 @@ func (n *netKeibaGateway) FetchRace(
 				return fixValues
 			}
 			readPopulars := func(ce2 *colly.HTMLElement) []int {
-				values := strings.Split(ConvertFromEucJPToUtf8(ce2.DOM.Text()), "人気")
+				values := strings.Split(ce2.DOM.Text(), "人気")
 				values = values[0 : len(values)-1]
 				var fixValues []int
 				for _, value := range values {
@@ -555,7 +556,7 @@ func (n *netKeibaGateway) FetchRace(
 	}
 
 	log.Println(ctx, fmt.Sprintf("fetching race from %s", url))
-	err = n.client.Visit(url)
+	err = n.collector.Client().Visit(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to visit url: %s, %v", url, err)
 	}
@@ -575,6 +576,7 @@ func (n *netKeibaGateway) FetchRace(
 		trackCondition.Value(),
 		raceSexCondition.Value(),
 		raceWeightCondition.Value(),
+		nil,
 		raceResults,
 		payoutResults,
 	), nil
@@ -591,6 +593,7 @@ func (n *netKeibaGateway) FetchRaceCard(
 		courseCategory    types.CourseCategory
 		distance, entries int
 		gradeClass        types.GradeClass
+		raceEntryHorses   []*netkeiba_entity.RaceEntryHorse
 	)
 	raceSexCondition := types.NoRaceSexCondition
 	raceWeightCondition := types.FixedWeight
@@ -605,11 +608,11 @@ func (n *netKeibaGateway) FetchRaceCard(
 	}
 	raceId := queryParams.Get("race_id")
 
-	n.client.OnHTML("div.RaceList_Item02", func(e *colly.HTMLElement) {
+	n.collector.Client().OnHTML("div.RaceList_Item02", func(e *colly.HTMLElement) {
 		e.ForEach("h1", func(_ int, ce *colly.HTMLElement) {
 			regex := regexp.MustCompile(`(.+)\s`)
 			matches := regex.FindAllStringSubmatch(ce.DOM.Text(), -1)
-			raceName = ConvertFromEucJPToUtf8(matches[0][1])
+			raceName = matches[0][1]
 			gradeClass = types.AllowanceClass
 			if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
 				gradeClass = types.Grade1
@@ -667,7 +670,7 @@ func (n *netKeibaGateway) FetchRaceCard(
 		e.ForEach("div", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 0:
-				text := ConvertFromEucJPToUtf8(ce.DOM.Text())
+				text := ce.DOM.Text()
 				regex := regexp.MustCompile(`(\d+:\d+).+(ダ|芝|障)(\d+)(?:[\s\S]*馬場:(.+))?`)
 				matches := regex.FindAllStringSubmatch(text, -1)
 				startTime = matches[0][1]
@@ -688,14 +691,13 @@ func (n *netKeibaGateway) FetchRaceCard(
 				}
 			case 1:
 				ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
+					text := ce.DOM.Text()
 					switch j {
 					case 5:
-						text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 						if strings.Contains(text, "牝") {
 							raceSexCondition = types.FillyAndMareLimited
 						}
 					case 6:
-						text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 						if text == types.AgeWeight.String() {
 							raceWeightCondition = types.AgeWeight
 						} else if text == types.FixedWeight.String() {
@@ -706,7 +708,6 @@ func (n *netKeibaGateway) FetchRaceCard(
 							raceWeightCondition = types.HandicapWeight
 						}
 					case 7:
-						text := ConvertFromEucJPToUtf8(ce.DOM.Text())
 						regex := regexp.MustCompile(`(\d+)頭`)
 						matches := regex.FindAllStringSubmatch(text, -1)
 						entries, _ = strconv.Atoi(matches[0][1])
@@ -716,8 +717,42 @@ func (n *netKeibaGateway) FetchRaceCard(
 		})
 	})
 
+	n.collector.Client().OnHTML("div.RaceTableArea table tbody", func(e *colly.HTMLElement) {
+		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
+			rawBracketNumber, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(1)").Text())
+			rawHorseNumber, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(2)").Text())
+			rawHorseName := Trim(ce.DOM.Find("td:nth-child(4)").Text())
+
+			rawHorseId := func() string {
+				rawHorseUrl, _ := ce.DOM.Find("td:nth-child(4) .HorseName a").Attr("href")
+				parsedUrl, _ = neturl.Parse(rawHorseUrl)
+				pathSegments := strings.Split(parsedUrl.Path, "/")
+				rawHorseId := pathSegments[2]
+
+				return rawHorseId
+			}()
+
+			rawJockeyId := func() int {
+				rawJockeyUrl, _ := ce.DOM.Find("td:nth-child(7) a").Attr("href")
+				parsedUrl, _ = neturl.Parse(rawJockeyUrl)
+				pathSegments := strings.Split(parsedUrl.Path, "/")
+				rawJockeyId, _ := strconv.Atoi(pathSegments[4])
+
+				return rawJockeyId
+			}()
+
+			raceEntryHorses = append(raceEntryHorses, netkeiba_entity.NewRaceEntryHorse(
+				rawHorseId,
+				rawHorseName,
+				rawBracketNumber,
+				rawHorseNumber,
+				rawJockeyId,
+			))
+		})
+	})
+
 	log.Println(ctx, fmt.Sprintf("fetching race card from %s", url))
-	err = n.client.Visit(url)
+	err = n.collector.Client().Visit(url)
 	if err != nil {
 		return nil, err
 	}
@@ -737,6 +772,7 @@ func (n *netKeibaGateway) FetchRaceCard(
 		trackCondition.Value(),
 		raceSexCondition.Value(),
 		raceWeightCondition.Value(),
+		raceEntryHorses,
 		nil,
 		nil,
 	), nil
@@ -747,11 +783,11 @@ func (n *netKeibaGateway) FetchJockey(
 	url string,
 ) (*netkeiba_entity.Jockey, error) {
 	var name string
-	n.client.OnHTML("div.Name h1", func(e *colly.HTMLElement) {
+	n.collector.Client().OnHTML("div.Name h1", func(e *colly.HTMLElement) {
 		list := strings.Split(e.DOM.Text(), "\n")
-		name = ConvertFromEucJPToUtf8(list[1][:len(list[1])-2])
+		name = list[1][:len(list[1])-2]
 	})
-	n.client.OnError(func(r *colly.Response, err error) {
+	n.collector.Client().OnError(func(r *colly.Response, err error) {
 		log.Printf("GetJockey error: %v", err)
 	})
 
@@ -761,12 +797,160 @@ func (n *netKeibaGateway) FetchJockey(
 
 	log.Println(ctx, fmt.Sprintf("fetching jockey from %s", url))
 
-	err := n.client.Visit(url)
+	err := n.collector.Client().Visit(url)
 	if err != nil {
 		return nil, err
 	}
 
 	return netkeiba_entity.NewJockey(id, name), nil
+}
+
+func (n *netKeibaGateway) FetchHorse(
+	ctx context.Context,
+	url string,
+) (*netkeiba_entity.Horse, error) {
+	var (
+		horseId, horseName, birthDay  string
+		trainerId, ownerId, breederId string
+		sireId, broodmareSireId       string
+		horseBlood                    *netkeiba_entity.HorseBlood
+		horseResults                  []*netkeiba_entity.HorseResult
+	)
+
+	err := n.collector.Login(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	u, _ := neturl.Parse(url)
+	segments := strings.Split(u.Path, "/")
+	horseId = segments[2]
+
+	n.collector.Client().OnHTML("div.horse_title h1", func(e *colly.HTMLElement) {
+		horseName = e.DOM.Text()
+	})
+
+	n.collector.Client().OnHTML("table.db_prof_table tbody", func(e *colly.HTMLElement) {
+		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
+			switch i {
+			case 0:
+				birthDay = ce.DOM.Find("td:nth-child(2)").Text()
+			case 1:
+				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
+				segments = strings.Split(path, "/")
+				trainerId = segments[2]
+			case 2:
+				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
+				segments = strings.Split(path, "/")
+				ownerId = segments[2]
+			case 3:
+				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
+				segments = strings.Split(path, "/")
+				breederId = segments[2]
+			}
+		})
+	})
+
+	n.collector.Client().OnHTML("table.blood_table tbody", func(e *colly.HTMLElement) {
+		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
+			switch i {
+			case 0:
+				path, _ := ce.DOM.Find("td:nth-child(1) a").Attr("href")
+				segments = strings.Split(path, "/")
+				sireId = segments[3]
+			case 2:
+				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
+				segments = strings.Split(path, "/")
+				broodmareSireId = segments[3]
+			}
+		})
+		horseBlood = netkeiba_entity.NewHorseBlood(sireId, broodmareSireId)
+	})
+
+	n.collector.Client().OnHTML("table.db_h_race_results tbody", func(e *colly.HTMLElement) {
+		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
+			raceDateStr := strings.Replace(ce.DOM.Find("td:nth-child(1)").Text(), "/", "", -1)
+			raceDate, _ := strconv.Atoi(raceDateStr)
+
+			path, _ := ce.DOM.Find("td:nth-child(5) a").Attr("href")
+			segments = strings.Split(path, "/")
+			raceId := segments[2]
+
+			raceName := ce.DOM.Find("td:nth-child(5) a").Text()
+			entries, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(7)").Text())
+			odds := Trim(ce.DOM.Find("td:nth-child(10)").Text()) // 海外レースなどでは空になる場合あり
+
+			popularNumber, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(11)").Text())
+			rawOrderNo := ce.DOM.Find("td:nth-child(12)").Text()
+			orderNo := 0
+			if rawOrderNo != "中" { // 競走中止
+				orderNo, _ = strconv.Atoi(ce.DOM.Find("td:nth-child(12)").Text())
+			}
+			raceWeight, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(14)").Text())
+
+			path, _ = ce.DOM.Find("td:nth-child(13) a").Attr("href")
+			segments = strings.Split(path, "/")
+			jockeyId, _ := strconv.Atoi(segments[4])
+
+			rawHorseWeight := ce.DOM.Find("td:nth-child(24)").Text()
+			horseWeight := 0
+			if rawHorseWeight != "計不" { // 海外レースなどでは計量不可
+				regex := regexp.MustCompile(`^\d+`)
+				horseWeight, _ = strconv.Atoi(regex.FindString(rawHorseWeight))
+			}
+
+			trackAndDistanceStr := ce.DOM.Find("td:nth-child(15)").Text()
+			regex := regexp.MustCompile(`(ダ|芝|障)(\d+)`)
+			matches := regex.FindAllStringSubmatch(trackAndDistanceStr, -1)
+
+			typedCourseCategory := types.NewCourseCategory(matches[0][1])
+			courseCategoryId := typedCourseCategory.Value() // primitiveで扱いたいのであえて戻す
+			distance, _ := strconv.Atoi(matches[0][2])
+
+			trackConditionStr := ce.DOM.Find("td:nth-child(16)").Text()
+			trackCondition := types.NewTrackCondition(trackConditionStr).Value() // primitiveで扱いたいのであえて戻す
+			comment := Trim(ce.DOM.Find("td:nth-child(26)").Text())
+
+			horseResults = append(horseResults, netkeiba_entity.NewHorseResult(
+				raceId,
+				raceDate,
+				raceName,
+				jockeyId,
+				orderNo,
+				popularNumber,
+				odds,
+				entries,
+				distance,
+				courseCategoryId,
+				trackCondition,
+				horseWeight,
+				raceWeight,
+				comment,
+			))
+		})
+	})
+
+	n.collector.Client().OnError(func(r *colly.Response, err error) {
+		log.Printf("GetHorse error: %v", err)
+	})
+
+	log.Println(ctx, fmt.Sprintf("fetching horse from %s", url))
+
+	err = n.collector.Client().Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return netkeiba_entity.NewHorse(
+		horseId,
+		horseName,
+		birthDay,
+		trainerId,
+		ownerId,
+		breederId,
+		horseBlood,
+		horseResults,
+	), nil
 }
 
 func (n *netKeibaGateway) FetchWinOdds(

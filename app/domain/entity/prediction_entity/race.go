@@ -8,6 +8,7 @@ import (
 type Race struct {
 	raceId                 types.RaceId
 	raceName               string
+	raceDate               types.RaceDate
 	raceNumber             int
 	entries                int
 	distance               int
@@ -16,7 +17,7 @@ type Race struct {
 	trackCondition         types.TrackCondition
 	raceSexCondition       types.RaceSexCondition
 	raceWeightCondition    types.RaceWeightCondition
-	raceCourseId           types.RaceCourse
+	raceCourse             types.RaceCourse
 	url                    string
 	raceEntryHorses        []*RaceEntryHorse
 	raceResultHorseNumbers []types.HorseNumber
@@ -27,6 +28,7 @@ type Race struct {
 func NewRace(
 	raceId string,
 	raceName string,
+	raceDate int,
 	raceNumber int,
 	entries int,
 	distance int,
@@ -50,6 +52,7 @@ func NewRace(
 	return &Race{
 		raceId:                 types.RaceId(raceId),
 		raceName:               raceName,
+		raceDate:               types.RaceDate(raceDate),
 		raceNumber:             raceNumber,
 		entries:                entries,
 		distance:               distance,
@@ -58,7 +61,7 @@ func NewRace(
 		trackCondition:         types.TrackCondition(trackCondition),
 		raceSexCondition:       types.RaceSexCondition(raceSexCondition),
 		raceWeightCondition:    types.RaceWeightCondition(raceWeightCondition),
-		raceCourseId:           types.RaceCourse(raceCourseId),
+		raceCourse:             types.RaceCourse(raceCourseId),
 		url:                    url,
 		raceEntryHorses:        raceEntryHorses,
 		raceResultHorseNumbers: raceResultHorseNumbers,
@@ -73,6 +76,10 @@ func (r *Race) RaceId() types.RaceId {
 
 func (r *Race) RaceName() string {
 	return r.raceName
+}
+
+func (r *Race) RaceDate() types.RaceDate {
+	return r.raceDate
 }
 
 func (r *Race) RaceNumber() int {
@@ -107,8 +114,8 @@ func (r *Race) RaceWeightCondition() types.RaceWeightCondition {
 	return r.raceWeightCondition
 }
 
-func (r *Race) RaceCourseId() types.RaceCourse {
-	return r.raceCourseId
+func (r *Race) RaceCourse() types.RaceCourse {
+	return r.raceCourse
 }
 
 func (r *Race) Url() string {

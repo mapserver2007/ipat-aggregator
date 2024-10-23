@@ -6,6 +6,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/prediction_service"
@@ -59,7 +60,7 @@ func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error 
 			return err
 		}
 
-		firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap := p.predictionOddsService.Convert(ctx, predictionRaces, predictionMarkers, calculables)
+		firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap := p.predictionOddsService.ConvertAll(ctx, predictionRaces, predictionMarkers, calculables)
 		err = p.predictionOddsService.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
 		if err != nil {
 			return err
@@ -68,9 +69,13 @@ func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error 
 
 	if config.EnablePredictionCheckList {
 		predictionMarkers := input.PredictionMarkers
-		predictionHorses := make([]*prediction_entity.Horse, 0, len(predictionMarkers))
 		raceId := predictionMarkers[0].RaceId()
+
 		predictionRace, err := p.predictionPlaceCandidateService.GetRaceCard(ctx, raceId)
+		if err != nil {
+			return err
+		}
+		raceForecasts, err := p.predictionPlaceCandidateService.GetRaceForecasts(ctx, raceId)
 		if err != nil {
 			return err
 		}
@@ -79,20 +84,55 @@ func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error 
 			return horse.HorseNumber()
 		})
 
-		for _, marker := range predictionMarkers {
+		raceForecastMap := converter.ConvertToMap(raceForecasts, func(forecast *prediction_entity.RaceForecast) types.HorseNumber {
+			return forecast.HorseNumber()
+		})
+
+		calculables, err := p.placeService.Create(ctx, input.AnalysisMarkers, input.Races)
+		if err != nil {
+			return err
+		}
+
+		predictionCheckLists := make([]*spreadsheet_entity.PredictionCheckList, 0, len(predictionMarkers)*6)
+		for _, predictionMarker := range predictionMarkers {
 			horseNumbers := []types.HorseNumber{
-				marker.Favorite(), marker.Rival(), marker.BrackTriangle(), marker.WhiteTriangle(), marker.Star(), marker.Check()}
-			for _, horseNumber := range horseNumbers {
+				predictionMarker.Favorite(), predictionMarker.Rival(), predictionMarker.BrackTriangle(), predictionMarker.WhiteTriangle(), predictionMarker.Star(), predictionMarker.Check()}
+			for idx, horseNumber := range horseNumbers {
+				marker, err := types.NewMarker(idx + 1)
+				if err != nil {
+					return err
+				}
 				horse, ok := horseNumberMap[horseNumber]
 				if !ok {
 					return fmt.Errorf("horse not found: %d", horseNumber)
+				}
+				raceForecast, ok := raceForecastMap[horseNumber]
+				if !ok {
+					return fmt.Errorf("race forecast not found: %d", horseNumber)
 				}
 				predictionHorse, err := p.predictionPlaceCandidateService.GetHorse(ctx, horse)
 				if err != nil {
 					return err
 				}
-				predictionHorses = append(predictionHorses, predictionHorse)
+
+				predictionCheckList := p.predictionPlaceCandidateService.Convert(
+					ctx,
+					predictionRace,
+					predictionHorse,
+					raceForecast,
+					calculables,
+					horseNumber,
+					marker,
+					p.predictionPlaceCandidateService.CreateCheckList(ctx, predictionRace, predictionHorse, raceForecast),
+				)
+
+				predictionCheckLists = append(predictionCheckLists, predictionCheckList)
 			}
+		}
+
+		err = p.predictionPlaceCandidateService.Write(ctx, predictionCheckLists)
+		if err != nil {
+			return err
 		}
 	}
 

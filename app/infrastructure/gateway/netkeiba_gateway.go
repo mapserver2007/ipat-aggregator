@@ -110,7 +110,7 @@ func (n *netKeibaGateway) FetchRace(
 
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
-					ce.DOM.Find(".Horse_Name > a").Text(),
+					Trim(ce.DOM.Find(".Horse_Name > a").Text()),
 					numbers[0],
 					numbers[1],
 					jockeyId,
@@ -250,7 +250,7 @@ func (n *netKeibaGateway) FetchRace(
 			if currentOrganizer == types.JRA {
 				switch i {
 				case 0:
-					text := ce.DOM.Text()
+					text := Trim(ce.DOM.Text())
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
 					startTime = matches[0][1]
@@ -269,7 +269,7 @@ func (n *netKeibaGateway) FetchRace(
 					}
 				case 1:
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
-						text := ce.DOM.Text()
+						text := Trim(ce.DOM.Text())
 						switch j {
 						case 5:
 							if strings.Contains(text, "牝") {
@@ -297,7 +297,7 @@ func (n *netKeibaGateway) FetchRace(
 				case 0:
 					regex := regexp.MustCompile(`(.+)\s`)
 					matches := regex.FindAllStringSubmatch(ce.DOM.Text(), -1)
-					raceName = matches[0][1]
+					raceName = Trim(matches[0][1])
 					gradeClass = types.AllowanceClass
 					if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
 						gradeClass = types.Grade1
@@ -315,7 +315,7 @@ func (n *netKeibaGateway) FetchRace(
 						gradeClass = types.LocalGrade
 					}
 				case 1:
-					text := ce.DOM.Text()
+					text := Trim(ce.DOM.Text())
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
 					startTime = matches[0][1]
@@ -336,7 +336,7 @@ func (n *netKeibaGateway) FetchRace(
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
 						switch j {
 						case 5:
-							text := ce.DOM.Text()
+							text := Trim(ce.DOM.Text())
 							regex := regexp.MustCompile(`(\d+)頭`)
 							matches := regex.FindAllStringSubmatch(text, -1)
 							entries, _ = strconv.Atoi(matches[0][1])
@@ -346,7 +346,7 @@ func (n *netKeibaGateway) FetchRace(
 			} else if currentOrganizer == types.OverseaOrganizer {
 				switch i {
 				case 0:
-					raceName = ce.DOM.Text()
+					raceName = Trim(ce.DOM.Text())
 					gradeClass = types.NonGrade
 					if len(ce.DOM.Find(".Icon_GradeType1").Nodes) > 0 {
 						gradeClass = types.Grade1
@@ -357,7 +357,7 @@ func (n *netKeibaGateway) FetchRace(
 					}
 				case 1:
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
-						text := ce2.DOM.Text()
+						text := Trim(ce2.DOM.Text())
 						switch j {
 						case 0:
 							regex := regexp.MustCompile(`(ダ|芝)(\d+)`)
@@ -425,14 +425,14 @@ func (n *netKeibaGateway) FetchRace(
 			ticketType, _ := ticketTypeMap[ticketClassName]
 
 			readNumber := func(ce2 *colly.HTMLElement) string {
-				str := ce2.DOM.Text()
+				str := Trim(ce2.DOM.Text())
 				if len(str) == 1 {
 					str = fmt.Sprintf("0%s", str)
 				}
 				return str
 			}
 			readOdds := func(ce2 *colly.HTMLElement) []string {
-				values := strings.Split(ce2.DOM.Text(), "円")
+				values := strings.Split(Trim(ce2.DOM.Text()), "円")
 				values = values[0 : len(values)-1]
 				var fixValues []string
 				for _, value := range values {
@@ -443,7 +443,7 @@ func (n *netKeibaGateway) FetchRace(
 				return fixValues
 			}
 			readPopulars := func(ce2 *colly.HTMLElement) []int {
-				values := strings.Split(ce2.DOM.Text(), "人気")
+				values := strings.Split(Trim(ce2.DOM.Text()), "人気")
 				values = values[0 : len(values)-1]
 				var fixValues []int
 				for _, value := range values {
@@ -588,6 +588,7 @@ func (n *netKeibaGateway) FetchRaceCard(
 ) (*netkeiba_entity.Race, error) {
 	var (
 		raceName          string
+		raceDate          types.RaceDate
 		trackCondition    types.TrackCondition
 		startTime         string
 		courseCategory    types.CourseCategory
@@ -607,6 +608,19 @@ func (n *netKeibaGateway) FetchRaceCard(
 		return nil, err
 	}
 	raceId := queryParams.Get("race_id")
+
+	n.collector.Client().OnHTML("#RaceList_DateList dd.Active a", func(e *colly.HTMLElement) {
+		path := e.Attr("href")
+		u, err := neturl.Parse(path)
+		if err != nil {
+			fmt.Errorf("failed to parse url: %s, %v", path, err)
+		}
+		rawRaceDate := u.Query().Get("kaisai_date")
+		raceDate, err = types.NewRaceDate(rawRaceDate)
+		if err != nil {
+			fmt.Errorf("failed to convert to raceDate: %s, %v", rawRaceDate, err)
+		}
+	})
 
 	n.collector.Client().OnHTML("div.RaceList_Item02", func(e *colly.HTMLElement) {
 		e.ForEach("h1", func(_ int, ce *colly.HTMLElement) {
@@ -741,12 +755,20 @@ func (n *netKeibaGateway) FetchRaceCard(
 				return rawJockeyId
 			}()
 
+			rawHorseWeight := func() float64 {
+				rawHorseWeightText := ce.DOM.Find("td:nth-child(6)").Text()
+				rawHorseWeight, _ := strconv.ParseFloat(rawHorseWeightText, 64)
+
+				return rawHorseWeight
+			}()
+
 			raceEntryHorses = append(raceEntryHorses, netkeiba_entity.NewRaceEntryHorse(
 				rawHorseId,
 				rawHorseName,
 				rawBracketNumber,
 				rawHorseNumber,
 				rawJockeyId,
+				rawHorseWeight,
 			))
 		})
 	})
@@ -759,7 +781,7 @@ func (n *netKeibaGateway) FetchRaceCard(
 
 	return netkeiba_entity.NewRace(
 		raceId,
-		0,
+		raceDate.Value(),
 		raceName,
 		int(types.JRA),
 		url,
@@ -785,7 +807,7 @@ func (n *netKeibaGateway) FetchJockey(
 	var name string
 	n.collector.Client().OnHTML("div.Name h1", func(e *colly.HTMLElement) {
 		list := strings.Split(e.DOM.Text(), "\n")
-		name = list[1][:len(list[1])-2]
+		name = Trim(list[1][:len(list[1])-2])
 	})
 	n.collector.Client().OnError(func(r *colly.Response, err error) {
 		log.Printf("GetJockey error: %v", err)
@@ -827,7 +849,7 @@ func (n *netKeibaGateway) FetchHorse(
 	horseId = segments[2]
 
 	n.collector.Client().OnHTML("div.horse_title h1", func(e *colly.HTMLElement) {
-		horseName = e.DOM.Text()
+		horseName = Trim(e.DOM.Text())
 	})
 
 	n.collector.Client().OnHTML("table.db_prof_table tbody", func(e *colly.HTMLElement) {
@@ -872,7 +894,43 @@ func (n *netKeibaGateway) FetchHorse(
 			raceDateStr := strings.Replace(ce.DOM.Find("td:nth-child(1)").Text(), "/", "", -1)
 			raceDate, _ := strconv.Atoi(raceDateStr)
 
-			path, _ := ce.DOM.Find("td:nth-child(5) a").Attr("href")
+			path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
+			segments = strings.Split(path, "/")
+			typedRaceCourse := types.RaceCourse(segments[3])
+			raceCourseId := typedRaceCourse.Value() // primitiveで扱いたいのであえて戻す
+
+			// 他のクラスについては判別が困難なので一律NonGradeとして返す
+			// 障害はそもそも予想しないので対応しない
+			typedGradeClass := types.NonGrade
+			{
+				rawRaceName := ce.DOM.Find("td:nth-child(5)").Text()
+				if strings.Contains(rawRaceName, "(GIII)") {
+					typedGradeClass = types.Grade3
+				} else if strings.Contains(rawRaceName, "(GII)") {
+					typedGradeClass = types.Grade2
+				} else if strings.Contains(rawRaceName, "(GI)") {
+					typedGradeClass = types.Grade1
+				} else if strings.Contains(rawRaceName, "(JpnIII)") {
+					typedGradeClass = types.Jpn3
+				} else if strings.Contains(rawRaceName, "(JpnII)") {
+					typedGradeClass = types.Jpn2
+				} else if strings.Contains(rawRaceName, "(JpnI)") {
+					typedGradeClass = types.Jpn1
+				} else if strings.Contains(rawRaceName, "(OP)") {
+					typedGradeClass = types.OpenClass
+				} else if strings.Contains(rawRaceName, "(L)") {
+					typedGradeClass = types.ListedClass
+				} else if strings.Contains(rawRaceName, "(3勝クラス)") {
+					typedGradeClass = types.ThreeWinClass
+				} else if strings.Contains(rawRaceName, "(2勝クラス)") {
+					typedGradeClass = types.TwoWinClass
+				} else if strings.Contains(rawRaceName, "(1勝クラス)") {
+					typedGradeClass = types.OneWinClass
+				}
+			}
+			gradeClass := typedGradeClass.Value()
+
+			path, _ = ce.DOM.Find("td:nth-child(5) a").Attr("href")
 			segments = strings.Split(path, "/")
 			raceId := segments[2]
 
@@ -886,7 +944,7 @@ func (n *netKeibaGateway) FetchHorse(
 			if rawOrderNo != "中" { // 競走中止
 				orderNo, _ = strconv.Atoi(ce.DOM.Find("td:nth-child(12)").Text())
 			}
-			raceWeight, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(14)").Text())
+			raceWeight, _ := strconv.ParseFloat(ce.DOM.Find("td:nth-child(14)").Text(), 64)
 
 			path, _ = ce.DOM.Find("td:nth-child(13) a").Attr("href")
 			segments = strings.Split(path, "/")
@@ -911,6 +969,8 @@ func (n *netKeibaGateway) FetchHorse(
 			trackCondition := types.NewTrackCondition(trackConditionStr).Value() // primitiveで扱いたいのであえて戻す
 			comment := Trim(ce.DOM.Find("td:nth-child(26)").Text())
 
+			typedGradeClass.Value()
+
 			horseResults = append(horseResults, netkeiba_entity.NewHorseResult(
 				raceId,
 				raceDate,
@@ -919,8 +979,10 @@ func (n *netKeibaGateway) FetchHorse(
 				orderNo,
 				popularNumber,
 				odds,
+				gradeClass,
 				entries,
 				distance,
+				raceCourseId,
 				courseCategoryId,
 				trackCondition,
 				horseWeight,

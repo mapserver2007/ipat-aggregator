@@ -8,12 +8,14 @@ type HorseResult struct {
 	orderNo          int
 	popularNumber    int
 	odds             string
+	class            int
 	entries          int
 	distance         int
+	raceCourseId     string
 	courseCategoryId int
 	trackConditionId int
 	horseWeight      int
-	raceWeight       int
+	raceWeight       float64
 	comment          string
 }
 
@@ -25,12 +27,14 @@ func NewHorseResult(
 	orderNo int,
 	popularNumber int,
 	odds string,
+	class int,
 	entries int,
 	distance int,
+	raceCourseId string,
 	courseCategoryId int,
 	trackConditionId int,
 	horseWeight int,
-	raceWeight int,
+	raceWeight float64,
 	comment string,
 ) *HorseResult {
 	return &HorseResult{
@@ -41,8 +45,10 @@ func NewHorseResult(
 		orderNo:          orderNo,
 		popularNumber:    popularNumber,
 		odds:             odds,
+		class:            class,
 		entries:          entries,
 		distance:         distance,
+		raceCourseId:     raceCourseId,
 		courseCategoryId: courseCategoryId,
 		trackConditionId: trackConditionId,
 		horseWeight:      horseWeight,
@@ -79,12 +85,20 @@ func (h *HorseResult) Odds() string {
 	return h.odds
 }
 
+func (h *HorseResult) Class() int {
+	return h.class
+}
+
 func (h *HorseResult) Entries() int {
 	return h.entries
 }
 
 func (h *HorseResult) Distance() int {
 	return h.distance
+}
+
+func (h *HorseResult) RaceCourseId() string {
+	return h.raceCourseId
 }
 
 func (h *HorseResult) CourseCategoryId() int {
@@ -99,7 +113,7 @@ func (h *HorseResult) HorseWeight() int {
 	return h.horseWeight
 }
 
-func (h *HorseResult) RaceWeight() int {
+func (h *HorseResult) RaceWeight() float64 {
 	return h.raceWeight
 }
 

@@ -13,12 +13,14 @@ type HorseResult struct {
 	orderNo        int
 	popularNumber  int
 	odds           decimal.Decimal
+	class          types.GradeClass
 	entries        int
 	distance       int
+	raceCourse     types.RaceCourse
 	courseCategory types.CourseCategory
 	trackCondition types.TrackCondition
 	horseWeight    int
-	raceWeight     int
+	raceWeight     float64
 	comment        string
 }
 
@@ -30,12 +32,14 @@ func NewHorseResult(
 	orderNo int,
 	popularNumber int,
 	rawOdds string,
+	rawClass int,
 	entries int,
 	distance int,
+	raceCourseId string,
 	courseCategoryId int,
 	trackConditionId int,
 	horseWeight int,
-	raceWeight int,
+	raceWeight float64,
 	comment string,
 ) (*HorseResult, error) {
 	odds, err := decimal.NewFromString(rawOdds)
@@ -51,8 +55,10 @@ func NewHorseResult(
 		orderNo:        orderNo,
 		popularNumber:  popularNumber,
 		odds:           odds,
+		class:          types.GradeClass(rawClass),
 		entries:        entries,
 		distance:       distance,
+		raceCourse:     types.RaceCourse(raceCourseId),
 		courseCategory: types.CourseCategory(courseCategoryId),
 		trackCondition: types.TrackCondition(trackConditionId),
 		horseWeight:    horseWeight,
@@ -89,12 +95,20 @@ func (h *HorseResult) Odds() decimal.Decimal {
 	return h.odds
 }
 
+func (h *HorseResult) Class() types.GradeClass {
+	return h.class
+}
+
 func (h *HorseResult) Entries() int {
 	return h.entries
 }
 
 func (h *HorseResult) Distance() int {
 	return h.distance
+}
+
+func (h *HorseResult) RaceCourse() types.RaceCourse {
+	return h.raceCourse
 }
 
 func (h *HorseResult) CourseCategory() types.CourseCategory {
@@ -109,7 +123,7 @@ func (h *HorseResult) HorseWeight() int {
 	return h.horseWeight
 }
 
-func (h *HorseResult) RaceWeight() int {
+func (h *HorseResult) RaceWeight() float64 {
 	return h.raceWeight
 }
 

@@ -69,35 +69,49 @@ func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error 
 
 	if config.EnablePredictionCheckList {
 		predictionMarkers := input.PredictionMarkers
-		raceId := predictionMarkers[0].RaceId()
-
-		predictionRace, err := p.predictionPlaceCandidateService.GetRaceCard(ctx, raceId)
-		if err != nil {
-			return err
-		}
-		raceForecasts, err := p.predictionPlaceCandidateService.GetRaceForecasts(ctx, raceId)
-		if err != nil {
-			return err
-		}
-
-		horseNumberMap := converter.ConvertToMap(predictionRace.RaceEntryHorses(), func(horse *prediction_entity.RaceEntryHorse) types.HorseNumber {
-			return horse.HorseNumber()
-		})
-
-		raceForecastMap := converter.ConvertToMap(raceForecasts, func(forecast *prediction_entity.RaceForecast) types.HorseNumber {
-			return forecast.HorseNumber()
-		})
+		predictionRaces := make([]*prediction_entity.Race, 0, len(predictionMarkers))
+		predictionCheckLists := make([]*spreadsheet_entity.PredictionCheckList, 0, len(predictionMarkers)*6)
 
 		calculables, err := p.placeService.Create(ctx, input.AnalysisMarkers, input.Races)
 		if err != nil {
 			return err
 		}
 
-		predictionCheckLists := make([]*spreadsheet_entity.PredictionCheckList, 0, len(predictionMarkers)*6)
 		for _, predictionMarker := range predictionMarkers {
+			predictionRace, err := p.predictionPlaceCandidateService.GetRaceCard(ctx, predictionMarker.RaceId())
+			if err != nil {
+				return err
+			}
+			predictionRaces = append(predictionRaces, predictionRace)
+
+			raceForecasts, err := p.predictionPlaceCandidateService.GetRaceForecasts(ctx, predictionMarker.RaceId())
+			if err != nil {
+				return err
+			}
+
+			horseNumberMap := converter.ConvertToMap(predictionRace.RaceEntryHorses(), func(horse *prediction_entity.RaceEntryHorse) types.HorseNumber {
+				return horse.HorseNumber()
+			})
+
+			horseOddsMap := converter.ConvertToMap(predictionRace.Odds(), func(o *prediction_entity.Odds) types.HorseNumber {
+				return o.HorseNumber()
+			})
+
+			raceForecastMap := converter.ConvertToMap(raceForecasts, func(forecast *prediction_entity.RaceForecast) types.HorseNumber {
+				return forecast.HorseNumber()
+			})
+
 			horseNumbers := []types.HorseNumber{
 				predictionMarker.Favorite(), predictionMarker.Rival(), predictionMarker.BrackTriangle(), predictionMarker.WhiteTriangle(), predictionMarker.Star(), predictionMarker.Check()}
 			for idx, horseNumber := range horseNumbers {
+				odds, ok := horseOddsMap[horseNumber]
+				if !ok {
+					return fmt.Errorf("odds not found: %d", horseNumber)
+				}
+				if odds.Odds().InexactFloat64() > config.PredictionCheckListWinLowerOdds {
+					continue
+				}
+
 				marker, err := types.NewMarker(idx + 1)
 				if err != nil {
 					return err

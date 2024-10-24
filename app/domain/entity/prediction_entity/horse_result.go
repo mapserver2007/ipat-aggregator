@@ -42,9 +42,15 @@ func NewHorseResult(
 	raceWeight float64,
 	comment string,
 ) (*HorseResult, error) {
-	odds, err := decimal.NewFromString(rawOdds)
-	if err != nil {
-		return nil, err
+	var odds decimal.Decimal
+	if rawOdds == "" {
+		odds = decimal.Zero
+	} else {
+		tmp, err := decimal.NewFromString(rawOdds)
+		if err != nil {
+			return nil, err
+		}
+		odds = tmp
 	}
 
 	return &HorseResult{

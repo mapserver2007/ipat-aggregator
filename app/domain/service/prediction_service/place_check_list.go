@@ -67,6 +67,10 @@ func (p *placeCheckListService) OkInThirdPlaceRatio(ctx context.Context, input *
 			var placed float64
 			raceNum := float64(len(input.Horse.HorseResults()))
 			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
 				if horseResult.OrderNo() <= 3 {
 					placed++
 				}
@@ -83,6 +87,10 @@ func (p *placeCheckListService) OkNotChangeCourseCategory(ctx context.Context, i
 	for _, entryHorse := range input.Race.RaceEntryHorses() {
 		if entryHorse.HorseId() == input.Horse.HorseId() {
 			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
 				return input.Race.CourseCategory() == horseResult.CourseCategory()
 			}
 		}
@@ -95,13 +103,19 @@ func (p *placeCheckListService) OkNotChangeCourseCategory(ctx context.Context, i
 func (p *placeCheckListService) OkSameDistance(ctx context.Context, input *PlaceCheckListInput) bool {
 	for _, entryHorse := range input.Race.RaceEntryHorses() {
 		if entryHorse.HorseId() == input.Horse.HorseId() {
-			for idx, horseResult := range input.Horse.HorseResults() {
-				if idx > 2 { // 2走前まで
+			historyCount := 0
+			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
+				if historyCount > 2 { // 2走前まで
 					break
 				}
 				if input.Race.Distance() == horseResult.Distance() {
 					return true
 				}
+				historyCount++
 			}
 		}
 	}
@@ -113,13 +127,19 @@ func (p *placeCheckListService) OkSameDistance(ctx context.Context, input *Place
 func (p *placeCheckListService) OkSameCourseCategory(ctx context.Context, input *PlaceCheckListInput) bool {
 	for _, entryHorse := range input.Race.RaceEntryHorses() {
 		if entryHorse.HorseId() == input.Horse.HorseId() {
-			for idx, horseResult := range input.Horse.HorseResults() {
-				if idx > 2 { // 2走前まで
+			historyCount := 0
+			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
+				if historyCount > 2 { // 2走前まで
 					break
 				}
 				if input.Race.RaceCourse() == horseResult.RaceCourse() {
 					return true
 				}
+				historyCount++
 			}
 		}
 	}
@@ -131,13 +151,19 @@ func (p *placeCheckListService) OkSameCourseCategory(ctx context.Context, input 
 func (p *placeCheckListService) OkInThirdPlaceRecent(ctx context.Context, input *PlaceCheckListInput) bool {
 	for _, entryHorse := range input.Race.RaceEntryHorses() {
 		if entryHorse.HorseId() == input.Horse.HorseId() {
-			for idx, horseResult := range input.Horse.HorseResults() {
-				if idx > 2 { // 2走前まで
+			historyCount := 0
+			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
+				if historyCount > 2 { // 2走前まで
 					break
 				}
 				if horseResult.OrderNo() <= 3 {
 					return true
 				}
+				historyCount++
 			}
 		}
 	}
@@ -150,6 +176,10 @@ func (p *placeCheckListService) OkTrackConditionExperience(ctx context.Context, 
 	for _, entryHorse := range input.Race.RaceEntryHorses() {
 		if entryHorse.HorseId() == input.Horse.HorseId() {
 			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
 				if horseResult.TrackCondition() == input.Race.TrackCondition() && horseResult.OrderNo() <= 3 {
 					return true
 				}
@@ -168,6 +198,10 @@ func (p *placeCheckListService) OkNotHorseWeightUp(ctx context.Context, input *P
 				return true
 			}
 			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
 				return horseResult.RaceWeight() >= entryHorse.RaceWeight()
 			}
 		}
@@ -195,8 +229,12 @@ func (p *placeCheckListService) OkNotClassUp(ctx context.Context, input *PlaceCh
 			if len(input.Horse.HorseResults()) == 0 {
 				return true
 			}
-			for idx, horseResult := range input.Horse.HorseResults() {
-				if idx == 0 && classMap[input.Race.Class()] > classMap[horseResult.Class()] {
+			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
+				if classMap[input.Race.Class()] > classMap[horseResult.Class()] {
 					return false
 				}
 				return true
@@ -223,6 +261,10 @@ func (p *placeCheckListService) OkContinueOrEnhancementJockey(ctx context.Contex
 				return true
 			}
 			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
+				}
 				// 継続騎乗
 				if horseResult.JockeyId() == entryHorse.JockeyId() {
 					return true
@@ -230,7 +272,7 @@ func (p *placeCheckListService) OkContinueOrEnhancementJockey(ctx context.Contex
 				// 鞍上強化
 				return containsInSlice([]types.JockeyId{
 					5339, // ルメール
-					5340, // モレイラ
+					5509, // モレイラ
 					5585, // レーン
 					5473, // C.デムーロ
 					5366, // ムーア
@@ -251,12 +293,19 @@ func (p *placeCheckListService) OkNotSlowStart(ctx context.Context, input *Place
 			if len(input.Horse.HorseResults()) == 0 {
 				return true
 			}
-			for idx, horseResult := range input.Horse.HorseResults() {
-				if idx <= 1 && horseResult.Comment() == "出遅れ" {
-					return false
-				} else {
-					return true
+			historyCount := 0
+			for _, horseResult := range input.Horse.HorseResults() {
+				// 履歴を取るタイミングで今走が履歴に含まれる場合はスキップする
+				if horseResult.RaceId() == input.Race.RaceId() {
+					continue
 				}
+				if historyCount > 2 { // 2走前まで
+					break
+				}
+				if horseResult.Comment() == "出遅れ" {
+					return false
+				}
+				historyCount++
 			}
 		}
 	}

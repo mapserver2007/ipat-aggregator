@@ -75,7 +75,7 @@ func (p *placeCandidateService) GetRaceCard(
 		return nil, err
 	}
 
-	filters := p.filterService.Create(ctx, rawRace)
+	filters := p.filterService.CreatePredictionOddsFilters(ctx, rawRace)
 
 	race := p.raceEntityConverter.NetKeibaToPrediction(rawRace, rawOdds, filters)
 
@@ -223,6 +223,7 @@ func (p *placeCandidateService) Convert(
 		checkList,
 		forecast.FavoriteNum(),
 		forecast.RivalNum(),
+		forecast.MarkerNum(),
 		forecast.IsHighlyRecommended(),
 		forecast.TrainingComment(),
 	)

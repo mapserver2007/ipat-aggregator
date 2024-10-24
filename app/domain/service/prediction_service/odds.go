@@ -97,7 +97,7 @@ func (p *oddsService) Get(
 		nil,
 		raceResultHorseNumbers,
 		predictionOdds,
-		p.filterService.Create(ctx, raceCard),
+		p.filterService.CreatePredictionOddsFilters(ctx, raceCard),
 	)
 
 	return predictionRace, nil

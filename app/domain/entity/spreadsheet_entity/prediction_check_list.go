@@ -20,6 +20,7 @@ type PredictionCheckList struct {
 	checkList         []string
 	favoriteNum       int
 	rivalNum          int
+	markerNum         int
 	highlyRecommended string
 	trainingComment   string
 }
@@ -40,6 +41,7 @@ func NewPredictionCheckList(
 	checkList []bool,
 	favoriteNum int,
 	rivalNum int,
+	markerNum int,
 	highlyRecommended bool,
 	trainingComment string,
 ) *PredictionCheckList {
@@ -73,6 +75,7 @@ func NewPredictionCheckList(
 		checkList:         checkListFormat,
 		favoriteNum:       favoriteNum,
 		rivalNum:          rivalNum,
+		markerNum:         markerNum,
 		highlyRecommended: highlyRecommendedFormat,
 		trainingComment:   trainingComment,
 	}
@@ -128,6 +131,10 @@ func (p *PredictionCheckList) FavoriteNum() int {
 
 func (p *PredictionCheckList) RivalNum() int {
 	return p.rivalNum
+}
+
+func (p *PredictionCheckList) MarkerNum() int {
+	return p.markerNum
 }
 
 func (p *PredictionCheckList) HighlyRecommended() string {

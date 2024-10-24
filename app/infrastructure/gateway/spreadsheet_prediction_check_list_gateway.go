@@ -82,6 +82,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			"計",
 			"◎",
 			"◯",
+			"印数",
 			"推",
 			"厩舎コメント",
 		},
@@ -123,6 +124,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			}(),
 			row.FavoriteNum(),
 			row.RivalNum(),
+			row.MarkerNum(),
 			row.HighlyRecommended(),
 			row.TrainingComment(),
 		})
@@ -157,7 +159,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   28,
+					EndColumnIndex:   29,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -178,7 +180,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 24,
 					StartRowIndex:    0,
-					EndColumnIndex:   28,
+					EndColumnIndex:   29,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -199,7 +201,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   28,
+					EndColumnIndex:   29,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -218,7 +220,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 24,
 					StartRowIndex:    0,
-					EndColumnIndex:   28,
+					EndColumnIndex:   29,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -241,7 +243,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    1,
-					EndColumnIndex:   28,
+					EndColumnIndex:   29,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{
@@ -256,9 +258,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "userEnteredFormat(horizontalAlignment,wrapStrategy)",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: 27,
+					StartColumnIndex: 28,
 					StartRowIndex:    1,
-					EndColumnIndex:   28,
+					EndColumnIndex:   29,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{

@@ -969,8 +969,6 @@ func (n *netKeibaGateway) FetchHorse(
 			trackCondition := types.NewTrackCondition(trackConditionStr).Value() // primitiveで扱いたいのであえて戻す
 			comment := Trim(ce.DOM.Find("td:nth-child(26)").Text())
 
-			typedGradeClass.Value()
-
 			horseResults = append(horseResults, netkeiba_entity.NewHorseResult(
 				raceId,
 				raceDate,

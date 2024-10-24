@@ -10,12 +10,13 @@ import (
 )
 
 type spreadSheetRepository struct {
-	summaryGateway            gateway.SpreadSheetSummaryGateway
-	ticketSummaryGateway      gateway.SpreadSheetTicketSummaryGateway
-	listGateway               gateway.SpreadSheetListGateway
-	analysisPlaceGateway      gateway.SpreadSheetAnalysisPlaceGateway
-	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway
-	predictionGateway         gateway.SpreadSheetPredictionGateway
+	summaryGateway             gateway.SpreadSheetSummaryGateway
+	ticketSummaryGateway       gateway.SpreadSheetTicketSummaryGateway
+	listGateway                gateway.SpreadSheetListGateway
+	analysisPlaceGateway       gateway.SpreadSheetAnalysisPlaceGateway
+	analysisPlaceAllInGateway  gateway.SpreadSheetAnalysisPlaceAllInGateway
+	predictionOddsGateway      gateway.SpreadSheetPredictionOddsGateway
+	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway
 }
 
 func NewSpreadSheetRepository(
@@ -24,15 +25,17 @@ func NewSpreadSheetRepository(
 	listGateway gateway.SpreadSheetListGateway,
 	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway,
 	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway,
-	predictionGateway gateway.SpreadSheetPredictionGateway,
+	predictionOddsGateway gateway.SpreadSheetPredictionOddsGateway,
+	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway,
 ) repository.SpreadSheetRepository {
 	return &spreadSheetRepository{
-		summaryGateway:            summaryGateway,
-		ticketSummaryGateway:      ticketSummaryGateway,
-		listGateway:               listGateway,
-		analysisPlaceGateway:      analysisPlaceGateway,
-		analysisPlaceAllInGateway: analysisPlaceAllInGateway,
-		predictionGateway:         predictionGateway,
+		summaryGateway:             summaryGateway,
+		ticketSummaryGateway:       ticketSummaryGateway,
+		listGateway:                listGateway,
+		analysisPlaceGateway:       analysisPlaceGateway,
+		analysisPlaceAllInGateway:  analysisPlaceAllInGateway,
+		predictionOddsGateway:      predictionOddsGateway,
+		predictionCheckListGateway: predictionCheckListGateway,
 	}
 }
 
@@ -146,24 +149,46 @@ func (s *spreadSheetRepository) WriteAnalysisPlaceAllIn(
 	return nil
 }
 
-func (s *spreadSheetRepository) WritePrediction(
+func (s *spreadSheetRepository) WritePredictionOdds(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
 	thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
 	raceCourseMap map[types.RaceCourse][]types.RaceId,
 ) error {
-	err := s.predictionGateway.Clear(ctx)
+	err := s.predictionOddsGateway.Clear(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = s.predictionGateway.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
+	err = s.predictionOddsGateway.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
 	if err != nil {
 		return err
 	}
 
-	err = s.predictionGateway.Style(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
+	err = s.predictionOddsGateway.Style(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WritePredictionCheckList(
+	ctx context.Context,
+	predictionCheckLists []*spreadsheet_entity.PredictionCheckList,
+) error {
+	err := s.predictionCheckListGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.predictionCheckListGateway.Write(ctx, predictionCheckLists)
+	if err != nil {
+		return err
+	}
+
+	err = s.predictionCheckListGateway.Style(ctx)
 	if err != nil {
 		return err
 	}

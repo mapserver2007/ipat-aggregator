@@ -30,7 +30,7 @@ func (p *placeUnHitService) Convert(
 	lowerOdds float64,
 ) error {
 	isHit := func(calculable *analysis_entity.PlaceAllInCalculable) bool {
-		return calculable.Entries() <= 7 && calculable.OrderNo() <= 2 || calculable.Entries() >= 8 && calculable.OrderNo() <= 3
+		return (calculable.Entries() <= 7 && calculable.OrderNo() <= 2) || (calculable.Entries() >= 8 && calculable.OrderNo() <= 3)
 	}
 	decimalUpperOdds := decimal.NewFromFloat(upperOdds)
 	decimalLowerOdds := decimal.NewFromFloat(lowerOdds)
@@ -42,6 +42,5 @@ func (p *placeUnHitService) Convert(
 		}
 	}
 
-	//TODO implement me
-	panic("implement me")
+	return nil
 }

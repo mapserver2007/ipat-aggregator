@@ -1,12 +1,12 @@
 package netkeiba_entity
 
 type Jockey struct {
-	id   int
+	id   string
 	name string
 }
 
 func NewJockey(
-	id int,
+	id string,
 	name string,
 ) *Jockey {
 	return &Jockey{
@@ -15,7 +15,7 @@ func NewJockey(
 	}
 }
 
-func (j *Jockey) Id() int {
+func (j *Jockey) Id() string {
 	return j.id
 }
 

@@ -249,10 +249,10 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.raceForecastService.CreateOrUpdate(ctx, races)
-	if err != nil {
-		return err
-	}
+	//err = m.raceForecastService.CreateOrUpdate(ctx, races)
+	//if err != nil {
+	//	return err
+	//}
 
 	jockeys, excludeJockeyIds, err := m.jockeyService.Get(ctx)
 	if err != nil {

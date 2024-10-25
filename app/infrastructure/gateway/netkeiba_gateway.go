@@ -56,6 +56,9 @@ func (n *netKeibaGateway) FetchRaceId(
 	log.Println(ctx, fmt.Sprintf("fetching race id from %s", url))
 	err := n.collector.Client().Visit(url)
 	if err != nil {
+		if err.Error() == "EOF" { // unreachable url
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -102,12 +105,11 @@ func (n *netKeibaGateway) FetchRace(
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
 				result := regex.FindStringSubmatch(linkUrl)
-				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
-				jockeyId := 0
+				// 一部の騎手で引っかからないjockeyIdの場合があるが、ダミーIDで不明扱いしておく
+				jockeyId := "00000"
 				if result != nil {
-					jockeyId, _ = strconv.Atoi(result[1])
+					jockeyId = result[1]
 				}
-
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
 					Trim(ce.DOM.Find(".Horse_Name > a").Text()),
@@ -129,12 +131,11 @@ func (n *netKeibaGateway) FetchRace(
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
 				result := regex.FindStringSubmatch(linkUrl)
-				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
-				jockeyId := 0
+				// 一部の騎手で引っかからないjockeyIdの場合があるが、ダミーIDで不明扱いしておく
+				jockeyId := "00000"
 				if result != nil {
-					jockeyId, _ = strconv.Atoi(result[1])
+					jockeyId = result[1]
 				}
-
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
 					ce.DOM.Find(".Horse_Name > a").Text(),
@@ -165,12 +166,11 @@ func (n *netKeibaGateway) FetchRace(
 				linkUrl, _ := ce.DOM.Find(".Jockey > a").Attr("href")
 				regex := regexp.MustCompile(`(\d{5})`)
 				result := regex.FindStringSubmatch(linkUrl)
-				// 一部の騎手で\d{5}で引っかからないjockeyIdの場合があるが、マイナーな騎手なので無視する
-				jockeyId := 0
+				// 一部の騎手で引っかからないjockeyIdの場合があるが、ダミーIDで不明扱いしておく
+				jockeyId := "00000"
 				if result != nil {
-					jockeyId, _ = strconv.Atoi(result[1])
+					jockeyId = result[1]
 				}
-
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
 					ce.DOM.Find(".Horse_Name > a").Text(),
@@ -813,18 +813,20 @@ func (n *netKeibaGateway) FetchJockey(
 		log.Printf("GetJockey error: %v", err)
 	})
 
-	regex := regexp.MustCompile(`\/jockey\/(\d+)\/`)
+	regex := regexp.MustCompile(`\/jockey\/([0-9a-z]+)\/`)
 	result := regex.FindStringSubmatch(url)
-	id, _ := strconv.Atoi(result[1])
 
 	log.Println(ctx, fmt.Sprintf("fetching jockey from %s", url))
 
 	err := n.collector.Client().Visit(url)
 	if err != nil {
+		if err.Error() == "EOF" { // unreachable url
+			return netkeiba_entity.NewJockey(result[1], ""), nil
+		}
 		return nil, err
 	}
 
-	return netkeiba_entity.NewJockey(id, name), nil
+	return netkeiba_entity.NewJockey(result[1], name), nil
 }
 
 func (n *netKeibaGateway) FetchHorse(

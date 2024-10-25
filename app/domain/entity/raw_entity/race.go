@@ -30,7 +30,7 @@ type RaceResult struct {
 	HorseName     string `json:"horse_name"`
 	BracketNumber int    `json:"bracket_number"`
 	HorseNumber   int    `json:"horse_number"`
-	JockeyId      int    `json:"jockey_id"`
+	JockeyId      string `json:"jockey_id"`
 	Odds          string `json:"odds"`
 	PopularNumber int    `json:"popular_number"`
 }

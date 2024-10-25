@@ -271,13 +271,13 @@ func (p *placeCheckListService) OkContinueOrEnhancementJockey(ctx context.Contex
 				}
 				// 鞍上強化
 				return containsInSlice([]types.JockeyId{
-					5339, // ルメール
-					5509, // モレイラ
-					5585, // レーン
-					5473, // C.デムーロ
-					5366, // ムーア
-					1088, // 川田将雅
-					5299, // 吉原寛人
+					"05339", // ルメール
+					"05509", // モレイラ
+					"05585", // レーン
+					"05473", // C.デムーロ
+					"05366", // ムーア
+					"01088", // 川田将雅
+					"05299", // 吉原寛人
 				}, entryHorse.JockeyId())
 			}
 		}

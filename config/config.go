@@ -7,13 +7,13 @@ const (
 	RaceEndDate                     = "20241023"
 	AnalysisPlaceUnHitWinUpperOdds  = 1.1
 	AnalysisPlaceUnHitWinLowerOdds  = 1.3
-	EnableAggregation               = false
+	EnableAggregation               = true
 	EnableAnalysis                  = false
 	EnableAnalysisPlace             = false
 	EnableAnalysisPlaceAllIn        = false
 	EnableAnalysisPlaceUnHit        = false
-	EnablePrediction                = true
+	EnablePrediction                = false
 	EnablePredictionOdds            = false
-	EnablePredictionCheckList       = true
+	EnablePredictionCheckList       = false
 	PredictionCheckListWinLowerOdds = 1.9
 )

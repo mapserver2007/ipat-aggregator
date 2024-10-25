@@ -577,14 +577,10 @@ func (t TrackCondition) String() string {
 	return trackConditionName
 }
 
-type JockeyId int
+type JockeyId string
 
-func (j JockeyId) Format() string {
-	return fmt.Sprintf("%05d", j)
-}
-
-func (j JockeyId) Value() int {
-	return int(j)
+func (j JockeyId) Value() string {
+	return string(j)
 }
 
 type DistanceCategory int

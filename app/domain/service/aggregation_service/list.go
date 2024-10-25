@@ -262,7 +262,7 @@ func (l *listService) Create(
 				favoriteHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
 				jockey, ok := jockeyMap[raceResult.JockeyId()]
 				if !ok {
-					jockey = data_cache_entity.NewJockey(99999, "(不明)")
+					jockey = data_cache_entity.NewJockey("00000", "(不明)")
 				}
 				favoriteJockey = l.JockeyEntityConverter.DataCacheToList(jockey)
 			}
@@ -270,7 +270,7 @@ func (l *listService) Create(
 				rivalHorse = list_entity.NewHorse(raceResult.HorseName(), raceResult.Odds(), raceResult.PopularNumber())
 				jockey, ok := jockeyMap[raceResult.JockeyId()]
 				if !ok {
-					jockey = data_cache_entity.NewJockey(99999, "(不明)")
+					jockey = data_cache_entity.NewJockey("00000", "(不明)")
 				}
 				rivalJockey = l.JockeyEntityConverter.DataCacheToList(jockey)
 			}
@@ -279,7 +279,7 @@ func (l *listService) Create(
 		// 単複のみなど対抗が存在しない場合
 		if rivalHorse == nil {
 			rivalHorse = list_entity.NewHorse("-", "-", 0)
-			rivalJockey = l.JockeyEntityConverter.DataCacheToList(data_cache_entity.NewJockey(99999, "-"))
+			rivalJockey = l.JockeyEntityConverter.DataCacheToList(data_cache_entity.NewJockey("00000", "-"))
 		}
 
 		sort.Slice(raceResults, func(i, j int) bool {

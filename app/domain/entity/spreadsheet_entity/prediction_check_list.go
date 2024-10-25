@@ -23,6 +23,7 @@ type PredictionCheckList struct {
 	markerNum         int
 	highlyRecommended string
 	trainingComment   string
+	paperUrl          string
 }
 
 func NewPredictionCheckList(
@@ -64,7 +65,7 @@ func NewPredictionCheckList(
 	return &PredictionCheckList{
 		raceDate:          raceDate.Format("2006/01/02"),
 		raceName:          fmt.Sprintf("%s %dR %s", raceCourse.Name(), raceNumber, raceName),
-		raceUrl:           fmt.Sprintf("https://race.netkeiba.com/race/result.html?race_id=%s", raceId.String()),
+		raceUrl:           fmt.Sprintf("https://race.netkeiba.com/race/shutuba.html?race_id=%s", raceId.String()),
 		horseName:         horseName,
 		horseUrl:          fmt.Sprintf("https://db.netkeiba.com/horse/%s", horseId),
 		winOdds:           winOdds.String(),
@@ -78,6 +79,7 @@ func NewPredictionCheckList(
 		markerNum:         markerNum,
 		highlyRecommended: highlyRecommendedFormat,
 		trainingComment:   trainingComment,
+		paperUrl:          "https://tospo-keiba.jp/newspaper-list",
 	}
 }
 
@@ -143,4 +145,8 @@ func (p *PredictionCheckList) HighlyRecommended() string {
 
 func (p *PredictionCheckList) TrainingComment() string {
 	return p.trainingComment
+}
+
+func (p *PredictionCheckList) PaperUrl() string {
+	return p.paperUrl
 }

@@ -17,7 +17,7 @@ func NewRaceResult(
 	horseName string,
 	bracketNumber int,
 	horseNumber int,
-	jockeyId int,
+	jockeyId string,
 	odds string,
 	popularNumber int,
 ) *RaceResult {

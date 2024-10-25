@@ -76,7 +76,7 @@ func (j *jockeyService) CreateOrUpdate(
 
 	var (
 		rawJockeys          []*raw_entity.Jockey
-		rawExcludeJockeyIds []int
+		rawExcludeJockeyIds []string
 	)
 
 	for _, url := range urls {
@@ -104,7 +104,7 @@ func (j *jockeyService) CreateOrUpdate(
 		rawExcludeJockeyIds = append(rawExcludeJockeyIds, excludeJockeyId.Value())
 	}
 
-	sort.Ints(rawExcludeJockeyIds)
+	sort.Strings(rawExcludeJockeyIds)
 
 	err := j.jockeyRepository.Write(ctx, fmt.Sprintf("%s/%s", config.CacheDir, jockeyFileName), &raw_entity.JockeyInfo{
 		Jockeys:          rawJockeys,
@@ -121,40 +121,58 @@ func (j *jockeyService) createJockeyUrls(
 	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []types.JockeyId,
 ) []string {
-	jockeysMap := map[int]bool{}
+	jockeysMap := map[string]bool{}
 	for _, jockeyData := range jockeys {
 		jockeysMap[jockeyData.JockeyId().Value()] = true
 	}
 
-	excludeJockeyIdsMap := map[int]bool{}
+	excludeJockeyIdsMap := map[string]bool{}
 	for _, jockeyId := range excludeJockeyIds {
 		excludeJockeyIdsMap[jockeyId.Value()] = true
 	}
 
 	var urls []string
 	for i := beginIdForJRA; i <= endIdForJRA; i++ {
+		id := fmt.Sprintf("%05d", i)
 		// 除外リストに含まれてたら何もしない
-		if _, ok := excludeJockeyIdsMap[i]; ok {
+		if _, ok := excludeJockeyIdsMap[id]; ok {
 			continue
 		}
 		// 既に取得済みの場合は何もしない
-		if _, ok := jockeysMap[i]; ok {
+		if _, ok := jockeysMap[id]; ok {
 			continue
 		}
-		jockeyId := types.JockeyId(i)
-		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Format()))
+		jockeyId := types.JockeyId(id)
+		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Value()))
 	}
 	for i := beginIdForNARandOversea; i <= endIdForNARandOversea; i++ {
+		id := fmt.Sprintf("%05d", i)
 		// 除外リストに含まれてたら何もしない
-		if _, ok := excludeJockeyIdsMap[i]; ok {
+		if _, ok := excludeJockeyIdsMap[id]; ok {
 			continue
 		}
 		// 既に取得済みの場合は何もしない
-		if _, ok := jockeysMap[i]; ok {
+		if _, ok := jockeysMap[id]; ok {
 			continue
 		}
-		jockeyId := types.JockeyId(i)
-		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Format()))
+		jockeyId := types.JockeyId(id)
+		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId.Value()))
+	}
+	// 特殊IDの騎手を追加
+	otherJockeyIds := []string{
+		"a02d7", // 西啓太
+		"a050d", // 宮内勇樹
+	}
+	for _, jockeyId := range otherJockeyIds {
+		// 除外リストに含まれてたら何もしない
+		if _, ok := excludeJockeyIdsMap[jockeyId]; ok {
+			continue
+		}
+		// 既に取得済みの場合は何もしない
+		if _, ok := jockeysMap[jockeyId]; ok {
+			continue
+		}
+		urls = append(urls, fmt.Sprintf(jockeyUrl, jockeyId))
 	}
 
 	return urls

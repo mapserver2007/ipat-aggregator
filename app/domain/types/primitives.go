@@ -153,6 +153,7 @@ const (
 	Meydan         = "J0"
 	SantaAnitaPark = "F3"
 	KingAbdulaziz  = "P0"
+	York           = "AH"
 	Overseas       = "99" // その他海外
 )
 
@@ -184,6 +185,7 @@ var raceCourseMap = map[RaceCourse]string{
 	Meydan:         "メイダン（ＵＡＥ）",
 	SantaAnitaPark: "サンタアニタパーク（アメリカ）",
 	KingAbdulaziz:  "Ｋアブドゥルアジーズ（サウジアラビア）",
+	York:           "ヨーク（イギリス）",
 	Overseas:       "海外",
 	UnknownPlace:   "不明",
 }
@@ -235,7 +237,7 @@ func (r RaceCourse) NAR() bool {
 
 func (r RaceCourse) Oversea() bool {
 	switch r {
-	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark, KingAbdulaziz:
+	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark, KingAbdulaziz, York:
 		return true
 	}
 	return false
@@ -271,6 +273,35 @@ type HorseNumber int
 func (h HorseNumber) Value() int {
 	return int(h)
 }
+
+type HorseId string
+
+type HorseBirthDay int
+
+func NewHorseBirthDay(s string) (HorseBirthDay, error) {
+	layout := "2006年1月2日"
+	date, err := time.Parse(layout, s)
+	if err != nil {
+		return 0, err
+	}
+
+	rawBirthDay, err := strconv.Atoi(date.Format("20060102"))
+	if err != nil {
+		return 0, err
+	}
+
+	return HorseBirthDay(rawBirthDay), nil
+}
+
+func (h HorseBirthDay) Value() int {
+	return int(h)
+}
+
+type TrainerId string
+
+type OwnerId string
+
+type BreederId string
 
 type TicketType int
 
@@ -546,14 +577,10 @@ func (t TrackCondition) String() string {
 	return trackConditionName
 }
 
-type JockeyId int
+type JockeyId string
 
-func (j JockeyId) Format() string {
-	return fmt.Sprintf("%05d", j)
-}
-
-func (j JockeyId) Value() int {
-	return int(j)
+func (j JockeyId) Value() string {
+	return string(j)
 }
 
 type DistanceCategory int

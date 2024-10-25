@@ -8,7 +8,7 @@ type Jockey struct {
 }
 
 func NewJockey(
-	jockeyId int,
+	jockeyId string,
 	jockeyName string,
 ) *Jockey {
 	return &Jockey{

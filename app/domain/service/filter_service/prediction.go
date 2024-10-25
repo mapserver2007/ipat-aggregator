@@ -8,7 +8,7 @@ import (
 )
 
 type PredictionFilter interface {
-	Create(ctx context.Context, race *netkeiba_entity.Race) []filter.Id
+	CreatePredictionOddsFilters(ctx context.Context, race *netkeiba_entity.Race) []filter.Id
 }
 
 type predictionFilter struct{}
@@ -17,7 +17,7 @@ func NewPredictionFilter() PredictionFilter {
 	return &predictionFilter{}
 }
 
-func (p *predictionFilter) Create(
+func (p *predictionFilter) CreatePredictionOddsFilters(
 	ctx context.Context,
 	race *netkeiba_entity.Race,
 ) []filter.Id {

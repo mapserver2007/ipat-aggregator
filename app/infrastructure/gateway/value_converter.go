@@ -20,3 +20,10 @@ func ConvertFromEucJPToUtf8(eucjpStr string) string {
 
 	return str
 }
+
+func Trim(str string) string {
+	str = strings.TrimSpace(str)
+	str = strings.TrimRight(str, "\n")
+
+	return str
+}

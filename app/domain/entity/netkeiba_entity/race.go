@@ -21,6 +21,7 @@ type Race struct {
 	trackCondition      int
 	raceSexCondition    int
 	raceWeightCondition int
+	raceEntryHorses     []*RaceEntryHorse
 	raceResults         []*RaceResult
 	payoutResults       []*PayoutResult
 }
@@ -40,6 +41,7 @@ func NewRace(
 	trackCondition int,
 	raceSexCondition int,
 	raceWeightCondition int,
+	raceEntryHorses []*RaceEntryHorse,
 	raceResults []*RaceResult,
 	payoutResults []*PayoutResult,
 ) *Race {
@@ -62,6 +64,7 @@ func NewRace(
 		trackCondition:      trackCondition,
 		raceSexCondition:    raceSexCondition,
 		raceWeightCondition: raceWeightCondition,
+		raceEntryHorses:     raceEntryHorses,
 		raceResults:         raceResults,
 		payoutResults:       payoutResults,
 	}
@@ -129,6 +132,10 @@ func (r *Race) RaceSexCondition() int {
 
 func (r *Race) RaceWeightCondition() int {
 	return r.raceWeightCondition
+}
+
+func (r *Race) RaceEntryHorses() []*RaceEntryHorse {
+	return r.raceEntryHorses
 }
 
 func (r *Race) RaceResults() []*RaceResult {

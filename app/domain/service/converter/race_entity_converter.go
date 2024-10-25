@@ -4,7 +4,10 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 )
 
 type RaceEntityConverter interface {
@@ -12,6 +15,8 @@ type RaceEntityConverter interface {
 	NetKeibaToRaw(input *netkeiba_entity.Race) *raw_entity.Race
 	RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race
 	DataCacheToList(input *data_cache_entity.Race) *list_entity.Race
+	NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds, filters []filter.Id) *prediction_entity.Race
+	TospoToPrediction(input1 *tospo_entity.Forecast, input2 *tospo_entity.TrainingComment) *prediction_entity.RaceForecast
 }
 
 type raceEntityConverter struct{}
@@ -190,5 +195,69 @@ func (r *raceEntityConverter) DataCacheToList(input *data_cache_entity.Race) *li
 		input.TrackCondition(),
 		input.Url(),
 		raceResults,
+	)
+}
+
+func (r *raceEntityConverter) NetKeibaToPrediction(
+	input1 *netkeiba_entity.Race,
+	input2 []*netkeiba_entity.Odds,
+	filters []filter.Id,
+) *prediction_entity.Race {
+	raceEntryHorses := make([]*prediction_entity.RaceEntryHorse, 0, len(input1.RaceEntryHorses()))
+	for _, rawRaceEntryHorse := range input1.RaceEntryHorses() {
+		raceEntryHorses = append(raceEntryHorses, prediction_entity.NewRaceEntryHorse(
+			rawRaceEntryHorse.HorseId(),
+			rawRaceEntryHorse.HorseName(),
+			rawRaceEntryHorse.BracketNumber(),
+			rawRaceEntryHorse.HorseNumber(),
+			rawRaceEntryHorse.JockeyId(),
+			rawRaceEntryHorse.RaceWeight(),
+		))
+	}
+
+	var predictionOdds []*prediction_entity.Odds
+	for _, nkOdds := range input2 {
+		predictionOdds = append(predictionOdds, prediction_entity.NewOdds(
+			nkOdds.Odds()[0],
+			nkOdds.PopularNumber(),
+			nkOdds.HorseNumbers()[0],
+		))
+	}
+
+	// レース結果はここでは取らないが、予想処理のために空で設定しておく
+	raceResultHorseNumbers := make([]int, 3)
+
+	return prediction_entity.NewRace(
+		input1.RaceId(),
+		input1.RaceName(),
+		input1.RaceDate(),
+		input1.RaceNumber(),
+		input1.Entries(),
+		input1.Distance(),
+		input1.Class(),
+		input1.CourseCategory(),
+		input1.TrackCondition(),
+		input1.RaceSexCondition(),
+		input1.RaceWeightCondition(),
+		input1.RaceCourseId(),
+		input1.Url(),
+		raceEntryHorses,
+		raceResultHorseNumbers,
+		predictionOdds,
+		filters,
+	)
+}
+
+func (r *raceEntityConverter) TospoToPrediction(
+	input1 *tospo_entity.Forecast,
+	input2 *tospo_entity.TrainingComment,
+) *prediction_entity.RaceForecast {
+	return prediction_entity.NewRaceForecast(
+		input1.HorseNumber(),
+		input1.FavoriteNum(),
+		input1.RivalNum(),
+		input1.MarkerNum(),
+		input2.TrainingComment(),
+		input2.IsHighlyRecommended(),
 	)
 }

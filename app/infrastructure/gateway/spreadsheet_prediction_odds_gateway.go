@@ -11,34 +11,34 @@ import (
 )
 
 const (
-	spreadSheetPredictionFileName = "spreadsheet_prediction.json"
+	spreadSheetPredictionOddsFileName = "spreadsheet_prediction_odds.json"
 )
 
-type SpreadSheetPredictionGateway interface {
+type SpreadSheetPredictionOddsGateway interface {
 	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
 	Style(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetPredictionGateway struct{}
+type spreadSheetPredictionOddsGateway struct{}
 
-func NewSpreadSheetPredictionGateway() SpreadSheetPredictionGateway {
-	return &spreadSheetPredictionGateway{}
+func NewSpreadSheetPredictionOddsGateway() SpreadSheetPredictionOddsGateway {
+	return &spreadSheetPredictionOddsGateway{}
 }
 
-func (s *spreadSheetPredictionGateway) Write(
+func (s *spreadSheetPredictionOddsGateway) Write(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
 	thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
 	raceCourseMap map[types.RaceCourse][]types.RaceId,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionFileName)
+	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionOddsFileName)
 	if err != nil {
 		return err
 	}
 
-	log.Println(ctx, "write prediction start")
+	log.Println(ctx, "write prediction odds start")
 
 	raceCourseIds := make([]string, 0, len(raceCourseMap))
 	for raceCourseId := range raceCourseMap {
@@ -244,24 +244,24 @@ func (s *spreadSheetPredictionGateway) Write(
 		courseIdx++
 	}
 
-	log.Println(ctx, "write prediction end")
+	log.Println(ctx, "write prediction odds end")
 
 	return nil
 }
 
-func (s *spreadSheetPredictionGateway) Style(
+func (s *spreadSheetPredictionOddsGateway) Style(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
 	thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
 	raceCourseMap map[types.RaceCourse][]types.RaceId,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionFileName)
+	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionOddsFileName)
 	if err != nil {
 		return err
 	}
 
-	log.Println(ctx, "write prediction style start")
+	log.Println(ctx, "write prediction odds style start")
 
 	raceCourseIds := make([]string, 0, len(raceCourseMap))
 	for raceCourseId := range raceCourseMap {
@@ -520,13 +520,13 @@ func (s *spreadSheetPredictionGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write prediction style end")
+	log.Println(ctx, "write prediction odds style end")
 
 	return nil
 }
 
-func (s *spreadSheetPredictionGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionFileName)
+func (s *spreadSheetPredictionOddsGateway) Clear(ctx context.Context) error {
+	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionOddsFileName)
 	if err != nil {
 		return err
 	}
@@ -557,7 +557,7 @@ func (s *spreadSheetPredictionGateway) Clear(ctx context.Context) error {
 	return nil
 }
 
-func (s *spreadSheetPredictionGateway) getCellColor(
+func (s *spreadSheetPredictionOddsGateway) getCellColor(
 	colorType types.CellColorType,
 ) *sheets.Color {
 	switch colorType {

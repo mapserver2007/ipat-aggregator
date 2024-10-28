@@ -86,11 +86,13 @@ var PredictionSet = wire.NewSet(
 	prediction_service.NewOdds,
 	prediction_service.NewPlaceCandidate,
 	prediction_service.NewPlaceCheckList,
+	prediction_service.NewMarkerSync,
 	filter_service.NewPredictionFilter,
 	infrastructure.NewOddsRepository,
 	infrastructure.NewRaceRepository,
 	infrastructure.NewHorseRepository,
 	infrastructure.NewRaceForecastRepository,
+	infrastructure.NewRaceIdRepository,
 	gateway.NewNetKeibaGateway,
 	gateway.NewNetKeibaCollector,
 	gateway.NewTospoGateway,
@@ -106,6 +108,7 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetAnalysisPlaceAllInGateway,
 	gateway.NewSpreadSheetPredictionOddsGateway,
 	gateway.NewSpreadSheetPredictionCheckListGateway,
+	gateway.NewSpreadSheetPredictionMarkerGateway,
 )
 
 func NewMaster() *controller.Master {

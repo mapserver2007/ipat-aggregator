@@ -13,6 +13,8 @@ import (
 
 type NetKeibaCollector interface {
 	Client() *colly.Collector
+	Cookies(ctx context.Context) ([]*http.Cookie, error)
+	Cache(c bool)
 	Login(ctx context.Context) error
 }
 
@@ -30,39 +32,47 @@ func NewNetKeibaCollector() NetKeibaCollector {
 	client := colly.NewCollector()
 	client.AllowURLRevisit = true
 	client.DetectCharset = true
-
-	rootPath, _ := os.Getwd()
-	cachePath, _ := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, collyCacheDir))
-	client.CacheDir = cachePath
-
-	return &netKeibaCollector{
+	collector := &netKeibaCollector{
 		client: client,
 	}
+	collector.Cache(true)
+
+	return collector
 }
 
 func (n *netKeibaCollector) Client() *colly.Collector {
 	return n.client
 }
 
-func (n *netKeibaCollector) Login(ctx context.Context) error {
+func (n *netKeibaCollector) Cache(c bool) {
+	if c {
+		rootPath, _ := os.Getwd()
+		cachePath, _ := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, collyCacheDir))
+		n.client.CacheDir = cachePath
+	} else {
+		n.client.CacheDir = ""
+	}
+}
+
+func (n *netKeibaCollector) Cookies(ctx context.Context) ([]*http.Cookie, error) {
 	rootPath, err := os.Getwd()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	secretFilePath, err := filepath.Abs(fmt.Sprintf("%s/secret/%s", rootPath, collectorConfigName))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	configBytes, err := os.ReadFile(secretFilePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var rawNetKeibaCollectorConfig raw_entity.NetKeibaCollectorConfigs
 	if err = json.Unmarshal(configBytes, &rawNetKeibaCollectorConfig); err != nil {
-		return err
+		return nil, err
 	}
 
 	var cookies []*http.Cookie
@@ -76,6 +86,16 @@ func (n *netKeibaCollector) Login(ctx context.Context) error {
 			HttpOnly: data.HttpOnly,
 		})
 	}
+
+	return cookies, nil
+}
+
+func (n *netKeibaCollector) Login(ctx context.Context) error {
+	cookies, err := n.Cookies(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = n.client.SetCookies(netKeibaBaseUrl, cookies)
 	if err != nil {
 		return err

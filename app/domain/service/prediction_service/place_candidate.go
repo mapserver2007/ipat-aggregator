@@ -65,7 +65,8 @@ func (p *placeCandidateService) GetRaceCard(
 	ctx context.Context,
 	raceId types.RaceId,
 ) (*prediction_entity.Race, error) {
-	rawRace, err := p.raceRepository.FetchRaceCard(ctx, fmt.Sprintf(raceCardUrl, raceId))
+	// race_resultが取得できない状態でキャッシュさせないように制御する
+	rawRace, err := p.raceRepository.FetchRaceCard(ctx, fmt.Sprintf(raceCardUrl+"&cache=false", raceId))
 	if err != nil {
 		return nil, err
 	}

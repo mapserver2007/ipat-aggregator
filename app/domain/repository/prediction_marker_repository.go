@@ -7,4 +7,5 @@ import (
 
 type PredictionMarkerRepository interface {
 	Read(ctx context.Context, path string) ([]*marker_csv_entity.PredictionMarker, error)
+	Push(ctx context.Context) error
 }

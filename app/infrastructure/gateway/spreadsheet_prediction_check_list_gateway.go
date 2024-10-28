@@ -31,7 +31,7 @@ var checkListItems = []string{
 }
 
 type SpreadSheetPredictionCheckListGateway interface {
-	Write(ctx context.Context, checkLists []*spreadsheet_entity.PredictionCheckList) error
+	Write(ctx context.Context, rows []*spreadsheet_entity.PredictionCheckList) error
 	Style(ctx context.Context) error
 	Clear(ctx context.Context) error
 }

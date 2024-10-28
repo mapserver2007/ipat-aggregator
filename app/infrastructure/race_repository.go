@@ -135,3 +135,14 @@ func (r *raceRepository) FetchRaceCard(
 	}
 	return race, nil
 }
+
+func (r *raceRepository) FetchMarker(
+	ctx context.Context,
+	url string,
+) ([]*netkeiba_entity.Marker, error) {
+	markers, err := r.netKeibaGateway.FetchMarker(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	return markers, nil
+}

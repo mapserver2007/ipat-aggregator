@@ -1,13 +1,13 @@
 package raw_entity
 
 type OddsInfo struct {
-	Status      string `json:"status"`
-	UpdateCount string `json:"update_count"`
-	Reason      string `json:"reason"`
-	Data        Data   `json:"data"`
+	Status      string   `json:"status"`
+	UpdateCount string   `json:"update_count"`
+	Reason      string   `json:"reason"`
+	Data        OddsData `json:"data"`
 }
 
-type Data struct {
+type OddsData struct {
 	OfficialDatetime string         `json:"official_datetime"`
 	Odds             TicketTypeOdds `json:"odds"`
 }

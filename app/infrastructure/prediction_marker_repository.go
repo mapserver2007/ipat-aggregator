@@ -6,15 +6,22 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 	"io"
 	"os"
 	"path/filepath"
 )
 
-type predictionMarkerRepository struct{}
+type predictionMarkerRepository struct {
+	netKeibaGateway gateway.NetKeibaGateway
+}
 
-func NewPredictionMarkerRepository() repository.PredictionMarkerRepository {
-	return &predictionMarkerRepository{}
+func NewPredictionMarkerRepository(
+	netKeibaGateway gateway.NetKeibaGateway,
+) repository.PredictionMarkerRepository {
+	return &predictionMarkerRepository{
+		netKeibaGateway: netKeibaGateway,
+	}
 }
 
 func (p *predictionMarkerRepository) Read(
@@ -68,4 +75,8 @@ func (p *predictionMarkerRepository) Read(
 	}
 
 	return markers, nil
+}
+
+func (p *predictionMarkerRepository) Push(ctx context.Context) error {
+	return nil
 }

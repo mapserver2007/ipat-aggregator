@@ -16,7 +16,7 @@ func NewRaceEntryHorse(
 	horseName string,
 	bracketNumber int,
 	rawHorseNumber int,
-	rawJockeyId int,
+	rawJockeyId string,
 	raceWeight float64,
 ) *RaceEntryHorse {
 	return &RaceEntryHorse{

@@ -102,8 +102,7 @@ func NewAnalysis() *controller.Analysis {
 	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
 	trio := analysis_service.NewTrio(analysisFilter)
 	placeAllIn := analysis_service.NewPlaceAllIn(analysisFilter, spreadSheetRepository)
-	placeUnHit := analysis_service.NewPlaceUnHit(placeAllIn)
-	analysis := analysis_usecase.NewAnalysis(place, trio, placeAllIn, placeUnHit)
+	analysis := analysis_usecase.NewAnalysis(place, trio, placeAllIn)
 	controllerAnalysis := controller.NewAnalysis(analysis)
 	return controllerAnalysis
 }
@@ -146,7 +145,7 @@ var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, 
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
-var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, analysis_service.NewPlaceAllIn, analysis_service.NewPlaceUnHit, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
+var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, analysis_service.NewPlaceAllIn, filter_service.NewAnalysisFilter, infrastructure.NewSpreadSheetRepository)
 
 var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, prediction_service.NewPlaceCandidate, prediction_service.NewPlaceCheckList, prediction_service.NewMarkerSync, filter_service.NewPredictionFilter, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, infrastructure.NewHorseRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewRaceIdRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, converter.NewHorseEntityConverter, converter.NewRaceEntityConverter)
 

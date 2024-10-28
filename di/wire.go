@@ -76,7 +76,6 @@ var AnalysisSet = wire.NewSet(
 	analysis_service.NewPlace,
 	analysis_service.NewTrio,
 	analysis_service.NewPlaceAllIn,
-	analysis_service.NewPlaceUnHit,
 	filter_service.NewAnalysisFilter,
 	infrastructure.NewSpreadSheetRepository,
 )

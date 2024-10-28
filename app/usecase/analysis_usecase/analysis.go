@@ -27,20 +27,17 @@ type analysis struct {
 	placeService      analysis_service.Place
 	trioService       analysis_service.Trio
 	placeAllInService analysis_service.PlaceAllIn
-	placeUnHitService analysis_service.PlaceUnHit
 }
 
 func NewAnalysis(
 	placeService analysis_service.Place,
 	trioService analysis_service.Trio,
 	placeAllInService analysis_service.PlaceAllIn,
-	placeUnHitService analysis_service.PlaceUnHit,
 ) Analysis {
 	return &analysis{
 		placeService:      placeService,
 		trioService:       trioService,
 		placeAllInService: placeAllInService,
-		placeUnHitService: placeUnHitService,
 	}
 }
 
@@ -75,15 +72,6 @@ func (a *analysis) Execute(ctx context.Context, input *AnalysisInput) error {
 	}
 
 	if config.EnableAnalysisPlaceUnHit {
-		calculables, err := a.placeAllInService.Create(ctx, input.Markers, input.Races, input.Odds.Win, input.Odds.Place)
-		if err != nil {
-			return err
-		}
-
-		err = a.placeUnHitService.Convert(ctx, calculables, config.AnalysisPlaceUnHitWinUpperOdds, config.AnalysisPlaceUnHitWinLowerOdds)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

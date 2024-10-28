@@ -15,4 +15,5 @@ type SpreadSheetRepository interface {
 	WriteAnalysisPlaceAllIn(ctx context.Context, placeAllInMap map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn, filters []filter.Id) error
 	WritePredictionOdds(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
 	WritePredictionCheckList(ctx context.Context, predictionCheckLists []*spreadsheet_entity.PredictionCheckList) error
+	WritePredictionMarker(ctx context.Context, predictionMarkers []*spreadsheet_entity.PredictionMarker) error
 }

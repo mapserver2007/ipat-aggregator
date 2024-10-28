@@ -27,17 +27,20 @@ type PredictionInput struct {
 type prediction struct {
 	predictionOddsService           prediction_service.Odds
 	predictionPlaceCandidateService prediction_service.PlaceCandidate
+	predictionMarkerSyncService     prediction_service.MarkerSync
 	placeService                    analysis_service.Place
 }
 
 func NewPrediction(
 	predictionOddsService prediction_service.Odds,
 	predictionPlaceCandidateService prediction_service.PlaceCandidate,
+	predictionMarkerSyncService prediction_service.MarkerSync,
 	placeService analysis_service.Place,
 ) Prediction {
 	return &prediction{
 		predictionOddsService:           predictionOddsService,
 		predictionPlaceCandidateService: predictionPlaceCandidateService,
+		predictionMarkerSyncService:     predictionMarkerSyncService,
 		placeService:                    placeService,
 	}
 }
@@ -145,6 +148,33 @@ func (p *prediction) Execute(ctx context.Context, input *PredictionInput) error 
 		}
 
 		err = p.predictionPlaceCandidateService.Write(ctx, predictionCheckLists)
+		if err != nil {
+			return err
+		}
+	}
+
+	if config.EnablePredictionSync {
+		raceDate, err := types.NewRaceDate(config.PredictionSyncRaceDate)
+		if err != nil {
+			return err
+		}
+
+		raceIds, err := p.predictionMarkerSyncService.GetRaceIds(ctx, raceDate)
+		if err != nil {
+			return err
+		}
+
+		var predictionMarkers []*prediction_entity.Marker
+		for _, raceId := range raceIds {
+			markers, err := p.predictionMarkerSyncService.GetMarkers(ctx, raceId)
+			if err != nil {
+				return err
+			}
+			predictionMarkers = append(predictionMarkers, markers...)
+		}
+
+		spreadSheetPredictionMarkers := p.predictionMarkerSyncService.Convert(ctx, predictionMarkers)
+		err = p.predictionMarkerSyncService.Write(ctx, spreadSheetPredictionMarkers)
 		if err != nil {
 			return err
 		}

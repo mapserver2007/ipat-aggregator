@@ -17,6 +17,7 @@ type spreadSheetRepository struct {
 	analysisPlaceAllInGateway  gateway.SpreadSheetAnalysisPlaceAllInGateway
 	predictionOddsGateway      gateway.SpreadSheetPredictionOddsGateway
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway
+	predictionMarkerGateway    gateway.SpreadSheetPredictionMarkerGateway
 }
 
 func NewSpreadSheetRepository(
@@ -27,6 +28,7 @@ func NewSpreadSheetRepository(
 	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway,
 	predictionOddsGateway gateway.SpreadSheetPredictionOddsGateway,
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway,
+	predictionMarkerGateway gateway.SpreadSheetPredictionMarkerGateway,
 ) repository.SpreadSheetRepository {
 	return &spreadSheetRepository{
 		summaryGateway:             summaryGateway,
@@ -36,6 +38,7 @@ func NewSpreadSheetRepository(
 		analysisPlaceAllInGateway:  analysisPlaceAllInGateway,
 		predictionOddsGateway:      predictionOddsGateway,
 		predictionCheckListGateway: predictionCheckListGateway,
+		predictionMarkerGateway:    predictionMarkerGateway,
 	}
 }
 
@@ -189,6 +192,23 @@ func (s *spreadSheetRepository) WritePredictionCheckList(
 	}
 
 	err = s.predictionCheckListGateway.Style(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WritePredictionMarker(
+	ctx context.Context,
+	predictionMarkers []*spreadsheet_entity.PredictionMarker,
+) error {
+	err := s.predictionMarkerGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.predictionMarkerGateway.Write(ctx, predictionMarkers)
 	if err != nil {
 		return err
 	}

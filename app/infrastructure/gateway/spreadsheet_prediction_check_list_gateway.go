@@ -31,7 +31,7 @@ var checkListItems = []string{
 }
 
 type SpreadSheetPredictionCheckListGateway interface {
-	Write(ctx context.Context, checkLists []*spreadsheet_entity.PredictionCheckList) error
+	Write(ctx context.Context, rows []*spreadsheet_entity.PredictionCheckList) error
 	Style(ctx context.Context) error
 	Clear(ctx context.Context) error
 }
@@ -85,6 +85,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			"印数",
 			"推",
 			"厩舎コメント",
+			"新聞",
 		},
 	}
 
@@ -127,6 +128,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			row.MarkerNum(),
 			row.HighlyRecommended(),
 			row.TrainingComment(),
+			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.PaperUrl(), "LINK"),
 		})
 	}
 
@@ -159,7 +161,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   29,
+					EndColumnIndex:   30,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -180,7 +182,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 24,
 					StartRowIndex:    0,
-					EndColumnIndex:   29,
+					EndColumnIndex:   30,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -201,7 +203,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   29,
+					EndColumnIndex:   30,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -220,7 +222,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 24,
 					StartRowIndex:    0,
-					EndColumnIndex:   29,
+					EndColumnIndex:   30,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -243,7 +245,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    1,
-					EndColumnIndex:   29,
+					EndColumnIndex:   30,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{

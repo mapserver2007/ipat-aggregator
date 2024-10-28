@@ -24,6 +24,7 @@ type NetKeibaGateway interface {
 	FetchRaceCard(ctx context.Context, url string) (*netkeiba_entity.Race, error)
 	FetchJockey(ctx context.Context, url string) (*netkeiba_entity.Jockey, error)
 	FetchHorse(ctx context.Context, url string) (*netkeiba_entity.Horse, error)
+	FetchMarker(ctx context.Context, url string) ([]*netkeiba_entity.Marker, error)
 	FetchWinOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchPlaceOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
@@ -607,6 +608,13 @@ func (n *netKeibaGateway) FetchRaceCard(
 	if err != nil {
 		return nil, err
 	}
+
+	cache := true
+	if queryParams.Get("cache") == "false" {
+		cache = false
+	}
+	n.collector.Cache(cache)
+
 	raceId := queryParams.Get("race_id")
 
 	n.collector.Client().OnHTML("#RaceList_DateList dd.Active a", func(e *colly.HTMLElement) {
@@ -746,11 +754,11 @@ func (n *netKeibaGateway) FetchRaceCard(
 				return rawHorseId
 			}()
 
-			rawJockeyId := func() int {
+			rawJockeyId := func() string {
 				rawJockeyUrl, _ := ce.DOM.Find("td:nth-child(7) a").Attr("href")
 				parsedUrl, _ = neturl.Parse(rawJockeyUrl)
 				pathSegments := strings.Split(parsedUrl.Path, "/")
-				rawJockeyId, _ := strconv.Atoi(pathSegments[4])
+				rawJockeyId := pathSegments[4]
 
 				return rawJockeyId
 			}()
@@ -1013,6 +1021,78 @@ func (n *netKeibaGateway) FetchHorse(
 		horseBlood,
 		horseResults,
 	), nil
+}
+
+func (n *netKeibaGateway) FetchMarker(
+	ctx context.Context,
+	url string,
+) ([]*netkeiba_entity.Marker, error) {
+	cookies, err := n.collector.Cookies(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedUrl, err := neturl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	queryParams, err := neturl.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+	raceId := queryParams.Get("race_id")
+
+	data := neturl.Values{}
+	data.Set("action", "get")
+	data.Set("pid", "api_post_social_cart")
+	data.Set("group", fmt.Sprintf("horse_%s", raceId))
+
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+
+	for _, cookie := range cookies {
+		req.AddCookie(cookie)
+	}
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var markerInfo *raw_entity.MarkerInfo
+	json.Unmarshal(body, &markerInfo)
+
+	if markerInfo == nil {
+		return nil, nil
+	}
+
+	markers := make([]*netkeiba_entity.Marker, 0, len(markerInfo.Data))
+	for _, d := range markerInfo.Data {
+		segments := strings.Split(d.Code, "_")
+		marker, err := netkeiba_entity.NewMarker(
+			segments[0],
+			segments[1],
+		)
+		if err != nil {
+			return nil, err
+		}
+		markers = append(markers, marker)
+	}
+
+	log.Println(ctx, fmt.Sprintf("fetching marker from %s", url))
+
+	return markers, nil
 }
 
 func (n *netKeibaGateway) FetchWinOdds(

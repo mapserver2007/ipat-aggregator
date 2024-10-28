@@ -14,7 +14,6 @@ const (
 
 type PredictionMarker interface {
 	Get(ctx context.Context) ([]*marker_csv_entity.PredictionMarker, error)
-	Push(ctx context.Context) error
 }
 
 type predictionMarkerService struct {
@@ -38,9 +37,4 @@ func (p *predictionMarkerService) Get(
 	}
 
 	return markers, nil
-}
-
-func (p *predictionMarkerService) Push(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
 }

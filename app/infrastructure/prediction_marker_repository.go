@@ -76,7 +76,3 @@ func (p *predictionMarkerRepository) Read(
 
 	return markers, nil
 }
-
-func (p *predictionMarkerRepository) Push(ctx context.Context) error {
-	return nil
-}

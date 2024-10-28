@@ -8,14 +8,14 @@ const (
 	AnalysisPlaceUnHitWinUpperOdds  = 1.1
 	AnalysisPlaceUnHitWinLowerOdds  = 1.3
 	EnableAggregation               = false
-	EnableAnalysis                  = false
+	EnableAnalysis                  = true
 	EnableAnalysisPlace             = false
-	EnableAnalysisPlaceAllIn        = false
+	EnableAnalysisPlaceAllIn        = true
 	EnableAnalysisPlaceUnHit        = false
-	EnablePrediction                = true
+	EnablePrediction                = false
 	EnablePredictionOdds            = false
 	EnablePredictionCheckList       = false
 	EnablePredictionSync            = true
-	PredictionSyncRaceDate          = "20241019"
-	PredictionCheckListWinLowerOdds = 3.5
+	PredictionSyncRaceDate          = "20241026"
+	PredictionCheckListWinLowerOdds = 2.5
 )

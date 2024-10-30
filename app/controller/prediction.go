@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
+	"github.com/mapserver2007/ipat-aggregator/config"
 )
 
 type Prediction struct {
@@ -22,9 +23,31 @@ func NewPrediction(
 }
 
 func (p *Prediction) Execute(ctx context.Context, input *PredictionInput) error {
-	return p.predictionUseCase.Execute(ctx, &prediction_usecase.PredictionInput{
-		AnalysisMarkers:   input.Master.AnalysisMarkers,
-		PredictionMarkers: input.Master.PredictionMarkers,
-		Races:             input.Master.Races,
-	})
+	if config.EnablePredictionOdds {
+		if err := p.predictionUseCase.Odds(ctx, &prediction_usecase.PredictionInput{
+			AnalysisMarkers:   input.Master.AnalysisMarkers,
+			PredictionMarkers: input.Master.PredictionMarkers,
+			Races:             input.Master.Races,
+		}); err != nil {
+			return err
+		}
+	}
+
+	if config.EnablePredictionCheckList {
+		if err := p.predictionUseCase.CheckList(ctx, &prediction_usecase.PredictionInput{
+			AnalysisMarkers:   input.Master.AnalysisMarkers,
+			PredictionMarkers: input.Master.PredictionMarkers,
+			Races:             input.Master.Races,
+		}); err != nil {
+			return err
+		}
+	}
+
+	if config.EnablePredictionSync {
+		if err := p.predictionUseCase.Sync(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

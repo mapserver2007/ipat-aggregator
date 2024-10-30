@@ -59,6 +59,9 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			"日付",
 			"レース名",
 			"馬名",
+			"騎手",
+			"調教師",
+			"所属",
 			"単勝",
 			"印",
 			"1着率",
@@ -94,6 +97,9 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			row.RaceDate(),
 			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.RaceUrl(), row.RaceName()),
 			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.HorseUrl(), row.HorseName()),
+			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.JockeyUrl(), row.JockeyName()),
+			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.TrainerUrl(), row.TrainerName()),
+			row.LocationName(),
 			row.WinOdds(),
 			row.Marker(),
 			row.FirstPlaceRate(),
@@ -161,7 +167,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   30,
+					EndColumnIndex:   33,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -180,9 +186,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "userEnteredFormat.backgroundColor",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: 24,
+					StartColumnIndex: 27,
 					StartRowIndex:    0,
-					EndColumnIndex:   30,
+					EndColumnIndex:   33,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -203,7 +209,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   30,
+					EndColumnIndex:   33,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -220,9 +226,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "userEnteredFormat.textFormat.foregroundColor",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: 24,
+					StartColumnIndex: 27,
 					StartRowIndex:    0,
-					EndColumnIndex:   30,
+					EndColumnIndex:   33,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -245,7 +251,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    1,
-					EndColumnIndex:   30,
+					EndColumnIndex:   33,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{
@@ -260,9 +266,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "userEnteredFormat(horizontalAlignment,wrapStrategy)",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: 28,
+					StartColumnIndex: 31,
 					StartRowIndex:    1,
-					EndColumnIndex:   29,
+					EndColumnIndex:   32,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{

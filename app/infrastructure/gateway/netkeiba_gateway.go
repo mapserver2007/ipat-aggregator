@@ -24,6 +24,7 @@ type NetKeibaGateway interface {
 	FetchRaceCard(ctx context.Context, url string) (*netkeiba_entity.Race, error)
 	FetchJockey(ctx context.Context, url string) (*netkeiba_entity.Jockey, error)
 	FetchHorse(ctx context.Context, url string) (*netkeiba_entity.Horse, error)
+	FetchTrainer(ctx context.Context, url string) (*netkeiba_entity.Trainer, error)
 	FetchMarker(ctx context.Context, url string) ([]*netkeiba_entity.Marker, error)
 	FetchWinOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchPlaceOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
@@ -763,6 +764,15 @@ func (n *netKeibaGateway) FetchRaceCard(
 				return rawJockeyId
 			}()
 
+			rawTrainerId := func() string {
+				rawTrainerUrl, _ := ce.DOM.Find("td:nth-child(8) a").Attr("href")
+				parsedUrl, _ = neturl.Parse(rawTrainerUrl)
+				pathSegments := strings.Split(parsedUrl.Path, "/")
+				rawTrainerId := pathSegments[4]
+
+				return rawTrainerId
+			}()
+
 			rawHorseWeight := func() float64 {
 				rawHorseWeightText := ce.DOM.Find("td:nth-child(6)").Text()
 				rawHorseWeight, _ := strconv.ParseFloat(rawHorseWeightText, 64)
@@ -776,6 +786,7 @@ func (n *netKeibaGateway) FetchRaceCard(
 				rawBracketNumber,
 				rawHorseNumber,
 				rawJockeyId,
+				rawTrainerId,
 				rawHorseWeight,
 			))
 		})
@@ -936,6 +947,10 @@ func (n *netKeibaGateway) FetchHorse(
 					typedGradeClass = types.TwoWinClass
 				} else if strings.Contains(rawRaceName, "(1勝クラス)") {
 					typedGradeClass = types.OneWinClass
+				} else if strings.Contains(rawRaceName, "未勝利") {
+					typedGradeClass = types.Maiden
+				} else if strings.Contains(rawRaceName, "新馬") {
+					typedGradeClass = types.MakeDebut
 				}
 			}
 			gradeClass := typedGradeClass.Value()
@@ -1020,6 +1035,39 @@ func (n *netKeibaGateway) FetchHorse(
 		breederId,
 		horseBlood,
 		horseResults,
+	), nil
+}
+
+func (n *netKeibaGateway) FetchTrainer(
+	ctx context.Context,
+	url string,
+) (*netkeiba_entity.Trainer, error) {
+	var trainerId, trainerName, locationName string
+
+	u, _ := neturl.Parse(url)
+	segments := strings.Split(u.Path, "/")
+	trainerId = segments[2]
+
+	n.collector.Client().OnHTML("div.db_head_name .Name", func(e *colly.HTMLElement) {
+		str1 := strings.ReplaceAll(e.DOM.Find("h1").Text(), " ", "")
+		segments = strings.Split(str1, "\n")
+		trainerName = Trim(segments[1])
+		str2 := strings.ReplaceAll(e.DOM.Find("p").Text(), " ", "")
+		segments = strings.Split(str2, "\n")
+		locationName = Trim(segments[3])
+	})
+
+	log.Println(ctx, fmt.Sprintf("fetching trainer from %s", url))
+
+	err := n.collector.Client().Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return netkeiba_entity.NewTrainer(
+		trainerId,
+		trainerName,
+		locationName,
 	), nil
 }
 

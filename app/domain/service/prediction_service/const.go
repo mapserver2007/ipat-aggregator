@@ -7,6 +7,8 @@ const (
 	raceResultUrl          = "https://race.netkeiba.com/race/result.html?race_id=%s&organizer=1&race_date=%s"
 	raceMarkerUrl          = "https://race.netkeiba.com/api/api_post_social_cart.html?race_id=%s"
 	horseUrl               = "https://db.netkeiba.com/horse/%s"
+	trainerUrl             = "https://db.netkeiba.com/trainer/%s"
 	raceForecastUrl        = "https://tospo-keiba.jp/race/detail/%s/forecast"
 	raceTrainingCommentUrl = "https://tospo-keiba.jp/race/detail/%s/comment"
+	jockeyFileName         = "jockey.json"
 )

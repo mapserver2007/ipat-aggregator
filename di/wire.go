@@ -76,6 +76,7 @@ var AnalysisSet = wire.NewSet(
 	analysis_service.NewPlace,
 	analysis_service.NewTrio,
 	analysis_service.NewPlaceAllIn,
+	analysis_service.NewPlaceUnHit,
 	filter_service.NewAnalysisFilter,
 	infrastructure.NewSpreadSheetRepository,
 )
@@ -90,6 +91,8 @@ var PredictionSet = wire.NewSet(
 	infrastructure.NewOddsRepository,
 	infrastructure.NewRaceRepository,
 	infrastructure.NewHorseRepository,
+	infrastructure.NewJockeyRepository,
+	infrastructure.NewTrainerRepository,
 	infrastructure.NewRaceForecastRepository,
 	infrastructure.NewRaceIdRepository,
 	gateway.NewNetKeibaGateway,

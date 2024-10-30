@@ -213,7 +213,9 @@ func (p *placeCheckListService) OkNotHorseWeightUp(ctx context.Context, input *P
 // OkNotClassUp 昇級初戦でないこと
 func (p *placeCheckListService) OkNotClassUp(ctx context.Context, input *PlaceCheckListInput) bool {
 	classMap := map[types.GradeClass]int{
-		types.NonGrade:      1,
+		types.NonGrade:      0,
+		types.MakeDebut:     1,
+		types.Maiden:        1,
 		types.OneWinClass:   2,
 		types.TwoWinClass:   3,
 		types.ThreeWinClass: 4,

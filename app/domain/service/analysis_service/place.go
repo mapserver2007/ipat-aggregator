@@ -12,7 +12,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
-	"github.com/shopspring/decimal"
 	"strconv"
 )
 
@@ -101,8 +100,7 @@ func (p *placeService) Create(
 			}
 
 			// 取り消しの馬かつ、印対象だったばあいそのレースは集計対象外
-			decimalOdds, _ := decimal.NewFromString(raceResult.Odds())
-			if decimalOdds.IsZero() {
+			if raceResult.Odds().IsZero() {
 				//log.Println(fmt.Sprintf("exclude analysis data for canceled, raceId: %s", race.RaceId()))
 				isRaceCanceled = true
 				break

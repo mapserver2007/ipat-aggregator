@@ -12,6 +12,11 @@ type PredictionCheckList struct {
 	raceUrl           string
 	horseName         string
 	horseUrl          string
+	jockeyName        string
+	jockeyUrl         string
+	trainerName       string
+	trainerUrl        string
+	locationName      string
 	winOdds           string
 	marker            string
 	firstPlaceRate    string
@@ -34,6 +39,11 @@ func NewPredictionCheckList(
 	raceCourse types.RaceCourse,
 	horseId types.HorseId,
 	horseName string,
+	jockeyId types.JockeyId,
+	jockeyName string,
+	trainerId types.TrainerId,
+	trainerName string,
+	locationId types.LocationId,
 	winOdds decimal.Decimal,
 	marker types.Marker,
 	firstPlaceRate string,
@@ -68,6 +78,11 @@ func NewPredictionCheckList(
 		raceUrl:           fmt.Sprintf("https://race.netkeiba.com/race/shutuba.html?race_id=%s", raceId.String()),
 		horseName:         horseName,
 		horseUrl:          fmt.Sprintf("https://db.netkeiba.com/horse/%s", horseId),
+		jockeyName:        jockeyName,
+		jockeyUrl:         fmt.Sprintf("https://db.netkeiba.com/jockey/%s", jockeyId),
+		trainerName:       trainerName,
+		trainerUrl:        fmt.Sprintf("https://db.netkeiba.com/trainer/%s", trainerId),
+		locationName:      locationId.Name(),
 		winOdds:           winOdds.String(),
 		marker:            marker.String(),
 		firstPlaceRate:    firstPlaceRate,
@@ -101,6 +116,26 @@ func (p *PredictionCheckList) HorseName() string {
 
 func (p *PredictionCheckList) HorseUrl() string {
 	return p.horseUrl
+}
+
+func (p *PredictionCheckList) JockeyName() string {
+	return p.jockeyName
+}
+
+func (p *PredictionCheckList) JockeyUrl() string {
+	return p.jockeyUrl
+}
+
+func (p *PredictionCheckList) TrainerName() string {
+	return p.trainerName
+}
+
+func (p *PredictionCheckList) TrainerUrl() string {
+	return p.trainerUrl
+}
+
+func (p *PredictionCheckList) LocationName() string {
+	return p.locationName
 }
 
 func (p *PredictionCheckList) WinOdds() string {

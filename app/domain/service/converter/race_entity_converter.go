@@ -34,7 +34,7 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 			BracketNumber: raceResult.BracketNumber(),
 			HorseNumber:   raceResult.HorseNumber().Value(),
 			JockeyId:      raceResult.JockeyId().Value(),
-			Odds:          raceResult.Odds(),
+			Odds:          raceResult.Odds().String(),
 			PopularNumber: raceResult.PopularNumber(),
 		})
 	}
@@ -211,6 +211,7 @@ func (r *raceEntityConverter) NetKeibaToPrediction(
 			rawRaceEntryHorse.BracketNumber(),
 			rawRaceEntryHorse.HorseNumber(),
 			rawRaceEntryHorse.JockeyId(),
+			rawRaceEntryHorse.TrainerId(),
 			rawRaceEntryHorse.RaceWeight(),
 		))
 	}

@@ -5,15 +5,15 @@ const (
 	CacheDir                        = "cache"
 	RaceStartDate                   = "20230729"
 	RaceEndDate                     = "20241031"
-	EnableAggregation               = true
+	EnableAggregation               = false
 	EnableAnalysis                  = true
 	EnableAnalysisPlace             = false
 	EnableAnalysisPlaceAllIn        = false
 	EnableAnalysisPlaceUnHit        = true
 	EnablePrediction                = false
 	EnablePredictionOdds            = false
-	EnablePredictionCheckList       = true
-	EnablePredictionSync            = false
-	PredictionSyncRaceDate          = "20241026"
+	EnablePredictionCheckList       = false
+	EnablePredictionSync            = true
+	PredictionSyncRaceDate          = "20241027"
 	PredictionCheckListWinLowerOdds = 2.5
 )

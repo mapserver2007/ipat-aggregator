@@ -112,9 +112,15 @@ func (n *netKeibaGateway) FetchRace(
 				if result != nil {
 					jockeyId = result[1]
 				}
+				horseName := Trim(ce.DOM.Find(".Horse_Name > a").Text())
+				linkUrl, _ = ce.DOM.Find(".Horse_Name > a").Attr("href")
+				segments := strings.Split(linkUrl, "/")
+				horseId := segments[4]
+
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
-					Trim(ce.DOM.Find(".Horse_Name > a").Text()),
+					horseId,
+					horseName,
 					numbers[0],
 					numbers[1],
 					jockeyId,
@@ -138,9 +144,15 @@ func (n *netKeibaGateway) FetchRace(
 				if result != nil {
 					jockeyId = result[1]
 				}
+				horseName := Trim(ce.DOM.Find(".Horse_Name > a").Text())
+				linkUrl, _ = ce.DOM.Find(".Horse_Name > a").Attr("href")
+				segments := strings.Split(linkUrl, "/")
+				horseId := segments[4]
+
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
-					ce.DOM.Find(".Horse_Name > a").Text(),
+					horseId,
+					horseName,
 					numbers[0],
 					numbers[1],
 					jockeyId,
@@ -173,9 +185,15 @@ func (n *netKeibaGateway) FetchRace(
 				if result != nil {
 					jockeyId = result[1]
 				}
+				horseName := Trim(ce.DOM.Find(".Horse_Name > a").Text())
+				linkUrl, _ = ce.DOM.Find(".Horse_Name > a").Attr("href")
+				segments := strings.Split(linkUrl, "/")
+				horseId := segments[4]
+
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					i+1,
-					ce.DOM.Find(".Horse_Name > a").Text(),
+					horseId,
+					horseName,
 					numbers[0],
 					numbers[1],
 					jockeyId,

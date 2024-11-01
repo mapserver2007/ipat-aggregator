@@ -27,6 +27,7 @@ type Race struct {
 
 type RaceResult struct {
 	OrderNo       int    `json:"order_no"`
+	HorseId       string `json:"horse_id"`
 	HorseName     string `json:"horse_name"`
 	BracketNumber int    `json:"bracket_number"`
 	HorseNumber   int    `json:"horse_number"`

@@ -7,6 +7,7 @@ import (
 
 type RaceResult struct {
 	orderNo       int
+	horseId       types.HorseId
 	horseName     string
 	bracketNumber int
 	horseNumber   types.HorseNumber
@@ -17,6 +18,7 @@ type RaceResult struct {
 
 func NewRaceResult(
 	orderNo int,
+	horseId string,
 	horseName string,
 	bracketNumber int,
 	horseNumber int,
@@ -27,6 +29,7 @@ func NewRaceResult(
 	decimalOdds, _ := decimal.NewFromString(odds)
 	return &RaceResult{
 		orderNo:       orderNo,
+		horseId:       types.HorseId(horseId),
 		horseName:     horseName,
 		bracketNumber: bracketNumber,
 		horseNumber:   types.HorseNumber(horseNumber),
@@ -38,6 +41,10 @@ func NewRaceResult(
 
 func (r *RaceResult) OrderNo() int {
 	return r.orderNo
+}
+
+func (r *RaceResult) HorseId() types.HorseId {
+	return r.horseId
 }
 
 func (r *RaceResult) HorseName() string {

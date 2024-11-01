@@ -79,6 +79,7 @@ func (r *raceEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Race) *raw_en
 	for _, raceResult := range input.RaceResults() {
 		raceResults = append(raceResults, &raw_entity.RaceResult{
 			OrderNo:       raceResult.OrderNo(),
+			HorseId:       raceResult.HorseId(),
 			HorseName:     raceResult.HorseName(),
 			BracketNumber: raceResult.BracketNumber(),
 			HorseNumber:   raceResult.HorseNumber(),
@@ -128,6 +129,7 @@ func (r *raceEntityConverter) RawToDataCache(input *raw_entity.Race) *data_cache
 	for _, raceResult := range input.RaceResults {
 		raceResults = append(raceResults, data_cache_entity.NewRaceResult(
 			raceResult.OrderNo,
+			raceResult.HorseId,
 			raceResult.HorseName,
 			raceResult.BracketNumber,
 			raceResult.HorseNumber,

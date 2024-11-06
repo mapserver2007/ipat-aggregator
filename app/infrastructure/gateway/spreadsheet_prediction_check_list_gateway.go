@@ -286,9 +286,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "note",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: i + 10,
+					StartColumnIndex: i + 11,
 					StartRowIndex:    0,
-					EndColumnIndex:   i + 11,
+					EndColumnIndex:   i + 12,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{

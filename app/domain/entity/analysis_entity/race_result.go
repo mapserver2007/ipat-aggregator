@@ -7,6 +7,7 @@ import (
 
 type RaceResult struct {
 	orderNo       int
+	horseId       types.HorseId
 	horseName     string
 	horseNumber   types.HorseNumber
 	jockeyId      types.JockeyId
@@ -16,6 +17,7 @@ type RaceResult struct {
 
 func NewRaceResult(
 	orderNo int,
+	horseId types.HorseId,
 	horseName string,
 	horseNumber types.HorseNumber,
 	jockeyId types.JockeyId,
@@ -24,6 +26,7 @@ func NewRaceResult(
 ) *RaceResult {
 	return &RaceResult{
 		orderNo:       orderNo,
+		horseId:       horseId,
 		horseName:     horseName,
 		horseNumber:   horseNumber,
 		jockeyId:      jockeyId,
@@ -34,6 +37,10 @@ func NewRaceResult(
 
 func (r *RaceResult) OrderNo() int {
 	return r.orderNo
+}
+
+func (r *RaceResult) HorseId() types.HorseId {
+	return r.horseId
 }
 
 func (r *RaceResult) HorseName() string {

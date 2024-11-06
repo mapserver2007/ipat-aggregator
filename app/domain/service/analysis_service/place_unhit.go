@@ -2,25 +2,44 @@ package analysis_service
 
 import (
 	"context"
+	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"github.com/mapserver2007/ipat-aggregator/config"
 )
 
 type PlaceUnHit interface {
-	GetRaces(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race) []*analysis_entity.Race
+	GetUnHitRaces(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race) []*analysis_entity.Race
+	GetUnHitRaceRate(ctx context.Context, race *analysis_entity.Race, calculables []*analysis_entity.PlaceCalculable) error
+	FetchHorse(ctx context.Context, horseId types.HorseId) (*netkeiba_entity.Horse, error)
 }
 
 type placeUnHitService struct {
+	horseRepository      repository.HorseRepository
+	horseEntityConverter converter.HorseEntityConverter
+	filterService        filter_service.AnalysisFilter
 }
 
-func NewPlaceUnHit() PlaceUnHit {
-	return &placeUnHitService{}
+func NewPlaceUnHit(
+	horseRepository repository.HorseRepository,
+	horseEntityConverter converter.HorseEntityConverter,
+	filterService filter_service.AnalysisFilter,
+) PlaceUnHit {
+	return &placeUnHitService{
+		horseRepository:      horseRepository,
+		horseEntityConverter: horseEntityConverter,
+		filterService:        filterService,
+	}
 }
 
-func (p *placeUnHitService) GetRaces(
+func (p *placeUnHitService) GetUnHitRaces(
 	ctx context.Context,
 	markers []*marker_csv_entity.AnalysisMarker,
 	races []*data_cache_entity.Race,
@@ -45,11 +64,11 @@ func (p *placeUnHitService) GetRaces(
 			if raceResult.Odds().IsZero() {
 				continue
 			}
-			// TODO race_cacheにhorseIdがないとまずい。取り直す
 
-			if raceResult.Odds().InexactFloat64() < 1.6 && raceResult.OrderNo() > 3 {
+			if raceResult.Odds().InexactFloat64() < config.AnalysisUnHitWinLowerOdds && raceResult.OrderNo() > 3 {
 				analysisRaceResults = append(analysisRaceResults, analysis_entity.NewRaceResult(
 					raceResult.OrderNo(),
+					raceResult.HorseId(),
 					raceResult.HorseName(),
 					raceResult.HorseNumber(),
 					raceResult.JockeyId(),
@@ -95,9 +114,54 @@ func (p *placeUnHitService) GetRaces(
 				race.RaceWeightCondition(),
 				analysisRaceResults,
 				analysisMarkers,
+				p.filterService.CreatePlaceFilters(ctx, race),
 			))
 		}
 	}
 
 	return unHitRaces
+}
+
+func (p *placeUnHitService) GetUnHitRaceRate(
+	ctx context.Context,
+	race *analysis_entity.Race,
+	calculables []*analysis_entity.PlaceCalculable,
+) error {
+
+	var analysisFilter filter.Id
+	for _, f := range race.AnalysisFilters() {
+		analysisFilter |= f
+	}
+
+	// 実用上は1レースで分析対象のオッズは1つ想定だが、仕様上は複数オッズも計算可能なのでループを回す
+	for _, raceResult := range race.RaceResults() {
+		for _, calculable := range calculables {
+			match := true
+			for _, f := range calculable.Filters() {
+				if f&analysisFilter == 0 {
+					match = false
+					break
+				}
+			}
+			if match {
+				odds := raceResult.Odds().InexactFloat64()
+				fmt.Println(odds)
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (p *placeUnHitService) FetchHorse(
+	ctx context.Context,
+	horseId types.HorseId,
+) (*netkeiba_entity.Horse, error) {
+	horse, err := p.horseRepository.Fetch(ctx, fmt.Sprintf(horseUrl, horseId))
+	if err != nil {
+		return nil, err
+	}
+
+	return horse, nil
 }

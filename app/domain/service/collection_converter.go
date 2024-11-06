@@ -34,3 +34,18 @@ func SortedRaceDateKeys[T any](m map[types.RaceDate]T) []types.RaceDate {
 
 	return raceDates
 }
+
+func SortedHorseIdKeys[T any](m map[types.HorseId]T) []types.HorseId {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key.Value())
+	}
+	sort.Strings(keys)
+
+	horseIds := make([]types.HorseId, 0, len(keys))
+	for _, key := range keys {
+		horseIds = append(horseIds, types.HorseId(key))
+	}
+
+	return horseIds
+}

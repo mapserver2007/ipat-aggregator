@@ -16,28 +16,23 @@ type Horse struct {
 func NewHorse(
 	rawHorseId string,
 	horseName string,
-	rawHorseBirthDay string,
+	rawHorseBirthDay int,
 	rawTrainerId string,
 	rawOwnerId string,
 	rawBreederId string,
 	horseBlood *HorseBlood,
 	horseResults []*HorseResult,
-) (*Horse, error) {
-	horseBirthDay, err := types.NewHorseBirthDay(rawHorseBirthDay)
-	if err != nil {
-		return nil, err
-	}
-
+) *Horse {
 	return &Horse{
 		horseId:       types.HorseId(rawHorseId),
 		horseName:     horseName,
-		horseBirthDay: horseBirthDay,
+		horseBirthDay: types.HorseBirthDay(rawHorseBirthDay),
 		trainerId:     types.TrainerId(rawTrainerId),
 		ownerId:       types.OwnerId(rawOwnerId),
 		breederId:     types.BreederId(rawBreederId),
 		horseBlood:    horseBlood,
 		horseResults:  horseResults,
-	}, nil
+	}
 }
 
 func (h *Horse) HorseId() types.HorseId {

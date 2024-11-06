@@ -5,6 +5,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
 )
 
 type Analysis interface {
@@ -25,10 +27,12 @@ type AnalysisOddsInput struct {
 }
 
 type analysis struct {
-	placeService      analysis_service.Place
-	trioService       analysis_service.Trio
-	placeAllInService analysis_service.PlaceAllIn
-	placeUnHitService analysis_service.PlaceUnHit
+	placeService         analysis_service.Place
+	trioService          analysis_service.Trio
+	placeAllInService    analysis_service.PlaceAllIn
+	placeUnHitService    analysis_service.PlaceUnHit
+	horseMasterService   master_service.Horse
+	horseEntityConverter converter.HorseEntityConverter
 }
 
 func NewAnalysis(
@@ -36,11 +40,15 @@ func NewAnalysis(
 	trioService analysis_service.Trio,
 	placeAllInService analysis_service.PlaceAllIn,
 	placeUnHitService analysis_service.PlaceUnHit,
+	horseMasterService master_service.Horse,
+	horseEntityConverter converter.HorseEntityConverter,
 ) Analysis {
 	return &analysis{
-		placeService:      placeService,
-		trioService:       trioService,
-		placeAllInService: placeAllInService,
-		placeUnHitService: placeUnHitService,
+		placeService:         placeService,
+		trioService:          trioService,
+		placeAllInService:    placeAllInService,
+		placeUnHitService:    placeUnHitService,
+		horseMasterService:   horseMasterService,
+		horseEntityConverter: horseEntityConverter,
 	}
 }

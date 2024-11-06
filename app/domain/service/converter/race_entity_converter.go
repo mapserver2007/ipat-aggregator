@@ -30,6 +30,7 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 	for _, raceResult := range input.RaceResults() {
 		raceResults = append(raceResults, &raw_entity.RaceResult{
 			OrderNo:       raceResult.OrderNo(),
+			HorseId:       raceResult.HorseId().Value(),
 			HorseName:     raceResult.HorseName(),
 			BracketNumber: raceResult.BracketNumber(),
 			HorseNumber:   raceResult.HorseNumber().Value(),

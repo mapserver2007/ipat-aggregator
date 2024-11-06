@@ -1,6 +1,9 @@
 package analysis_entity
 
-import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
+import (
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+)
 
 type Race struct {
 	raceId              types.RaceId
@@ -17,6 +20,7 @@ type Race struct {
 	raceWeightCondition types.RaceWeightCondition
 	raceResults         []*RaceResult
 	markers             []*Marker
+	analysisFilters     []filter.Id
 }
 
 func NewRace(
@@ -34,6 +38,7 @@ func NewRace(
 	raceWeightCondition types.RaceWeightCondition,
 	raceResults []*RaceResult,
 	markers []*Marker,
+	analysisFilters []filter.Id,
 ) *Race {
 	return &Race{
 		raceId:              raceId,
@@ -50,6 +55,7 @@ func NewRace(
 		raceWeightCondition: raceWeightCondition,
 		raceResults:         raceResults,
 		markers:             markers,
+		analysisFilters:     analysisFilters,
 	}
 }
 
@@ -107,4 +113,8 @@ func (r *Race) RaceResults() []*RaceResult {
 
 func (r *Race) Markers() []*Marker {
 	return r.markers
+}
+
+func (r *Race) AnalysisFilters() []filter.Id {
+	return r.analysisFilters
 }

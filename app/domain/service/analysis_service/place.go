@@ -488,7 +488,7 @@ func (p *placeService) getFilters() []filter.Id {
 	return []filter.Id{
 		filter.All,
 		filter.Turf | filter.Niigata | filter.Distance1000m,
-		filter.Turf | filter.Hakodate | filter.Distance1000m,
+		//filter.Turf | filter.Hakodate | filter.Distance1000m, // 現在は使われていない
 		filter.Turf | filter.Nakayama | filter.Distance1200m,
 		filter.Turf | filter.Kyoto | filter.Distance1200m,
 		filter.Turf | filter.Hanshin | filter.Distance1200m,
@@ -548,7 +548,7 @@ func (p *placeService) getFilters() []filter.Id {
 		filter.Turf | filter.Kokura | filter.Distance2600m,
 		filter.Turf | filter.Kyoto | filter.Distance3000m,
 		filter.Turf | filter.Hanshin | filter.Distance3000m,
-		//filter.Turf | filter.Chukyo | filter.Distance3000m, // 現在はほぼ使われていない
+		//filter.Turf | filter.Chukyo | filter.Distance3000m, // 現在は使われていない
 		filter.Turf | filter.Kyoto | filter.Distance3200m,
 		filter.Turf | filter.Tokyo | filter.Distance3400m,
 		filter.Turf | filter.Nakayama | filter.Distance3600m,

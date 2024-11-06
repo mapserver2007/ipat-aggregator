@@ -75,7 +75,7 @@ func NewRaceIdForOverseas(
 ) RaceId {
 	rawRaceId := fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day, raceNo)
 	// 海外の場合、日をまたぐケースがあり開催日時とrace_idが一致しない場合がある(例：3月のドバイ)
-	if raceCourse == Meydan || raceCourse == KingAbdulaziz || raceCourse == SantaAnitaPark {
+	if raceCourse == Meydan || raceCourse == KingAbdulaziz || raceCourse == SantaAnitaPark || raceCourse == Delmar {
 		// 日付を-1してraceIdを設定する特殊対応
 		// 月をまたぐわけではないのでtimeパッケージで厳密にはやらない
 		rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day-1, raceNo)
@@ -154,6 +154,7 @@ const (
 	SantaAnitaPark = "F3"
 	KingAbdulaziz  = "P0"
 	York           = "AH"
+	Delmar         = "FP"
 	Overseas       = "99" // その他海外
 )
 
@@ -186,6 +187,7 @@ var raceCourseMap = map[RaceCourse]string{
 	SantaAnitaPark: "サンタアニタパーク（アメリカ）",
 	KingAbdulaziz:  "Ｋアブドゥルアジーズ（サウジアラビア）",
 	York:           "ヨーク（イギリス）",
+	Delmar:         "デルマー（アメリカ）",
 	Overseas:       "海外",
 	UnknownPlace:   "不明",
 }
@@ -237,7 +239,7 @@ func (r RaceCourse) NAR() bool {
 
 func (r RaceCourse) Oversea() bool {
 	switch r {
-	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark, KingAbdulaziz, York:
+	case Longchamp, Deauville, Shatin, Meydan, SantaAnitaPark, KingAbdulaziz, York, Delmar:
 		return true
 	}
 	return false
@@ -276,22 +278,11 @@ func (h HorseNumber) Value() int {
 
 type HorseId string
 
-type HorseBirthDay int
-
-func NewHorseBirthDay(s string) (HorseBirthDay, error) {
-	layout := "2006年1月2日"
-	date, err := time.Parse(layout, s)
-	if err != nil {
-		return 0, err
-	}
-
-	rawBirthDay, err := strconv.Atoi(date.Format("20060102"))
-	if err != nil {
-		return 0, err
-	}
-
-	return HorseBirthDay(rawBirthDay), nil
+func (h HorseId) Value() string {
+	return string(h)
 }
+
+type HorseBirthDay int
 
 func (h HorseBirthDay) Value() int {
 	return int(h)
@@ -341,7 +332,15 @@ func (l LocationId) Name() string {
 
 type OwnerId string
 
+func (o OwnerId) Value() string {
+	return string(o)
+}
+
 type BreederId string
+
+func (b BreederId) Value() string {
+	return string(b)
+}
 
 type TicketType int
 

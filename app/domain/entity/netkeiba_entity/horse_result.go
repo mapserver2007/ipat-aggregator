@@ -4,9 +4,10 @@ type HorseResult struct {
 	raceId           string
 	raceDate         int
 	raceName         string
-	jockeyId         int
+	jockeyId         string
 	orderNo          int
 	popularNumber    int
+	horseNumber      int
 	odds             string
 	class            int
 	entries          int
@@ -23,9 +24,10 @@ func NewHorseResult(
 	raceId string,
 	raceDate int,
 	raceName string,
-	jockeyId int,
+	jockeyId string,
 	orderNo int,
 	popularNumber int,
+	horseNumber int,
 	odds string,
 	class int,
 	entries int,
@@ -44,6 +46,7 @@ func NewHorseResult(
 		jockeyId:         jockeyId,
 		orderNo:          orderNo,
 		popularNumber:    popularNumber,
+		horseNumber:      horseNumber,
 		odds:             odds,
 		class:            class,
 		entries:          entries,
@@ -69,7 +72,7 @@ func (h *HorseResult) RaceName() string {
 	return h.raceName
 }
 
-func (h *HorseResult) JockeyId() int {
+func (h *HorseResult) JockeyId() string {
 	return h.jockeyId
 }
 
@@ -79,6 +82,10 @@ func (h *HorseResult) OrderNo() int {
 
 func (h *HorseResult) PopularNumber() int {
 	return h.popularNumber
+}
+
+func (h *HorseResult) HorseNumber() int {
+	return h.horseNumber
 }
 
 func (h *HorseResult) Odds() string {

@@ -871,9 +871,10 @@ func (n *netKeibaGateway) FetchHorse(
 	url string,
 ) (*netkeiba_entity.Horse, error) {
 	var (
-		horseId, horseName, birthDay  string
+		horseId, horseName            string
 		trainerId, ownerId, breederId string
 		sireId, broodmareSireId       string
+		birthDay                      int
 		horseBlood                    *netkeiba_entity.HorseBlood
 		horseResults                  []*netkeiba_entity.HorseResult
 	)
@@ -883,8 +884,22 @@ func (n *netKeibaGateway) FetchHorse(
 		return nil, err
 	}
 
-	u, _ := neturl.Parse(url)
-	segments := strings.Split(u.Path, "/")
+	parsedUrl, err := neturl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	queryParams, err := neturl.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	cache := true
+	if queryParams.Get("cache") == "false" {
+		cache = false
+	}
+	n.collector.Cache(cache)
+
+	segments := strings.Split(parsedUrl.Path, "/")
 	horseId = segments[2]
 
 	n.collector.Client().OnHTML("div.horse_title h1", func(e *colly.HTMLElement) {
@@ -895,7 +910,11 @@ func (n *netKeibaGateway) FetchHorse(
 		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 0:
-				birthDay = ce.DOM.Find("td:nth-child(2)").Text()
+				birthDayStr := ce.DOM.Find("td:nth-child(2)").Text()
+				layout := "2006年1月2日"
+				date, _ := time.Parse(layout, birthDayStr)
+				rawBirthDay, _ := strconv.Atoi(date.Format("20060102"))
+				birthDay = rawBirthDay
 			case 1:
 				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
 				segments = strings.Split(path, "/")
@@ -979,6 +998,7 @@ func (n *netKeibaGateway) FetchHorse(
 
 			raceName := ce.DOM.Find("td:nth-child(5) a").Text()
 			entries, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(7)").Text())
+			horseNumber, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(9)").Text())
 			odds := Trim(ce.DOM.Find("td:nth-child(10)").Text()) // 海外レースなどでは空になる場合あり
 
 			popularNumber, _ := strconv.Atoi(ce.DOM.Find("td:nth-child(11)").Text())
@@ -991,7 +1011,7 @@ func (n *netKeibaGateway) FetchHorse(
 
 			path, _ = ce.DOM.Find("td:nth-child(13) a").Attr("href")
 			segments = strings.Split(path, "/")
-			jockeyId, _ := strconv.Atoi(segments[4])
+			jockeyId := segments[4]
 
 			rawHorseWeight := ce.DOM.Find("td:nth-child(24)").Text()
 			horseWeight := 0
@@ -1019,6 +1039,7 @@ func (n *netKeibaGateway) FetchHorse(
 				jockeyId,
 				orderNo,
 				popularNumber,
+				horseNumber,
 				odds,
 				gradeClass,
 				entries,

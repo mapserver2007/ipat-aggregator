@@ -16,6 +16,7 @@ import (
 const (
 	jockeyUrl               = "https://db.netkeiba.com/jockey/%s/"
 	jockeyFileName          = "jockey.json"
+	horseFileName           = "horse.json"
 	beginIdForJRA           = 422
 	endIdForJRA             = 2000
 	beginIdForNARandOversea = 5000

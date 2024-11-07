@@ -153,8 +153,8 @@ func (p *placeService) Convert(
 
 		for _, analysisFilter := range analysisFilters {
 			raceIdMap := map[types.RaceId]bool{}
-			oddsRangeHitCountSlice := make([]int, 24)
-			oddsRangeUnHitCountSlice := make([]int, 24)
+			oddsRangeHitCountSlice := make([]int, 27)
+			oddsRangeUnHitCountSlice := make([]int, 27)
 
 			for _, calculable := range calculables {
 				if calculable.Marker() != marker {
@@ -172,168 +172,186 @@ func (p *placeService) Convert(
 					}
 
 					odds := calculable.Odds().InexactFloat64()
-					if odds >= 1.0 && odds <= 1.5 {
+					if odds >= 1.0 && odds <= 1.4 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[0]++
 						case 2:
-							oddsRangeHitCountSlice[8]++
+							oddsRangeHitCountSlice[9]++
 						case 3:
-							oddsRangeHitCountSlice[16]++
+							oddsRangeHitCountSlice[18]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[0]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[8]++
+							oddsRangeUnHitCountSlice[9]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[16]++
+							oddsRangeUnHitCountSlice[18]++
 						}
-					} else if odds >= 1.6 && odds <= 2.0 {
+					} else if odds >= 1.5 && odds <= 1.9 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[1]++
 						case 2:
-							oddsRangeHitCountSlice[9]++
+							oddsRangeHitCountSlice[10]++
 						case 3:
-							oddsRangeHitCountSlice[17]++
+							oddsRangeHitCountSlice[19]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[1]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[9]++
+							oddsRangeUnHitCountSlice[10]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[17]++
+							oddsRangeUnHitCountSlice[19]++
 						}
-					} else if odds >= 2.1 && odds <= 2.9 {
+					} else if odds >= 2.0 && odds <= 2.2 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[2]++
 						case 2:
-							oddsRangeHitCountSlice[10]++
+							oddsRangeHitCountSlice[11]++
 						case 3:
-							oddsRangeHitCountSlice[18]++
+							oddsRangeHitCountSlice[20]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[2]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[10]++
+							oddsRangeUnHitCountSlice[11]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[18]++
+							oddsRangeUnHitCountSlice[20]++
 						}
-					} else if odds >= 3.0 && odds <= 4.9 {
+					} else if odds >= 2.3 && odds <= 3.0 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[3]++
 						case 2:
-							oddsRangeHitCountSlice[11]++
+							oddsRangeHitCountSlice[12]++
 						case 3:
-							oddsRangeHitCountSlice[19]++
+							oddsRangeHitCountSlice[21]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[3]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[11]++
+							oddsRangeUnHitCountSlice[12]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[19]++
+							oddsRangeUnHitCountSlice[21]++
 						}
-					} else if odds >= 5.0 && odds <= 9.9 {
+					} else if odds >= 3.1 && odds <= 4.9 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[4]++
 						case 2:
-							oddsRangeHitCountSlice[12]++
+							oddsRangeHitCountSlice[13]++
 						case 3:
-							oddsRangeHitCountSlice[20]++
+							oddsRangeHitCountSlice[22]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[4]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[12]++
+							oddsRangeUnHitCountSlice[13]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[20]++
+							oddsRangeUnHitCountSlice[22]++
 						}
-					} else if odds >= 10.0 && odds <= 19.9 {
+					} else if odds >= 5.0 && odds <= 9.9 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[5]++
 						case 2:
-							oddsRangeHitCountSlice[13]++
+							oddsRangeHitCountSlice[14]++
 						case 3:
-							oddsRangeHitCountSlice[21]++
+							oddsRangeHitCountSlice[23]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[5]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[13]++
+							oddsRangeUnHitCountSlice[14]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[21]++
+							oddsRangeUnHitCountSlice[23]++
 						}
-					} else if odds >= 20.0 && odds <= 49.9 {
+					} else if odds >= 10.0 && odds <= 19.9 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[6]++
 						case 2:
-							oddsRangeHitCountSlice[14]++
+							oddsRangeHitCountSlice[15]++
 						case 3:
-							oddsRangeHitCountSlice[22]++
+							oddsRangeHitCountSlice[24]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[6]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[14]++
+							oddsRangeUnHitCountSlice[15]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[22]++
+							oddsRangeUnHitCountSlice[24]++
 						}
-					} else if odds >= 50.0 {
+					} else if odds >= 20.0 && odds <= 49.9 {
 						switch calculable.OrderNo() {
 						case 1:
 							oddsRangeHitCountSlice[7]++
 						case 2:
-							oddsRangeHitCountSlice[15]++
+							oddsRangeHitCountSlice[16]++
 						case 3:
-							oddsRangeHitCountSlice[23]++
+							oddsRangeHitCountSlice[25]++
 						}
 						if calculable.OrderNo() >= 2 {
 							oddsRangeUnHitCountSlice[7]++
 						}
 						if calculable.OrderNo() >= 3 {
-							oddsRangeUnHitCountSlice[15]++
+							oddsRangeUnHitCountSlice[16]++
 						}
 						if calculable.OrderNo() >= 4 {
-							oddsRangeUnHitCountSlice[23]++
+							oddsRangeUnHitCountSlice[25]++
+						}
+					} else if odds >= 50.0 {
+						switch calculable.OrderNo() {
+						case 1:
+							oddsRangeHitCountSlice[8]++
+						case 2:
+							oddsRangeHitCountSlice[17]++
+						case 3:
+							oddsRangeHitCountSlice[26]++
+						}
+						if calculable.OrderNo() >= 2 {
+							oddsRangeUnHitCountSlice[8]++
+						}
+						if calculable.OrderNo() >= 3 {
+							oddsRangeUnHitCountSlice[17]++
+						}
+						if calculable.OrderNo() >= 4 {
+							oddsRangeUnHitCountSlice[26]++
 						}
 					}
 				}
 			}
 
-			firstPlaceOddsRangeHitCountSlice := make([]int, 8)
-			secondPlaceOddsRangeHitCountSlice := make([]int, 8)
-			thirdPlaceOddsRangeHitCountSlice := make([]int, 8)
-			firstPlaceOddsRangeUnHitCountSlice := make([]int, 8)
-			secondPlaceOddsRangeUnHitCountSlice := make([]int, 8)
-			thirdPlaceOddsRangeUnHitCountSlice := make([]int, 8)
+			firstPlaceOddsRangeHitCountSlice := make([]int, 9)
+			secondPlaceOddsRangeHitCountSlice := make([]int, 9)
+			thirdPlaceOddsRangeHitCountSlice := make([]int, 9)
+			firstPlaceOddsRangeUnHitCountSlice := make([]int, 9)
+			secondPlaceOddsRangeUnHitCountSlice := make([]int, 9)
+			thirdPlaceOddsRangeUnHitCountSlice := make([]int, 9)
 
-			for i := 0; i < 8; i++ {
+			for i := 0; i < 9; i++ {
 				firstPlaceOddsRangeHitCountSlice[i] = oddsRangeHitCountSlice[i]
-				secondPlaceOddsRangeHitCountSlice[i] = oddsRangeHitCountSlice[i] + oddsRangeHitCountSlice[i+8]
-				thirdPlaceOddsRangeHitCountSlice[i] = oddsRangeHitCountSlice[i] + oddsRangeHitCountSlice[i+8] + oddsRangeHitCountSlice[i+16]
+				secondPlaceOddsRangeHitCountSlice[i] = oddsRangeHitCountSlice[i] + oddsRangeHitCountSlice[i+9]
+				thirdPlaceOddsRangeHitCountSlice[i] = oddsRangeHitCountSlice[i] + oddsRangeHitCountSlice[i+9] + oddsRangeHitCountSlice[i+18]
 				firstPlaceOddsRangeUnHitCountSlice[i] = oddsRangeUnHitCountSlice[i]
-				secondPlaceOddsRangeUnHitCountSlice[i] = oddsRangeUnHitCountSlice[i+8]
-				thirdPlaceOddsRangeUnHitCountSlice[i] = oddsRangeUnHitCountSlice[i+16]
+				secondPlaceOddsRangeUnHitCountSlice[i] = oddsRangeUnHitCountSlice[i+9]
+				thirdPlaceOddsRangeUnHitCountSlice[i] = oddsRangeUnHitCountSlice[i+18]
 			}
 
 			firstPlaceOddsRangeHitCountData := spreadsheet_entity.NewPlaceHitCountData(

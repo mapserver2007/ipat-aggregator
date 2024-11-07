@@ -901,6 +901,7 @@ const (
 	WinOddsRange6
 	WinOddsRange7
 	WinOddsRange8
+	WinOddsRange9
 	TrioOddsRange1
 	TrioOddsRange2
 	TrioOddsRange3
@@ -912,14 +913,15 @@ const (
 )
 
 var oddsRangeMap = map[OddsRangeType]string{
-	WinOddsRange1:  "1.0-1.5",
-	WinOddsRange2:  "1.6-2.0",
-	WinOddsRange3:  "2.1-2.9",
-	WinOddsRange4:  "3.0-4.9",
-	WinOddsRange5:  "5.0-9.9",
-	WinOddsRange6:  "10.0-19.9",
-	WinOddsRange7:  "20.0-49.9",
-	WinOddsRange8:  "50.0-",
+	WinOddsRange1:  "1.0-1.4",
+	WinOddsRange2:  "1.5-1.9",
+	WinOddsRange3:  "2.0-2.2",
+	WinOddsRange4:  "2.3-3.0",
+	WinOddsRange5:  "3.1-4.9",
+	WinOddsRange6:  "5.0-9.9",
+	WinOddsRange7:  "10.0-19.9",
+	WinOddsRange8:  "20.0-49.9",
+	WinOddsRange9:  "50.0-",
 	TrioOddsRange1: "1.0-9.9",
 	TrioOddsRange2: "10.0-19.9",
 	TrioOddsRange3: "20.0-29.9",

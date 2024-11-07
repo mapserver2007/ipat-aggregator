@@ -71,6 +71,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 					"",
 					"",
 					"",
+					"",
 				},
 			}
 			for idx, placeMap := range []map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace{firstPlaceMap, secondPlaceMap, thirdPlaceMap} {
@@ -88,6 +89,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							types.WinOddsRange6.String(),
 							types.WinOddsRange7.String(),
 							types.WinOddsRange8.String(),
+							types.WinOddsRange9.String(),
 						},
 					}
 				case 1:
@@ -103,6 +105,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							types.WinOddsRange6.String(),
 							types.WinOddsRange7.String(),
 							types.WinOddsRange8.String(),
+							types.WinOddsRange9.String(),
 						},
 					}
 				case 2:
@@ -118,6 +121,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							types.WinOddsRange6.String(),
 							types.WinOddsRange7.String(),
 							types.WinOddsRange8.String(),
+							types.WinOddsRange9.String(),
 						},
 					}
 				}
@@ -144,6 +148,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.Favorite].RateData().OddsRange6Hit()) + markerPlaceMap[types.Favorite].RateData().OddsRange6RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Favorite].RateData().OddsRange7Hit()) + markerPlaceMap[types.Favorite].RateData().OddsRange7RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Favorite].RateData().OddsRange8Hit()) + markerPlaceMap[types.Favorite].RateData().OddsRange8RateFormat(),
+							isHitIconFunc(markerPlaceMap[types.Favorite].RateData().OddsRange9Hit()) + markerPlaceMap[types.Favorite].RateData().OddsRange9RateFormat(),
 						},
 					}...)
 					values[idx+1] = append(values[idx+1], [][]interface{}{
@@ -158,6 +163,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.Rival].RateData().OddsRange6Hit()) + markerPlaceMap[types.Rival].RateData().OddsRange6RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Rival].RateData().OddsRange7Hit()) + markerPlaceMap[types.Rival].RateData().OddsRange7RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Rival].RateData().OddsRange8Hit()) + markerPlaceMap[types.Rival].RateData().OddsRange8RateFormat(),
+							isHitIconFunc(markerPlaceMap[types.Rival].RateData().OddsRange9Hit()) + markerPlaceMap[types.Rival].RateData().OddsRange9RateFormat(),
 						},
 					}...)
 					values[idx+1] = append(values[idx+1], [][]interface{}{
@@ -172,6 +178,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.BrackTriangle].RateData().OddsRange6Hit()) + markerPlaceMap[types.BrackTriangle].RateData().OddsRange6RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.BrackTriangle].RateData().OddsRange7Hit()) + markerPlaceMap[types.BrackTriangle].RateData().OddsRange7RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.BrackTriangle].RateData().OddsRange8Hit()) + markerPlaceMap[types.BrackTriangle].RateData().OddsRange8RateFormat(),
+							isHitIconFunc(markerPlaceMap[types.BrackTriangle].RateData().OddsRange9Hit()) + markerPlaceMap[types.BrackTriangle].RateData().OddsRange9RateFormat(),
 						},
 					}...)
 					values[idx+1] = append(values[idx+1], [][]interface{}{
@@ -186,6 +193,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.WhiteTriangle].RateData().OddsRange6Hit()) + markerPlaceMap[types.WhiteTriangle].RateData().OddsRange6RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.WhiteTriangle].RateData().OddsRange7Hit()) + markerPlaceMap[types.WhiteTriangle].RateData().OddsRange7RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.WhiteTriangle].RateData().OddsRange8Hit()) + markerPlaceMap[types.WhiteTriangle].RateData().OddsRange8RateFormat(),
+							isHitIconFunc(markerPlaceMap[types.WhiteTriangle].RateData().OddsRange9Hit()) + markerPlaceMap[types.WhiteTriangle].RateData().OddsRange9RateFormat(),
 						},
 					}...)
 					values[idx+1] = append(values[idx+1], [][]interface{}{
@@ -200,6 +208,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.Star].RateData().OddsRange6Hit()) + markerPlaceMap[types.Star].RateData().OddsRange6RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Star].RateData().OddsRange7Hit()) + markerPlaceMap[types.Star].RateData().OddsRange7RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Star].RateData().OddsRange8Hit()) + markerPlaceMap[types.Star].RateData().OddsRange8RateFormat(),
+							isHitIconFunc(markerPlaceMap[types.Star].RateData().OddsRange9Hit()) + markerPlaceMap[types.Star].RateData().OddsRange9RateFormat(),
 						},
 					}...)
 					values[idx+1] = append(values[idx+1], [][]interface{}{
@@ -214,6 +223,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.Check].RateData().OddsRange6Hit()) + markerPlaceMap[types.Check].RateData().OddsRange6RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Check].RateData().OddsRange7Hit()) + markerPlaceMap[types.Check].RateData().OddsRange7RateFormat(),
 							isHitIconFunc(markerPlaceMap[types.Check].RateData().OddsRange8Hit()) + markerPlaceMap[types.Check].RateData().OddsRange8RateFormat(),
+							isHitIconFunc(markerPlaceMap[types.Check].RateData().OddsRange9Hit()) + markerPlaceMap[types.Check].RateData().OddsRange9RateFormat(),
 						},
 					}...)
 				}
@@ -228,9 +238,9 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 		case 0:
 			cellId = "A1"
 		case 1:
-			cellId = "K1"
+			cellId = "L1"
 		case 2:
-			cellId = "U1"
+			cellId = "W1"
 		}
 
 		writeRange := fmt.Sprintf("%s!%s", config.SheetName(), cellId)
@@ -287,6 +297,7 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 					"",
 					"",
 					"",
+					"",
 				},
 			}
 			for placeIndex, placeMap := range []map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace{firstPlaceMap, secondPlaceMap, thirdPlaceMap} {
@@ -302,9 +313,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 									Fields: "userEnteredFormat.backgroundColor",
 									Range: &sheets.GridRange{
 										SheetId:          config.SheetId(),
-										StartColumnIndex: 2 + int64(oddsRangeIndex) + int64(raceCourseCount*10),
+										StartColumnIndex: 2 + int64(oddsRangeIndex) + int64(raceCourseCount*11),
 										StartRowIndex:    2 + int64(raceIndex*22+markerIndex) + int64(placeIndex*7),
-										EndColumnIndex:   3 + int64(oddsRangeIndex) + int64(raceCourseCount*10),
+										EndColumnIndex:   3 + int64(oddsRangeIndex) + int64(raceCourseCount*11),
 										EndRowIndex:      3 + int64(raceIndex*22+markerIndex) + int64(placeIndex*7),
 									},
 									Cell: &sheets.CellData{
@@ -323,9 +334,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 									Fields: "userEnteredFormat.horizontalAlignment",
 									Range: &sheets.GridRange{
 										SheetId:          config.SheetId(),
-										StartColumnIndex: 2 + int64(oddsRangeIndex) + int64(raceCourseCount*10),
+										StartColumnIndex: 2 + int64(oddsRangeIndex) + int64(raceCourseCount*11),
 										StartRowIndex:    2 + int64(raceIndex*22+markerIndex) + int64(placeIndex*7),
-										EndColumnIndex:   3 + int64(oddsRangeIndex) + int64(raceCourseCount*10),
+										EndColumnIndex:   3 + int64(oddsRangeIndex) + int64(raceCourseCount*11),
 										EndRowIndex:      3 + int64(raceIndex*22+markerIndex) + int64(placeIndex*7),
 									},
 									Cell: &sheets.CellData{
@@ -340,9 +351,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 									Fields: "userEnteredFormat.textFormat.bold",
 									Range: &sheets.GridRange{
 										SheetId:          config.SheetId(),
-										StartColumnIndex: 2 + int64(oddsRangeIndex) + int64(raceCourseCount*10),
+										StartColumnIndex: 2 + int64(oddsRangeIndex) + int64(raceCourseCount*11),
 										StartRowIndex:    2 + int64(raceIndex*22+markerIndex) + int64(placeIndex*7),
-										EndColumnIndex:   3 + int64(oddsRangeIndex) + int64(raceCourseCount*10),
+										EndColumnIndex:   3 + int64(oddsRangeIndex) + int64(raceCourseCount*11),
 										EndRowIndex:      3 + int64(raceIndex*22+markerIndex) + int64(placeIndex*7),
 									},
 									Cell: &sheets.CellData{
@@ -362,9 +373,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 								Fields: "userEnteredFormat.backgroundColor",
 								Range: &sheets.GridRange{
 									SheetId:          config.SheetId(),
-									StartColumnIndex: 1 + int64(raceCourseCount*10),
+									StartColumnIndex: 1 + int64(raceCourseCount*11),
 									StartRowIndex:    1 + int64(placeIndex*7) + int64(raceIndex*22),
-									EndColumnIndex:   2 + int64(raceCourseCount*10),
+									EndColumnIndex:   2 + int64(raceCourseCount*11),
 									EndRowIndex:      2 + int64(placeIndex*7) + int64(raceIndex*22),
 								},
 								Cell: &sheets.CellData{
@@ -383,9 +394,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 								Fields: "userEnteredFormat.textFormat.bold",
 								Range: &sheets.GridRange{
 									SheetId:          config.SheetId(),
-									StartColumnIndex: 1 + int64(raceCourseCount*10),
+									StartColumnIndex: 1 + int64(raceCourseCount*11),
 									StartRowIndex:    1 + int64(placeIndex*7) + int64(raceIndex*22),
-									EndColumnIndex:   10 + int64(raceCourseCount*10),
+									EndColumnIndex:   11 + int64(raceCourseCount*11),
 									EndRowIndex:      2 + int64(placeIndex*7) + int64(raceIndex*22),
 								},
 								Cell: &sheets.CellData{
@@ -402,9 +413,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 								Fields: "userEnteredFormat.backgroundColor",
 								Range: &sheets.GridRange{
 									SheetId:          config.SheetId(),
-									StartColumnIndex: 2 + int64(raceCourseCount*10),
+									StartColumnIndex: 2 + int64(raceCourseCount*11),
 									StartRowIndex:    1 + int64(placeIndex*7) + int64(raceIndex*22),
-									EndColumnIndex:   10 + int64(raceCourseCount*10),
+									EndColumnIndex:   11 + int64(raceCourseCount*11),
 									EndRowIndex:      2 + int64(placeIndex*7) + int64(raceIndex*22),
 								},
 								Cell: &sheets.CellData{
@@ -423,9 +434,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 								Fields: "userEnteredFormat.textFormat.foregroundColor",
 								Range: &sheets.GridRange{
 									SheetId:          config.SheetId(),
-									StartColumnIndex: 2 + int64(raceCourseCount*10),
+									StartColumnIndex: 2 + int64(raceCourseCount*11),
 									StartRowIndex:    1 + int64(placeIndex*7) + int64(raceIndex*22),
-									EndColumnIndex:   10 + int64(raceCourseCount*10),
+									EndColumnIndex:   11 + int64(raceCourseCount*11),
 									EndRowIndex:      2 + int64(placeIndex*7) + int64(raceIndex*22),
 								},
 								Cell: &sheets.CellData{
@@ -450,9 +461,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 						Fields: "userEnteredFormat.backgroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 1 + int64(raceCourseCount*10),
+							StartColumnIndex: 1 + int64(raceCourseCount*11),
 							StartRowIndex:    int64(raceIndex * 22),
-							EndColumnIndex:   10 + int64(raceCourseCount*10),
+							EndColumnIndex:   11 + int64(raceCourseCount*11),
 							EndRowIndex:      1 + int64(raceIndex*22),
 						},
 						Cell: &sheets.CellData{
@@ -471,9 +482,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 						Fields: "userEnteredFormat.textFormat.foregroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 1 + int64(raceCourseCount*10),
+							StartColumnIndex: 1 + int64(raceCourseCount*11),
 							StartRowIndex:    int64(raceIndex * 22),
-							EndColumnIndex:   10 + int64(raceCourseCount*10),
+							EndColumnIndex:   11 + int64(raceCourseCount*11),
 							EndRowIndex:      1 + int64(raceIndex*22),
 						},
 						Cell: &sheets.CellData{
@@ -494,9 +505,9 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 						Fields: "userEnteredFormat.textFormat.bold",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 1 + int64(raceCourseCount*10),
+							StartColumnIndex: 1 + int64(raceCourseCount*11),
 							StartRowIndex:    int64(raceIndex * 22),
-							EndColumnIndex:   10 + int64(raceCourseCount*10),
+							EndColumnIndex:   11 + int64(raceCourseCount*11),
 							EndRowIndex:      1 + int64(raceIndex*22),
 						},
 						Cell: &sheets.CellData{

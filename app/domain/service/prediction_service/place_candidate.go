@@ -230,38 +230,42 @@ func (p *placeCandidateService) Convert(
 	predictionPlaces := p.predictionOddsService.Convert(ctx, race, horseNumber, marker, calculable)
 	inexactOdds := odds.InexactFloat64()
 	var firstPlaceRate, secondPlaceRate, thirdPlaceRate string
-	if inexactOdds >= 1.0 && inexactOdds <= 1.5 {
+	if inexactOdds >= 1.0 && inexactOdds <= 1.4 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange1RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange1RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange1RateFormat()
-	} else if inexactOdds >= 1.6 && inexactOdds <= 2.0 {
+	} else if inexactOdds >= 1.5 && inexactOdds <= 1.9 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange2RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange2RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange2RateFormat()
-	} else if inexactOdds >= 2.1 && inexactOdds <= 2.9 {
+	} else if inexactOdds >= 2.0 && inexactOdds <= 2.2 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange3RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange3RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange3RateFormat()
-	} else if inexactOdds >= 3.0 && inexactOdds <= 4.9 {
+	} else if inexactOdds >= 2.3 && inexactOdds <= 3.0 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange4RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange4RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange4RateFormat()
-	} else if inexactOdds >= 5.0 && inexactOdds <= 9.9 {
+	} else if inexactOdds >= 3.1 && inexactOdds <= 4.9 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange5RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange5RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange5RateFormat()
-	} else if inexactOdds >= 10.0 && inexactOdds <= 19.9 {
+	} else if inexactOdds >= 5.0 && inexactOdds <= 9.9 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange6RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange6RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange6RateFormat()
-	} else if inexactOdds >= 20.0 && inexactOdds <= 49.9 {
+	} else if inexactOdds >= 10.0 && inexactOdds <= 19.9 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange7RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange7RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange7RateFormat()
-	} else if inexactOdds >= 50.0 {
+	} else if inexactOdds >= 20.0 && inexactOdds <= 49.9 {
 		firstPlaceRate = predictionPlaces[0].RateData().OddsRange8RateFormat()
 		secondPlaceRate = predictionPlaces[1].RateData().OddsRange8RateFormat()
 		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange8RateFormat()
+	} else if inexactOdds >= 50.0 {
+		firstPlaceRate = predictionPlaces[0].RateData().OddsRange9RateFormat()
+		secondPlaceRate = predictionPlaces[1].RateData().OddsRange9RateFormat()
+		thirdPlaceRate = predictionPlaces[2].RateData().OddsRange9RateFormat()
 	}
 
 	return spreadsheet_entity.NewPredictionCheckList(

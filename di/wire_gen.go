@@ -106,7 +106,7 @@ func NewAnalysis() *controller.Analysis {
 	netKeibaGateway := gateway.NewNetKeibaGateway(netKeibaCollector)
 	horseRepository := infrastructure.NewHorseRepository(netKeibaGateway)
 	horseEntityConverter := converter.NewHorseEntityConverter()
-	placeUnHit := analysis_service.NewPlaceUnHit(horseRepository, horseEntityConverter)
+	placeUnHit := analysis_service.NewPlaceUnHit(horseRepository, horseEntityConverter, analysisFilter)
 	horse := master_service.NewHorse(horseRepository, horseEntityConverter)
 	analysis := analysis_usecase.NewAnalysis(place, trio, placeAllIn, placeUnHit, horse, horseEntityConverter)
 	controllerAnalysis := controller.NewAnalysis(analysis)

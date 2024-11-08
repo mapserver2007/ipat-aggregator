@@ -907,6 +907,7 @@ func (n *netKeibaGateway) FetchHorse(
 	})
 
 	n.collector.Client().OnHTML("table.db_prof_table tbody", func(e *colly.HTMLElement) {
+		rowCount := e.DOM.Find("tr").Length()
 		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 0:
@@ -923,7 +924,9 @@ func (n *netKeibaGateway) FetchHorse(
 				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
 				segments = strings.Split(path, "/")
 				ownerId = segments[2]
-			case 3:
+			}
+
+			if rowCount == 10 && i == 3 || rowCount == 11 && i == 4 { // 個人馬主 or 一口会員
 				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
 				segments = strings.Split(path, "/")
 				breederId = segments[2]

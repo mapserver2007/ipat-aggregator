@@ -6,6 +6,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
@@ -106,9 +107,32 @@ func (p *placeCandidateService) GetRaceForecasts(
 		return nil, err
 	}
 
+	rawReporterMemos, err := p.raceForecastRepository.FetchReporterMemo(ctx, fmt.Sprintf(raceReporterMemoUrl, raceId))
+	if err != nil {
+		return nil, err
+	}
+
+	rawPaddockComments, err := p.raceForecastRepository.FetchPaddockComment(ctx, fmt.Sprintf(racePaddockCommentUrl, raceId))
+	if err != nil {
+		return nil, err
+	}
+
+	raceReporterMemoMap := map[types.HorseNumber][]*tospo_entity.Memo{}
+	for _, reporterMemo := range rawReporterMemos {
+		raceReporterMemoMap[reporterMemo.HorseNumber()] = reporterMemo.Memos()
+	}
+
+	racePaddockCommentMap := map[types.HorseNumber]*tospo_entity.PaddockComment{}
+	for _, paddockComment := range rawPaddockComments {
+		racePaddockCommentMap[paddockComment.HorseNumber()] = paddockComment
+	}
+
 	raceForecasts := make([]*prediction_entity.RaceForecast, len(rawRaceForecasts))
 	for idx := range rawRaceForecasts {
-		raceForecasts[idx] = p.raceEntityConverter.TospoToPrediction(rawRaceForecasts[idx], rawTrainingComments[idx])
+		horseNumber := rawRaceForecasts[idx].HorseNumber()
+		paddockComment := racePaddockCommentMap[horseNumber]
+		reporterMemos := raceReporterMemoMap[horseNumber]
+		raceForecasts[idx] = p.raceEntityConverter.TospoToPrediction(rawRaceForecasts[idx], rawTrainingComments[idx], reporterMemos, paddockComment)
 	}
 
 	return raceForecasts, nil
@@ -292,6 +316,9 @@ func (p *placeCandidateService) Convert(
 		forecast.MarkerNum(),
 		forecast.IsHighlyRecommended(),
 		forecast.TrainingComment(),
+		forecast.ReporterMemos(),
+		forecast.PaddockComment(),
+		forecast.PaddockEvaluation(),
 	)
 }
 

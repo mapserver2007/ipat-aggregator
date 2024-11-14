@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
+	"strings"
 )
 
 type PredictionCheckList struct {
@@ -28,6 +29,9 @@ type PredictionCheckList struct {
 	markerNum         int
 	highlyRecommended string
 	trainingComment   string
+	reporterMemo      string
+	paddockComment    string
+	paddockEvaluation string
 	paperUrl          string
 }
 
@@ -55,6 +59,9 @@ func NewPredictionCheckList(
 	markerNum int,
 	highlyRecommended bool,
 	trainingComment string,
+	reporterMemos []string,
+	paddockComment string,
+	rawPaddockEvaluation int,
 ) *PredictionCheckList {
 	checkListFormat := make([]string, len(checkList))
 	for idx, isCheck := range checkList {
@@ -70,6 +77,23 @@ func NewPredictionCheckList(
 		highlyRecommendedFormat = "◯"
 	} else {
 		highlyRecommendedFormat = "-"
+	}
+
+	reporterMemo := ""
+	if len(reporterMemos) > 0 {
+		reporterMemo = strings.Join(reporterMemos, "\n")
+	}
+
+	var paddockEvaluation string
+	switch rawPaddockEvaluation {
+	case 1:
+		paddockEvaluation = "S"
+	case 2:
+		paddockEvaluation = "A"
+	case 3:
+		paddockEvaluation = "B"
+	case 4:
+		paddockEvaluation = "疑"
 	}
 
 	return &PredictionCheckList{
@@ -94,6 +118,9 @@ func NewPredictionCheckList(
 		markerNum:         markerNum,
 		highlyRecommended: highlyRecommendedFormat,
 		trainingComment:   trainingComment,
+		reporterMemo:      reporterMemo,
+		paddockComment:    paddockComment,
+		paddockEvaluation: paddockEvaluation,
 		paperUrl:          "https://tospo-keiba.jp/newspaper-list",
 	}
 }
@@ -180,6 +207,18 @@ func (p *PredictionCheckList) HighlyRecommended() string {
 
 func (p *PredictionCheckList) TrainingComment() string {
 	return p.trainingComment
+}
+
+func (p *PredictionCheckList) ReporterMemo() string {
+	return p.reporterMemo
+}
+
+func (p *PredictionCheckList) PaddockComment() string {
+	return p.paddockComment
+}
+
+func (p *PredictionCheckList) PaddockEvaluation() string {
+	return p.paddockEvaluation
 }
 
 func (p *PredictionCheckList) PaperUrl() string {

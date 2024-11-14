@@ -12,6 +12,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/config"
 )
 
+const horseFileName = "horse.json"
+
 type Horse interface {
 	Get(ctx context.Context) ([]*data_cache_entity.Horse, error)
 	CreateOrUpdate(ctx context.Context, horses []*data_cache_entity.Horse) error

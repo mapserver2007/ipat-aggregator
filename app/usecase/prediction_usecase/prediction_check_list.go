@@ -49,7 +49,7 @@ func (p *prediction) CheckList(ctx context.Context, input *PredictionInput) erro
 		for idx, horseNumber := range horseNumbers {
 			odds, ok := horseOddsMap[horseNumber]
 			if !ok {
-				return fmt.Errorf("odds not found: %d", horseNumber)
+				return fmt.Errorf("invalid marker settings in %s", predictionMarker.RaceId())
 			}
 
 			if odds.Odds().InexactFloat64() > config.PredictionCheckListWinLowerOdds {

@@ -25,10 +25,10 @@ func NewRaceForecastRepository(
 	}
 }
 
-func (r *raceForecastRepository) List(
+func (r *raceForecastRepository) Read(
 	ctx context.Context,
 	path string,
-) ([]string, error) {
+) (*raw_entity.RaceForecastInfo, error) {
 	rootPath, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -39,48 +39,18 @@ func (r *raceForecastRepository) List(
 		return nil, err
 	}
 
-	pattern := filepath.Join(absPath, "*.json")
-	files, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	fileNames := make([]string, 0, len(files))
-	for _, file := range files {
-		fileNames = append(fileNames, filepath.Base(file))
-	}
-
-	return fileNames, nil
-}
-
-func (r *raceForecastRepository) Read(
-	ctx context.Context,
-	path string,
-) ([]*raw_entity.RaceForecast, error) {
-	raceForecasts := make([]*raw_entity.RaceForecast, 0)
-	rootPath, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	filePath, err := filepath.Abs(fmt.Sprintf("%s/%s", rootPath, path))
-	if err != nil {
-		return nil, err
-	}
-
 	// ファイルが存在しない場合はエラーは返さず処理を継続する
-	bytes, err := os.ReadFile(filePath)
+	bytes, err := os.ReadFile(absPath)
 	if err != nil {
-		return raceForecasts, nil
+		return nil, nil
 	}
 
 	var raceForecastInfo *raw_entity.RaceForecastInfo
 	if err := json.Unmarshal(bytes, &raceForecastInfo); err != nil {
 		return nil, err
 	}
-	raceForecasts = raceForecastInfo.RaceForecasts
 
-	return raceForecasts, nil
+	return raceForecastInfo, nil
 }
 
 func (r *raceForecastRepository) Write(
@@ -136,4 +106,28 @@ func (r *raceForecastRepository) FetchTrainingComment(
 	}
 
 	return trainingComments, nil
+}
+
+func (r *raceForecastRepository) FetchReporterMemo(
+	ctx context.Context,
+	url string,
+) ([]*tospo_entity.ReporterMemo, error) {
+	reporterMemos, err := r.tospoGateway.FetchReporterMemo(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	return reporterMemos, nil
+}
+
+func (r *raceForecastRepository) FetchPaddockComment(
+	ctx context.Context,
+	url string,
+) ([]*tospo_entity.PaddockComment, error) {
+	paddockComment, err := r.tospoGateway.FetchPaddockComment(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	return paddockComment, nil
 }

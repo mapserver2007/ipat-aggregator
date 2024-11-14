@@ -78,12 +78,16 @@ var AnalysisSet = wire.NewSet(
 	analysis_service.NewPlaceAllIn,
 	analysis_service.NewPlaceUnHit,
 	master_service.NewHorse,
+	master_service.NewRaceForecast,
 	filter_service.NewAnalysisFilter,
 	infrastructure.NewHorseRepository,
+	infrastructure.NewRaceForecastRepository,
 	infrastructure.NewSpreadSheetRepository,
 	gateway.NewNetKeibaGateway,
 	gateway.NewNetKeibaCollector,
+	gateway.NewTospoGateway,
 	converter.NewHorseEntityConverter,
+	converter.NewRaceForecastEntityConverter,
 )
 
 var PredictionSet = wire.NewSet(
@@ -97,9 +101,7 @@ var PredictionSet = wire.NewSet(
 	infrastructure.NewRaceRepository,
 	infrastructure.NewJockeyRepository,
 	infrastructure.NewTrainerRepository,
-	infrastructure.NewRaceForecastRepository,
 	infrastructure.NewRaceIdRepository,
-	gateway.NewTospoGateway,
 	converter.NewRaceEntityConverter,
 )
 

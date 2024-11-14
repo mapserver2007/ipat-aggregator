@@ -10,5 +10,7 @@ const (
 	trainerUrl             = "https://db.netkeiba.com/trainer/%s"
 	raceForecastUrl        = "https://tospo-keiba.jp/race/detail/%s/forecast"
 	raceTrainingCommentUrl = "https://tospo-keiba.jp/race/detail/%s/comment"
+	raceReporterMemoUrl    = "https://tospo-keiba.jp/race/detail/%s/reporter-memo"
+	racePaddockCommentUrl  = "https://tospo-keiba.jp/race/detail/%s/card"
 	jockeyFileName         = "jockey.json"
 )

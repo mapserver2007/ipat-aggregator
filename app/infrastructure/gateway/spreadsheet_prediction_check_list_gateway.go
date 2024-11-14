@@ -88,6 +88,9 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			"印数",
 			"推",
 			"厩舎コメント",
+			"記者メモ",
+			"パドックコメント",
+			"評価",
 			"新聞",
 		},
 	}
@@ -134,6 +137,9 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 			row.MarkerNum(),
 			row.HighlyRecommended(),
 			row.TrainingComment(),
+			row.ReporterMemo(),
+			row.PaddockComment(),
+			row.PaddockEvaluation(),
 			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.PaperUrl(), "LINK"),
 		})
 	}
@@ -167,7 +173,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   33,
+					EndColumnIndex:   36,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -188,7 +194,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 27,
 					StartRowIndex:    0,
-					EndColumnIndex:   33,
+					EndColumnIndex:   36,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -209,7 +215,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   33,
+					EndColumnIndex:   36,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -228,7 +234,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 27,
 					StartRowIndex:    0,
-					EndColumnIndex:   33,
+					EndColumnIndex:   36,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -251,7 +257,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    1,
-					EndColumnIndex:   33,
+					EndColumnIndex:   36,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{
@@ -268,7 +274,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 31,
 					StartRowIndex:    1,
-					EndColumnIndex:   32,
+					EndColumnIndex:   34,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{

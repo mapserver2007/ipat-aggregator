@@ -27,12 +27,14 @@ type AnalysisOddsInput struct {
 }
 
 type analysis struct {
-	placeService         analysis_service.Place
-	trioService          analysis_service.Trio
-	placeAllInService    analysis_service.PlaceAllIn
-	placeUnHitService    analysis_service.PlaceUnHit
-	horseMasterService   master_service.Horse
-	horseEntityConverter converter.HorseEntityConverter
+	placeService                analysis_service.Place
+	trioService                 analysis_service.Trio
+	placeAllInService           analysis_service.PlaceAllIn
+	placeUnHitService           analysis_service.PlaceUnHit
+	horseMasterService          master_service.Horse
+	raceForecastService         master_service.RaceForecast
+	raceForecastEntityConverter converter.RaceForecastEntityConverter
+	horseEntityConverter        converter.HorseEntityConverter
 }
 
 func NewAnalysis(
@@ -41,14 +43,18 @@ func NewAnalysis(
 	placeAllInService analysis_service.PlaceAllIn,
 	placeUnHitService analysis_service.PlaceUnHit,
 	horseMasterService master_service.Horse,
+	raceForecastService master_service.RaceForecast,
+	raceForecastEntityConverter converter.RaceForecastEntityConverter,
 	horseEntityConverter converter.HorseEntityConverter,
 ) Analysis {
 	return &analysis{
-		placeService:         placeService,
-		trioService:          trioService,
-		placeAllInService:    placeAllInService,
-		placeUnHitService:    placeUnHitService,
-		horseMasterService:   horseMasterService,
-		horseEntityConverter: horseEntityConverter,
+		placeService:                placeService,
+		trioService:                 trioService,
+		placeAllInService:           placeAllInService,
+		placeUnHitService:           placeUnHitService,
+		horseMasterService:          horseMasterService,
+		raceForecastService:         raceForecastService,
+		raceForecastEntityConverter: raceForecastEntityConverter,
+		horseEntityConverter:        horseEntityConverter,
 	}
 }

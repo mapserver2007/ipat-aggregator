@@ -108,7 +108,8 @@ func NewAnalysis() *controller.Analysis {
 	tospoGateway := gateway.NewTospoGateway()
 	raceForecastRepository := infrastructure.NewRaceForecastRepository(tospoGateway)
 	horseEntityConverter := converter.NewHorseEntityConverter()
-	placeUnHit := analysis_service.NewPlaceUnHit(horseRepository, raceForecastRepository, horseEntityConverter, analysisFilter)
+	placeCheckList := analysis_service.NewPlaceCheckList()
+	placeUnHit := analysis_service.NewPlaceUnHit(horseRepository, raceForecastRepository, horseEntityConverter, analysisFilter, placeCheckList)
 	horse := master_service.NewHorse(horseRepository, horseEntityConverter)
 	raceForecastEntityConverter := converter.NewRaceForecastEntityConverter()
 	raceForecast := master_service.NewRaceForecast(raceForecastRepository, raceForecastEntityConverter)
@@ -140,7 +141,7 @@ func NewPrediction() *controller.Prediction {
 	trainerRepository := infrastructure.NewTrainerRepository(netKeibaGateway)
 	raceEntityConverter := converter.NewRaceEntityConverter()
 	horseEntityConverter := converter.NewHorseEntityConverter()
-	placeCheckList := prediction_service.NewPlaceCheckList()
+	placeCheckList := analysis_service.NewPlaceCheckList()
 	placeCandidate := prediction_service.NewPlaceCandidate(raceRepository, raceForecastRepository, horseRepository, jockeyRepository, trainerRepository, oddsRepository, spreadSheetRepository, raceEntityConverter, horseEntityConverter, predictionFilter, placeCheckList, odds)
 	raceIdRepository := infrastructure.NewRaceIdRepository(netKeibaGateway)
 	markerSync := prediction_service.NewMarkerSync(raceIdRepository, raceRepository, spreadSheetRepository)
@@ -157,8 +158,8 @@ var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, 
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
-var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, analysis_service.NewPlaceAllIn, analysis_service.NewPlaceUnHit, master_service.NewHorse, master_service.NewRaceForecast, filter_service.NewAnalysisFilter, infrastructure.NewHorseRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewSpreadSheetRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, converter.NewHorseEntityConverter, converter.NewRaceForecastEntityConverter)
+var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, analysis_service.NewPlaceAllIn, analysis_service.NewPlaceUnHit, analysis_service.NewPlaceCheckList, master_service.NewHorse, master_service.NewRaceForecast, filter_service.NewAnalysisFilter, infrastructure.NewHorseRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewSpreadSheetRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, converter.NewHorseEntityConverter, converter.NewRaceForecastEntityConverter)
 
-var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, prediction_service.NewPlaceCandidate, prediction_service.NewPlaceCheckList, prediction_service.NewMarkerSync, filter_service.NewPredictionFilter, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewTrainerRepository, infrastructure.NewRaceIdRepository, converter.NewRaceEntityConverter)
+var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, prediction_service.NewPlaceCandidate, prediction_service.NewMarkerSync, filter_service.NewPredictionFilter, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewTrainerRepository, infrastructure.NewRaceIdRepository, converter.NewRaceEntityConverter)
 
 var SpreadSheetGatewaySet = wire.NewSet(gateway.NewSpreadSheetSummaryGateway, gateway.NewSpreadSheetTicketSummaryGateway, gateway.NewSpreadSheetListGateway, gateway.NewSpreadSheetAnalysisPlaceGateway, gateway.NewSpreadSheetAnalysisPlaceAllInGateway, gateway.NewSpreadSheetPredictionOddsGateway, gateway.NewSpreadSheetPredictionCheckListGateway, gateway.NewSpreadSheetPredictionMarkerGateway)

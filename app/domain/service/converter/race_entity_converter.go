@@ -2,6 +2,7 @@ package converter
 
 import (
 	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
@@ -19,6 +20,7 @@ type RaceEntityConverter interface {
 	DataCacheToList(input *data_cache_entity.Race) *list_entity.Race
 	NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds, filters []filter.Id) *prediction_entity.Race
 	TospoToPrediction(input1 *tospo_entity.Forecast, input2 *tospo_entity.TrainingComment, input3 []*tospo_entity.Memo, input4 *tospo_entity.PaddockComment) *prediction_entity.RaceForecast
+	PredictionToAnalysis(input *prediction_entity.Race) *analysis_entity.Race
 }
 
 type raceEntityConverter struct{}
@@ -290,5 +292,27 @@ func (r *raceEntityConverter) TospoToPrediction(
 		reporterMemos,
 		paddockComment,
 		paddockEvaluation,
+	)
+}
+
+func (r *raceEntityConverter) PredictionToAnalysis(
+	input *prediction_entity.Race,
+) *analysis_entity.Race {
+	return analysis_entity.NewRace(
+		input.RaceId(),
+		input.RaceDate(),
+		input.RaceNumber(),
+		input.RaceCourse(),
+		input.RaceName(),
+		input.Url(),
+		input.Entries(),
+		input.Distance(),
+		input.Class(),
+		input.CourseCategory(),
+		input.TrackCondition(),
+		input.RaceWeightCondition(),
+		nil,
+		nil,
+		input.PredictionFilters(),
 	)
 }

@@ -65,9 +65,9 @@ func (u *umacaTicketService) Get(
 			return nil, err
 		}
 		for _, ticket := range tickets {
-			if ticket.RaceCourse().NAR() || ticket.RaceCourse().Oversea() {
-				// UMACA購入は中央のみ
-				return nil, fmt.Errorf("umaca ticket is only for JRA")
+			if ticket.RaceCourse().NAR() {
+				// UMACA購入は中央、海外のみ
+				return nil, fmt.Errorf("umaca ticket is only for JRA or Overseas")
 			}
 			raceDateRaces, ok := raceDateMap[ticket.RaceDate()]
 			if !ok {

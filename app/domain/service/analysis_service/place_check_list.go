@@ -1,4 +1,4 @@
-package prediction_service
+package analysis_service
 
 import (
 	"context"

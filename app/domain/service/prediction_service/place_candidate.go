@@ -8,6 +8,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
@@ -37,7 +38,7 @@ type placeCandidateService struct {
 	raceEntityConverter    converter.RaceEntityConverter
 	horseEntityConverter   converter.HorseEntityConverter
 	filterService          filter_service.PredictionFilter
-	placeCheckListService  PlaceCheckList
+	placeCheckListService  analysis_service.PlaceCheckList
 	predictionOddsService  Odds
 }
 
@@ -52,7 +53,7 @@ func NewPlaceCandidate(
 	raceEntityConverter converter.RaceEntityConverter,
 	horseEntityConverter converter.HorseEntityConverter,
 	filterService filter_service.PredictionFilter,
-	placeCheckListService PlaceCheckList,
+	placeCheckListService analysis_service.PlaceCheckList,
 	predictionOddsService Odds,
 ) PlaceCandidate {
 	return &placeCandidateService{
@@ -206,7 +207,7 @@ func (p *placeCandidateService) CreateCheckList(
 	horse *prediction_entity.Horse,
 	forecast *prediction_entity.RaceForecast,
 ) []bool {
-	input := &PlaceCheckListInput{
+	input := &analysis_service.PlaceCheckListInput{
 		Race:     race,
 		Horse:    horse,
 		Forecast: forecast,

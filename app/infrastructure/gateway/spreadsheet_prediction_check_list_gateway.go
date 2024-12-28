@@ -32,7 +32,7 @@ var checkListItems = []string{
 
 type SpreadSheetPredictionCheckListGateway interface {
 	Write(ctx context.Context, rows []*spreadsheet_entity.PredictionCheckList) error
-	Style(ctx context.Context) error
+	Style(ctx context.Context, rows []*spreadsheet_entity.PredictionCheckList) error
 	Clear(ctx context.Context) error
 }
 
@@ -57,6 +57,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 	values := [][]interface{}{
 		{
 			"日付",
+			"場所",
 			"レース名",
 			"馬名",
 			"騎手",
@@ -98,6 +99,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 	for _, row := range rows {
 		values = append(values, []interface{}{
 			row.RaceDate(),
+			row.RaceCourse(),
 			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.RaceUrl(), row.RaceName()),
 			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.HorseUrl(), row.HorseName()),
 			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", row.JockeyUrl(), row.JockeyName()),
@@ -156,7 +158,10 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 	return nil
 }
 
-func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error {
+func (s *spreadSheetPredictionCheckListGateway) Style(
+	ctx context.Context,
+	rows []*spreadsheet_entity.PredictionCheckList,
+) error {
 	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionCheckListFileName)
 	if err != nil {
 		return err
@@ -173,7 +178,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   36,
+					EndColumnIndex:   37,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -192,9 +197,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "userEnteredFormat.backgroundColor",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: 27,
+					StartColumnIndex: 28,
 					StartRowIndex:    0,
-					EndColumnIndex:   36,
+					EndColumnIndex:   37,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -215,7 +220,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   36,
+					EndColumnIndex:   37,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -232,9 +237,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "userEnteredFormat.textFormat.foregroundColor",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: 27,
+					StartColumnIndex: 28,
 					StartRowIndex:    0,
-					EndColumnIndex:   36,
+					EndColumnIndex:   37,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -257,7 +262,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    1,
-					EndColumnIndex:   36,
+					EndColumnIndex:   37,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{
@@ -272,9 +277,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "userEnteredFormat(horizontalAlignment,wrapStrategy)",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: 31,
+					StartColumnIndex: 32,
 					StartRowIndex:    1,
-					EndColumnIndex:   34,
+					EndColumnIndex:   35,
 					EndRowIndex:      999,
 				},
 				Cell: &sheets.CellData{
@@ -292,9 +297,9 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				Fields: "note",
 				Range: &sheets.GridRange{
 					SheetId:          config.SheetId(),
-					StartColumnIndex: i + 11,
+					StartColumnIndex: i + 12,
 					StartRowIndex:    0,
-					EndColumnIndex:   i + 12,
+					EndColumnIndex:   i + 13,
 					EndRowIndex:      1,
 				},
 				Cell: &sheets.CellData{
@@ -302,6 +307,42 @@ func (s *spreadSheetPredictionCheckListGateway) Style(ctx context.Context) error
 				},
 			},
 		})
+	}
+
+	checkCountFunc := func(row *spreadsheet_entity.PredictionCheckList) int {
+		count := 0
+		for _, check := range row.CheckList() {
+			if check == "◯" {
+				count++
+			}
+		}
+		return count
+	}
+	for idx, row := range rows {
+		count := checkCountFunc(row)
+		if count >= 10 {
+			requests = append(requests, &sheets.Request{
+				RepeatCell: &sheets.RepeatCellRequest{
+					Fields: "userEnteredFormat.backgroundColor",
+					Range: &sheets.GridRange{
+						SheetId:          config.SheetId(),
+						StartColumnIndex: 0,
+						StartRowIndex:    int64(idx) + 1,
+						EndColumnIndex:   37,
+						EndRowIndex:      int64(idx) + 2,
+					},
+					Cell: &sheets.CellData{
+						UserEnteredFormat: &sheets.CellFormat{
+							BackgroundColor: &sheets.Color{
+								Red:   1.0,
+								Green: 0.937,
+								Blue:  0.498,
+							},
+						},
+					},
+				},
+			})
+		}
 	}
 
 	_, err = client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{

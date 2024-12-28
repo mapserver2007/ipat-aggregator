@@ -96,7 +96,7 @@ func (p *placeService) Create(
 			}
 			raceResult, ok := raceResultMap[horseNumber]
 			if !ok {
-				return nil, fmt.Errorf("horseNumber not found: %v", horseNumber)
+				return nil, fmt.Errorf("horseNumber %v not found in raceId %v", horseNumber, race.RaceId())
 			}
 
 			// 取り消しの馬かつ、印対象だったばあいそのレースは集計対象外

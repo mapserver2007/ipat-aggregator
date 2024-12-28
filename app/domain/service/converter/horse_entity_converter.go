@@ -17,6 +17,7 @@ type HorseEntityConverter interface {
 	RawToDataCache(input *raw_entity.Horse) (*data_cache_entity.Horse, error)
 	DataCacheToAnalysis(input *data_cache_entity.Horse) (*analysis_entity.Horse, error)
 	DataCacheToRaw(input *data_cache_entity.Horse) *raw_entity.Horse
+	PredictionToAnalysis(input *prediction_entity.Horse) (*analysis_entity.Horse, error)
 }
 
 type horseEntityConverter struct{}
@@ -288,4 +289,52 @@ func (h *horseEntityConverter) DataCacheToRaw(input *data_cache_entity.Horse) *r
 		HorseResults:   rawHorseResults,
 		LatestRaceDate: input.LatestRaceDate().Value(),
 	}
+}
+
+func (h *horseEntityConverter) PredictionToAnalysis(
+	input *prediction_entity.Horse,
+) (*analysis_entity.Horse, error) {
+	horseBlood := analysis_entity.NewHorseBlood(
+		input.HorseBlood().SireId().Value(),
+		input.HorseBlood().BroodmareSireId().Value(),
+	)
+
+	horseResults := make([]*analysis_entity.HorseResult, 0, len(input.HorseResults()))
+	for _, rawHorseResult := range input.HorseResults() {
+		horseResult, err := analysis_entity.NewHorseResult(
+			rawHorseResult.RaceId().String(),
+			rawHorseResult.RaceDate().Value(),
+			rawHorseResult.RaceName(),
+			rawHorseResult.JockeyId().Value(),
+			rawHorseResult.OrderNo(),
+			rawHorseResult.PopularNumber(),
+			rawHorseResult.HorseNumber().Value(),
+			rawHorseResult.Odds().String(),
+			rawHorseResult.Class().Value(),
+			rawHorseResult.Entries(),
+			rawHorseResult.Distance(),
+			rawHorseResult.RaceCourse().Value(),
+			rawHorseResult.CourseCategory().Value(),
+			rawHorseResult.TrackCondition().Value(),
+			rawHorseResult.HorseWeight(),
+			rawHorseResult.RaceWeight(),
+			rawHorseResult.Comment(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		horseResults = append(horseResults, horseResult)
+	}
+
+	return analysis_entity.NewHorse(
+		input.HorseId().Value(),
+		input.HorseName(),
+		input.HorseBirthDay().Value(),
+		input.TrainerId().Value(),
+		input.OwnerId().Value(),
+		input.BreederId().Value(),
+		horseBlood,
+		horseResults,
+		types.RaceDate(0),
+	), nil
 }

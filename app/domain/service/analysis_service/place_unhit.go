@@ -19,6 +19,7 @@ import (
 type PlaceUnHit interface {
 	GetUnHitRaces(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race) []*analysis_entity.Race
 	GetUnHitRaceRate(ctx context.Context, race *analysis_entity.Race, calculables []*analysis_entity.PlaceCalculable) map[types.HorseId][]float64
+	GetCheckList(ctx context.Context, race *analysis_entity.Race, horse *data_cache_entity.Horse, raceForecast *data_cache_entity.RaceForecast) error
 	FetchHorse(ctx context.Context, horseId types.HorseId) (*netkeiba_entity.Horse, error)
 	FetchRaceForecasts(ctx context.Context, raceId types.RaceId) ([]*tospo_entity.Forecast, error)
 	FetchTrainingComments(ctx context.Context, raceId types.RaceId) ([]*tospo_entity.TrainingComment, error)
@@ -30,6 +31,7 @@ type placeUnHitService struct {
 	raceForecastRepository repository.RaceForecastRepository
 	horseEntityConverter   converter.HorseEntityConverter
 	filterService          filter_service.AnalysisFilter
+	placeCheckListService  PlaceCheckList
 }
 
 func NewPlaceUnHit(
@@ -37,12 +39,14 @@ func NewPlaceUnHit(
 	raceForecastRepository repository.RaceForecastRepository,
 	horseEntityConverter converter.HorseEntityConverter,
 	filterService filter_service.AnalysisFilter,
+	placeCheckListService PlaceCheckList,
 ) PlaceUnHit {
 	return &placeUnHitService{
 		horseRepository:        horseRepository,
 		raceForecastRepository: raceForecastRepository,
 		horseEntityConverter:   horseEntityConverter,
 		filterService:          filterService,
+		placeCheckListService:  placeCheckListService,
 	}
 }
 
@@ -411,6 +415,16 @@ func (p *placeUnHitService) GetUnHitRaceRate(
 	}
 
 	return placeRateMap
+}
+
+func (p *placeUnHitService) GetCheckList(
+	ctx context.Context,
+	race *analysis_entity.Race,
+	horse *data_cache_entity.Horse,
+	raceForecast *data_cache_entity.RaceForecast,
+) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (p *placeUnHitService) FetchHorse(

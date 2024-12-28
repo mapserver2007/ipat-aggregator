@@ -18,6 +18,12 @@ const (
 	raceIdFileName    = "race_id.json"
 )
 
+// UMACA経由で海外レースを購入した場合の対応
+// 数自体少ないので個別に管理する
+var overseasRaceDates = map[types.RaceDate][]types.RaceId{
+	20241208: {"2024H1120805", "2024H1120808"},
+}
+
 type RaceId interface {
 	Get(ctx context.Context) (map[types.RaceDate][]types.RaceId, []types.RaceDate, error)
 	CreateOrUpdate(ctx context.Context, startDate, endDate string) error
@@ -54,6 +60,10 @@ func (r *raceIdService) Get(ctx context.Context) (map[types.RaceDate][]types.Rac
 				raceIds = append(raceIds, types.RaceId(rawRaceId))
 			}
 			raceDate := types.RaceDate(rawRaceDate.RaceDate)
+			overseasRaceIds, ok := overseasRaceDates[raceDate]
+			if ok {
+				raceIds = append(raceIds, overseasRaceIds...)
+			}
 			raceDateMap[raceDate] = raceIds
 		}
 		excludeDates = make([]types.RaceDate, 0, len(rawRaceInfo.ExcludeDates))

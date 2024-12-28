@@ -6,6 +6,7 @@ type RaceEntryHorse struct {
 	bracketNumber int
 	horseNumber   int
 	jockeyId      string
+	trainerId     string
 	raceWeight    float64
 }
 
@@ -15,6 +16,7 @@ func NewRaceEntryHorse(
 	bracketNumber int,
 	horseNumber int,
 	jockeyId string,
+	trainerId string,
 	raceWeight float64,
 ) *RaceEntryHorse {
 	return &RaceEntryHorse{
@@ -23,6 +25,7 @@ func NewRaceEntryHorse(
 		bracketNumber: bracketNumber,
 		horseNumber:   horseNumber,
 		jockeyId:      jockeyId,
+		trainerId:     trainerId,
 		raceWeight:    raceWeight,
 	}
 }
@@ -45,6 +48,10 @@ func (r *RaceEntryHorse) HorseNumber() int {
 
 func (r *RaceEntryHorse) JockeyId() string {
 	return r.jockeyId
+}
+
+func (r *RaceEntryHorse) TrainerId() string {
+	return r.trainerId
 }
 
 func (r *RaceEntryHorse) RaceWeight() float64 {

@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
+	"github.com/mapserver2007/ipat-aggregator/config"
 )
 
 type Analysis struct {
@@ -22,12 +23,44 @@ func NewAnalysis(
 }
 
 func (a *Analysis) Execute(ctx context.Context, input *AnalysisInput) error {
-	return a.analysisUseCase.Execute(ctx, &analysis_usecase.AnalysisInput{
-		Markers: input.Master.AnalysisMarkers,
-		Races:   input.Master.Races,
-		Odds: &analysis_usecase.AnalysisOddsInput{
-			Win:   input.Master.WinOdds,
-			Place: input.Master.PlaceOdds,
-		},
-	})
+	if config.EnableAnalysisPlace {
+		if err := a.analysisUseCase.Place(ctx, &analysis_usecase.AnalysisInput{
+			Markers: input.Master.AnalysisMarkers,
+			Races:   input.Master.Races,
+			Odds: &analysis_usecase.AnalysisOddsInput{
+				Win:   input.Master.WinOdds,
+				Place: input.Master.PlaceOdds,
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
+	if config.EnableAnalysisPlaceAllIn {
+		if err := a.analysisUseCase.PlaceAllIn(ctx, &analysis_usecase.AnalysisInput{
+			Markers: input.Master.AnalysisMarkers,
+			Races:   input.Master.Races,
+			Odds: &analysis_usecase.AnalysisOddsInput{
+				Win:   input.Master.WinOdds,
+				Place: input.Master.PlaceOdds,
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
+	if config.EnableAnalysisPlaceUnHit {
+		if err := a.analysisUseCase.PlaceUnHit(ctx, &analysis_usecase.AnalysisInput{
+			Markers: input.Master.AnalysisMarkers,
+			Races:   input.Master.Races,
+			Odds: &analysis_usecase.AnalysisOddsInput{
+				Win:   input.Master.WinOdds,
+				Place: input.Master.PlaceOdds,
+			},
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -72,6 +72,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 				"2着以内率",
 				types.WinOddsRange1.String(),
 				types.WinOddsRange2.String(),
@@ -81,6 +82,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 				"3着以内率",
 				types.WinOddsRange1.String(),
 				types.WinOddsRange2.String(),
@@ -90,6 +92,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 			},
 		}
 		valuesList[1] = [][]interface{}{
@@ -105,6 +108,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 				"2着以内率",
 				types.WinOddsRange1.String(),
 				types.WinOddsRange2.String(),
@@ -114,6 +118,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 				"3着以内率",
 				types.WinOddsRange1.String(),
 				types.WinOddsRange2.String(),
@@ -123,6 +128,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 			},
 		}
 		valuesList[2] = [][]interface{}{
@@ -138,6 +144,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 				"3着以下数",
 				types.WinOddsRange1.String(),
 				types.WinOddsRange2.String(),
@@ -147,6 +154,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 				"4着以下数",
 				types.WinOddsRange1.String(),
 				types.WinOddsRange2.String(),
@@ -156,6 +164,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 				types.WinOddsRange6.String(),
 				types.WinOddsRange7.String(),
 				types.WinOddsRange8.String(),
+				types.WinOddsRange9.String(),
 			},
 		}
 
@@ -186,6 +195,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					firstPlace.RateData().OddsRange6RateFormat(),
 					firstPlace.RateData().OddsRange7RateFormat(),
 					firstPlace.RateData().OddsRange8RateFormat(),
+					firstPlace.RateData().OddsRange9RateFormat(),
 					secondPlace.RateData().HitRateFormat(),
 					secondPlace.RateData().OddsRange1RateFormat(),
 					secondPlace.RateData().OddsRange2RateFormat(),
@@ -195,6 +205,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					secondPlace.RateData().OddsRange6RateFormat(),
 					secondPlace.RateData().OddsRange7RateFormat(),
 					secondPlace.RateData().OddsRange8RateFormat(),
+					secondPlace.RateData().OddsRange9RateFormat(),
 					thirdPlace.RateData().HitRateFormat(),
 					thirdPlace.RateData().OddsRange1RateFormat(),
 					thirdPlace.RateData().OddsRange2RateFormat(),
@@ -204,6 +215,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					thirdPlace.RateData().OddsRange6RateFormat(),
 					thirdPlace.RateData().OddsRange7RateFormat(),
 					thirdPlace.RateData().OddsRange8RateFormat(),
+					thirdPlace.RateData().OddsRange9RateFormat(),
 				},
 			}...)
 			valuesList[1] = append(valuesList[1], [][]interface{}{
@@ -219,6 +231,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					firstPlace.HitCountData().OddsRange6Count(),
 					firstPlace.HitCountData().OddsRange7Count(),
 					firstPlace.HitCountData().OddsRange8Count(),
+					firstPlace.HitCountData().OddsRange9Count(),
 					secondPlace.HitCountData().HitCount(),
 					secondPlace.HitCountData().OddsRange1Count(),
 					secondPlace.HitCountData().OddsRange2Count(),
@@ -228,6 +241,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					secondPlace.HitCountData().OddsRange6Count(),
 					secondPlace.HitCountData().OddsRange7Count(),
 					secondPlace.HitCountData().OddsRange8Count(),
+					secondPlace.HitCountData().OddsRange9Count(),
 					thirdPlace.HitCountData().HitCount(),
 					thirdPlace.HitCountData().OddsRange1Count(),
 					thirdPlace.HitCountData().OddsRange2Count(),
@@ -237,6 +251,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					thirdPlace.HitCountData().OddsRange6Count(),
 					thirdPlace.HitCountData().OddsRange7Count(),
 					thirdPlace.HitCountData().OddsRange8Count(),
+					thirdPlace.HitCountData().OddsRange9Count(),
 				},
 			}...)
 			valuesList[2] = append(valuesList[2], [][]interface{}{
@@ -252,6 +267,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					firstPlace.UnHitCountData().OddsRange6Count(),
 					firstPlace.UnHitCountData().OddsRange7Count(),
 					firstPlace.UnHitCountData().OddsRange8Count(),
+					firstPlace.UnHitCountData().OddsRange9Count(),
 					secondPlace.UnHitCountData().UnHitCount(),
 					secondPlace.UnHitCountData().OddsRange1Count(),
 					secondPlace.UnHitCountData().OddsRange2Count(),
@@ -261,6 +277,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					secondPlace.UnHitCountData().OddsRange6Count(),
 					secondPlace.UnHitCountData().OddsRange7Count(),
 					secondPlace.UnHitCountData().OddsRange8Count(),
+					secondPlace.UnHitCountData().OddsRange9Count(),
 					thirdPlace.UnHitCountData().UnHitCount(),
 					thirdPlace.UnHitCountData().OddsRange1Count(),
 					thirdPlace.UnHitCountData().OddsRange2Count(),
@@ -270,6 +287,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 					thirdPlace.UnHitCountData().OddsRange6Count(),
 					thirdPlace.UnHitCountData().OddsRange7Count(),
 					thirdPlace.UnHitCountData().OddsRange8Count(),
+					thirdPlace.UnHitCountData().OddsRange9Count(),
 				},
 			}...)
 		}
@@ -333,7 +351,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 			secondPlace := secondFilterMap[analysisFilter]
 			thirdPlace := thirdFilterMap[analysisFilter]
 
-			for colIdx := 0; colIdx < 8; colIdx++ {
+			for colIdx := 0; colIdx < 9; colIdx++ {
 				var cellColorType types.CellColorType
 				switch colIdx {
 				case 0:
@@ -352,6 +370,8 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 					cellColorType = firstPlace.RateStyle().OddsRange7CellColorType()
 				case 7:
 					cellColorType = firstPlace.RateStyle().OddsRange8CellColorType()
+				case 8:
+					cellColorType = firstPlace.RateStyle().OddsRange9CellColorType()
 				}
 
 				rowSpace := int64(1)
@@ -377,7 +397,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 				}...)
 			}
 
-			for colIdx := 0; colIdx < 8; colIdx++ {
+			for colIdx := 0; colIdx < 9; colIdx++ {
 				var cellColorType types.CellColorType
 				switch colIdx {
 				case 0:
@@ -396,10 +416,12 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 					cellColorType = secondPlace.RateStyle().OddsRange7CellColorType()
 				case 7:
 					cellColorType = secondPlace.RateStyle().OddsRange8CellColorType()
+				case 8:
+					cellColorType = secondPlace.RateStyle().OddsRange9CellColorType()
 				}
 
 				rowSpace := int64(1)
-				colSpace := int64(12)
+				colSpace := int64(13)
 				requests = append(requests, []*sheets.Request{
 					{
 						RepeatCell: &sheets.RepeatCellRequest{
@@ -421,7 +443,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 				}...)
 			}
 
-			for colIdx := 0; colIdx < 8; colIdx++ {
+			for colIdx := 0; colIdx < 9; colIdx++ {
 				var cellColorType types.CellColorType
 				switch colIdx {
 				case 0:
@@ -440,10 +462,12 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 					cellColorType = thirdPlace.RateStyle().OddsRange7CellColorType()
 				case 7:
 					cellColorType = thirdPlace.RateStyle().OddsRange8CellColorType()
+				case 8:
+					cellColorType = thirdPlace.RateStyle().OddsRange9CellColorType()
 				}
 
 				rowSpace := int64(1)
-				colSpace := int64(21)
+				colSpace := int64(23)
 				requests = append(requests, []*sheets.Request{
 					{
 						RepeatCell: &sheets.RepeatCellRequest{
@@ -475,7 +499,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 							SheetId:          config.SheetId(),
 							StartColumnIndex: 3,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   11,
+							EndColumnIndex:   12,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -496,9 +520,9 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 						Fields: "userEnteredFormat.textFormat.foregroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 12,
+							StartColumnIndex: 13,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   20,
+							EndColumnIndex:   22,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -519,9 +543,9 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 						Fields: "userEnteredFormat.textFormat.foregroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 21,
+							StartColumnIndex: 23,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   29,
+							EndColumnIndex:   32,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -563,9 +587,9 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 						Fields: "userEnteredFormat.backgroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 11,
+							StartColumnIndex: 12,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   12,
+							EndColumnIndex:   13,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -584,9 +608,9 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 						Fields: "userEnteredFormat.backgroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 20,
+							StartColumnIndex: 22,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   21,
+							EndColumnIndex:   23,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -607,7 +631,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 							SheetId:          config.SheetId(),
 							StartColumnIndex: 3,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   11,
+							EndColumnIndex:   12,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -626,9 +650,9 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 						Fields: "userEnteredFormat.backgroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 12,
+							StartColumnIndex: 13,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   20,
+							EndColumnIndex:   22,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -647,9 +671,9 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 						Fields: "userEnteredFormat.backgroundColor",
 						Range: &sheets.GridRange{
 							SheetId:          config.SheetId(),
-							StartColumnIndex: 21,
+							StartColumnIndex: 23,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   29,
+							EndColumnIndex:   32,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{
@@ -670,7 +694,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 							SheetId:          config.SheetId(),
 							StartColumnIndex: 1,
 							StartRowIndex:    int64(i * (1 + len(analysisFilters))),
-							EndColumnIndex:   29,
+							EndColumnIndex:   32,
 							EndRowIndex:      int64(i*(1+len(analysisFilters)) + 1),
 						},
 						Cell: &sheets.CellData{

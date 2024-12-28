@@ -11,6 +11,7 @@ type PlaceUnHitCountData struct {
 	oddsRange6Count int
 	oddsRange7Count int
 	oddsRange8Count int
+	oddsRange9Count int
 }
 
 func NewPlaceUnHitCountData(
@@ -33,6 +34,7 @@ func NewPlaceUnHitCountData(
 		oddsRange6Count: oddsRangeCountSlice[5],
 		oddsRange7Count: oddsRangeCountSlice[6],
 		oddsRange8Count: oddsRangeCountSlice[7],
+		oddsRange9Count: oddsRangeCountSlice[8],
 	}
 }
 
@@ -74,4 +76,8 @@ func (p *PlaceUnHitCountData) OddsRange7Count() int {
 
 func (p *PlaceUnHitCountData) OddsRange8Count() int {
 	return p.oddsRange8Count
+}
+
+func (p *PlaceUnHitCountData) OddsRange9Count() int {
+	return p.oddsRange9Count
 }

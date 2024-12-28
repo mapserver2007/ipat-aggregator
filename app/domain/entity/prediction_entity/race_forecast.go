@@ -9,6 +9,9 @@ type RaceForecast struct {
 	markerNum           int
 	trainingComment     string
 	isHighlyRecommended bool
+	reporterMemos       []string
+	paddockComment      string
+	paddockEvaluation   int
 }
 
 func NewRaceForecast(
@@ -18,6 +21,9 @@ func NewRaceForecast(
 	markerNum int,
 	trainingComment string,
 	isHighlyRecommended bool,
+	reporterMemos []string,
+	paddockComment string,
+	paddockEvaluation int,
 ) *RaceForecast {
 	return &RaceForecast{
 		horseNumber:         horseNumber,
@@ -26,6 +32,9 @@ func NewRaceForecast(
 		markerNum:           markerNum,
 		trainingComment:     trainingComment,
 		isHighlyRecommended: isHighlyRecommended,
+		reporterMemos:       reporterMemos,
+		paddockComment:      paddockComment,
+		paddockEvaluation:   paddockEvaluation,
 	}
 }
 
@@ -51,4 +60,16 @@ func (r *RaceForecast) TrainingComment() string {
 
 func (r *RaceForecast) IsHighlyRecommended() bool {
 	return r.isHighlyRecommended
+}
+
+func (r *RaceForecast) ReporterMemos() []string {
+	return r.reporterMemos
+}
+
+func (r *RaceForecast) PaddockComment() string {
+	return r.paddockComment
+}
+
+func (r *RaceForecast) PaddockEvaluation() int {
+	return r.paddockEvaluation
 }

@@ -24,7 +24,7 @@ func NewPlaceCalculable(
 	raceId types.RaceId,
 	raceDate types.RaceDate,
 	markerCombinationId types.MarkerCombinationId,
-	odds string,
+	odds decimal.Decimal,
 	number types.BetNumber,
 	popular int,
 	orderNo int,
@@ -32,15 +32,13 @@ func NewPlaceCalculable(
 	jockeyId types.JockeyId,
 	filters []filter.Id,
 ) *PlaceCalculable {
-	decimalOdds, _ := decimal.NewFromString(odds)
 	marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
-
 	return &PlaceCalculable{
 		raceId:              raceId,
 		raceDate:            raceDate,
 		marker:              marker,
 		markerCombinationId: markerCombinationId,
-		odds:                decimalOdds,
+		odds:                odds,
 		number:              number,
 		popular:             popular,
 		orderNo:             orderNo,

@@ -1,6 +1,9 @@
 package list_entity
 
-import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
+import (
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/shopspring/decimal"
+)
 
 type RaceResult struct {
 	orderNo       int
@@ -8,7 +11,7 @@ type RaceResult struct {
 	bracketNumber int
 	horseNumber   types.HorseNumber
 	jockeyId      types.JockeyId
-	odds          string
+	odds          decimal.Decimal
 	popularNumber int
 }
 
@@ -18,7 +21,7 @@ func NewRaceResult(
 	bracketNumber int,
 	horseNumber types.HorseNumber,
 	jockeyId types.JockeyId,
-	odds string,
+	odds decimal.Decimal,
 	popularNumber int,
 ) *RaceResult {
 	return &RaceResult{
@@ -52,7 +55,7 @@ func (r *RaceResult) JockeyId() types.JockeyId {
 	return r.jockeyId
 }
 
-func (r *RaceResult) Odds() string {
+func (r *RaceResult) Odds() decimal.Decimal {
 	return r.odds
 }
 

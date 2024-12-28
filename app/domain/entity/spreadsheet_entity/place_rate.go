@@ -17,6 +17,7 @@ type PlaceRateData struct {
 	oddsRange6Rate float64
 	oddsRange7Rate float64
 	oddsRange8Rate float64
+	oddsRange9Rate float64
 }
 
 func NewPlaceRateData(
@@ -32,6 +33,7 @@ func NewPlaceRateData(
 	oddsRange6Rate := float64(hitCountData.OddsRange6Count()) * 100 / float64(hitCountData.OddsRange6Count()+unHitCountData.OddsRange6Count())
 	oddsRange7Rate := float64(hitCountData.OddsRange7Count()) * 100 / float64(hitCountData.OddsRange7Count()+unHitCountData.OddsRange7Count())
 	oddsRange8Rate := float64(hitCountData.OddsRange8Count()) * 100 / float64(hitCountData.OddsRange8Count()+unHitCountData.OddsRange8Count())
+	oddsRange9Rate := float64(hitCountData.OddsRange9Count()) * 100 / float64(hitCountData.OddsRange9Count()+unHitCountData.OddsRange9Count())
 
 	return &PlaceRateData{
 		raceCount:      hitCountData.RaceCount(),
@@ -44,6 +46,7 @@ func NewPlaceRateData(
 		oddsRange6Rate: oddsRange6Rate,
 		oddsRange7Rate: oddsRange7Rate,
 		oddsRange8Rate: oddsRange8Rate,
+		oddsRange9Rate: oddsRange9Rate,
 	}
 }
 
@@ -123,6 +126,14 @@ func (p *PlaceRateData) OddsRange8RateFormat() string {
 	return p.rateFormat(p.oddsRange8Rate)
 }
 
+func (p *PlaceRateData) OddsRange9Rate() float64 {
+	return p.oddsRange9Rate
+}
+
+func (p *PlaceRateData) OddsRange9RateFormat() string {
+	return p.rateFormat(p.oddsRange9Rate)
+}
+
 func (p *PlaceRateData) rateFormat(rate float64) string {
 	if math.IsNaN(rate) {
 		return "-"
@@ -139,6 +150,7 @@ type PlaceRateStyle struct {
 	oddsRange6CellColorType types.CellColorType
 	oddsRange7CellColorType types.CellColorType
 	oddsRange8CellColorType types.CellColorType
+	oddsRange9CellColorType types.CellColorType
 }
 
 func NewPlaceRateStyle(
@@ -164,6 +176,7 @@ func NewPlaceRateStyle(
 		oddsRange6CellColorType: rateColorTypeFunc(data.OddsRange6Rate()),
 		oddsRange7CellColorType: rateColorTypeFunc(data.OddsRange7Rate()),
 		oddsRange8CellColorType: rateColorTypeFunc(data.OddsRange8Rate()),
+		oddsRange9CellColorType: rateColorTypeFunc(data.OddsRange9Rate()),
 	}
 }
 
@@ -197,4 +210,8 @@ func (p *PlaceRateStyle) OddsRange7CellColorType() types.CellColorType {
 
 func (p *PlaceRateStyle) OddsRange8CellColorType() types.CellColorType {
 	return p.oddsRange8CellColorType
+}
+
+func (p *PlaceRateStyle) OddsRange9CellColorType() types.CellColorType {
+	return p.oddsRange9CellColorType
 }

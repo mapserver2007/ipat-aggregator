@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/shopspring/decimal"
 	"strconv"
 )
 
@@ -210,6 +211,13 @@ func NewListRow(
 			ticket.TicketType().OriginTicketType().Name(), ticket.BetNumber().String(), ticket.Odds(), ticket.Payout(), ticket.Popular()))
 	}
 
+	oddsFormatFunc := func(odds decimal.Decimal) string {
+		if odds.IsZero() {
+			return "-"
+		}
+		return odds.String()
+	}
+
 	listData := &ListData{
 		raceName:                race.RaceName(),
 		raceDate:                race.RaceDate().Format("2006/01/02"),
@@ -224,19 +232,19 @@ func NewListRow(
 		favoriteHorse:           favoriteHorse.HorseName(),
 		favoriteJockey:          favoriteJockey.JockeyName(),
 		favoriteHorsePopular:    strconv.Itoa(favoriteHorse.PopularNumber()),
-		favoriteHorseOdds:       favoriteHorse.Odds(),
+		favoriteHorseOdds:       oddsFormatFunc(favoriteHorse.Odds()),
 		rivalHorse:              rivalHorse.HorseName(),
 		rivalJockey:             rivalJockey.JockeyName(),
 		rivalHorsePopular:       strconv.Itoa(rivalHorse.PopularNumber()),
-		rivalHorseOdds:          rivalHorse.Odds(),
+		rivalHorseOdds:          oddsFormatFunc(rivalHorse.Odds()),
 		firstPlaceHorse:         firstPlaceResult.HorseName(),
 		firstPlaceJockey:        firstPlaceJockey.JockeyName(),
 		firstPlaceHorsePopular:  strconv.Itoa(firstPlaceResult.PopularNumber()),
-		firstPlaceHorseOdds:     firstPlaceResult.Odds(),
+		firstPlaceHorseOdds:     oddsFormatFunc(firstPlaceResult.Odds()),
 		secondPlaceHorse:        secondPlaceResult.HorseName(),
 		secondPlaceJockey:       secondPlaceJockey.JockeyName(),
 		secondPlaceHorsePopular: strconv.Itoa(secondPlaceResult.PopularNumber()),
-		secondPlaceHorseOdds:    secondPlaceResult.Odds(),
+		secondPlaceHorseOdds:    oddsFormatFunc(secondPlaceResult.Odds()),
 	}
 
 	classColor := types.NoneColor

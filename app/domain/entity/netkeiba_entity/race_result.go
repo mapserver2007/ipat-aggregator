@@ -2,6 +2,7 @@ package netkeiba_entity
 
 type RaceResult struct {
 	orderNo       int
+	horseId       string
 	horseName     string
 	bracketNumber int
 	horseNumber   int
@@ -12,6 +13,7 @@ type RaceResult struct {
 
 func NewRaceResult(
 	orderNo int,
+	horseId string,
 	horseName string,
 	bracketNumber int,
 	horseNumber int,
@@ -21,6 +23,7 @@ func NewRaceResult(
 ) *RaceResult {
 	return &RaceResult{
 		orderNo:       orderNo,
+		horseId:       horseId,
 		horseName:     horseName,
 		bracketNumber: bracketNumber,
 		horseNumber:   horseNumber,
@@ -32,6 +35,10 @@ func NewRaceResult(
 
 func (r *RaceResult) OrderNo() int {
 	return r.orderNo
+}
+
+func (r *RaceResult) HorseId() string {
+	return r.horseId
 }
 
 func (r *RaceResult) HorseName() string {

@@ -10,6 +10,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/shopspring/decimal"
 	"golang.org/x/exp/slices"
 	"sort"
 	"strconv"
@@ -278,7 +279,7 @@ func (l *listService) Create(
 
 		// 単複のみなど対抗が存在しない場合
 		if rivalHorse == nil {
-			rivalHorse = list_entity.NewHorse("-", "-", 0)
+			rivalHorse = list_entity.NewHorse("-", decimal.Zero, 0)
 			rivalJockey = l.JockeyEntityConverter.DataCacheToList(data_cache_entity.NewJockey("00000", "-"))
 		}
 

@@ -3,7 +3,7 @@ package netkeiba_entity
 type Horse struct {
 	horseId       string
 	horseName     string
-	horseBirthDay string
+	horseBirthDay int
 	trainerId     string
 	ownerId       string
 	breederId     string
@@ -14,7 +14,7 @@ type Horse struct {
 func NewHorse(
 	horseId string,
 	horseName string,
-	horseBirthDay string,
+	horseBirthDay int,
 	trainerId string,
 	ownerId string,
 	breederId string,
@@ -41,7 +41,7 @@ func (h *Horse) HorseName() string {
 	return h.horseName
 }
 
-func (h *Horse) HorseBirthDay() string {
+func (h *Horse) HorseBirthDay() int {
 	return h.horseBirthDay
 }
 

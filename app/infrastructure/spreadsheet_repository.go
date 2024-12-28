@@ -191,7 +191,7 @@ func (s *spreadSheetRepository) WritePredictionCheckList(
 		return err
 	}
 
-	err = s.predictionCheckListGateway.Style(ctx)
+	err = s.predictionCheckListGateway.Style(ctx, predictionCheckLists)
 	if err != nil {
 		return err
 	}

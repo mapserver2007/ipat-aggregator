@@ -7,9 +7,10 @@ import (
 )
 
 type RaceForecastRepository interface {
-	List(ctx context.Context, path string) ([]string, error)
-	Read(ctx context.Context, path string) ([]*raw_entity.RaceForecast, error)
+	Read(ctx context.Context, path string) (*raw_entity.RaceForecastInfo, error)
 	Write(ctx context.Context, path string, forecastInfo *raw_entity.RaceForecastInfo) error
 	FetchRaceForecast(ctx context.Context, url string) ([]*tospo_entity.Forecast, error)
 	FetchTrainingComment(ctx context.Context, url string) ([]*tospo_entity.TrainingComment, error)
+	FetchReporterMemo(ctx context.Context, url string) ([]*tospo_entity.ReporterMemo, error)
+	FetchPaddockComment(ctx context.Context, url string) ([]*tospo_entity.PaddockComment, error)
 }

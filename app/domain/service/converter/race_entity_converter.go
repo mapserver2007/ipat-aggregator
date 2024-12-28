@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"fmt"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
@@ -8,6 +10,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"time"
 )
 
 type RaceEntityConverter interface {
@@ -16,7 +19,8 @@ type RaceEntityConverter interface {
 	RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race
 	DataCacheToList(input *data_cache_entity.Race) *list_entity.Race
 	NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds, filters []filter.Id) *prediction_entity.Race
-	TospoToPrediction(input1 *tospo_entity.Forecast, input2 *tospo_entity.TrainingComment) *prediction_entity.RaceForecast
+	TospoToPrediction(input1 *tospo_entity.Forecast, input2 *tospo_entity.TrainingComment, input3 []*tospo_entity.Memo, input4 *tospo_entity.PaddockComment) *prediction_entity.RaceForecast
+	PredictionToAnalysis(input *prediction_entity.Race) *analysis_entity.Race
 }
 
 type raceEntityConverter struct{}
@@ -30,11 +34,12 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 	for _, raceResult := range input.RaceResults() {
 		raceResults = append(raceResults, &raw_entity.RaceResult{
 			OrderNo:       raceResult.OrderNo(),
+			HorseId:       raceResult.HorseId().Value(),
 			HorseName:     raceResult.HorseName(),
 			BracketNumber: raceResult.BracketNumber(),
 			HorseNumber:   raceResult.HorseNumber().Value(),
 			JockeyId:      raceResult.JockeyId().Value(),
-			Odds:          raceResult.Odds(),
+			Odds:          raceResult.Odds().StringFixed(1),
 			PopularNumber: raceResult.PopularNumber(),
 		})
 	}
@@ -79,6 +84,7 @@ func (r *raceEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Race) *raw_en
 	for _, raceResult := range input.RaceResults() {
 		raceResults = append(raceResults, &raw_entity.RaceResult{
 			OrderNo:       raceResult.OrderNo(),
+			HorseId:       raceResult.HorseId(),
 			HorseName:     raceResult.HorseName(),
 			BracketNumber: raceResult.BracketNumber(),
 			HorseNumber:   raceResult.HorseNumber(),
@@ -128,6 +134,7 @@ func (r *raceEntityConverter) RawToDataCache(input *raw_entity.Race) *data_cache
 	for _, raceResult := range input.RaceResults {
 		raceResults = append(raceResults, data_cache_entity.NewRaceResult(
 			raceResult.OrderNo,
+			raceResult.HorseId,
 			raceResult.HorseName,
 			raceResult.BracketNumber,
 			raceResult.HorseNumber,
@@ -211,6 +218,7 @@ func (r *raceEntityConverter) NetKeibaToPrediction(
 			rawRaceEntryHorse.BracketNumber(),
 			rawRaceEntryHorse.HorseNumber(),
 			rawRaceEntryHorse.JockeyId(),
+			rawRaceEntryHorse.TrainerId(),
 			rawRaceEntryHorse.RaceWeight(),
 		))
 	}
@@ -251,7 +259,29 @@ func (r *raceEntityConverter) NetKeibaToPrediction(
 func (r *raceEntityConverter) TospoToPrediction(
 	input1 *tospo_entity.Forecast,
 	input2 *tospo_entity.TrainingComment,
+	input3 []*tospo_entity.Memo,
+	input4 *tospo_entity.PaddockComment,
 ) *prediction_entity.RaceForecast {
+	reporterMemos := make([]string, 0, len(input3))
+	if len(input3) > 0 {
+		for _, memo := range input3 {
+			// 2週間以内のコメントだけ使う
+			twoWeeksAgo := time.Now().AddDate(0, 0, -14)
+			if memo.Date().After(twoWeeksAgo) || memo.Date().Equal(twoWeeksAgo) {
+				reporterMemos = append(reporterMemos, fmt.Sprintf("%s %s", memo.Date().Format("2006/01/02"), memo.Comment()))
+			}
+		}
+	}
+
+	var (
+		paddockComment    string
+		paddockEvaluation int
+	)
+	if input4 != nil {
+		paddockComment = input4.Comment()
+		paddockEvaluation = input4.Evaluation()
+	}
+
 	return prediction_entity.NewRaceForecast(
 		input1.HorseNumber(),
 		input1.FavoriteNum(),
@@ -259,5 +289,30 @@ func (r *raceEntityConverter) TospoToPrediction(
 		input1.MarkerNum(),
 		input2.TrainingComment(),
 		input2.IsHighlyRecommended(),
+		reporterMemos,
+		paddockComment,
+		paddockEvaluation,
+	)
+}
+
+func (r *raceEntityConverter) PredictionToAnalysis(
+	input *prediction_entity.Race,
+) *analysis_entity.Race {
+	return analysis_entity.NewRace(
+		input.RaceId(),
+		input.RaceDate(),
+		input.RaceNumber(),
+		input.RaceCourse(),
+		input.RaceName(),
+		input.Url(),
+		input.Entries(),
+		input.Distance(),
+		input.Class(),
+		input.CourseCategory(),
+		input.TrackCondition(),
+		input.RaceWeightCondition(),
+		nil,
+		nil,
+		input.PredictionFilters(),
 	)
 }

@@ -16,6 +16,7 @@ type PredictionRateData struct {
 	oddsRange6Rate float64
 	oddsRange7Rate float64
 	oddsRange8Rate float64
+	oddsRange9Rate float64
 	oddsRange1Hit  bool
 	oddsRange2Hit  bool
 	oddsRange3Hit  bool
@@ -24,6 +25,7 @@ type PredictionRateData struct {
 	oddsRange6Hit  bool
 	oddsRange7Hit  bool
 	oddsRange8Hit  bool
+	oddsRange9Hit  bool
 }
 
 func NewPredictionRateData(
@@ -40,6 +42,7 @@ func NewPredictionRateData(
 	oddsRange6Rate := float64(hitCountData.OddsRange6Count()) * 100 / float64(hitCountData.OddsRange6Count()+unHitCountData.OddsRange6Count())
 	oddsRange7Rate := float64(hitCountData.OddsRange7Count()) * 100 / float64(hitCountData.OddsRange7Count()+unHitCountData.OddsRange7Count())
 	oddsRange8Rate := float64(hitCountData.OddsRange8Count()) * 100 / float64(hitCountData.OddsRange8Count()+unHitCountData.OddsRange8Count())
+	oddsRange9Rate := float64(hitCountData.OddsRange9Count()) * 100 / float64(hitCountData.OddsRange9Count()+unHitCountData.OddsRange9Count())
 
 	return &PredictionRateData{
 		raceCount:      hitCountData.RaceCount(),
@@ -52,6 +55,7 @@ func NewPredictionRateData(
 		oddsRange6Rate: oddsRange6Rate,
 		oddsRange7Rate: oddsRange7Rate,
 		oddsRange8Rate: oddsRange8Rate,
+		oddsRange9Rate: oddsRange9Rate,
 		oddsRange1Hit:  hitSlice[0],
 		oddsRange2Hit:  hitSlice[1],
 		oddsRange3Hit:  hitSlice[2],
@@ -60,6 +64,7 @@ func NewPredictionRateData(
 		oddsRange6Hit:  hitSlice[5],
 		oddsRange7Hit:  hitSlice[6],
 		oddsRange8Hit:  hitSlice[7],
+		oddsRange9Hit:  hitSlice[8],
 	}
 }
 
@@ -139,6 +144,14 @@ func (p *PredictionRateData) OddsRange8RateFormat() string {
 	return p.rateFormat(p.oddsRange8Rate)
 }
 
+func (p *PredictionRateData) OddsRange9Rate() float64 {
+	return p.oddsRange9Rate
+}
+
+func (p *PredictionRateData) OddsRange9RateFormat() string {
+	return p.rateFormat(p.oddsRange9Rate)
+}
+
 func (p *PredictionRateData) OddsRange1Hit() bool {
 	return p.oddsRange1Hit
 }
@@ -169,6 +182,10 @@ func (p *PredictionRateData) OddsRange7Hit() bool {
 
 func (p *PredictionRateData) OddsRange8Hit() bool {
 	return p.oddsRange8Hit
+}
+
+func (p *PredictionRateData) OddsRange9Hit() bool {
+	return p.oddsRange9Hit
 }
 
 func (p *PredictionRateData) rateFormat(rate float64) string {

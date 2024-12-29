@@ -45,7 +45,7 @@ func main() {
 	}
 
 	if config.EnablePrediction {
-		predictionCtrl := di.NewPrediction()
+		predictionCtrl := di.NewPrediction(nil)
 		err = predictionCtrl.Execute(ctx, &controller.PredictionInput{
 			Master: master,
 		})

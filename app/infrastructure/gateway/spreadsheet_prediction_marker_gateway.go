@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 )
 
 const (
@@ -17,10 +17,16 @@ type SpreadSheetPredictionMarkerGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetPredictionMarkerGateway struct{}
+type spreadSheetPredictionMarkerGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetPredictionMarkerGateway() SpreadSheetPredictionMarkerGateway {
-	return &spreadSheetPredictionMarkerGateway{}
+func NewSpreadSheetPredictionMarkerGateway(
+	logger *logrus.Logger,
+) SpreadSheetPredictionMarkerGateway {
+	return &spreadSheetPredictionMarkerGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetPredictionMarkerGateway) Write(
@@ -32,7 +38,7 @@ func (s *spreadSheetPredictionMarkerGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write prediction marker start")
+	s.logger.Infof("write prediction marker start")
 
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A1")
 	values := [][]interface{}{
@@ -66,7 +72,7 @@ func (s *spreadSheetPredictionMarkerGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write prediction marker end")
+	s.logger.Infof("write prediction marker end")
 
 	return nil
 }

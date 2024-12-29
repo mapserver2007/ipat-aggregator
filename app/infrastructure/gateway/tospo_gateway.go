@@ -3,12 +3,11 @@ package gateway
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"net/http"
 	"sort"
 )
@@ -20,17 +19,23 @@ type TospoGateway interface {
 	FetchPaddockComment(ctx context.Context, url string) ([]*tospo_entity.PaddockComment, error)
 }
 
-type tospoGateway struct{}
+type tospoGateway struct {
+	logger *logrus.Logger
+}
 
-func NewTospoGateway() TospoGateway {
-	return &tospoGateway{}
+func NewTospoGateway(
+	logger *logrus.Logger,
+) TospoGateway {
+	return &tospoGateway{
+		logger: logger,
+	}
 }
 
 func (t *tospoGateway) FetchForecast(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.Forecast, error) {
-	log.Println(ctx, fmt.Sprintf("fetching forecast from %s", url))
+	t.logger.Infof("fetching forecast from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -103,7 +108,7 @@ func (t *tospoGateway) FetchTrainingComment(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.TrainingComment, error) {
-	log.Println(ctx, fmt.Sprintf("fetching training comment from %s", url))
+	t.logger.Infof("fetching training comment from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -150,7 +155,7 @@ func (t *tospoGateway) FetchReporterMemo(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.ReporterMemo, error) {
-	log.Println(ctx, fmt.Sprintf("fetching reporter memo from %s", url))
+	t.logger.Infof("fetching reporter memo from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -196,7 +201,7 @@ func (t *tospoGateway) FetchPaddockComment(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.PaddockComment, error) {
-	log.Println(ctx, fmt.Sprintf("fetching paddock comment from %s", url))
+	t.logger.Infof("fetching paddock comment from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err

@@ -22,22 +22,23 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
+	"github.com/sirupsen/logrus"
 )
 
 // Injectors from wire.go:
 
-func NewMaster() *controller.Master {
+func NewMaster(logger *logrus.Logger) *controller.Master {
 	betNumberConverter := master_service.NewBetNumberConverter()
 	ticketRepository := infrastructure.NewTicketRepository(betNumberConverter)
 	ticket := master_service.NewTicket(ticketRepository)
 	netKeibaCollector := gateway.NewNetKeibaCollector()
-	netKeibaGateway := gateway.NewNetKeibaGateway(netKeibaCollector)
+	netKeibaGateway := gateway.NewNetKeibaGateway(netKeibaCollector, logger)
 	raceIdRepository := infrastructure.NewRaceIdRepository(netKeibaGateway)
 	raceId := master_service.NewRaceId(raceIdRepository)
 	raceRepository := infrastructure.NewRaceRepository(netKeibaGateway)
 	raceEntityConverter := converter.NewRaceEntityConverter()
 	race := master_service.NewRace(raceRepository, raceEntityConverter)
-	tospoGateway := gateway.NewTospoGateway()
+	tospoGateway := gateway.NewTospoGateway(logger)
 	raceForecastRepository := infrastructure.NewRaceForecastRepository(tospoGateway)
 	raceForecastEntityConverter := converter.NewRaceForecastEntityConverter()
 	raceForecast := master_service.NewRaceForecast(raceForecastRepository, raceForecastEntityConverter)
@@ -60,7 +61,7 @@ func NewMaster() *controller.Master {
 	return controllerMaster
 }
 
-func NewAggregation() *controller.Aggregation {
+func NewAggregation(logger *logrus.Logger) *controller.Aggregation {
 	term := summary_service.NewTerm()
 	ticket := summary_service.NewTicket()
 	class := summary_service.NewClass()
@@ -72,9 +73,9 @@ func NewAggregation() *controller.Aggregation {
 	spreadSheetListGateway := gateway.NewSpreadSheetListGateway()
 	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
 	spreadSheetAnalysisPlaceAllInGateway := gateway.NewSpreadSheetAnalysisPlaceAllInGateway()
-	spreadSheetPredictionOddsGateway := gateway.NewSpreadSheetPredictionOddsGateway()
-	spreadSheetPredictionCheckListGateway := gateway.NewSpreadSheetPredictionCheckListGateway()
-	spreadSheetPredictionMarkerGateway := gateway.NewSpreadSheetPredictionMarkerGateway()
+	spreadSheetPredictionOddsGateway := gateway.NewSpreadSheetPredictionOddsGateway(logger)
+	spreadSheetPredictionCheckListGateway := gateway.NewSpreadSheetPredictionCheckListGateway(logger)
+	spreadSheetPredictionMarkerGateway := gateway.NewSpreadSheetPredictionMarkerGateway(logger)
 	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetAnalysisPlaceAllInGateway, spreadSheetPredictionOddsGateway, spreadSheetPredictionCheckListGateway, spreadSheetPredictionMarkerGateway)
 	summary := aggregation_service.NewSummary(term, ticket, class, courseCategory, distanceCategory, raceCourse, spreadSheetRepository)
 	aggregation_usecaseSummary := aggregation_usecase.NewSummary(summary)
@@ -88,24 +89,24 @@ func NewAggregation() *controller.Aggregation {
 	return aggregation
 }
 
-func NewAnalysis() *controller.Analysis {
+func NewAnalysis(logger *logrus.Logger) *controller.Analysis {
 	analysisFilter := filter_service.NewAnalysisFilter()
 	spreadSheetSummaryGateway := gateway.NewSpreadSheetSummaryGateway()
 	spreadSheetTicketSummaryGateway := gateway.NewSpreadSheetTicketSummaryGateway()
 	spreadSheetListGateway := gateway.NewSpreadSheetListGateway()
 	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
 	spreadSheetAnalysisPlaceAllInGateway := gateway.NewSpreadSheetAnalysisPlaceAllInGateway()
-	spreadSheetPredictionOddsGateway := gateway.NewSpreadSheetPredictionOddsGateway()
-	spreadSheetPredictionCheckListGateway := gateway.NewSpreadSheetPredictionCheckListGateway()
-	spreadSheetPredictionMarkerGateway := gateway.NewSpreadSheetPredictionMarkerGateway()
+	spreadSheetPredictionOddsGateway := gateway.NewSpreadSheetPredictionOddsGateway(logger)
+	spreadSheetPredictionCheckListGateway := gateway.NewSpreadSheetPredictionCheckListGateway(logger)
+	spreadSheetPredictionMarkerGateway := gateway.NewSpreadSheetPredictionMarkerGateway(logger)
 	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetAnalysisPlaceAllInGateway, spreadSheetPredictionOddsGateway, spreadSheetPredictionCheckListGateway, spreadSheetPredictionMarkerGateway)
 	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
 	trio := analysis_service.NewTrio(analysisFilter)
 	placeAllIn := analysis_service.NewPlaceAllIn(analysisFilter, spreadSheetRepository)
 	netKeibaCollector := gateway.NewNetKeibaCollector()
-	netKeibaGateway := gateway.NewNetKeibaGateway(netKeibaCollector)
+	netKeibaGateway := gateway.NewNetKeibaGateway(netKeibaCollector, logger)
 	horseRepository := infrastructure.NewHorseRepository(netKeibaGateway)
-	tospoGateway := gateway.NewTospoGateway()
+	tospoGateway := gateway.NewTospoGateway(logger)
 	raceForecastRepository := infrastructure.NewRaceForecastRepository(tospoGateway)
 	horseEntityConverter := converter.NewHorseEntityConverter()
 	placeCheckList := analysis_service.NewPlaceCheckList()
@@ -118,9 +119,9 @@ func NewAnalysis() *controller.Analysis {
 	return controllerAnalysis
 }
 
-func NewPrediction() *controller.Prediction {
+func NewPrediction(logger *logrus.Logger) *controller.Prediction {
 	netKeibaCollector := gateway.NewNetKeibaCollector()
-	netKeibaGateway := gateway.NewNetKeibaGateway(netKeibaCollector)
+	netKeibaGateway := gateway.NewNetKeibaGateway(netKeibaCollector, logger)
 	oddsRepository := infrastructure.NewOddsRepository(netKeibaGateway)
 	raceRepository := infrastructure.NewRaceRepository(netKeibaGateway)
 	spreadSheetSummaryGateway := gateway.NewSpreadSheetSummaryGateway()
@@ -128,13 +129,13 @@ func NewPrediction() *controller.Prediction {
 	spreadSheetListGateway := gateway.NewSpreadSheetListGateway()
 	spreadSheetAnalysisPlaceGateway := gateway.NewSpreadSheetAnalysisPlaceGateway()
 	spreadSheetAnalysisPlaceAllInGateway := gateway.NewSpreadSheetAnalysisPlaceAllInGateway()
-	spreadSheetPredictionOddsGateway := gateway.NewSpreadSheetPredictionOddsGateway()
-	spreadSheetPredictionCheckListGateway := gateway.NewSpreadSheetPredictionCheckListGateway()
-	spreadSheetPredictionMarkerGateway := gateway.NewSpreadSheetPredictionMarkerGateway()
+	spreadSheetPredictionOddsGateway := gateway.NewSpreadSheetPredictionOddsGateway(logger)
+	spreadSheetPredictionCheckListGateway := gateway.NewSpreadSheetPredictionCheckListGateway(logger)
+	spreadSheetPredictionMarkerGateway := gateway.NewSpreadSheetPredictionMarkerGateway(logger)
 	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetAnalysisPlaceAllInGateway, spreadSheetPredictionOddsGateway, spreadSheetPredictionCheckListGateway, spreadSheetPredictionMarkerGateway)
 	predictionFilter := filter_service.NewPredictionFilter()
 	odds := prediction_service.NewOdds(oddsRepository, raceRepository, spreadSheetRepository, predictionFilter)
-	tospoGateway := gateway.NewTospoGateway()
+	tospoGateway := gateway.NewTospoGateway(logger)
 	raceForecastRepository := infrastructure.NewRaceForecastRepository(tospoGateway)
 	horseRepository := infrastructure.NewHorseRepository(netKeibaGateway)
 	jockeyRepository := infrastructure.NewJockeyRepository(netKeibaGateway)
@@ -147,8 +148,8 @@ func NewPrediction() *controller.Prediction {
 	markerSync := prediction_service.NewMarkerSync(raceIdRepository, raceRepository, spreadSheetRepository)
 	analysisFilter := filter_service.NewAnalysisFilter()
 	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
-	prediction := prediction_usecase.NewPrediction(odds, placeCandidate, markerSync, place)
-	controllerPrediction := controller.NewPrediction(prediction)
+	prediction := prediction_usecase.NewPrediction(odds, placeCandidate, markerSync, place, logger)
+	controllerPrediction := controller.NewPrediction(prediction, logger)
 	return controllerPrediction
 }
 

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 	"sort"
 )
 
@@ -20,10 +20,16 @@ type SpreadSheetPredictionOddsGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetPredictionOddsGateway struct{}
+type spreadSheetPredictionOddsGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetPredictionOddsGateway() SpreadSheetPredictionOddsGateway {
-	return &spreadSheetPredictionOddsGateway{}
+func NewSpreadSheetPredictionOddsGateway(
+	logger *logrus.Logger,
+) SpreadSheetPredictionOddsGateway {
+	return &spreadSheetPredictionOddsGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetPredictionOddsGateway) Write(
@@ -38,7 +44,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write prediction odds start")
+	s.logger.Infof("write prediction odds start")
 
 	raceCourseIds := make([]string, 0, len(raceCourseMap))
 	for raceCourseId := range raceCourseMap {
@@ -254,7 +260,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 		courseIdx++
 	}
 
-	log.Println(ctx, "write prediction odds end")
+	s.logger.Infof("write prediction odds end")
 
 	return nil
 }
@@ -271,7 +277,7 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write prediction odds style start")
+	s.logger.Infof("write prediction odds style start")
 
 	raceCourseIds := make([]string, 0, len(raceCourseMap))
 	for raceCourseId := range raceCourseMap {
@@ -531,7 +537,7 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write prediction odds style end")
+	s.logger.Infof("write prediction odds style end")
 
 	return nil
 }

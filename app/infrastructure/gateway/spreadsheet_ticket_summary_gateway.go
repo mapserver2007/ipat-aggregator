@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 	"strconv"
 )
 
@@ -20,10 +20,16 @@ type SpreadSheetTicketSummaryGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetTicketSummaryGateway struct{}
+type spreadSheetTicketSummaryGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetTicketSummaryGateway() SpreadSheetTicketSummaryGateway {
-	return &spreadSheetTicketSummaryGateway{}
+func NewSpreadSheetTicketSummaryGateway(
+	logger *logrus.Logger,
+) SpreadSheetTicketSummaryGateway {
+	return &spreadSheetTicketSummaryGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetTicketSummaryGateway) Write(
@@ -35,7 +41,7 @@ func (s *spreadSheetTicketSummaryGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write ticket summary start")
+	s.logger.Infof("write ticket summary start")
 
 	defaultValuesFunc := func(ticketType types.TicketType) [][]interface{} {
 		return [][]interface{}{
@@ -83,7 +89,7 @@ func (s *spreadSheetTicketSummaryGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write ticket summary end")
+	s.logger.Infof("write ticket summary end")
 
 	return nil
 }
@@ -97,7 +103,7 @@ func (s *spreadSheetTicketSummaryGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write ticket summary style start")
+	s.logger.Infof("write ticket summary style start")
 	var requests []*sheets.Request
 	alignment := len(ticketSummaryMap) + 1
 	for idx := 0; idx < 7; idx++ {
@@ -197,7 +203,7 @@ func (s *spreadSheetTicketSummaryGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write ticket summary style end")
+	s.logger.Infof("write ticket summary style end")
 
 	return nil
 }

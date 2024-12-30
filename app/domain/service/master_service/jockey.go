@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/sirupsen/logrus"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -30,15 +33,18 @@ type Jockey interface {
 type jockeyService struct {
 	jockeyRepository      repository.JockeyRepository
 	jockeyEntityConverter converter.JockeyEntityConverter
+	logger                *logrus.Logger
 }
 
 func NewJockey(
 	jockeyRepository repository.JockeyRepository,
 	jockeyEntityConverter converter.JockeyEntityConverter,
+	logger *logrus.Logger,
 ) Jockey {
 	return &jockeyService{
 		jockeyRepository:      jockeyRepository,
 		jockeyEntityConverter: jockeyEntityConverter,
+		logger:                logger,
 	}
 }
 
@@ -69,6 +75,9 @@ func (j *jockeyService) CreateOrUpdate(
 	jockeys []*data_cache_entity.Jockey,
 	excludeJockeyIds []types.JockeyId,
 ) error {
+	taskCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	urls := j.createJockeyUrls(jockeys, excludeJockeyIds)
 	if len(urls) == 0 {
 		return nil
@@ -79,16 +88,60 @@ func (j *jockeyService) CreateOrUpdate(
 		rawExcludeJockeyIds []string
 	)
 
-	for _, url := range urls {
-		time.Sleep(time.Millisecond)
-		jockey, err := j.jockeyRepository.Fetch(ctx, url)
-		if err != nil {
-			return err
+	var wg sync.WaitGroup
+	const raceIdParallel = 10
+	errorCh := make(chan error, 1)
+	resultCh := make(chan []*netkeiba_entity.Jockey, raceIdParallel)
+	chunkSize := (len(urls) + raceIdParallel - 1) / raceIdParallel
+
+	for i := 0; i < len(urls); i += chunkSize {
+		end := i + chunkSize
+		if end > len(urls) {
+			end = len(urls)
 		}
-		if jockey.Name() == "" {
-			rawExcludeJockeyIds = append(rawExcludeJockeyIds, jockey.Id())
-		} else {
-			rawJockeys = append(rawJockeys, j.jockeyEntityConverter.NetKeibaToRaw(jockey))
+
+		wg.Add(1)
+		go func(splitUrls []string) {
+			defer wg.Done()
+			localJockeys := make([]*netkeiba_entity.Jockey, 0, len(splitUrls))
+			j.logger.Infof("jockey fetch processing: %v/%v", end, len(urls))
+			for _, url := range splitUrls {
+				time.Sleep(time.Millisecond)
+				select {
+				case <-taskCtx.Done():
+					return
+				default:
+					jockey, err := j.jockeyRepository.Fetch(taskCtx, url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
+					localJockeys = append(localJockeys, jockey)
+				}
+			}
+
+			resultCh <- localJockeys
+		}(urls[i:end])
+	}
+
+	wg.Wait()
+	close(errorCh)
+	close(resultCh)
+
+	if err := <-errorCh; err != nil {
+		return err
+	}
+
+	for results := range resultCh {
+		for _, jockey := range results {
+			if jockey.Name() == "" {
+				rawExcludeJockeyIds = append(rawExcludeJockeyIds, jockey.Id())
+			} else {
+				rawJockeys = append(rawJockeys, j.jockeyEntityConverter.NetKeibaToRaw(jockey))
+			}
 		}
 	}
 

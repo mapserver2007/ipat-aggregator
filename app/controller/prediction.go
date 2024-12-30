@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-const parallel = 3
+const predictionParallel = 3
 
 type Prediction struct {
 	predictionUseCase prediction_usecase.Prediction
@@ -30,9 +30,9 @@ func NewPrediction(
 
 func (p *Prediction) Execute(ctx context.Context, input *PredictionInput) error {
 	var wg sync.WaitGroup
-	errors := make(chan error, parallel)
+	errors := make(chan error, predictionParallel)
 
-	for i := 0; i < parallel; i++ {
+	for i := 0; i < predictionParallel; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

@@ -11,13 +11,16 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/sirupsen/logrus"
 	neturl "net/url"
 	"sort"
+	"sync"
 	"time"
 )
 
 const (
 	trioOddsUrl      = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=7&action=update"
+	trioOddsSpUrl    = "https://race.sp.netkeiba.com/?pid=api_get_jra_odds&race_id=%s&type=7&action=update"
 	trioOddsFileName = "odds_%d.json"
 )
 
@@ -29,15 +32,18 @@ type TrioOdds interface {
 type trioOddsService struct {
 	oddsRepository      repository.OddsRepository
 	oddsEntityConverter converter.OddsEntityConverter
+	logger              *logrus.Logger
 }
 
 func NewTrioOdds(
 	oddsRepository repository.OddsRepository,
 	oddsEntityConverter converter.OddsEntityConverter,
+	logger *logrus.Logger,
 ) TrioOdds {
 	return &trioOddsService{
 		oddsRepository:      oddsRepository,
 		oddsEntityConverter: oddsEntityConverter,
+		logger:              logger,
 	}
 }
 
@@ -70,6 +76,9 @@ func (o *trioOddsService) CreateOrUpdate(
 	odds []*data_cache_entity.Odds,
 	markers []*marker_csv_entity.AnalysisMarker,
 ) error {
+	taskCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	urls := o.createOddsUrls(odds, markers)
 	if len(urls) == 0 {
 		return nil
@@ -86,49 +95,101 @@ func (o *trioOddsService) CreateOrUpdate(
 
 	oddsMap := o.createOddsMap(odds)
 
-	for _, url := range urls {
-		newOdds := make([]*raw_entity.Odds, 0, 20) // 6頭BOXは20点
-		time.Sleep(time.Millisecond)
-		fetchOdds, err := o.oddsRepository.Fetch(ctx, url)
-		if err != nil {
-			return err
+	var wg sync.WaitGroup
+	const workerParallel = 5
+	errorCh := make(chan error, 1)
+	resultCh := make(chan []map[types.RaceDate][]*raw_entity.RaceOdds, workerParallel)
+	chunkSize := (len(urls) + workerParallel - 1) / workerParallel
+	threadMaps := make([]map[types.RaceDate][]*raw_entity.RaceOdds, workerParallel)
+
+	for i := 0; i < len(urls); i += chunkSize {
+		end := i + chunkSize
+		if end > len(urls) {
+			end = len(urls)
 		}
 
-		raceId, err := o.parseUrl(url)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(splitUrls []string, workerId int) {
+			defer wg.Done()
+			localOddsMap := make(map[types.RaceDate][]*raw_entity.RaceOdds)
+			o.logger.Infof("trio odds fetch processing: %v/%v", end, len(urls))
+			for _, url := range splitUrls {
+				time.Sleep(time.Millisecond)
+				select {
+				case <-taskCtx.Done():
+					return
+				default:
+					newOdds := make([]*raw_entity.Odds, 0, 20) // 6頭BOXは20点
+					fetchOdds, err := o.oddsRepository.Fetch(taskCtx, url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
 
-		horseNumbers, ok := markerHorseNumberMap[raceId]
-		if !ok {
-			// 分析印がないレース(新馬、障害など)はスキップ
-			continue
-		}
+					raceId, err := o.parseUrl(url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
 
-		var raceDate types.RaceDate
-		if len(fetchOdds) > 0 {
-			raceDate = fetchOdds[0].RaceDate()
-		}
+					horseNumbers, ok := markerHorseNumberMap[raceId]
+					if !ok {
+						// 分析印がないレース(新馬、障害など)はスキップ
+						continue
+					}
 
-		for _, netKeibaFetchOdds := range fetchOdds {
-			if o.containsInSliceAll(horseNumbers, netKeibaFetchOdds.HorseNumbers()) {
-				newOdds = append(newOdds, o.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
+					var raceDate types.RaceDate
+					if len(fetchOdds) > 0 {
+						raceDate = fetchOdds[0].RaceDate()
+					}
+
+					for _, netKeibaFetchOdds := range fetchOdds {
+						if o.containsInSliceAll(horseNumbers, netKeibaFetchOdds.HorseNumbers()) {
+							newOdds = append(newOdds, o.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
+						}
+					}
+
+					if _, ok := oddsMap[raceDate]; !ok {
+						localOddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
+					}
+
+					sort.Slice(newOdds, func(i, j int) bool {
+						return newOdds[i].Popular < newOdds[j].Popular
+					})
+
+					localOddsMap[raceDate] = append(localOddsMap[raceDate], &raw_entity.RaceOdds{
+						RaceId:   raceId.String(),
+						RaceDate: raceDate.Value(),
+						Odds:     newOdds,
+					})
+				}
+			}
+			threadMaps[workerId] = localOddsMap
+
+			resultCh <- threadMaps
+		}(urls[i:end], i)
+	}
+
+	wg.Wait()
+	close(errorCh)
+	close(resultCh)
+
+	if err := <-errorCh; err != nil {
+		return err
+	}
+
+	for results := range resultCh {
+		for _, localOddsMap := range results {
+			for raceDate, raceOdds := range localOddsMap {
+				oddsMap[raceDate] = raceOdds
 			}
 		}
-
-		if _, ok := oddsMap[raceDate]; !ok {
-			oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
-		}
-
-		sort.Slice(newOdds, func(i, j int) bool {
-			return newOdds[i].Popular < newOdds[j].Popular
-		})
-
-		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
-			RaceId:   raceId.String(),
-			RaceDate: raceDate.Value(),
-			Odds:     newOdds,
-		})
 	}
 
 	for _, raceDate := range service.SortedRaceDateKeys(oddsMap) {

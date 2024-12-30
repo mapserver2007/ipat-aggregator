@@ -8,8 +8,10 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/sirupsen/logrus"
 	net_url "net/url"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -32,13 +34,16 @@ type RaceId interface {
 
 type raceIdService struct {
 	raceIdRepository repository.RaceIdRepository
+	logger           *logrus.Logger
 }
 
 func NewRaceId(
 	raceIdRepository repository.RaceIdRepository,
+	logger *logrus.Logger,
 ) RaceId {
 	return &raceIdService{
 		raceIdRepository: raceIdRepository,
+		logger:           logger,
 	}
 }
 
@@ -79,6 +84,9 @@ func (r *raceIdService) CreateOrUpdate(
 	ctx context.Context,
 	startDate, endDate string,
 ) error {
+	taskCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	newRawRaceDates := make([]*raw_entity.RaceDate, 0)
 	newRawExcludeDates := make([]int, 0)
 
@@ -111,31 +119,90 @@ func (r *raceIdService) CreateOrUpdate(
 		newRawExcludeDates = append(newRawExcludeDates, excludeDate.Value())
 	}
 
-	for _, url := range urls {
-		time.Sleep(time.Millisecond)
-		u, err := net_url.Parse(url)
-		if err != nil {
-			return err
-		}
-		date, err := types.NewRaceDate(u.Query().Get("kaisai_date"))
-		if err != nil {
-			return err
+	var wg sync.WaitGroup
+	const raceIdParallel = 5
+	errorCh := make(chan error, 1)
+	resultCh1 := make(chan []*raw_entity.RaceDate, raceIdParallel)
+	resultCh2 := make(chan []int, raceIdParallel)
+	chunkSize := (len(urls) + raceIdParallel - 1) / raceIdParallel
+
+	for i := 0; i < len(urls); i += chunkSize {
+		end := i + chunkSize
+		if end > len(urls) {
+			end = len(urls)
 		}
 
-		rawRaceIds, err := r.raceIdRepository.Fetch(ctx, url)
-		if err != nil {
-			return err
-		}
-		if len(rawRaceIds) == 0 {
-			newRawExcludeDates = append(newRawExcludeDates, date.Value())
-			continue
-		}
+		wg.Add(1)
+		go func(splitUrls []string) {
+			defer wg.Done()
+			localNewRawRaceDates := make([]*raw_entity.RaceDate, 0)
+			localNewRawExcludeDates := make([]int, 0)
 
-		rawRaceDate := raw_entity.RaceDate{
-			RaceDate: date.Value(),
-			RaceIds:  rawRaceIds,
-		}
-		newRawRaceDates = append(newRawRaceDates, &rawRaceDate)
+			r.logger.Infof("raceId fetch processing: %v/%v", end, len(urls))
+			for _, url := range splitUrls {
+				time.Sleep(time.Millisecond)
+				select {
+				case <-taskCtx.Done():
+					return
+				default:
+					u, err := net_url.Parse(url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
+					date, err := types.NewRaceDate(u.Query().Get("kaisai_date"))
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
+
+					rawRaceIds, err := r.raceIdRepository.Fetch(taskCtx, url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
+
+					if len(rawRaceIds) == 0 {
+						localNewRawExcludeDates = append(localNewRawExcludeDates, date.Value())
+					} else {
+						rawRaceDate := raw_entity.RaceDate{
+							RaceDate: date.Value(),
+							RaceIds:  rawRaceIds,
+						}
+						localNewRawRaceDates = append(localNewRawRaceDates, &rawRaceDate)
+					}
+				}
+			}
+
+			resultCh1 <- localNewRawRaceDates
+			resultCh2 <- localNewRawExcludeDates
+		}(urls[i:end])
+	}
+
+	wg.Wait()
+	close(errorCh)
+	close(resultCh1)
+	close(resultCh2)
+
+	if err := <-errorCh; err != nil {
+		return err
+	}
+
+	for results := range resultCh1 {
+		newRawRaceDates = append(newRawRaceDates, results...)
+	}
+
+	for results := range resultCh2 {
+		newRawExcludeDates = append(newRawExcludeDates, results...)
 	}
 
 	sort.Slice(newRawRaceDates, func(i, j int) bool {

@@ -11,13 +11,16 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/sirupsen/logrus"
 	neturl "net/url"
 	"sort"
+	"sync"
 	"time"
 )
 
 const (
 	winOddsUrl      = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=1&action=update"
+	winOddsSpUrl    = "https://race.sp.netkeiba.com/?pid=api_get_jra_odds&race_id=%s&type=1&action=update"
 	winOddsFileName = "odds_%d.json"
 )
 
@@ -29,15 +32,18 @@ type WinOdds interface {
 type winOddsService struct {
 	oddsRepository      repository.OddsRepository
 	oddsEntityConverter converter.OddsEntityConverter
+	logger              *logrus.Logger
 }
 
 func NewWinOdds(
 	oddsRepository repository.OddsRepository,
 	oddsEntityConverter converter.OddsEntityConverter,
+	logger *logrus.Logger,
 ) WinOdds {
 	return &winOddsService{
 		oddsRepository:      oddsRepository,
 		oddsEntityConverter: oddsEntityConverter,
+		logger:              logger,
 	}
 }
 
@@ -70,6 +76,9 @@ func (w *winOddsService) CreateOrUpdate(
 	odds []*data_cache_entity.Odds,
 	markers []*marker_csv_entity.AnalysisMarker,
 ) error {
+	taskCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	urls := w.createOddsUrls(odds, markers)
 	if len(urls) == 0 {
 		return nil
@@ -77,41 +86,93 @@ func (w *winOddsService) CreateOrUpdate(
 
 	oddsMap := w.createOddsMap(odds)
 
-	for _, url := range urls {
-		var newOdds []*raw_entity.Odds
-		time.Sleep(time.Millisecond)
-		fetchOdds, err := w.oddsRepository.Fetch(ctx, url)
-		if err != nil {
-			return err
+	var wg sync.WaitGroup
+	const workerParallel = 5
+	errorCh := make(chan error, 1)
+	resultCh := make(chan []map[types.RaceDate][]*raw_entity.RaceOdds, workerParallel)
+	chunkSize := (len(urls) + workerParallel - 1) / workerParallel
+	threadMaps := make([]map[types.RaceDate][]*raw_entity.RaceOdds, workerParallel)
+
+	for i := 0; i < len(urls); i += chunkSize {
+		end := i + chunkSize
+		if end > len(urls) {
+			end = len(urls)
 		}
 
-		raceId, err := w.parseUrl(url)
-		if err != nil {
-			return err
+		wg.Add(1)
+		go func(splitUrls []string, workerId int) {
+			defer wg.Done()
+			localOddsMap := make(map[types.RaceDate][]*raw_entity.RaceOdds)
+			w.logger.Infof("win odds fetch processing: %v/%v", end, len(urls))
+			for _, url := range splitUrls {
+				time.Sleep(time.Millisecond)
+				select {
+				case <-taskCtx.Done():
+					return
+				default:
+					var newOdds []*raw_entity.Odds
+					fetchOdds, err := w.oddsRepository.Fetch(taskCtx, url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
+
+					raceId, err := w.parseUrl(url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
+
+					var raceDate types.RaceDate
+					if len(fetchOdds) > 0 {
+						raceDate = fetchOdds[0].RaceDate()
+					}
+
+					for _, netKeibaFetchOdds := range fetchOdds {
+						newOdds = append(newOdds, w.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
+					}
+
+					if _, ok := oddsMap[raceDate]; !ok {
+						localOddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
+					}
+
+					sort.Slice(newOdds, func(i, j int) bool {
+						return newOdds[i].Popular < newOdds[j].Popular
+					})
+
+					localOddsMap[raceDate] = append(localOddsMap[raceDate], &raw_entity.RaceOdds{
+						RaceId:   raceId.String(),
+						RaceDate: raceDate.Value(),
+						Odds:     newOdds,
+					})
+				}
+			}
+			threadMaps[workerId] = localOddsMap
+
+			resultCh <- threadMaps
+		}(urls[i:end], i)
+	}
+
+	wg.Wait()
+	close(errorCh)
+	close(resultCh)
+
+	if err := <-errorCh; err != nil {
+		return err
+	}
+
+	for results := range resultCh {
+		for _, localOddsMap := range results {
+			for raceDate, raceOdds := range localOddsMap {
+				oddsMap[raceDate] = raceOdds
+			}
 		}
-
-		var raceDate types.RaceDate
-		if len(fetchOdds) > 0 {
-			raceDate = fetchOdds[0].RaceDate()
-		}
-
-		for _, netKeibaFetchOdds := range fetchOdds {
-			newOdds = append(newOdds, w.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
-		}
-
-		if _, ok := oddsMap[raceDate]; !ok {
-			oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
-		}
-
-		sort.Slice(newOdds, func(i, j int) bool {
-			return newOdds[i].Popular < newOdds[j].Popular
-		})
-
-		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
-			RaceId:   raceId.String(),
-			RaceDate: raceDate.Value(),
-			Odds:     newOdds,
-		})
 	}
 
 	for _, raceDate := range service.SortedRaceDateKeys(oddsMap) {

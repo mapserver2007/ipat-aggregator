@@ -1180,6 +1180,9 @@ func (n *netKeibaGateway) FetchMarker(
 		if err != nil {
 			return nil, err
 		}
+		if marker == nil {
+			continue
+		}
 		markers = append(markers, marker)
 	}
 

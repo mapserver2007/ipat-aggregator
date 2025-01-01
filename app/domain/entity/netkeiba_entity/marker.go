@@ -32,6 +32,11 @@ func NewMarker(
 		marker = types.Check
 	}
 
+	// 馬番が取れない場合がある(多分取り消しの影響)
+	if rawHorseNumber == "" {
+		return nil, nil
+	}
+
 	horseNumber, err := strconv.Atoi(rawHorseNumber)
 	if err != nil {
 		return nil, err

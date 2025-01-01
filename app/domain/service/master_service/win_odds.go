@@ -89,20 +89,19 @@ func (w *winOddsService) CreateOrUpdate(
 	var wg sync.WaitGroup
 	const workerParallel = 5
 	errorCh := make(chan error, 1)
-	resultCh := make(chan []map[types.RaceDate][]*raw_entity.RaceOdds, workerParallel)
 	chunkSize := (len(urls) + workerParallel - 1) / workerParallel
-	threadMaps := make([]map[types.RaceDate][]*raw_entity.RaceOdds, workerParallel)
 
-	for i := 0; i < len(urls); i += chunkSize {
+	var mu sync.Mutex
+
+	for i := 0; i < len(urls); i = i + chunkSize {
 		end := i + chunkSize
 		if end > len(urls) {
 			end = len(urls)
 		}
 
 		wg.Add(1)
-		go func(splitUrls []string, workerId int) {
+		go func(splitUrls []string) {
 			defer wg.Done()
-			localOddsMap := make(map[types.RaceDate][]*raw_entity.RaceOdds)
 			w.logger.Infof("win odds fetch processing: %v/%v", end, len(urls))
 			for _, url := range splitUrls {
 				time.Sleep(time.Millisecond)
@@ -138,45 +137,38 @@ func (w *winOddsService) CreateOrUpdate(
 						newOdds = append(newOdds, w.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
 					}
 
+					mu.Lock()
 					if _, ok := oddsMap[raceDate]; !ok {
-						localOddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
+						oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
 					}
 
 					sort.Slice(newOdds, func(i, j int) bool {
 						return newOdds[i].Popular < newOdds[j].Popular
 					})
 
-					localOddsMap[raceDate] = append(localOddsMap[raceDate], &raw_entity.RaceOdds{
+					oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
 						RaceId:   raceId.String(),
 						RaceDate: raceDate.Value(),
 						Odds:     newOdds,
 					})
+					mu.Unlock()
 				}
 			}
-			threadMaps[workerId] = localOddsMap
-
-			resultCh <- threadMaps
-		}(urls[i:end], i)
+		}(urls[i:end])
 	}
 
 	wg.Wait()
 	close(errorCh)
-	close(resultCh)
 
 	if err := <-errorCh; err != nil {
 		return err
 	}
 
-	for results := range resultCh {
-		for _, localOddsMap := range results {
-			for raceDate, raceOdds := range localOddsMap {
-				oddsMap[raceDate] = raceOdds
-			}
-		}
-	}
-
 	for _, raceDate := range service.SortedRaceDateKeys(oddsMap) {
 		rawRaceOddsList := oddsMap[raceDate]
+		sort.Slice(rawRaceOddsList, func(i, j int) bool {
+			return rawRaceOddsList[i].RaceId < rawRaceOddsList[j].RaceId
+		})
 		raceOddsInfo := raw_entity.RaceOddsInfo{
 			RaceOdds: rawRaceOddsList,
 		}

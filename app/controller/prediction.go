@@ -7,8 +7,6 @@ import (
 	"sync"
 )
 
-const predictionParallel = 3
-
 type Prediction struct {
 	predictionUseCase prediction_usecase.Prediction
 	logger            *logrus.Logger
@@ -28,8 +26,9 @@ func NewPrediction(
 	}
 }
 
-func (p *Prediction) Execute(ctx context.Context, input *PredictionInput) error {
+func (p *Prediction) Prediction(ctx context.Context, input *PredictionInput) {
 	var wg sync.WaitGroup
+	const predictionParallel = 1
 	errors := make(chan error, predictionParallel)
 
 	for i := 0; i < predictionParallel; i++ {
@@ -57,12 +56,6 @@ func (p *Prediction) Execute(ctx context.Context, input *PredictionInput) error 
 					errors <- err
 				}
 				p.logger.Info("fetching prediction checklist end")
-			case 2:
-				p.logger.Info("fetching prediction marker sync start")
-				if err := p.predictionUseCase.Sync(ctx); err != nil {
-					errors <- err
-				}
-				p.logger.Info("fetching prediction marker sync end")
 			}
 		}()
 	}
@@ -72,6 +65,12 @@ func (p *Prediction) Execute(ctx context.Context, input *PredictionInput) error 
 	for err := range errors {
 		p.logger.Errorf("prediction error: %v", err)
 	}
+}
 
-	return nil
+func (p *Prediction) SyncMarker(ctx context.Context) {
+	p.logger.Info("fetching prediction marker sync start")
+	if err := p.predictionUseCase.Sync(ctx); err != nil {
+		p.logger.Errorf("sync marker error: %v", err)
+	}
+	p.logger.Info("fetching prediction marker sync end")
 }

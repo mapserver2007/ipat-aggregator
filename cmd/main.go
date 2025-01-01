@@ -69,30 +69,56 @@ func main() {
 			},
 		},
 		{
-			Name:    "analysis",
-			Aliases: []string{"a"},
-			Usage:   "analysis",
+			Name:    "analysis-place",
+			Aliases: []string{"ap1"},
+			Usage:   "analysis-place",
 			Action: func(c *cli.Context) error {
-				logger.Infof("analysis start")
+				logger.Infof("analysis place start")
 				analysisCtrl := di.NewAnalysis(logger)
-				err = analysisCtrl.Execute(ctx, &controller.AnalysisInput{
+				analysisCtrl.Place(ctx, &controller.AnalysisInput{
 					Master: master,
 				})
-				logger.Infof("analysis end")
+				logger.Infof("analysis place end")
+				return nil
+			},
+		},
+		{
+			Name:    "analysis-place-all-in",
+			Aliases: []string{"ap2"},
+			Usage:   "analysis-place-all-in",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis place all in start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.PlaceAllIn(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis place all in end")
 				return nil
 			},
 		},
 		{
 			Name:    "prediction",
-			Aliases: []string{"p"},
+			Aliases: []string{"p1"},
 			Usage:   "prediction",
 			Action: func(c *cli.Context) error {
 				logger.Infof("prediction start")
 				predictionCtrl := di.NewPrediction(logger)
-				predictionCtrl.Execute(ctx, &controller.PredictionInput{
+				predictionCtrl.Prediction(ctx, &controller.PredictionInput{
 					Master: master,
 				})
 				logger.Infof("prediction end")
+				return nil
+			},
+		},
+		{
+			Name:    "sync marker",
+			Aliases: []string{"p2"},
+			Usage:   "sync marker",
+			Action: func(c *cli.Context) error {
+				logger.Infof("sync marker start")
+				predictionCtrl := di.NewPrediction(logger)
+				predictionCtrl.SyncMarker(ctx)
+				logger.Infof("sync marker end")
 				return nil
 			},
 		},

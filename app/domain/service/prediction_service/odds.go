@@ -12,6 +12,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
+	"sync"
 	"time"
 )
 
@@ -27,6 +28,7 @@ type oddsService struct {
 	raceRepository        repository.RaceRepository
 	spreadSheetRepository repository.SpreadSheetRepository
 	filterService         filter_service.PredictionFilter
+	mu                    sync.Mutex
 }
 
 func NewOdds(
@@ -47,6 +49,9 @@ func (p *oddsService) Get(
 	ctx context.Context,
 	raceId types.RaceId,
 ) (*prediction_entity.Race, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	odds, err := p.oddRepository.Fetch(ctx, fmt.Sprintf(oddsUrl, raceId))
 	if err != nil {
 		return nil, err

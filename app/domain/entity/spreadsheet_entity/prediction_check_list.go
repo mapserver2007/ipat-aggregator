@@ -8,6 +8,7 @@ import (
 )
 
 type PredictionCheckList struct {
+	raceId            string
 	raceDate          string
 	raceName          string
 	raceCourse        string
@@ -98,6 +99,7 @@ func NewPredictionCheckList(
 	}
 
 	return &PredictionCheckList{
+		raceId:            raceId.String(),
 		raceDate:          raceDate.Format("2006/01/02"),
 		raceName:          fmt.Sprintf("%dR %s", raceNumber, raceName),
 		raceCourse:        raceCourse.Name(),
@@ -125,6 +127,10 @@ func NewPredictionCheckList(
 		paddockEvaluation: paddockEvaluation,
 		paperUrl:          "https://tospo-keiba.jp/newspaper-list",
 	}
+}
+
+func (p *PredictionCheckList) RaceId() string {
+	return p.raceId
 }
 
 func (p *PredictionCheckList) RaceDate() string {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 	"sort"
 )
 
@@ -20,10 +20,16 @@ type SpreadSheetSummaryGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetSummaryGateway struct{}
+type spreadSheetSummaryGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetSummaryGateway() SpreadSheetSummaryGateway {
-	return &spreadSheetSummaryGateway{}
+func NewSpreadSheetSummaryGateway(
+	logger *logrus.Logger,
+) SpreadSheetSummaryGateway {
+	return &spreadSheetSummaryGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetSummaryGateway) Write(
@@ -35,7 +41,7 @@ func (s *spreadSheetSummaryGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write summary start")
+	s.logger.Infof("write summary start")
 	err = s.writeAllResult(ctx, summary.AllTermResult(), client, config)
 	if err != nil {
 		return err
@@ -73,7 +79,7 @@ func (s *spreadSheetSummaryGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write summary end")
+	s.logger.Infof("write summary end")
 	return nil
 }
 
@@ -83,7 +89,7 @@ func (s *spreadSheetSummaryGateway) writeAllResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeAllResult")
+	s.logger.Infof("writing spreadsheet writeAllResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A1")
 	values := [][]interface{}{
 		{
@@ -120,7 +126,7 @@ func (s *spreadSheetSummaryGateway) writeYearResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeYearResult")
+	s.logger.Infof("writing spreadsheet writeYearResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "E1")
 	values := [][]interface{}{
 		{
@@ -157,7 +163,7 @@ func (s *spreadSheetSummaryGateway) writeMonthResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeMonthResult")
+	s.logger.Infof("writing spreadsheet writeMonthResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "C1")
 	values := [][]interface{}{
 		{
@@ -194,7 +200,7 @@ func (s *spreadSheetSummaryGateway) writeTicketResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeTicketResult")
+	s.logger.Infof("writing spreadsheet writeTicketResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A6")
 	values := [][]interface{}{
 		{
@@ -246,7 +252,7 @@ func (s *spreadSheetSummaryGateway) writeGradeClassResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeGradeClassResult")
+	s.logger.Infof("writing spreadsheet writeGradeClassResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A15")
 	values := [][]interface{}{
 		{
@@ -298,7 +304,7 @@ func (s *spreadSheetSummaryGateway) writeMonthlyResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeMonthlyResult")
+	s.logger.Infof("writing spreadsheet writeMonthlyResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A28")
 	values := [][]interface{}{
 		{
@@ -349,7 +355,7 @@ func (s *spreadSheetSummaryGateway) writeCourseCategoryResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeCourseCategoryResult")
+	s.logger.Infof("writing spreadsheet writeCourseCategoryResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "I6")
 	values := [][]interface{}{
 		{
@@ -401,7 +407,7 @@ func (s *spreadSheetSummaryGateway) writeDistanceCategoryResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeDistanceCategoryResult")
+	s.logger.Infof("writing spreadsheet writeDistanceCategoryResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "I10")
 	values := [][]interface{}{
 		{
@@ -453,7 +459,7 @@ func (s *spreadSheetSummaryGateway) writeRaceCourseResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeRaceCourseResult")
+	s.logger.Infof("writing spreadsheet writeRaceCourseResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "I21")
 	values := [][]interface{}{
 		{
@@ -508,7 +514,7 @@ func (s *spreadSheetSummaryGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write spreadsheet style start")
+	s.logger.Infof("write spreadsheet style start")
 	err = s.writeStyleAllResult(ctx, client, config)
 	if err != nil {
 		return err
@@ -546,7 +552,7 @@ func (s *spreadSheetSummaryGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write spreadsheet style end")
+	s.logger.Infof("write spreadsheet style end")
 	return nil
 }
 
@@ -555,7 +561,7 @@ func (s *spreadSheetSummaryGateway) writeStyleAllResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleAllResult")
+	s.logger.Infof("writing spreadsheet writeStyleAllResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			// 1行目のセルをマージ
@@ -656,7 +662,7 @@ func (s *spreadSheetSummaryGateway) writeStyleYearResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleYearResult")
+	s.logger.Infof("writing spreadsheet writeStyleYearResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			// 1行目のセルをマージ
@@ -741,7 +747,7 @@ func (s *spreadSheetSummaryGateway) writeStyleMonthResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleMonthResult")
+	s.logger.Infof("writing spreadsheet writeStyleMonthResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			// 1行目のセルをマージ
@@ -826,7 +832,7 @@ func (s *spreadSheetSummaryGateway) writeStyleTicketResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleTicketResult")
+	s.logger.Infof("writing spreadsheet writeStyleTicketResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -924,7 +930,7 @@ func (s *spreadSheetSummaryGateway) writeStyleGradeClassResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleGradeClassResult")
+	s.logger.Infof("writing spreadsheet writeStyleGradeClassResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1023,7 +1029,7 @@ func (s *spreadSheetSummaryGateway) writeStyleMonthlyResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleMonthlyResult")
+	s.logger.Infof("writing spreadsheet writeStyleMonthlyResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1121,7 +1127,7 @@ func (s *spreadSheetSummaryGateway) writeStyleCourseCategoryResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleCourseCategoryResult")
+	s.logger.Infof("writing spreadsheet writeStyleCourseCategoryResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1219,7 +1225,7 @@ func (s *spreadSheetSummaryGateway) writeStyleDistanceCategoryResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleDistanceCategoryResult")
+	s.logger.Infof("writing spreadsheet writeStyleDistanceCategoryResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{
@@ -1317,7 +1323,7 @@ func (s *spreadSheetSummaryGateway) writeStyleRaceCourseResult(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
-	log.Println(ctx, "writing spreadsheet writeStyleRaceCourseResult")
+	s.logger.Infof("writing spreadsheet writeStyleRaceCourseResult")
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{
 			{

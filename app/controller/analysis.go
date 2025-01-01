@@ -3,11 +3,14 @@ package controller
 import (
 	"context"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
-	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/sirupsen/logrus"
 )
+
+const analysisParallel = 2
 
 type Analysis struct {
 	analysisUseCase analysis_usecase.Analysis
+	logger          *logrus.Logger
 }
 
 type AnalysisInput struct {
@@ -16,51 +19,55 @@ type AnalysisInput struct {
 
 func NewAnalysis(
 	analysisUseCase analysis_usecase.Analysis,
+	logger *logrus.Logger,
 ) *Analysis {
 	return &Analysis{
 		analysisUseCase: analysisUseCase,
+		logger:          logger,
 	}
 }
 
-func (a *Analysis) Execute(ctx context.Context, input *AnalysisInput) error {
-	if config.EnableAnalysisPlace {
-		if err := a.analysisUseCase.Place(ctx, &analysis_usecase.AnalysisInput{
-			Markers: input.Master.AnalysisMarkers,
-			Races:   input.Master.Races,
-			Odds: &analysis_usecase.AnalysisOddsInput{
-				Win:   input.Master.WinOdds,
-				Place: input.Master.PlaceOdds,
-			},
-		}); err != nil {
-			return err
-		}
+func (a *Analysis) Place(ctx context.Context, input *AnalysisInput) {
+	a.logger.Info("fetching analysis place start")
+	if err := a.analysisUseCase.Place(ctx, &analysis_usecase.AnalysisInput{
+		Markers: input.Master.AnalysisMarkers,
+		Races:   input.Master.Races,
+		Odds: &analysis_usecase.AnalysisOddsInput{
+			Win:   input.Master.WinOdds,
+			Place: input.Master.PlaceOdds,
+		},
+	}); err != nil {
+		a.logger.Errorf("analysis place error: %v", err)
 	}
+	a.logger.Info("fetching analysis place end")
+}
 
-	if config.EnableAnalysisPlaceAllIn {
-		if err := a.analysisUseCase.PlaceAllIn(ctx, &analysis_usecase.AnalysisInput{
-			Markers: input.Master.AnalysisMarkers,
-			Races:   input.Master.Races,
-			Odds: &analysis_usecase.AnalysisOddsInput{
-				Win:   input.Master.WinOdds,
-				Place: input.Master.PlaceOdds,
-			},
-		}); err != nil {
-			return err
-		}
+func (a *Analysis) PlaceAllIn(ctx context.Context, input *AnalysisInput) {
+	a.logger.Info("fetching analysis place all in start")
+	if err := a.analysisUseCase.PlaceAllIn(ctx, &analysis_usecase.AnalysisInput{
+		Markers: input.Master.AnalysisMarkers,
+		Races:   input.Master.Races,
+		Odds: &analysis_usecase.AnalysisOddsInput{
+			Win:   input.Master.WinOdds,
+			Place: input.Master.PlaceOdds,
+		},
+	}); err != nil {
+		a.logger.Errorf("analysis place all in error: %v", err)
 	}
+	a.logger.Info("fetching analysis place all in end")
+}
 
-	if config.EnableAnalysisPlaceUnHit {
-		if err := a.analysisUseCase.PlaceUnHit(ctx, &analysis_usecase.AnalysisInput{
-			Markers: input.Master.AnalysisMarkers,
-			Races:   input.Master.Races,
-			Odds: &analysis_usecase.AnalysisOddsInput{
-				Win:   input.Master.WinOdds,
-				Place: input.Master.PlaceOdds,
-			},
-		}); err != nil {
-			return err
-		}
+func (a *Analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) {
+	a.logger.Info("fetching analysis place un hit in start")
+	if err := a.analysisUseCase.PlaceUnHit(ctx, &analysis_usecase.AnalysisInput{
+		Markers: input.Master.AnalysisMarkers,
+		Races:   input.Master.Races,
+		Odds: &analysis_usecase.AnalysisOddsInput{
+			Win:   input.Master.WinOdds,
+			Place: input.Master.PlaceOdds,
+		},
+	}); err != nil {
+		a.logger.Errorf("analysis place un hit error: %v", err)
 	}
-
-	return nil
+	a.logger.Info("fetching analysis place un hit in end")
 }

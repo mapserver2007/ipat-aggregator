@@ -19,6 +19,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
+	"github.com/sirupsen/logrus"
 )
 
 var MasterSet = wire.NewSet(
@@ -116,7 +117,9 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetPredictionMarkerGateway,
 )
 
-func NewMaster() *controller.Master {
+func NewMaster(
+	logger *logrus.Logger,
+) *controller.Master {
 	wire.Build(
 		MasterSet,
 		controller.NewMaster,
@@ -124,7 +127,9 @@ func NewMaster() *controller.Master {
 	return nil
 }
 
-func NewAggregation() *controller.Aggregation {
+func NewAggregation(
+	logger *logrus.Logger,
+) *controller.Aggregation {
 	wire.Build(
 		AggregationSet,
 		SpreadSheetGatewaySet,
@@ -133,7 +138,9 @@ func NewAggregation() *controller.Aggregation {
 	return nil
 }
 
-func NewAnalysis() *controller.Analysis {
+func NewAnalysis(
+	logger *logrus.Logger,
+) *controller.Analysis {
 	wire.Build(
 		AnalysisSet,
 		SpreadSheetGatewaySet,
@@ -142,7 +149,9 @@ func NewAnalysis() *controller.Analysis {
 	return nil
 }
 
-func NewPrediction() *controller.Prediction {
+func NewPrediction(
+	logger *logrus.Logger,
+) *controller.Prediction {
 	wire.Build(
 		PredictionSet,
 		AnalysisSet,

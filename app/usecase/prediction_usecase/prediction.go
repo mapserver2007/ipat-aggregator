@@ -6,6 +6,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/analysis_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/prediction_service"
+	"github.com/sirupsen/logrus"
 )
 
 type Prediction interface {
@@ -25,6 +26,7 @@ type prediction struct {
 	predictionPlaceCandidateService prediction_service.PlaceCandidate
 	predictionMarkerSyncService     prediction_service.MarkerSync
 	placeService                    analysis_service.Place
+	logger                          *logrus.Logger
 }
 
 func NewPrediction(
@@ -32,11 +34,13 @@ func NewPrediction(
 	predictionPlaceCandidateService prediction_service.PlaceCandidate,
 	predictionMarkerSyncService prediction_service.MarkerSync,
 	placeService analysis_service.Place,
+	logger *logrus.Logger,
 ) Prediction {
 	return &prediction{
 		predictionOddsService:           predictionOddsService,
 		predictionPlaceCandidateService: predictionPlaceCandidateService,
 		predictionMarkerSyncService:     predictionMarkerSyncService,
 		placeService:                    placeService,
+		logger:                          logger,
 	}
 }

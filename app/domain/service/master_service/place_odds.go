@@ -11,13 +11,16 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/sirupsen/logrus"
 	neturl "net/url"
 	"sort"
+	"sync"
 	"time"
 )
 
 const (
 	placeOddsUrl      = "https://race.netkeiba.com/api/api_get_jra_odds.html?race_id=%s&type=2&action=update"
+	placeOddsSpUrl    = "https://race.sp.netkeiba.com/?pid=api_get_jra_odds&race_id=%s&type=2&action=update"
 	placeOddsFileName = "odds_%d.json"
 )
 
@@ -29,15 +32,18 @@ type PlaceOdds interface {
 type placeOddsService struct {
 	oddsRepository      repository.OddsRepository
 	oddsEntityConverter converter.OddsEntityConverter
+	logger              *logrus.Logger
 }
 
 func NewPlaceOdds(
 	oddsRepository repository.OddsRepository,
 	oddsEntityConverter converter.OddsEntityConverter,
+	logger *logrus.Logger,
 ) PlaceOdds {
 	return &placeOddsService{
 		oddsRepository:      oddsRepository,
 		oddsEntityConverter: oddsEntityConverter,
+		logger:              logger,
 	}
 }
 
@@ -70,6 +76,9 @@ func (p *placeOddsService) CreateOrUpdate(
 	odds []*data_cache_entity.Odds,
 	markers []*marker_csv_entity.AnalysisMarker,
 ) error {
+	taskCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	urls := p.createOddsUrls(odds, markers)
 	if len(urls) == 0 {
 		return nil
@@ -77,45 +86,89 @@ func (p *placeOddsService) CreateOrUpdate(
 
 	oddsMap := p.createOddsMap(odds)
 
-	for _, url := range urls {
-		var newOdds []*raw_entity.Odds
-		time.Sleep(time.Millisecond)
-		fetchOdds, err := p.oddsRepository.Fetch(ctx, url)
-		if err != nil {
-			return err
+	var wg sync.WaitGroup
+	const workerParallel = 5
+	errorCh := make(chan error, 1)
+	chunkSize := (len(urls) + workerParallel - 1) / workerParallel
+
+	var mu sync.Mutex
+
+	for i := 0; i < len(urls); i = i + chunkSize {
+		end := i + chunkSize
+		if end > len(urls) {
+			end = len(urls)
 		}
 
-		raceId, err := p.parseUrl(url)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(splitUrls []string) {
+			defer wg.Done()
+			p.logger.Infof("place odds fetch processing: %v/%v", end, len(urls))
+			for _, url := range splitUrls {
+				time.Sleep(time.Millisecond)
+				select {
+				case <-taskCtx.Done():
+					return
+				default:
+					var newOdds []*raw_entity.Odds
+					fetchOdds, err := p.oddsRepository.Fetch(taskCtx, url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
 
-		var raceDate types.RaceDate
-		if len(fetchOdds) > 0 {
-			raceDate = fetchOdds[0].RaceDate()
-		}
+					raceId, err := p.parseUrl(url)
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						}
+						return
+					}
 
-		for _, netKeibaFetchOdds := range fetchOdds {
-			newOdds = append(newOdds, p.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
-		}
+					var raceDate types.RaceDate
+					if len(fetchOdds) > 0 {
+						raceDate = fetchOdds[0].RaceDate()
+					}
 
-		if _, ok := oddsMap[raceDate]; !ok {
-			oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
-		}
+					for _, netKeibaFetchOdds := range fetchOdds {
+						newOdds = append(newOdds, p.oddsEntityConverter.NetKeibaToRaw(netKeibaFetchOdds))
+					}
 
-		sort.Slice(newOdds, func(i, j int) bool {
-			return newOdds[i].Popular < newOdds[j].Popular
-		})
+					mu.Lock()
+					if _, ok := oddsMap[raceDate]; !ok {
+						oddsMap[raceDate] = make([]*raw_entity.RaceOdds, 0)
+					}
 
-		oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
-			RaceId:   raceId.String(),
-			RaceDate: raceDate.Value(),
-			Odds:     newOdds,
-		})
+					sort.Slice(newOdds, func(i, j int) bool {
+						return newOdds[i].Popular < newOdds[j].Popular
+					})
+
+					oddsMap[raceDate] = append(oddsMap[raceDate], &raw_entity.RaceOdds{
+						RaceId:   raceId.String(),
+						RaceDate: raceDate.Value(),
+						Odds:     newOdds,
+					})
+					mu.Unlock()
+				}
+			}
+		}(urls[i:end])
+	}
+
+	wg.Wait()
+	close(errorCh)
+
+	if err := <-errorCh; err != nil {
+		return err
 	}
 
 	for _, raceDate := range service.SortedRaceDateKeys(oddsMap) {
 		rawRaceOddsList := oddsMap[raceDate]
+		sort.Slice(rawRaceOddsList, func(i, j int) bool {
+			return rawRaceOddsList[i].RaceId < rawRaceOddsList[j].RaceId
+		})
 		raceOddsInfo := raw_entity.RaceOddsInfo{
 			RaceOdds: rawRaceOddsList,
 		}

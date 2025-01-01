@@ -6,8 +6,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 	"time"
 )
 
@@ -21,10 +21,16 @@ type SpreadSheetAnalysisPlaceAllInGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetAnalysisPlaceAllInGateway struct{}
+type spreadSheetAnalysisPlaceAllInGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetAnalysisPlaceAllInGateway() SpreadSheetAnalysisPlaceAllInGateway {
-	return &spreadSheetAnalysisPlaceAllInGateway{}
+func NewSpreadSheetAnalysisPlaceAllInGateway(
+	logger *logrus.Logger,
+) SpreadSheetAnalysisPlaceAllInGateway {
+	return &spreadSheetAnalysisPlaceAllInGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
@@ -47,7 +53,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
 		},
 	}
 
-	log.Println(ctx, "write analysis place all in start")
+	s.logger.Infof("write analysis place all in start")
 	for idx, analysisFilter := range analysisFilters {
 		placeAllIn, ok := placeAllInMap[analysisFilter]
 		if !ok {
@@ -106,7 +112,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
 			for _, f := range analysisFilters[idx-1].OriginFilters() {
 				filterName += f.String()
 			}
-			log.Println(ctx, fmt.Sprintf("write analysis place all in filter %s start", filterName))
+			s.logger.Infof("write analysis place all in filter %s start", filterName)
 		}
 		writeRange := fmt.Sprintf("%s!%s", config.SheetName(), fmt.Sprintf("A%d", idx+1))
 		_, err := client.Spreadsheets.Values.Update(config.SpreadSheetId(), writeRange, &sheets.ValueRange{
@@ -117,7 +123,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
 		}
 	}
 
-	log.Println(ctx, "write analysis place all in end")
+	s.logger.Infof("write analysis place all in end")
 
 	return nil
 }
@@ -134,7 +140,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Style(
 
 	var requests []*sheets.Request
 
-	log.Println(ctx, "write style analysis place all in start")
+	s.logger.Infof("write style analysis place all in start")
 	for rowIdx, analysisFilter := range analysisFilters {
 		placeAllIn, ok := placeAllInMap[analysisFilter]
 		if !ok {
@@ -358,7 +364,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write style analysis place all in end")
+	s.logger.Infof("write style analysis place all in end")
 
 	return nil
 }

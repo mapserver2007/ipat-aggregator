@@ -10,5 +10,8 @@ build:
 	go mod download
 	go build -o bin/ipat-aggreagtor cmd/main.go
 
+cache-clear:
+	rm -rf ./cache/colly/*
+
 #link:
 #	sudo ln -s $HOME/go/bin/go1.xx.x /usr/local/bin/go

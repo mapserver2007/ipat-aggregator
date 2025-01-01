@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 )
 
 const (
@@ -36,10 +36,16 @@ type SpreadSheetPredictionCheckListGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetPredictionCheckListGateway struct{}
+type spreadSheetPredictionCheckListGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetPredictionCheckListGateway() SpreadSheetPredictionCheckListGateway {
-	return &spreadSheetPredictionCheckListGateway{}
+func NewSpreadSheetPredictionCheckListGateway(
+	logger *logrus.Logger,
+) SpreadSheetPredictionCheckListGateway {
+	return &spreadSheetPredictionCheckListGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetPredictionCheckListGateway) Write(
@@ -51,7 +57,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write prediction check list start")
+	s.logger.Infof("write prediction check list start")
 
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A1")
 	values := [][]interface{}{
@@ -153,7 +159,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write prediction check list end")
+	s.logger.Infof("write prediction check list end")
 
 	return nil
 }
@@ -167,7 +173,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write prediction check list style start")
+	s.logger.Infof("write prediction check list style start")
 
 	var requests []*sheets.Request
 	requests = append(requests, []*sheets.Request{
@@ -352,7 +358,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, "write prediction check list style end")
+	s.logger.Infof("write prediction check list style end")
 
 	return nil
 }

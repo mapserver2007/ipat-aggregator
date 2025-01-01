@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 	"strings"
 )
 
@@ -20,10 +20,16 @@ type SpreadSheetListGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetListGateway struct{}
+type spreadSheetListGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetListGateway() SpreadSheetListGateway {
-	return &spreadSheetListGateway{}
+func NewSpreadSheetListGateway(
+	logger *logrus.Logger,
+) SpreadSheetListGateway {
+	return &spreadSheetListGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetListGateway) Write(
@@ -35,7 +41,7 @@ func (s *spreadSheetListGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write list start")
+	s.logger.Infof("write list start")
 
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A1")
 	values := [][]interface{}{
@@ -110,7 +116,7 @@ func (s *spreadSheetListGateway) Write(
 		return err
 	}
 
-	log.Println(ctx, "write list end")
+	s.logger.Infof("write list end")
 
 	return nil
 }
@@ -124,7 +130,7 @@ func (s *spreadSheetListGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, fmt.Sprintf("write list style start"))
+	s.logger.Infof("write list style start")
 
 	var requests []*sheets.Request
 	requests = append(requests, &sheets.Request{
@@ -265,7 +271,7 @@ func (s *spreadSheetListGateway) Style(
 		return err
 	}
 
-	log.Println(ctx, fmt.Sprintf("write list style end"))
+	s.logger.Infof("write list style end")
 
 	return nil
 }

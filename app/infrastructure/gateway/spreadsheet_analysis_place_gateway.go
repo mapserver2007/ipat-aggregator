@@ -6,8 +6,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"log"
 )
 
 const (
@@ -20,10 +20,16 @@ type SpreadSheetAnalysisPlaceGateway interface {
 	Clear(ctx context.Context) error
 }
 
-type spreadSheetAnalysisPlaceGateway struct{}
+type spreadSheetAnalysisPlaceGateway struct {
+	logger *logrus.Logger
+}
 
-func NewSpreadSheetAnalysisPlaceGateway() SpreadSheetAnalysisPlaceGateway {
-	return &spreadSheetAnalysisPlaceGateway{}
+func NewSpreadSheetAnalysisPlaceGateway(
+	logger *logrus.Logger,
+) SpreadSheetAnalysisPlaceGateway {
+	return &spreadSheetAnalysisPlaceGateway{
+		logger: logger,
+	}
 }
 
 func (s *spreadSheetAnalysisPlaceGateway) Write(
@@ -57,7 +63,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 			return fmt.Errorf("invalid sheet name: %s", config.SheetName())
 		}
 
-		log.Println(ctx, fmt.Sprintf("write analysis place %s start", sheetMarker.String()))
+		s.logger.Infof("write analysis place %s start", sheetMarker.String())
 		var valuesList [3][][]interface{}
 		valuesList[0] = [][]interface{}{
 			{
@@ -302,7 +308,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 			}
 		}
 
-		log.Println(ctx, fmt.Sprintf("write analysis place %s end", sheetMarker.String()))
+		s.logger.Infof("write analysis place %s end", sheetMarker.String())
 	}
 
 	return nil
@@ -340,7 +346,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 			return fmt.Errorf("invalid sheet name: %s", config.SheetName())
 		}
 
-		log.Println(ctx, fmt.Sprintf("write style analysis place %s start", sheetMarker.String()))
+		s.logger.Infof("write style analysis place %s start", sheetMarker.String())
 
 		firstFilterMap := firstPlaceMap[sheetMarker]
 		secondFilterMap := secondPlaceMap[sheetMarker]
@@ -756,7 +762,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 			return err
 		}
 
-		log.Println(ctx, fmt.Sprintf("write style analysis place %s end", sheetMarker.String()))
+		s.logger.Infof("write style analysis place %s end", sheetMarker.String())
 	}
 
 	return nil

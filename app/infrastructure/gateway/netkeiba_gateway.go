@@ -8,8 +8,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"net/http"
 	neturl "net/url"
 	"regexp"
@@ -33,13 +33,16 @@ type NetKeibaGateway interface {
 
 type netKeibaGateway struct {
 	collector NetKeibaCollector
+	logger    *logrus.Logger
 }
 
 func NewNetKeibaGateway(
 	collector NetKeibaCollector,
+	logger *logrus.Logger,
 ) NetKeibaGateway {
 	return &netKeibaGateway{
 		collector: collector,
+		logger:    logger,
 	}
 }
 
@@ -55,7 +58,7 @@ func (n *netKeibaGateway) FetchRaceId(
 		rawRaceIds = append(rawRaceIds, raceId)
 	})
 
-	log.Println(ctx, fmt.Sprintf("fetching race id from %s", url))
+	n.logger.Infof("fetching race id from %s", url)
 	err := n.collector.Client().Visit(url)
 	if err != nil {
 		if err.Error() == "EOF" { // unreachable url
@@ -575,7 +578,7 @@ func (n *netKeibaGateway) FetchRace(
 		return nil, err
 	}
 
-	log.Println(ctx, fmt.Sprintf("fetching race from %s", url))
+	n.logger.Infof("fetching race from %s", url)
 	err = n.collector.Client().Visit(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to visit url: %s, %v", url, err)
@@ -810,7 +813,7 @@ func (n *netKeibaGateway) FetchRaceCard(
 		})
 	})
 
-	log.Println(ctx, fmt.Sprintf("fetching race card from %s", url))
+	n.logger.Infof("fetching race card from %s", url)
 	err = n.collector.Client().Visit(url)
 	if err != nil {
 		return nil, err
@@ -847,13 +850,13 @@ func (n *netKeibaGateway) FetchJockey(
 		name = Trim(list[1][:len(list[1])-2])
 	})
 	n.collector.Client().OnError(func(r *colly.Response, err error) {
-		log.Printf("GetJockey error: %v", err)
+		n.logger.Errorf("GetJockey error: %v", err)
 	})
 
 	regex := regexp.MustCompile(`\/jockey\/([0-9a-z]+)\/`)
 	result := regex.FindStringSubmatch(url)
 
-	log.Println(ctx, fmt.Sprintf("fetching jockey from %s", url))
+	n.logger.Infof("fetching jockey from %s", url)
 
 	err := n.collector.Client().Visit(url)
 	if err != nil {
@@ -1058,10 +1061,10 @@ func (n *netKeibaGateway) FetchHorse(
 	})
 
 	n.collector.Client().OnError(func(r *colly.Response, err error) {
-		log.Printf("GetHorse error: %v", err)
+		n.logger.Errorf("GetHorse error: %v", err)
 	})
 
-	log.Println(ctx, fmt.Sprintf("fetching horse from %s", url))
+	n.logger.Infof("fetching horse from %s", url)
 
 	err = n.collector.Client().Visit(url)
 	if err != nil {
@@ -1099,7 +1102,7 @@ func (n *netKeibaGateway) FetchTrainer(
 		locationName = Trim(segments[3])
 	})
 
-	log.Println(ctx, fmt.Sprintf("fetching trainer from %s", url))
+	n.logger.Infof("fetching trainer from %s", url)
 
 	err := n.collector.Client().Visit(url)
 	if err != nil {
@@ -1177,10 +1180,13 @@ func (n *netKeibaGateway) FetchMarker(
 		if err != nil {
 			return nil, err
 		}
+		if marker == nil {
+			continue
+		}
 		markers = append(markers, marker)
 	}
 
-	log.Println(ctx, fmt.Sprintf("fetching marker from %s", url))
+	n.logger.Infof("fetching marker from %s", url)
 
 	return markers, nil
 }
@@ -1189,7 +1195,7 @@ func (n *netKeibaGateway) FetchWinOdds(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Odds, error) {
-	log.Println(ctx, fmt.Sprintf("fetching win odds from %s", url))
+	n.logger.Infof("fetching win odds from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -1202,7 +1208,7 @@ func (n *netKeibaGateway) FetchWinOdds(
 
 	var oddsInfo *raw_entity.OddsInfo
 	if err := json.Unmarshal(body, &oddsInfo); err != nil {
-		log.Println(ctx, fmt.Sprintf("Odds is not published: %s", url))
+		n.logger.Errorf("Odds is not published: %s", url)
 		return nil, err
 	}
 
@@ -1236,7 +1242,7 @@ func (n *netKeibaGateway) FetchPlaceOdds(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Odds, error) {
-	log.Println(ctx, fmt.Sprintf("fetching place odds from %s", url))
+	n.logger.Infof("fetching place odds from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -1249,7 +1255,7 @@ func (n *netKeibaGateway) FetchPlaceOdds(
 
 	var oddsInfo *raw_entity.OddsInfo
 	if err := json.Unmarshal(body, &oddsInfo); err != nil {
-		log.Println(ctx, fmt.Sprintf("Odds is not published: %s", url))
+		n.logger.Errorf("Odds is not published: %s", url)
 		return nil, err
 	}
 
@@ -1283,7 +1289,7 @@ func (n *netKeibaGateway) FetchTrioOdds(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Odds, error) {
-	log.Println(ctx, fmt.Sprintf("fetching trio odds from %s", url))
+	n.logger.Infof("fetching trio odds from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err

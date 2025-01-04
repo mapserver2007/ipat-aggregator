@@ -20,7 +20,7 @@ type Race struct {
 	raceWeightCondition types.RaceWeightCondition
 	raceResults         []*RaceResult
 	markers             []*Marker
-	analysisFilters     []filter.Id
+	analysisFilters     []filter.AttributeId
 }
 
 func NewRace(
@@ -38,7 +38,7 @@ func NewRace(
 	raceWeightCondition types.RaceWeightCondition,
 	raceResults []*RaceResult,
 	markers []*Marker,
-	analysisFilters []filter.Id,
+	analysisFilters []filter.AttributeId,
 ) *Race {
 	return &Race{
 		raceId:              raceId,
@@ -115,6 +115,6 @@ func (r *Race) Markers() []*Marker {
 	return r.markers
 }
 
-func (r *Race) AnalysisFilters() []filter.Id {
+func (r *Race) AnalysisFilters() []filter.AttributeId {
 	return r.analysisFilters
 }

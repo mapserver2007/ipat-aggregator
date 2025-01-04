@@ -13,6 +13,7 @@ type Analysis interface {
 	Place(ctx context.Context, input *AnalysisInput) error
 	PlaceAllIn(ctx context.Context, input *AnalysisInput) error
 	PlaceUnHit(ctx context.Context, input *AnalysisInput) error
+	Beta(ctx context.Context, input *AnalysisInput) error
 }
 
 type AnalysisInput struct {
@@ -31,6 +32,7 @@ type analysis struct {
 	trioService                 analysis_service.Trio
 	placeAllInService           analysis_service.PlaceAllIn
 	placeUnHitService           analysis_service.PlaceUnHit
+	betaWinService              analysis_service.BetaWin
 	horseMasterService          master_service.Horse
 	raceForecastService         master_service.RaceForecast
 	raceForecastEntityConverter converter.RaceForecastEntityConverter
@@ -42,6 +44,7 @@ func NewAnalysis(
 	trioService analysis_service.Trio,
 	placeAllInService analysis_service.PlaceAllIn,
 	placeUnHitService analysis_service.PlaceUnHit,
+	betaWinService analysis_service.BetaWin,
 	horseMasterService master_service.Horse,
 	raceForecastService master_service.RaceForecast,
 	raceForecastEntityConverter converter.RaceForecastEntityConverter,
@@ -52,6 +55,7 @@ func NewAnalysis(
 		trioService:                 trioService,
 		placeAllInService:           placeAllInService,
 		placeUnHitService:           placeUnHitService,
+		betaWinService:              betaWinService,
 		horseMasterService:          horseMasterService,
 		raceForecastService:         raceForecastService,
 		raceForecastEntityConverter: raceForecastEntityConverter,

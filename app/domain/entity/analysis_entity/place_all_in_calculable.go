@@ -7,21 +7,22 @@ import (
 )
 
 type PlaceAllInCalculable struct {
-	raceId              types.RaceId
-	raceDate            types.RaceDate
-	marker              types.Marker
-	markerCombinationId types.MarkerCombinationId
-	winOdds             decimal.Decimal
-	placeOddsRange      []decimal.Decimal
-	fixedPlaceOdds      decimal.Decimal
-	popular             int
-	orderNo             int
-	entries             int
-	trackCondition      types.TrackCondition
-	raceCourse          types.RaceCourse
-	distance            int
-	jockeyId            types.JockeyId
-	filters             []filter.Id
+	raceId                     types.RaceId
+	raceDate                   types.RaceDate
+	marker                     types.Marker
+	markerCombinationId        types.MarkerCombinationId
+	winOdds                    decimal.Decimal
+	placeOddsRange             []decimal.Decimal
+	fixedPlaceOdds             decimal.Decimal
+	popular                    int
+	orderNo                    int
+	entries                    int
+	trackCondition             types.TrackCondition
+	raceCourse                 types.RaceCourse
+	distance                   int
+	jockeyId                   types.JockeyId
+	attributeFilterIds         []filter.AttributeId
+	markerCombinationFilterIds []filter.MarkerCombinationId
 }
 
 func NewPlaceAllInCalculable(
@@ -38,7 +39,8 @@ func NewPlaceAllInCalculable(
 	raceCourse types.RaceCourse,
 	distance int,
 	jockeyId types.JockeyId,
-	filters []filter.Id,
+	attributeFilterIds []filter.AttributeId,
+	markerCombinationFilterIds []filter.MarkerCombinationId,
 ) *PlaceAllInCalculable {
 	decimalWinOdds, _ := decimal.NewFromString(winOdds)
 	decimalPlaceOddsRange := make([]decimal.Decimal, 0, 2)
@@ -50,21 +52,22 @@ func NewPlaceAllInCalculable(
 	marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
 
 	return &PlaceAllInCalculable{
-		raceId:              raceId,
-		raceDate:            raceDate,
-		marker:              marker,
-		markerCombinationId: markerCombinationId,
-		winOdds:             decimalWinOdds,
-		placeOddsRange:      decimalPlaceOddsRange,
-		fixedPlaceOdds:      decimalFixedPlaceOdds,
-		popular:             popular,
-		orderNo:             orderNo,
-		entries:             entries,
-		trackCondition:      trackCondition,
-		raceCourse:          raceCourse,
-		distance:            distance,
-		jockeyId:            jockeyId,
-		filters:             filters,
+		raceId:                     raceId,
+		raceDate:                   raceDate,
+		marker:                     marker,
+		markerCombinationId:        markerCombinationId,
+		winOdds:                    decimalWinOdds,
+		placeOddsRange:             decimalPlaceOddsRange,
+		fixedPlaceOdds:             decimalFixedPlaceOdds,
+		popular:                    popular,
+		orderNo:                    orderNo,
+		entries:                    entries,
+		trackCondition:             trackCondition,
+		raceCourse:                 raceCourse,
+		distance:                   distance,
+		jockeyId:                   jockeyId,
+		attributeFilterIds:         attributeFilterIds,
+		markerCombinationFilterIds: markerCombinationFilterIds,
 	}
 }
 
@@ -124,6 +127,10 @@ func (n *PlaceAllInCalculable) JockeyId() types.JockeyId {
 	return n.jockeyId
 }
 
-func (n *PlaceAllInCalculable) Filters() []filter.Id {
-	return n.filters
+func (n *PlaceAllInCalculable) AttributeFilterIds() []filter.AttributeId {
+	return n.attributeFilterIds
+}
+
+func (n *PlaceAllInCalculable) MarkerCombinationFilterIds() []filter.MarkerCombinationId {
+	return n.markerCombinationFilterIds
 }

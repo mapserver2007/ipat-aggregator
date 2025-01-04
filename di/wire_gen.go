@@ -79,7 +79,7 @@ func NewAggregation(logger *logrus.Logger) *controller.Aggregation {
 	spreadSheetRepository := infrastructure.NewSpreadSheetRepository(spreadSheetSummaryGateway, spreadSheetTicketSummaryGateway, spreadSheetListGateway, spreadSheetAnalysisPlaceGateway, spreadSheetAnalysisPlaceAllInGateway, spreadSheetPredictionOddsGateway, spreadSheetPredictionCheckListGateway, spreadSheetPredictionMarkerGateway)
 	summary := aggregation_service.NewSummary(term, ticket, class, courseCategory, distanceCategory, raceCourse, spreadSheetRepository)
 	aggregation_usecaseSummary := aggregation_usecase.NewSummary(summary)
-	ticketSummary := aggregation_service.NewTicketSummary(term, spreadSheetRepository)
+	ticketSummary := aggregation_service.NewTicketSummary(term, spreadSheetRepository, logger)
 	aggregation_usecaseTicketSummary := aggregation_usecase.NewTicketSummary(ticketSummary)
 	raceEntityConverter := converter.NewRaceEntityConverter()
 	jockeyEntityConverter := converter.NewJockeyEntityConverter()
@@ -111,10 +111,11 @@ func NewAnalysis(logger *logrus.Logger) *controller.Analysis {
 	horseEntityConverter := converter.NewHorseEntityConverter()
 	placeCheckList := analysis_service.NewPlaceCheckList()
 	placeUnHit := analysis_service.NewPlaceUnHit(horseRepository, raceForecastRepository, horseEntityConverter, analysisFilter, placeCheckList)
+	betaWin := analysis_service.NewBetaWin(analysisFilter)
 	horse := master_service.NewHorse(horseRepository, horseEntityConverter)
 	raceForecastEntityConverter := converter.NewRaceForecastEntityConverter()
 	raceForecast := master_service.NewRaceForecast(raceForecastRepository, raceForecastEntityConverter)
-	analysis := analysis_usecase.NewAnalysis(place, trio, placeAllIn, placeUnHit, horse, raceForecast, raceForecastEntityConverter, horseEntityConverter)
+	analysis := analysis_usecase.NewAnalysis(place, trio, placeAllIn, placeUnHit, betaWin, horse, raceForecast, raceForecastEntityConverter, horseEntityConverter)
 	controllerAnalysis := controller.NewAnalysis(analysis, logger)
 	return controllerAnalysis
 }
@@ -159,7 +160,7 @@ var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, 
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
-var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, analysis_service.NewPlaceAllIn, analysis_service.NewPlaceUnHit, analysis_service.NewPlaceCheckList, master_service.NewHorse, master_service.NewRaceForecast, filter_service.NewAnalysisFilter, infrastructure.NewHorseRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewSpreadSheetRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, converter.NewHorseEntityConverter, converter.NewRaceForecastEntityConverter)
+var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewTrio, analysis_service.NewPlaceAllIn, analysis_service.NewPlaceUnHit, analysis_service.NewPlaceCheckList, analysis_service.NewBetaWin, master_service.NewHorse, master_service.NewRaceForecast, filter_service.NewAnalysisFilter, infrastructure.NewHorseRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewSpreadSheetRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, converter.NewHorseEntityConverter, converter.NewRaceForecastEntityConverter)
 
 var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, prediction_service.NewPlaceCandidate, prediction_service.NewMarkerSync, filter_service.NewPredictionFilter, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewTrainerRepository, infrastructure.NewRaceIdRepository, converter.NewRaceEntityConverter)
 

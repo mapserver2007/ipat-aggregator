@@ -97,6 +97,20 @@ func main() {
 			},
 		},
 		{
+			Name:    "analysis-beta",
+			Aliases: []string{"ap4"},
+			Usage:   "analysis-beta",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis beta in start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.Beta(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis beta in end")
+				return nil
+			},
+		},
+		{
 			Name:    "prediction",
 			Aliases: []string{"p1"},
 			Usage:   "prediction",

@@ -6,7 +6,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type PlaceCalculable struct {
+type BetaCalculable struct {
 	raceId              types.RaceId
 	raceDate            types.RaceDate
 	marker              types.Marker
@@ -14,26 +14,24 @@ type PlaceCalculable struct {
 	odds                decimal.Decimal
 	number              types.BetNumber
 	popular             int
-	orderNo             int
 	entries             int
 	jockeyId            types.JockeyId
 	filters             []filter.AttributeId
 }
 
-func NewPlaceCalculable(
+func NewBetaCalculable(
 	raceId types.RaceId,
 	raceDate types.RaceDate,
 	markerCombinationId types.MarkerCombinationId,
 	odds decimal.Decimal,
 	number types.BetNumber,
 	popular int,
-	orderNo int,
 	entries int,
 	jockeyId types.JockeyId,
 	filters []filter.AttributeId,
-) *PlaceCalculable {
+) *BetaCalculable {
 	marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
-	return &PlaceCalculable{
+	return &BetaCalculable{
 		raceId:              raceId,
 		raceDate:            raceDate,
 		marker:              marker,
@@ -41,53 +39,48 @@ func NewPlaceCalculable(
 		odds:                odds,
 		number:              number,
 		popular:             popular,
-		orderNo:             orderNo,
 		entries:             entries,
 		jockeyId:            jockeyId,
 		filters:             filters,
 	}
 }
 
-func (n *PlaceCalculable) RaceId() types.RaceId {
+func (n *BetaCalculable) RaceId() types.RaceId {
 	return n.raceId
 }
 
-func (n *PlaceCalculable) RaceDate() types.RaceDate {
+func (n *BetaCalculable) RaceDate() types.RaceDate {
 	return n.raceDate
 }
 
-func (n *PlaceCalculable) Marker() types.Marker {
+func (n *BetaCalculable) Marker() types.Marker {
 	return n.marker
 }
 
-func (n *PlaceCalculable) MarkerCombinationId() types.MarkerCombinationId {
+func (n *BetaCalculable) MarkerCombinationId() types.MarkerCombinationId {
 	return n.markerCombinationId
 }
 
-func (n *PlaceCalculable) Odds() decimal.Decimal {
+func (n *BetaCalculable) Odds() decimal.Decimal {
 	return n.odds
 }
 
-func (n *PlaceCalculable) Number() types.BetNumber {
+func (n *BetaCalculable) Number() types.BetNumber {
 	return n.number
 }
 
-func (n *PlaceCalculable) Popular() int {
+func (n *BetaCalculable) Popular() int {
 	return n.popular
 }
 
-func (n *PlaceCalculable) OrderNo() int {
-	return n.orderNo
-}
-
-func (n *PlaceCalculable) Entries() int {
+func (n *BetaCalculable) Entries() int {
 	return n.entries
 }
 
-func (n *PlaceCalculable) JockeyId() types.JockeyId {
+func (n *BetaCalculable) JockeyId() types.JockeyId {
 	return n.jockeyId
 }
 
-func (n *PlaceCalculable) Filters() []filter.AttributeId {
+func (n *BetaCalculable) Filters() []filter.AttributeId {
 	return n.filters
 }

@@ -79,6 +79,7 @@ var AnalysisSet = wire.NewSet(
 	analysis_service.NewPlaceAllIn,
 	analysis_service.NewPlaceUnHit,
 	analysis_service.NewPlaceCheckList,
+	analysis_service.NewBetaWin,
 	master_service.NewHorse,
 	master_service.NewRaceForecast,
 	filter_service.NewAnalysisFilter,

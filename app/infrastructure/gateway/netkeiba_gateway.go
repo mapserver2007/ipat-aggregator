@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -34,6 +35,7 @@ type NetKeibaGateway interface {
 type netKeibaGateway struct {
 	collector NetKeibaCollector
 	logger    *logrus.Logger
+	mu        sync.Mutex
 }
 
 func NewNetKeibaGateway(
@@ -50,6 +52,9 @@ func (n *netKeibaGateway) FetchRaceId(
 	ctx context.Context,
 	url string,
 ) ([]string, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var rawRaceIds []string
 	n.collector.Client().OnHTML(".RaceList_DataItem > a:first-child", func(e *colly.HTMLElement) {
 		regex := regexp.MustCompile(`race_id=(\d+)`)
@@ -74,6 +79,9 @@ func (n *netKeibaGateway) FetchRace(
 	ctx context.Context,
 	url string,
 ) (*netkeiba_entity.Race, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var (
 		raceResults       []*netkeiba_entity.RaceResult
 		payoutResults     []*netkeiba_entity.PayoutResult
@@ -119,9 +127,10 @@ func (n *netKeibaGateway) FetchRace(
 				linkUrl, _ = ce.DOM.Find(".Horse_Name > a").Attr("href")
 				segments := strings.Split(linkUrl, "/")
 				horseId := segments[4]
+				orderNo, _ := strconv.Atoi(ce.DOM.Find(".Rank").Text())
 
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
-					i+1,
+					orderNo,
 					horseId,
 					horseName,
 					numbers[0],
@@ -151,9 +160,10 @@ func (n *netKeibaGateway) FetchRace(
 				linkUrl, _ = ce.DOM.Find(".Horse_Name > a").Attr("href")
 				segments := strings.Split(linkUrl, "/")
 				horseId := segments[4]
+				orderNo, _ := strconv.Atoi(ce.DOM.Find(".Rank").Text())
 
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
-					i+1,
+					orderNo,
 					horseId,
 					horseName,
 					numbers[0],
@@ -192,9 +202,10 @@ func (n *netKeibaGateway) FetchRace(
 				linkUrl, _ = ce.DOM.Find(".Horse_Name > a").Attr("href")
 				segments := strings.Split(linkUrl, "/")
 				horseId := segments[4]
+				orderNo, _ := strconv.Atoi(ce.DOM.Find(".Rank").Text())
 
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
-					i+1,
+					orderNo,
 					horseId,
 					horseName,
 					numbers[0],
@@ -609,6 +620,9 @@ func (n *netKeibaGateway) FetchRaceCard(
 	ctx context.Context,
 	url string,
 ) (*netkeiba_entity.Race, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var (
 		raceName          string
 		raceDate          types.RaceDate
@@ -844,6 +858,9 @@ func (n *netKeibaGateway) FetchJockey(
 	ctx context.Context,
 	url string,
 ) (*netkeiba_entity.Jockey, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var name string
 	n.collector.Client().OnHTML("div.Name h1", func(e *colly.HTMLElement) {
 		list := strings.Split(e.DOM.Text(), "\n")
@@ -873,6 +890,9 @@ func (n *netKeibaGateway) FetchHorse(
 	ctx context.Context,
 	url string,
 ) (*netkeiba_entity.Horse, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var (
 		horseId, horseName            string
 		trainerId, ownerId, breederId string
@@ -1087,6 +1107,9 @@ func (n *netKeibaGateway) FetchTrainer(
 	ctx context.Context,
 	url string,
 ) (*netkeiba_entity.Trainer, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	var trainerId, trainerName, locationName string
 
 	u, _ := neturl.Parse(url)
@@ -1120,6 +1143,8 @@ func (n *netKeibaGateway) FetchMarker(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Marker, error) {
+	defer n.mu.Unlock()
+
 	cookies, err := n.collector.Cookies(ctx)
 	if err != nil {
 		return nil, err
@@ -1170,6 +1195,7 @@ func (n *netKeibaGateway) FetchMarker(
 		return nil, nil
 	}
 
+	n.mu.Lock()
 	markers := make([]*netkeiba_entity.Marker, 0, len(markerInfo.Data))
 	for _, d := range markerInfo.Data {
 		segments := strings.Split(d.Code, "_")
@@ -1195,6 +1221,9 @@ func (n *netKeibaGateway) FetchWinOdds(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Odds, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.logger.Infof("fetching win odds from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -1242,6 +1271,9 @@ func (n *netKeibaGateway) FetchPlaceOdds(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Odds, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.logger.Infof("fetching place odds from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -1289,6 +1321,9 @@ func (n *netKeibaGateway) FetchTrioOdds(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Odds, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.logger.Infof("fetching trio odds from %s", url)
 	res, err := http.Get(url)
 	if err != nil {

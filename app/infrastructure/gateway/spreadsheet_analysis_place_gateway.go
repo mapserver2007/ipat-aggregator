@@ -15,8 +15,8 @@ const (
 )
 
 type SpreadSheetAnalysisPlaceGateway interface {
-	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, analysisFilters []filter.Id) error
-	Style(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, analysisFilters []filter.Id) error
+	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, analysisFilters []filter.AttributeId) error
+	Style(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, analysisFilters []filter.AttributeId) error
 	Clear(ctx context.Context) error
 }
 
@@ -36,8 +36,8 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
-	thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	analysisFilters []filter.Id,
+	thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	analysisFilters []filter.AttributeId,
 ) error {
 	client, configs, err := getSpreadSheetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
 	if err != nil {
@@ -318,8 +318,8 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
-	thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	analysisFilters []filter.Id,
+	thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	analysisFilters []filter.AttributeId,
 ) error {
 	client, configs, err := getSpreadSheetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
 	if err != nil {

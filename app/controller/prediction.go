@@ -28,7 +28,7 @@ func NewPrediction(
 
 func (p *Prediction) Prediction(ctx context.Context, input *PredictionInput) {
 	var wg sync.WaitGroup
-	const predictionParallel = 1
+	const predictionParallel = 2
 	errors := make(chan error, predictionParallel)
 
 	for i := 0; i < predictionParallel; i++ {

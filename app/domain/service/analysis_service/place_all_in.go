@@ -16,8 +16,8 @@ import (
 
 type PlaceAllIn interface {
 	Create(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race, winOdds []*data_cache_entity.Odds, placeOdds []*data_cache_entity.Odds) ([]*analysis_entity.PlaceAllInCalculable, error)
-	Convert(ctx context.Context, calculables []*analysis_entity.PlaceAllInCalculable) (map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn, []filter.Id)
-	Write(ctx context.Context, placeAllInMap map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn, filters []filter.Id) error
+	Convert(ctx context.Context, calculables []*analysis_entity.PlaceAllInCalculable) (map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, []filter.AttributeId, []filter.MarkerCombinationId)
+	Write(ctx context.Context, placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, attributeFilters []filter.AttributeId, markerCombinationFilters []filter.MarkerCombinationId) error
 }
 
 type placeAllInService struct {
@@ -110,7 +110,7 @@ func (p *placeAllInService) Create(
 			}
 		}
 
-		filters := p.filterService.CreatePlaceAllInFilters(ctx, race, markerCombinationId)
+		attributeFilterIds, markerCombinationFilterIds := p.filterService.CreatePlaceAllInFilters(ctx, race, markerCombinationId)
 
 		raceCalculables = append(raceCalculables, analysis_entity.NewPlaceAllInCalculable(
 			race.RaceId(),
@@ -126,7 +126,8 @@ func (p *placeAllInService) Create(
 			race.RaceCourseId(),
 			race.Distance(),
 			jockeyId,
-			filters,
+			attributeFilterIds,
+			markerCombinationFilterIds,
 		))
 	}
 
@@ -136,23 +137,28 @@ func (p *placeAllInService) Create(
 func (p *placeAllInService) Convert(
 	ctx context.Context,
 	calculables []*analysis_entity.PlaceAllInCalculable,
-) (map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn, []filter.Id) {
+) (
+	map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+	map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+	[]filter.AttributeId,
+	[]filter.MarkerCombinationId,
+) {
 	isHit := func(calculable *analysis_entity.PlaceAllInCalculable) bool {
 		return calculable.Entries() <= 7 && calculable.OrderNo() <= 2 || calculable.Entries() >= 8 && calculable.OrderNo() <= 3
 	}
 
-	filterPlaceAllInMap := map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn{}
-	analysisFilters := p.getFilters()
-	for _, analysisFilter := range analysisFilters {
+	filterPlaceAllInMap1 := map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn{}
+	attributeFilters := p.getAttributeFilters()
+	for _, attributeFilter := range attributeFilters {
 		raceIdMap := map[types.RaceId]bool{}
 		winOddsHitCountSlice := make([]int, 29)
 		winOddsUnHitCountSlice := make([]int, 29)
 		for _, calculable := range calculables {
-			var calcFilter filter.Id
-			for _, f := range calculable.Filters() {
+			var calcFilter filter.AttributeId
+			for _, f := range calculable.AttributeFilterIds() {
 				calcFilter |= f
 			}
-			if analysisFilter == filter.All || analysisFilter&calcFilter == analysisFilter {
+			if attributeFilter == filter.All || attributeFilter&calcFilter == attributeFilter {
 				if _, ok := raceIdMap[calculable.RaceId()]; !ok {
 					raceIdMap[calculable.RaceId()] = true
 				}
@@ -348,21 +354,236 @@ func (p *placeAllInService) Convert(
 
 		placeAllInRateData := spreadsheet_entity.NewPlaceAllInRateData(placeAllInHitCountData, placeAllInUnHitCountData)
 		placeAllInRateStyle := spreadsheet_entity.NewPlaceAllInRateStyle(placeAllInRateData)
-		filterPlaceAllInMap[analysisFilter] = spreadsheet_entity.NewAnalysisPlaceAllIn(
+		filterPlaceAllInMap1[attributeFilter] = spreadsheet_entity.NewAnalysisPlaceAllIn(
 			placeAllInRateData,
 			placeAllInRateStyle,
 		)
 	}
 
-	return filterPlaceAllInMap, analysisFilters
+	filterPlaceAllInMap2 := map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn{}
+	markerCombinationFilters := p.getMarkerCombinationFilters()
+	for _, markerCombinationFilter := range markerCombinationFilters {
+		raceIdMap := map[types.RaceId]bool{}
+		winOddsHitCountSlice := make([]int, 29)
+		winOddsUnHitCountSlice := make([]int, 29)
+		for _, calculable := range calculables {
+			var calcFilter filter.MarkerCombinationId
+			for _, f := range calculable.MarkerCombinationFilterIds() {
+				calcFilter |= f
+			}
+			if markerCombinationFilter&calcFilter == markerCombinationFilter {
+				if _, ok := raceIdMap[calculable.RaceId()]; !ok {
+					raceIdMap[calculable.RaceId()] = true
+				}
+				odds := calculable.WinOdds().InexactFloat64()
+				switch odds {
+				case 1.1:
+					if isHit(calculable) {
+						winOddsHitCountSlice[0]++
+					} else {
+						winOddsUnHitCountSlice[0]++
+					}
+				case 1.2:
+					if isHit(calculable) {
+						winOddsHitCountSlice[1]++
+					} else {
+						winOddsUnHitCountSlice[1]++
+					}
+				case 1.3:
+					if isHit(calculable) {
+						winOddsHitCountSlice[2]++
+					} else {
+						winOddsUnHitCountSlice[2]++
+					}
+				case 1.4:
+					if isHit(calculable) {
+						winOddsHitCountSlice[3]++
+					} else {
+						winOddsUnHitCountSlice[3]++
+					}
+				case 1.5:
+					if isHit(calculable) {
+						winOddsHitCountSlice[4]++
+					} else {
+						winOddsUnHitCountSlice[4]++
+					}
+				case 1.6:
+					if isHit(calculable) {
+						winOddsHitCountSlice[5]++
+					} else {
+						winOddsUnHitCountSlice[5]++
+					}
+				case 1.7:
+					if isHit(calculable) {
+						winOddsHitCountSlice[6]++
+					} else {
+						winOddsUnHitCountSlice[6]++
+					}
+				case 1.8:
+					if isHit(calculable) {
+						winOddsHitCountSlice[7]++
+					} else {
+						winOddsUnHitCountSlice[7]++
+					}
+				case 1.9:
+					if isHit(calculable) {
+						winOddsHitCountSlice[8]++
+					} else {
+						winOddsUnHitCountSlice[8]++
+					}
+				case 2.0:
+					if isHit(calculable) {
+						winOddsHitCountSlice[9]++
+					} else {
+						winOddsUnHitCountSlice[9]++
+					}
+				case 2.1:
+					if isHit(calculable) {
+						winOddsHitCountSlice[10]++
+					} else {
+						winOddsUnHitCountSlice[10]++
+					}
+				case 2.2:
+					if isHit(calculable) {
+						winOddsHitCountSlice[11]++
+					} else {
+						winOddsUnHitCountSlice[11]++
+					}
+				case 2.3:
+					if isHit(calculable) {
+						winOddsHitCountSlice[12]++
+					} else {
+						winOddsUnHitCountSlice[12]++
+					}
+				case 2.4:
+					if isHit(calculable) {
+						winOddsHitCountSlice[13]++
+					} else {
+						winOddsUnHitCountSlice[13]++
+					}
+				case 2.5:
+					if isHit(calculable) {
+						winOddsHitCountSlice[14]++
+					} else {
+						winOddsUnHitCountSlice[14]++
+					}
+				case 2.6:
+					if isHit(calculable) {
+						winOddsHitCountSlice[15]++
+					} else {
+						winOddsUnHitCountSlice[15]++
+					}
+				case 2.7:
+					if isHit(calculable) {
+						winOddsHitCountSlice[16]++
+					} else {
+						winOddsUnHitCountSlice[16]++
+					}
+				case 2.8:
+					if isHit(calculable) {
+						winOddsHitCountSlice[17]++
+					} else {
+						winOddsUnHitCountSlice[17]++
+					}
+				case 2.9:
+					if isHit(calculable) {
+						winOddsHitCountSlice[18]++
+					} else {
+						winOddsUnHitCountSlice[18]++
+					}
+				case 3.0:
+					if isHit(calculable) {
+						winOddsHitCountSlice[19]++
+					} else {
+						winOddsUnHitCountSlice[19]++
+					}
+				case 3.1:
+					if isHit(calculable) {
+						winOddsHitCountSlice[20]++
+					} else {
+						winOddsUnHitCountSlice[20]++
+					}
+				case 3.2:
+					if isHit(calculable) {
+						winOddsHitCountSlice[21]++
+					} else {
+						winOddsUnHitCountSlice[21]++
+					}
+				case 3.3:
+					if isHit(calculable) {
+						winOddsHitCountSlice[22]++
+					} else {
+						winOddsUnHitCountSlice[22]++
+					}
+				case 3.4:
+					if isHit(calculable) {
+						winOddsHitCountSlice[23]++
+					} else {
+						winOddsUnHitCountSlice[23]++
+					}
+				case 3.5:
+					if isHit(calculable) {
+						winOddsHitCountSlice[24]++
+					} else {
+						winOddsUnHitCountSlice[24]++
+					}
+				case 3.6:
+					if isHit(calculable) {
+						winOddsHitCountSlice[25]++
+					} else {
+						winOddsUnHitCountSlice[25]++
+					}
+				case 3.7:
+					if isHit(calculable) {
+						winOddsHitCountSlice[26]++
+					} else {
+						winOddsUnHitCountSlice[26]++
+					}
+				case 3.8:
+					if isHit(calculable) {
+						winOddsHitCountSlice[27]++
+					} else {
+						winOddsUnHitCountSlice[27]++
+					}
+				case 3.9:
+					if isHit(calculable) {
+						winOddsHitCountSlice[28]++
+					} else {
+						winOddsUnHitCountSlice[28]++
+					}
+				}
+			}
+		}
+
+		placeAllInHitCountData := spreadsheet_entity.NewPlaceAllInHitCountData(
+			winOddsHitCountSlice,
+			len(raceIdMap),
+		)
+
+		placeAllInUnHitCountData := spreadsheet_entity.NewPlaceAllInUnHitCountData(
+			winOddsUnHitCountSlice,
+			len(raceIdMap),
+		)
+
+		placeAllInRateData := spreadsheet_entity.NewPlaceAllInRateData(placeAllInHitCountData, placeAllInUnHitCountData)
+		placeAllInRateStyle := spreadsheet_entity.NewPlaceAllInRateStyle(placeAllInRateData)
+		filterPlaceAllInMap2[markerCombinationFilter] = spreadsheet_entity.NewAnalysisPlaceAllIn(
+			placeAllInRateData,
+			placeAllInRateStyle,
+		)
+	}
+
+	return filterPlaceAllInMap1, filterPlaceAllInMap2, attributeFilters, markerCombinationFilters
 }
 
 func (p *placeAllInService) Write(
 	ctx context.Context,
-	placeAllInMap map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn,
-	filters []filter.Id,
+	placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+	placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+	attributeFilters []filter.AttributeId,
+	markerCombinationFilters []filter.MarkerCombinationId,
 ) error {
-	return p.spreadSheetRepository.WriteAnalysisPlaceAllIn(ctx, placeAllInMap, filters)
+	return p.spreadSheetRepository.WriteAnalysisPlaceAllIn(ctx, placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters)
 }
 
 func (p *placeAllInService) getMarkerCombinationId(
@@ -388,8 +609,8 @@ func (p *placeAllInService) getMarkerCombinationId(
 	return markerCombinationId
 }
 
-func (p *placeAllInService) getFilters() []filter.Id {
-	return []filter.Id{
+func (p *placeAllInService) getAttributeFilters() []filter.AttributeId {
+	return []filter.AttributeId{
 		filter.All,
 		filter.Turf,
 		filter.Dirt,
@@ -401,18 +622,6 @@ func (p *placeAllInService) getFilters() []filter.Id {
 		filter.Dirt | filter.Good,
 		filter.Dirt | filter.Yielding,
 		filter.Dirt | filter.Soft,
-		filter.Turf | filter.Place | filter.Favorite,
-		filter.Turf | filter.Place | filter.Rival,
-		filter.Turf | filter.Place | filter.BrackTriangle,
-		filter.Turf | filter.Place | filter.WhiteTriangle,
-		filter.Turf | filter.Place | filter.Star,
-		filter.Turf | filter.Place | filter.Check,
-		filter.Dirt | filter.Place | filter.Favorite,
-		filter.Dirt | filter.Place | filter.Rival,
-		filter.Dirt | filter.Place | filter.BrackTriangle,
-		filter.Dirt | filter.Place | filter.WhiteTriangle,
-		filter.Dirt | filter.Place | filter.Star,
-		filter.Dirt | filter.Place | filter.Check,
 		filter.Turf | filter.Tokyo,
 		filter.Turf | filter.Nakayama,
 		filter.Turf | filter.Kyoto,
@@ -534,4 +743,23 @@ func (p *placeAllInService) getFilters() []filter.Id {
 		filter.Dirt | filter.Nakayama | filter.Distance2500m,
 		filter.Dirt | filter.Niigata | filter.Distance2500m,
 	}
+}
+
+func (p *placeAllInService) getMarkerCombinationFilters() []filter.MarkerCombinationId {
+	markerCombinationIds := []filter.MarkerCombinationId{
+		filter.MarkerCombinationTurf | filter.MarkerCombinationPlace | filter.MarkerCombinationFavorite,
+		filter.MarkerCombinationTurf | filter.MarkerCombinationPlace | filter.MarkerCombinationRival,
+		filter.MarkerCombinationTurf | filter.MarkerCombinationPlace | filter.MarkerCombinationBrackTriangle,
+		filter.MarkerCombinationTurf | filter.MarkerCombinationPlace | filter.MarkerCombinationWhiteTriangle,
+		filter.MarkerCombinationTurf | filter.MarkerCombinationPlace | filter.MarkerCombinationStar,
+		filter.MarkerCombinationTurf | filter.MarkerCombinationPlace | filter.MarkerCombinationCheck,
+		filter.MarkerCombinationDirt | filter.MarkerCombinationPlace | filter.MarkerCombinationFavorite,
+		filter.MarkerCombinationDirt | filter.MarkerCombinationPlace | filter.MarkerCombinationRival,
+		filter.MarkerCombinationDirt | filter.MarkerCombinationPlace | filter.MarkerCombinationBrackTriangle,
+		filter.MarkerCombinationDirt | filter.MarkerCombinationPlace | filter.MarkerCombinationWhiteTriangle,
+		filter.MarkerCombinationDirt | filter.MarkerCombinationPlace | filter.MarkerCombinationStar,
+		filter.MarkerCombinationDirt | filter.MarkerCombinationPlace | filter.MarkerCombinationCheck,
+	}
+
+	return markerCombinationIds
 }

@@ -108,8 +108,8 @@ func (s *spreadSheetRepository) WriteAnalysisPlace(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
-	thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	filters []filter.Id,
+	thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	filters []filter.AttributeId,
 ) error {
 	err := s.analysisPlaceGateway.Clear(ctx)
 	if err != nil {
@@ -131,20 +131,22 @@ func (s *spreadSheetRepository) WriteAnalysisPlace(
 
 func (s *spreadSheetRepository) WriteAnalysisPlaceAllIn(
 	ctx context.Context,
-	placeAllInMap map[filter.Id]*spreadsheet_entity.AnalysisPlaceAllIn,
-	filters []filter.Id,
+	placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+	placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+	attributeFilters []filter.AttributeId,
+	markerCombinationFilters []filter.MarkerCombinationId,
 ) error {
 	err := s.analysisPlaceAllInGateway.Clear(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = s.analysisPlaceAllInGateway.Write(ctx, placeAllInMap, filters)
+	err = s.analysisPlaceAllInGateway.Write(ctx, placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters)
 	if err != nil {
 		return err
 	}
 
-	err = s.analysisPlaceAllInGateway.Style(ctx, placeAllInMap, filters)
+	err = s.analysisPlaceAllInGateway.Style(ctx, placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters)
 	if err != nil {
 		return err
 	}

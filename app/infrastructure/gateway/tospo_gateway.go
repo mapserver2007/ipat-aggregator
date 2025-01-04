@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"sync"
 )
 
 type TospoGateway interface {
@@ -21,6 +22,7 @@ type TospoGateway interface {
 
 type tospoGateway struct {
 	logger *logrus.Logger
+	mu     sync.Mutex
 }
 
 func NewTospoGateway(
@@ -35,6 +37,9 @@ func (t *tospoGateway) FetchForecast(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.Forecast, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.logger.Infof("fetching forecast from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -108,6 +113,9 @@ func (t *tospoGateway) FetchTrainingComment(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.TrainingComment, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.logger.Infof("fetching training comment from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -155,6 +163,9 @@ func (t *tospoGateway) FetchReporterMemo(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.ReporterMemo, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.logger.Infof("fetching reporter memo from %s", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -201,6 +212,9 @@ func (t *tospoGateway) FetchPaddockComment(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.PaddockComment, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.logger.Infof("fetching paddock comment from %s", url)
 	res, err := http.Get(url)
 	if err != nil {

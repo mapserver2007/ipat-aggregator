@@ -138,7 +138,7 @@ func (p *placeUnHitService) GetUnHitRaceRate(
 	race *analysis_entity.Race,
 	calculables []*analysis_entity.PlaceCalculable,
 ) map[types.HorseId][]float64 {
-	var analysisFilter filter.Id
+	var analysisFilter filter.AttributeId
 	for _, f := range race.AnalysisFilters() {
 		analysisFilter |= f
 	}

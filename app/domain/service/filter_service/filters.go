@@ -1,12 +1,13 @@
 package filter_service
 
 import (
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 )
 
-func CourseCategoryFilters(courseCategory types.CourseCategory) []filter.Id {
-	var filterIds []filter.Id
+func CourseCategoryFilters(courseCategory types.CourseCategory) []filter.AttributeId {
+	var filterIds []filter.AttributeId
 	switch courseCategory {
 	case types.Turf:
 		filterIds = append(filterIds, filter.Turf)
@@ -16,8 +17,8 @@ func CourseCategoryFilters(courseCategory types.CourseCategory) []filter.Id {
 	return filterIds
 }
 
-func RaceCourseFilters(raceCourseId types.RaceCourse) []filter.Id {
-	var filterIds []filter.Id
+func RaceCourseFilters(raceCourseId types.RaceCourse) []filter.AttributeId {
+	var filterIds []filter.AttributeId
 	switch raceCourseId {
 	case types.Tokyo:
 		filterIds = append(filterIds, filter.Tokyo)
@@ -43,8 +44,8 @@ func RaceCourseFilters(raceCourseId types.RaceCourse) []filter.Id {
 	return filterIds
 }
 
-func DistanceFilters(distance int) []filter.Id {
-	var filterIds []filter.Id
+func DistanceFilters(distance int) []filter.AttributeId {
+	var filterIds []filter.AttributeId
 	switch distance {
 	case 1000:
 		filterIds = append(filterIds, filter.Distance1000m)
@@ -92,8 +93,8 @@ func DistanceFilters(distance int) []filter.Id {
 	return filterIds
 }
 
-func TrackConditionFilters(trackCondition types.TrackCondition) []filter.Id {
-	var filterIds []filter.Id
+func TrackConditionFilters(trackCondition types.TrackCondition) []filter.AttributeId {
+	var filterIds []filter.AttributeId
 	switch trackCondition {
 	case types.GoodToFirm:
 		filterIds = append(filterIds, filter.GoodToFirm)
@@ -107,39 +108,56 @@ func TrackConditionFilters(trackCondition types.TrackCondition) []filter.Id {
 	return filterIds
 }
 
-func MarkerFilters(markerCombinationId types.MarkerCombinationId) []filter.Id {
-	var filterIds []filter.Id
-	marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
-	switch marker {
-	case types.Favorite:
-		filterIds = append(filterIds, filter.Favorite)
-	case types.Rival:
-		filterIds = append(filterIds, filter.Rival)
-	case types.BrackTriangle:
-		filterIds = append(filterIds, filter.BrackTriangle)
-	case types.WhiteTriangle:
-		filterIds = append(filterIds, filter.WhiteTriangle)
-	case types.Star:
-		filterIds = append(filterIds, filter.Star)
-	case types.Check:
-		filterIds = append(filterIds, filter.Check)
+func MarkerCombinationFilter(
+	race *data_cache_entity.Race,
+	markerCombinationId types.MarkerCombinationId,
+) []filter.MarkerCombinationId {
+	var filterIds []filter.MarkerCombinationId
+
+	switch race.CourseCategory() {
+	case types.Turf:
+		filterIds = append(filterIds, filter.MarkerCombinationTurf)
+	case types.Dirt:
+		filterIds = append(filterIds, filter.MarkerCombinationDirt)
 	}
 
-	switch markerCombinationId.TicketType() {
-	case types.Win:
-		filterIds = append(filterIds, filter.Win)
-	case types.Place:
-		filterIds = append(filterIds, filter.Place)
-	case types.Quinella:
-		filterIds = append(filterIds, filter.Quinella)
-	case types.Exacta:
-		filterIds = append(filterIds, filter.Exacta)
-	case types.QuinellaPlace:
-		filterIds = append(filterIds, filter.QuinellaPlace)
-	case types.Trio:
-		filterIds = append(filterIds, filter.Trio)
-	case types.Trifecta:
-		filterIds = append(filterIds, filter.Trifecta)
+	for _, result := range race.PayoutResults() {
+		switch result.TicketType() {
+		case types.Win:
+			filterIds = append(filterIds, filter.MarkerCombinationWin)
+			marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
+			switch marker {
+			case types.Favorite:
+				filterIds = append(filterIds, filter.MarkerCombinationFavorite)
+			case types.Rival:
+				filterIds = append(filterIds, filter.MarkerCombinationRival)
+			case types.BrackTriangle:
+				filterIds = append(filterIds, filter.MarkerCombinationBrackTriangle)
+			case types.WhiteTriangle:
+				filterIds = append(filterIds, filter.MarkerCombinationWhiteTriangle)
+			case types.Star:
+				filterIds = append(filterIds, filter.MarkerCombinationStar)
+			case types.Check:
+				filterIds = append(filterIds, filter.MarkerCombinationCheck)
+			}
+		case types.Place:
+			filterIds = append(filterIds, filter.MarkerCombinationPlace)
+			marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
+			switch marker {
+			case types.Favorite:
+				filterIds = append(filterIds, filter.MarkerCombinationFavorite)
+			case types.Rival:
+				filterIds = append(filterIds, filter.MarkerCombinationRival)
+			case types.BrackTriangle:
+				filterIds = append(filterIds, filter.MarkerCombinationBrackTriangle)
+			case types.WhiteTriangle:
+				filterIds = append(filterIds, filter.MarkerCombinationWhiteTriangle)
+			case types.Star:
+				filterIds = append(filterIds, filter.MarkerCombinationStar)
+			case types.Check:
+				filterIds = append(filterIds, filter.MarkerCombinationCheck)
+			}
+		}
 	}
 
 	return filterIds

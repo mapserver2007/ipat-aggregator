@@ -18,7 +18,7 @@ type RaceEntityConverter interface {
 	NetKeibaToRaw(input *netkeiba_entity.Race) *raw_entity.Race
 	RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race
 	DataCacheToList(input *data_cache_entity.Race) *list_entity.Race
-	NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds, filters []filter.Id) *prediction_entity.Race
+	NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds, filters []filter.AttributeId) *prediction_entity.Race
 	TospoToPrediction(input1 *tospo_entity.Forecast, input2 *tospo_entity.TrainingComment, input3 []*tospo_entity.Memo, input4 *tospo_entity.PaddockComment) *prediction_entity.RaceForecast
 	PredictionToAnalysis(input *prediction_entity.Race) *analysis_entity.Race
 }
@@ -208,7 +208,7 @@ func (r *raceEntityConverter) DataCacheToList(input *data_cache_entity.Race) *li
 func (r *raceEntityConverter) NetKeibaToPrediction(
 	input1 *netkeiba_entity.Race,
 	input2 []*netkeiba_entity.Odds,
-	filters []filter.Id,
+	filters []filter.AttributeId,
 ) *prediction_entity.Race {
 	raceEntryHorses := make([]*prediction_entity.RaceEntryHorse, 0, len(input1.RaceEntryHorses()))
 	for _, rawRaceEntryHorse := range input1.RaceEntryHorses() {

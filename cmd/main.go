@@ -36,13 +36,10 @@ func main() {
 
 	logger.SetOutput(io.MultiWriter(os.Stdout, logFile))
 
-	now := time.Now()
-	raceEndDate := now.Format("20060102")
-
 	masterCtrl := di.NewMaster(logger)
 	master, err := masterCtrl.Execute(ctx, &controller.MasterInput{
 		StartDate: config.RaceStartDate,
-		EndDate:   raceEndDate,
+		EndDate:   config.RaceEndDate,
 	})
 
 	if err != nil {

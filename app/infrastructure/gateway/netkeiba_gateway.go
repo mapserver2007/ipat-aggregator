@@ -286,12 +286,18 @@ func (n *netKeibaGateway) FetchRace(
 				case 0:
 					text := Trim(ce.DOM.Text())
 					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
+					trackConditionText := "良" // 前日だと馬場が表示されない場合があるのでデフォルトで良を設定
 					matches := regex.FindAllStringSubmatch(text, -1)
-					startTime = matches[0][1]
-					courseCategory = types.NewCourseCategory(matches[0][2])
-					distance, _ = strconv.Atoi(matches[0][3])
+					if matches == nil {
+						regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)`)
+						matches = regex.FindAllStringSubmatch(text, -1)
+					} else {
+						startTime = matches[0][1]
+						courseCategory = types.NewCourseCategory(matches[0][2])
+						distance, _ = strconv.Atoi(matches[0][3])
+						trackConditionText = matches[0][4]
+					}
 
-					trackConditionText := matches[0][4]
 					if strings.Contains(trackConditionText, "良") {
 						trackCondition = types.GoodToFirm
 					} else if strings.Contains(trackConditionText, "稍") {
@@ -792,6 +798,9 @@ func (n *netKeibaGateway) FetchRaceCard(
 
 			rawJockeyId := func() string {
 				rawJockeyUrl, _ := ce.DOM.Find("td:nth-child(7) a").Attr("href")
+				if rawJockeyUrl == "" { // 騎手未定の場合
+					return ""
+				}
 				parsedUrl, _ = neturl.Parse(rawJockeyUrl)
 				pathSegments := strings.Split(parsedUrl.Path, "/")
 				rawJockeyId := pathSegments[4]

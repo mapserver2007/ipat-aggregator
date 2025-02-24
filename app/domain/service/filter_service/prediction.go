@@ -2,6 +2,7 @@ package filter_service
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"

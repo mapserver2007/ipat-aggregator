@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/sirupsen/logrus"
 )

@@ -4,11 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gocolly/colly"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	neturl "net/url"
@@ -17,6 +12,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gocolly/colly"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 )
 
 type NetKeibaGateway interface {
@@ -1152,8 +1153,8 @@ func (n *netKeibaGateway) FetchMarker(
 	ctx context.Context,
 	url string,
 ) ([]*netkeiba_entity.Marker, error) {
+	n.mu.Lock()
 	defer n.mu.Unlock()
-
 	cookies, err := n.collector.Cookies(ctx)
 	if err != nil {
 		return nil, err
@@ -1204,7 +1205,6 @@ func (n *netKeibaGateway) FetchMarker(
 		return nil, nil
 	}
 
-	n.mu.Lock()
 	markers := make([]*netkeiba_entity.Marker, 0, len(markerInfo.Data))
 	for _, d := range markerInfo.Data {
 		segments := strings.Split(d.Code, "_")

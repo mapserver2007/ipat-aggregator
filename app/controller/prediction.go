@@ -2,9 +2,10 @@ package controller
 
 import (
 	"context"
+	"sync"
+
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
 
 type Prediction struct {

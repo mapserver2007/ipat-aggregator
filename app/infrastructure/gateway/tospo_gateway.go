@@ -3,14 +3,15 @@ package gateway
 import (
 	"context"
 	"encoding/json"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"sort"
 	"sync"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/sirupsen/logrus"
 )
 
 type TospoGateway interface {

@@ -4,24 +4,32 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
 )
 
-type analysisMarkerRepository struct{}
+type analysisMarkerRepository struct {
+	pathOptimizer file_gateway.PathOptimizer
+}
 
-func NewAnalysisMarkerRepository() repository.AnalysisMarkerRepository {
-	return &analysisMarkerRepository{}
+func NewAnalysisMarkerRepository(
+	pathOptimizer file_gateway.PathOptimizer,
+) repository.AnalysisMarkerRepository {
+	return &analysisMarkerRepository{
+		pathOptimizer: pathOptimizer,
+	}
 }
 
 func (a *analysisMarkerRepository) Read(
 	ctx context.Context,
 	path string,
 ) ([]*marker_csv_entity.AnalysisMarker, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := a.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}

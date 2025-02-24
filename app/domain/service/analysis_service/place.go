@@ -3,6 +3,8 @@ package analysis_service
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
@@ -12,7 +14,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
-	"strconv"
 )
 
 type Place interface {

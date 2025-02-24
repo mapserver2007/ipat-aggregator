@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
-	"os"
-	"path/filepath"
 )
 
 const secretFileName = "secret.json"
@@ -18,7 +19,7 @@ func getSpreadSheetConfig(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, *spreadsheet_entity.SpreadSheetConfig, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := getProjectRoot()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -67,7 +68,7 @@ func getSpreadSheetConfigs(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, []*spreadsheet_entity.SpreadSheetConfig, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := getProjectRoot()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -112,4 +113,39 @@ func getSpreadSheetConfigs(
 	}
 
 	return service, spreadSheetConfigs, nil
+}
+
+const (
+	targetFileName = "go.mod"
+)
+
+// FIXME di化
+func getProjectRoot() (string, error) {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+
+	execDir := filepath.Dir(execPath)
+
+	for {
+		modPath := filepath.Join(execDir, targetFileName)
+		if _, err := os.Stat(modPath); err == nil {
+			return execDir, nil
+		}
+
+		parentDir := filepath.Dir(execDir)
+		if parentDir == execDir {
+			break
+		}
+
+		execDir = parentDir
+	}
+
+	rootPath, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	return rootPath, nil
 }

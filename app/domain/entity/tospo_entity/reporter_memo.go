@@ -1,8 +1,9 @@
 package tospo_entity
 
 import (
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"time"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 type ReporterMemo struct {

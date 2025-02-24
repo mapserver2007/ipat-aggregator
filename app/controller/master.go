@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
@@ -34,7 +35,10 @@ func NewMaster(masterUseCase master_usecase.Master) *Master {
 	}
 }
 
-func (m *Master) Execute(ctx context.Context, input *MasterInput) (*MasterOutput, error) {
+func (m *Master) Execute(
+	ctx context.Context,
+	input *MasterInput,
+) (*MasterOutput, error) {
 	err := m.masterUseCase.CreateOrUpdate(ctx, &master_usecase.MasterInput{
 		StartDate: input.StartDate,
 		EndDate:   input.EndDate,

@@ -2,6 +2,8 @@ package converter
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
@@ -10,7 +12,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
-	"time"
 )
 
 type RaceEntityConverter interface {

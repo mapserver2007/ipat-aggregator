@@ -2,8 +2,9 @@ package spreadsheet_entity
 
 import (
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"strconv"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 type TicketResult struct {

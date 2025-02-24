@@ -3,6 +3,9 @@ package aggregation_service
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strconv"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
@@ -12,8 +15,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
 	"golang.org/x/exp/slices"
-	"sort"
-	"strconv"
 )
 
 const (

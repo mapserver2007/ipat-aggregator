@@ -3,6 +3,7 @@ package prediction_service
 import (
 	"context"
 	"fmt"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"

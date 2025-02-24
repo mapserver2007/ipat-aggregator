@@ -2,9 +2,10 @@ package spreadsheet_entity
 
 import (
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"math"
 	"strconv"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 type PlaceAllInRateData struct {

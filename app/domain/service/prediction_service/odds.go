@@ -3,6 +3,8 @@ package prediction_service
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
@@ -12,7 +14,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
-	"time"
 )
 
 type Odds interface {

@@ -2,8 +2,9 @@ package spreadsheet_entity
 
 import (
 	"fmt"
-	"github.com/shopspring/decimal"
 	"math"
+
+	"github.com/shopspring/decimal"
 )
 
 type AnalysisBetaRate struct {

@@ -5,23 +5,28 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
-	"os"
-	"path/filepath"
 )
 
 type raceForecastRepository struct {
-	tospoGateway gateway.TospoGateway
+	tospoGateway  gateway.TospoGateway
+	pathOptimizer file_gateway.PathOptimizer
 }
 
 func NewRaceForecastRepository(
 	tospoGateway gateway.TospoGateway,
+	pathOptimizer file_gateway.PathOptimizer,
 ) repository.RaceForecastRepository {
 	return &raceForecastRepository{
-		tospoGateway: tospoGateway,
+		tospoGateway:  tospoGateway,
+		pathOptimizer: pathOptimizer,
 	}
 }
 
@@ -29,7 +34,7 @@ func (r *raceForecastRepository) Read(
 	ctx context.Context,
 	path string,
 ) (*raw_entity.RaceForecastInfo, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +71,7 @@ func (r *raceForecastRepository) Write(
 		return err
 	}
 
-	rootPath, err := os.Getwd()
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return err
 	}

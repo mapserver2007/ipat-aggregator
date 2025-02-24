@@ -2,10 +2,11 @@ package spreadsheet_entity
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
-	"strconv"
 )
 
 type ListRow struct {

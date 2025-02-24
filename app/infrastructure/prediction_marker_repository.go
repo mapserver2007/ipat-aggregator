@@ -4,23 +4,28 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
-	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 )
 
 type predictionMarkerRepository struct {
 	netKeibaGateway gateway.NetKeibaGateway
+	pathOptimizer   file_gateway.PathOptimizer
 }
 
 func NewPredictionMarkerRepository(
 	netKeibaGateway gateway.NetKeibaGateway,
+	pathOptimizer file_gateway.PathOptimizer,
 ) repository.PredictionMarkerRepository {
 	return &predictionMarkerRepository{
 		netKeibaGateway: netKeibaGateway,
+		pathOptimizer:   pathOptimizer,
 	}
 }
 
@@ -28,7 +33,7 @@ func (p *predictionMarkerRepository) Read(
 	ctx context.Context,
 	path string,
 ) ([]*marker_csv_entity.PredictionMarker, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := p.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}

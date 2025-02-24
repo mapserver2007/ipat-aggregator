@@ -5,23 +5,28 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
-	"os"
-	"path/filepath"
 )
 
 type raceRepository struct {
 	netKeibaGateway gateway.NetKeibaGateway
+	pathOptimizer   file_gateway.PathOptimizer
 }
 
 func NewRaceRepository(
 	netKeibaGateway gateway.NetKeibaGateway,
+	pathOptimizer file_gateway.PathOptimizer,
 ) repository.RaceRepository {
 	return &raceRepository{
 		netKeibaGateway: netKeibaGateway,
+		pathOptimizer:   pathOptimizer,
 	}
 }
 
@@ -29,7 +34,7 @@ func (r *raceRepository) List(
 	ctx context.Context,
 	path string,
 ) ([]string, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +63,7 @@ func (r *raceRepository) Read(
 	path string,
 ) ([]*raw_entity.Race, error) {
 	races := make([]*raw_entity.Race, 0)
-	rootPath, err := os.Getwd()
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +101,7 @@ func (r *raceRepository) Write(
 		return err
 	}
 
-	rootPath, err := os.Getwd()
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return err
 	}

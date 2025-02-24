@@ -2,9 +2,10 @@ package spreadsheet_entity
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
-	"strings"
 )
 
 type PredictionCheckList struct {

@@ -19,14 +19,17 @@ type SpreadSheetPredictionMarkerGateway interface {
 }
 
 type spreadSheetPredictionMarkerGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetPredictionMarkerGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetPredictionMarkerGateway {
 	return &spreadSheetPredictionMarkerGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -34,7 +37,7 @@ func (s *spreadSheetPredictionMarkerGateway) Write(
 	ctx context.Context,
 	rows []*spreadsheet_entity.PredictionMarker,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionMarkerFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionMarkerFileName)
 	if err != nil {
 		return err
 	}
@@ -79,7 +82,7 @@ func (s *spreadSheetPredictionMarkerGateway) Write(
 }
 
 func (s *spreadSheetPredictionMarkerGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionMarkerFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionMarkerFileName)
 	if err != nil {
 		return err
 	}

@@ -38,14 +38,17 @@ type SpreadSheetPredictionCheckListGateway interface {
 }
 
 type spreadSheetPredictionCheckListGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetPredictionCheckListGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetPredictionCheckListGateway {
 	return &spreadSheetPredictionCheckListGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -53,7 +56,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 	ctx context.Context,
 	rows []*spreadsheet_entity.PredictionCheckList,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionCheckListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionCheckListFileName)
 	if err != nil {
 		return err
 	}
@@ -169,7 +172,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(
 	ctx context.Context,
 	rows []*spreadsheet_entity.PredictionCheckList,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionCheckListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionCheckListFileName)
 	if err != nil {
 		return err
 	}
@@ -365,7 +368,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(
 }
 
 func (s *spreadSheetPredictionCheckListGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionCheckListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionCheckListFileName)
 	if err != nil {
 		return err
 	}

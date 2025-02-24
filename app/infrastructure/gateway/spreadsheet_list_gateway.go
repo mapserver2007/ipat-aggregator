@@ -22,14 +22,17 @@ type SpreadSheetListGateway interface {
 }
 
 type spreadSheetListGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetListGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetListGateway {
 	return &spreadSheetListGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -37,7 +40,7 @@ func (s *spreadSheetListGateway) Write(
 	ctx context.Context,
 	rows []*spreadsheet_entity.ListRow,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetListFileName)
 	if err != nil {
 		return err
 	}
@@ -126,7 +129,7 @@ func (s *spreadSheetListGateway) Style(
 	ctx context.Context,
 	rows []*spreadsheet_entity.ListRow,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetListFileName)
 	if err != nil {
 		return err
 	}
@@ -278,7 +281,7 @@ func (s *spreadSheetListGateway) Style(
 }
 
 func (s *spreadSheetListGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetListFileName)
 	if err != nil {
 		return err
 	}

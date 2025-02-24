@@ -18,11 +18,8 @@ type Summary interface {
 		tickets []*ticket_csv_entity.RaceTicket,
 		races []*data_cache_entity.Race,
 	) *spreadsheet_entity.Summary
-	CreateV2(ctx context.Context,
-		tickets []*ticket_csv_entity.RaceTicket,
-		races []*data_cache_entity.Race,
-	) *spreadsheet_entity.Summary
 	Write(ctx context.Context, data *spreadsheet_entity.Summary) error
+	WriteV2(ctx context.Context, data *spreadsheet_entity.Summary) error
 }
 
 type summaryService struct {
@@ -69,6 +66,7 @@ func (s *summaryService) Create(
 	distanceCategoryResultMap := s.getDistanceCategoryResultMap(ctx, tickets, races)
 	raceCourseResultMap := s.getRaceCourseResultMap(ctx, tickets, races)
 	monthlyResultMap := s.getMonthlyResultMap(ctx, tickets)
+	dailyResultMap := s.getDailyResultMap(ctx, tickets)
 
 	return spreadsheet_entity.NewSummary(
 		allTermResult,
@@ -80,15 +78,8 @@ func (s *summaryService) Create(
 		distanceCategoryResultMap,
 		raceCourseResultMap,
 		monthlyResultMap,
+		dailyResultMap,
 	)
-}
-
-func (s *summaryService) CreateV2(
-	ctx context.Context,
-	tickets []*ticket_csv_entity.RaceTicket,
-	races []*data_cache_entity.Race,
-) *spreadsheet_entity.Summary {
-	return nil
 }
 
 func (s *summaryService) Write(
@@ -96,6 +87,14 @@ func (s *summaryService) Write(
 	data *spreadsheet_entity.Summary,
 ) error {
 	return s.spreadSheetRepository.WriteSummary(ctx, data)
+}
+
+func (s *summaryService) WriteV2(
+	ctx context.Context,
+	data *spreadsheet_entity.Summary,
+) error {
+	// ここに必要な処理を追加します
+	return nil // または適切な処理を実装してください
 }
 
 func (s *summaryService) createTermResult(
@@ -257,7 +256,6 @@ func (s *summaryService) getMonthlyResultMap(
 	tickets []*ticket_csv_entity.RaceTicket,
 ) map[time.Time]*spreadsheet_entity.TicketResult {
 	now := time.Now()
-	nextMonth := now.AddDate(0, 1, 0)
 	dateTimeTicketMap := map[time.Time][]*ticket_csv_entity.RaceTicket{}
 	for _, raceTicket := range tickets {
 		dateStr := fmt.Sprintf("%d", raceTicket.Ticket().RaceDate().Value())
@@ -271,11 +269,36 @@ func (s *summaryService) getMonthlyResultMap(
 
 	monthlyResultMap := map[time.Time]*spreadsheet_entity.TicketResult{}
 	for currentMonth, raceTickets := range dateTimeTicketMap {
-		nextMonth = currentMonth.AddDate(0, 1, 0)
-		monthlyResultMap[currentMonth] = s.createTermResult(ctx, raceTickets, currentMonth, nextMonth)
+		monthlyResultMap[currentMonth] = s.createTermResult(ctx, raceTickets, currentMonth, now.AddDate(0, 1, 0))
 	}
 
 	return monthlyResultMap
+}
+
+func (s *summaryService) getDailyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+) map[time.Time]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	dateTimeTicketMap := map[time.Time][]*ticket_csv_entity.RaceTicket{}
+	for _, raceTicket := range tickets {
+		dateStr := fmt.Sprintf("%d", raceTicket.Ticket().RaceDate().Value())
+		dateTime, _ := time.Parse("20060102", dateStr)
+		date := time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.Local)
+		if date.Month() == now.Month() && date.Year() == now.Year() {
+			if _, ok := dateTimeTicketMap[date]; !ok {
+				dateTimeTicketMap[date] = make([]*ticket_csv_entity.RaceTicket, 0)
+			}
+			dateTimeTicketMap[date] = append(dateTimeTicketMap[date], raceTicket)
+		}
+	}
+
+	dailyResultMap := map[time.Time]*spreadsheet_entity.TicketResult{}
+	for currentDate, raceTickets := range dateTimeTicketMap {
+		dailyResultMap[currentDate] = s.createTermResult(ctx, raceTickets, currentDate, now.AddDate(0, 0, 1))
+	}
+
+	return dailyResultMap
 }
 
 func (s *summaryService) createTicketResult(

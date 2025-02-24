@@ -63,6 +63,18 @@ func (s *spreadSheetRepository) WriteSummary(
 	return nil
 }
 
+func (s *spreadSheetRepository) WriteSummaryV2(
+	ctx context.Context,
+	summary *spreadsheet_entity.Summary,
+) error {
+	err := s.summaryGateway.WriteV2(ctx, summary)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *spreadSheetRepository) WriteTicketSummary(
 	ctx context.Context,
 	ticketSummaryMap map[int]*spreadsheet_entity.TicketSummary,

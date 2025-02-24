@@ -23,7 +23,8 @@ type SpreadSheetAnalysisPlaceAllInGateway interface {
 }
 
 type spreadSheetAnalysisPlaceAllInGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetAnalysisPlaceAllInGateway(
@@ -41,7 +42,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Write(
 	attributeFilters []filter.AttributeId,
 	markerCombinationFilters []filter.MarkerCombinationId,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetAnalysisPlaceAllInFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetAnalysisPlaceAllInFileName)
 	if err != nil {
 		return err
 	}
@@ -181,7 +182,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Style(
 	attributeFilters []filter.AttributeId,
 	markerCombinationFilters []filter.MarkerCombinationId,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetAnalysisPlaceAllInFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetAnalysisPlaceAllInFileName)
 	if err != nil {
 		return err
 	}
@@ -529,7 +530,7 @@ func (s *spreadSheetAnalysisPlaceAllInGateway) Style(
 }
 
 func (s *spreadSheetAnalysisPlaceAllInGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetAnalysisPlaceAllInFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetAnalysisPlaceAllInFileName)
 	if err != nil {
 		return err
 	}

@@ -91,7 +91,6 @@ var AnalysisSet = wire.NewSet(
 	gateway.NewNetKeibaGateway,
 	gateway.NewNetKeibaCollector,
 	gateway.NewTospoGateway,
-	file_gateway.NewPathOptimizer,
 	converter.NewHorseEntityConverter,
 	converter.NewRaceForecastEntityConverter,
 )
@@ -119,6 +118,8 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetPredictionOddsGateway,
 	gateway.NewSpreadSheetPredictionCheckListGateway,
 	gateway.NewSpreadSheetPredictionMarkerGateway,
+	gateway.NewSpreadSheetConfigGateway,
+	file_gateway.NewPathOptimizer,
 )
 
 func NewMaster(

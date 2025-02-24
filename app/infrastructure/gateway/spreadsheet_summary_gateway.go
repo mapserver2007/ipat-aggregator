@@ -13,24 +13,29 @@ import (
 )
 
 const (
-	spreadSheetSummaryFileName = "spreadsheet_summary.json"
+	spreadSheetSummaryFileName   = "spreadsheet_summary.json"
+	spreadSheetSummaryV2FileName = "spreadsheet_summary_v2.json"
 )
 
 type SpreadSheetSummaryGateway interface {
 	Write(ctx context.Context, summary *spreadsheet_entity.Summary) error
+	WriteV2(ctx context.Context, summary *spreadsheet_entity.Summary) error
 	Style(ctx context.Context, summary *spreadsheet_entity.Summary) error
 	Clear(ctx context.Context) error
 }
 
 type spreadSheetSummaryGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetSummaryGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetSummaryGateway {
 	return &spreadSheetSummaryGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -38,7 +43,7 @@ func (s *spreadSheetSummaryGateway) Write(
 	ctx context.Context,
 	summary *spreadsheet_entity.Summary,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetSummaryFileName)
 	if err != nil {
 		return err
 	}
@@ -83,6 +88,14 @@ func (s *spreadSheetSummaryGateway) Write(
 
 	s.logger.Infof("write summary end")
 	return nil
+}
+
+func (s *spreadSheetSummaryGateway) WriteV2(
+	ctx context.Context,
+	summary *spreadsheet_entity.Summary,
+) error {
+	// ここに必要な処理を追加します
+	return nil // または適切な処理を実装してください
 }
 
 func (s *spreadSheetSummaryGateway) writeAllResult(
@@ -504,7 +517,7 @@ func (s *spreadSheetSummaryGateway) Style(
 	ctx context.Context,
 	summary *spreadsheet_entity.Summary,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetSummaryFileName)
 	if err != nil {
 		return err
 	}
@@ -1414,7 +1427,7 @@ func (s *spreadSheetSummaryGateway) writeStyleRaceCourseResult(
 func (s *spreadSheetSummaryGateway) Clear(
 	ctx context.Context,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetSummaryFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetSummaryFileName)
 	if err != nil {
 		return err
 	}

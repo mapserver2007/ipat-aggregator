@@ -9,17 +9,39 @@ import (
 
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 )
 
 const secretFileName = "secret.json"
 
-func getSpreadSheetConfig(
+type SpreadSheetConfigGateway interface {
+	GetConfig(ctx context.Context,
+		spreadSheetConfigFileName string,
+	) (*sheets.Service, *spreadsheet_entity.SpreadSheetConfig, error)
+	GetConfigs(ctx context.Context,
+		spreadSheetConfigFileName string,
+	) (*sheets.Service, []*spreadsheet_entity.SpreadSheetConfig, error)
+}
+
+type spreadSheetConfigGateway struct {
+	pathOptimizer file_gateway.PathOptimizer
+}
+
+func NewSpreadSheetConfigGateway(
+	pathOptimizer file_gateway.PathOptimizer,
+) SpreadSheetConfigGateway {
+	return &spreadSheetConfigGateway{
+		pathOptimizer: pathOptimizer,
+	}
+}
+
+func (s *spreadSheetConfigGateway) GetConfig(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, *spreadsheet_entity.SpreadSheetConfig, error) {
-	rootPath, err := getProjectRoot()
+	rootPath, err := s.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -64,11 +86,11 @@ func getSpreadSheetConfig(
 	return service, spreadSheetConfig, nil
 }
 
-func getSpreadSheetConfigs(
+func (s *spreadSheetConfigGateway) GetConfigs(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, []*spreadsheet_entity.SpreadSheetConfig, error) {
-	rootPath, err := getProjectRoot()
+	rootPath, err := s.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -113,39 +135,4 @@ func getSpreadSheetConfigs(
 	}
 
 	return service, spreadSheetConfigs, nil
-}
-
-const (
-	targetFileName = "go.mod"
-)
-
-// FIXME di化
-func getProjectRoot() (string, error) {
-	execPath, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-
-	execDir := filepath.Dir(execPath)
-
-	for {
-		modPath := filepath.Join(execDir, targetFileName)
-		if _, err := os.Stat(modPath); err == nil {
-			return execDir, nil
-		}
-
-		parentDir := filepath.Dir(execDir)
-		if parentDir == execDir {
-			break
-		}
-
-		execDir = parentDir
-	}
-
-	rootPath, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	return rootPath, nil
 }

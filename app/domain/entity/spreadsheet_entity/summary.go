@@ -16,6 +16,7 @@ type Summary struct {
 	distanceCategoryResultMap map[types.DistanceCategory]*TicketResult
 	raceCourseResultMap       map[types.RaceCourse]*TicketResult
 	monthlyResults            map[time.Time]*TicketResult
+	dailyResults              map[time.Time]*TicketResult
 }
 
 func NewSummary(
@@ -28,6 +29,7 @@ func NewSummary(
 	distanceCategoryResultMap map[types.DistanceCategory]*TicketResult,
 	raceCourseResultMap map[types.RaceCourse]*TicketResult,
 	monthlyResults map[time.Time]*TicketResult,
+	dailyResults map[time.Time]*TicketResult,
 ) *Summary {
 	return &Summary{
 		allTermResult:             allTermResult,
@@ -39,6 +41,7 @@ func NewSummary(
 		distanceCategoryResultMap: distanceCategoryResultMap,
 		raceCourseResultMap:       raceCourseResultMap,
 		monthlyResults:            monthlyResults,
+		dailyResults:              dailyResults,
 	}
 }
 
@@ -76,4 +79,8 @@ func (s *Summary) RaceCourseResultMap() map[types.RaceCourse]*TicketResult {
 
 func (s *Summary) MonthlyResults() map[time.Time]*TicketResult {
 	return s.monthlyResults
+}
+
+func (s *Summary) DailyResults() map[time.Time]*TicketResult {
+	return s.dailyResults
 }

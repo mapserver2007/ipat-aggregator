@@ -22,14 +22,17 @@ type SpreadSheetTicketSummaryGateway interface {
 }
 
 type spreadSheetTicketSummaryGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetTicketSummaryGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetTicketSummaryGateway {
 	return &spreadSheetTicketSummaryGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -37,7 +40,7 @@ func (s *spreadSheetTicketSummaryGateway) Write(
 	ctx context.Context,
 	ticketSummaryMap map[int]*spreadsheet_entity.TicketSummary,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetTicketSummaryFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetTicketSummaryFileName)
 	if err != nil {
 		return err
 	}
@@ -99,7 +102,7 @@ func (s *spreadSheetTicketSummaryGateway) Style(
 	ctx context.Context,
 	ticketSummaryMap map[int]*spreadsheet_entity.TicketSummary,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetTicketSummaryFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetTicketSummaryFileName)
 	if err != nil {
 		return err
 	}
@@ -210,7 +213,7 @@ func (s *spreadSheetTicketSummaryGateway) Style(
 }
 
 func (s *spreadSheetTicketSummaryGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetTicketSummaryFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetTicketSummaryFileName)
 	if err != nil {
 		return err
 	}

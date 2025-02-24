@@ -273,6 +273,9 @@ func NewListRow(
 			case 3:
 				favoriteHorseColor = types.ThirdColor
 			}
+		}
+
+		if raceResult.OrderNo() == 1 {
 			switch raceResult.PopularNumber() {
 			case 1:
 				firstPlaceHorseColor = types.FirstColor
@@ -282,6 +285,7 @@ func NewListRow(
 				firstPlaceHorseColor = types.ThirdColor
 			}
 		}
+
 		if raceResult.HorseName() == rivalHorse.HorseName() {
 			switch raceResult.OrderNo() {
 			case 1:
@@ -291,6 +295,9 @@ func NewListRow(
 			case 3:
 				rivalHorseColor = types.ThirdColor
 			}
+		}
+
+		if raceResult.OrderNo() == 2 {
 			switch raceResult.PopularNumber() {
 			case 1:
 				secondPlaceHorseColor = types.FirstColor

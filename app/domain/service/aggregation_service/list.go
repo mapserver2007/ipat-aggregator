@@ -49,7 +49,11 @@ var ticketSortOrders = []types.TicketType{
 }
 
 type List interface {
-	Create(ctx context.Context, tickets []*ticket_csv_entity.RaceTicket, races []*data_cache_entity.Race, jockeys []*data_cache_entity.Jockey) ([]*spreadsheet_entity.ListRow, error)
+	Create(ctx context.Context,
+		tickets []*ticket_csv_entity.RaceTicket,
+		races []*data_cache_entity.Race,
+		jockeys []*data_cache_entity.Jockey,
+	) ([]*spreadsheet_entity.ListRow, error)
 	Write(ctx context.Context, listRows []*spreadsheet_entity.ListRow) error
 }
 

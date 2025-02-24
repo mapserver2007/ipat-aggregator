@@ -45,7 +45,7 @@ func (s *spreadSheetListGateway) Write(
 	s.logger.Infof("write list start")
 
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A1")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"レース条件",
 			"",
@@ -76,7 +76,7 @@ func (s *spreadSheetListGateway) Write(
 	}
 
 	for _, row := range rows {
-		values = append(values, []interface{}{
+		values = append(values, []any{
 			row.Data().RaceDate(),
 			row.Data().Class(),
 			row.Data().CourseCategory(),

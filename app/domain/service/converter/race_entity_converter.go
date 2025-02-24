@@ -133,8 +133,13 @@ func (r *raceEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Race) *raw_en
 func (r *raceEntityConverter) RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race {
 	raceResults := make([]*data_cache_entity.RaceResult, 0, len(input.RaceResults))
 	for _, raceResult := range input.RaceResults {
+		// 取消、中止の場合は着順が0なので補正する
+		orderNo := raceResult.OrderNo
+		if orderNo == 0 {
+			orderNo = 99
+		}
 		raceResults = append(raceResults, data_cache_entity.NewRaceResult(
-			raceResult.OrderNo,
+			orderNo,
 			raceResult.HorseId,
 			raceResult.HorseName,
 			raceResult.BracketNumber,

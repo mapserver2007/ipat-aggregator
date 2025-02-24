@@ -10,6 +10,7 @@ import (
 
 type Summary interface {
 	Execute(ctx context.Context, input *SummaryInput) error
+	ExecuteV2(ctx context.Context, input *SummaryInput) error
 }
 
 type SummaryInput struct {
@@ -37,4 +38,8 @@ func (a *summary) Execute(ctx context.Context, input *SummaryInput) error {
 	}
 
 	return nil
+}
+
+func (a *summary) ExecuteV2(ctx context.Context, input *SummaryInput) error {
+	return a.Execute(ctx, input)
 }

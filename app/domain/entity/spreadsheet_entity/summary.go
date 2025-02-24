@@ -1,6 +1,10 @@
 package spreadsheet_entity
 
-import "github.com/mapserver2007/ipat-aggregator/app/domain/types"
+import (
+	"time"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+)
 
 type Summary struct {
 	allTermResult             *TicketResult
@@ -11,7 +15,7 @@ type Summary struct {
 	courseCategoryResultMap   map[types.CourseCategory]*TicketResult
 	distanceCategoryResultMap map[types.DistanceCategory]*TicketResult
 	raceCourseResultMap       map[types.RaceCourse]*TicketResult
-	monthlyResults            map[int]*TicketResult
+	monthlyResults            map[time.Time]*TicketResult
 }
 
 func NewSummary(
@@ -23,7 +27,7 @@ func NewSummary(
 	courseCategoryResultMap map[types.CourseCategory]*TicketResult,
 	distanceCategoryResultMap map[types.DistanceCategory]*TicketResult,
 	raceCourseResultMap map[types.RaceCourse]*TicketResult,
-	monthlyResults map[int]*TicketResult,
+	monthlyResults map[time.Time]*TicketResult,
 ) *Summary {
 	return &Summary{
 		allTermResult:             allTermResult,
@@ -70,6 +74,6 @@ func (s *Summary) RaceCourseResultMap() map[types.RaceCourse]*TicketResult {
 	return s.raceCourseResultMap
 }
 
-func (s *Summary) MonthlyResults() map[int]*TicketResult {
+func (s *Summary) MonthlyResults() map[time.Time]*TicketResult {
 	return s.monthlyResults
 }

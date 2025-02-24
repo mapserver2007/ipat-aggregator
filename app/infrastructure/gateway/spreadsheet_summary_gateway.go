@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
@@ -43,39 +44,39 @@ func (s *spreadSheetSummaryGateway) Write(
 	}
 
 	s.logger.Infof("write summary start")
-	err = s.writeAllResult(ctx, summary.AllTermResult(), client, config)
+	err = s.writeAllResult(summary.AllTermResult(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeYearResult(ctx, summary.YearTermResult(), client, config)
+	err = s.writeYearResult(summary.YearTermResult(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeMonthResult(ctx, summary.MonthTermResult(), client, config)
+	err = s.writeMonthResult(summary.MonthTermResult(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeTicketResult(ctx, summary.TicketResultMap(), client, config)
+	err = s.writeTicketResult(summary.TicketResultMap(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeGradeClassResult(ctx, summary.GradeClassResultMap(), client, config)
+	err = s.writeGradeClassResult(summary.GradeClassResultMap(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeMonthlyResult(ctx, summary.MonthlyResults(), client, config)
+	err = s.writeMonthlyResult(summary.MonthlyResults(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeCourseCategoryResult(ctx, summary.CourseCategoryResultMap(), client, config)
+	err = s.writeCourseCategoryResult(summary.CourseCategoryResultMap(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeDistanceCategoryResult(ctx, summary.DistanceCategoryResultMap(), client, config)
+	err = s.writeDistanceCategoryResult(summary.DistanceCategoryResultMap(), client, config)
 	if err != nil {
 		return err
 	}
-	err = s.writeRaceCourseResult(ctx, summary.RaceCourseResultMap(), client, config)
+	err = s.writeRaceCourseResult(summary.RaceCourseResultMap(), client, config)
 	if err != nil {
 		return err
 	}
@@ -85,14 +86,13 @@ func (s *spreadSheetSummaryGateway) Write(
 }
 
 func (s *spreadSheetSummaryGateway) writeAllResult(
-	ctx context.Context,
 	result *spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeAllResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A1")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"累計",
 			"",
@@ -122,14 +122,13 @@ func (s *spreadSheetSummaryGateway) writeAllResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeYearResult(
-	ctx context.Context,
 	result *spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeYearResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "E1")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"年間累計",
 			"",
@@ -159,14 +158,13 @@ func (s *spreadSheetSummaryGateway) writeYearResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeMonthResult(
-	ctx context.Context,
 	result *spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeMonthResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "C1")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"月間累計",
 			"",
@@ -196,14 +194,13 @@ func (s *spreadSheetSummaryGateway) writeMonthResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeTicketResult(
-	ctx context.Context,
 	results map[types.TicketType]*spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeTicketResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A6")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"券種別",
 			"投票レース数",
@@ -225,7 +222,7 @@ func (s *spreadSheetSummaryGateway) writeTicketResult(
 	for _, k := range keys {
 		ticketType := types.TicketType(k)
 		result := results[ticketType]
-		values = append(values, []interface{}{
+		values = append(values, []any{
 			ticketType.Name(),
 			result.RaceCount(),
 			result.BetCount(),
@@ -248,14 +245,13 @@ func (s *spreadSheetSummaryGateway) writeTicketResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeGradeClassResult(
-	ctx context.Context,
 	results map[types.GradeClass]*spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeGradeClassResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A15")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"券種別",
 			"投票レース数",
@@ -277,7 +273,7 @@ func (s *spreadSheetSummaryGateway) writeGradeClassResult(
 	for _, k := range keys {
 		gradeClass := types.GradeClass(k)
 		result := results[gradeClass]
-		values = append(values, []interface{}{
+		values = append(values, []any{
 			gradeClass.String(),
 			result.RaceCount(),
 			result.BetCount(),
@@ -300,14 +296,13 @@ func (s *spreadSheetSummaryGateway) writeGradeClassResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeMonthlyResult(
-	ctx context.Context,
-	results map[int]*spreadsheet_entity.TicketResult,
+	results map[time.Time]*spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeMonthlyResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A28")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"券種別",
 			"投票レース数",
@@ -320,16 +315,18 @@ func (s *spreadSheetSummaryGateway) writeMonthlyResult(
 		},
 	}
 
-	keys := make([]int, 0, len(results))
+	keys := make([]time.Time, 0, len(results))
 	for month := range results {
 		keys = append(keys, month)
 	}
-	sort.Ints(keys)
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Before(keys[j])
+	})
 
 	for _, month := range keys {
 		result := results[month]
-		values = append(values, []interface{}{
-			month,
+		values = append(values, []any{
+			month.Format("2006年01月"),
 			result.RaceCount(),
 			result.BetCount(),
 			result.HitCount(),
@@ -351,14 +348,13 @@ func (s *spreadSheetSummaryGateway) writeMonthlyResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeCourseCategoryResult(
-	ctx context.Context,
 	results map[types.CourseCategory]*spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeCourseCategoryResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "I6")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"券種別",
 			"投票レース数",
@@ -380,7 +376,7 @@ func (s *spreadSheetSummaryGateway) writeCourseCategoryResult(
 	for _, k := range keys {
 		courseCategory := types.CourseCategory(k)
 		result := results[courseCategory]
-		values = append(values, []interface{}{
+		values = append(values, []any{
 			courseCategory.String(),
 			result.RaceCount(),
 			result.BetCount(),
@@ -403,14 +399,13 @@ func (s *spreadSheetSummaryGateway) writeCourseCategoryResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeDistanceCategoryResult(
-	ctx context.Context,
 	results map[types.DistanceCategory]*spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeDistanceCategoryResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "I10")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"券種別",
 			"投票レース数",
@@ -432,7 +427,7 @@ func (s *spreadSheetSummaryGateway) writeDistanceCategoryResult(
 	for _, k := range keys {
 		distanceCategory := types.DistanceCategory(k)
 		result := results[distanceCategory]
-		values = append(values, []interface{}{
+		values = append(values, []any{
 			distanceCategory.String(),
 			result.RaceCount(),
 			result.BetCount(),
@@ -455,14 +450,13 @@ func (s *spreadSheetSummaryGateway) writeDistanceCategoryResult(
 }
 
 func (s *spreadSheetSummaryGateway) writeRaceCourseResult(
-	ctx context.Context,
 	results map[types.RaceCourse]*spreadsheet_entity.TicketResult,
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
 ) error {
 	s.logger.Infof("writing spreadsheet writeRaceCourseResult")
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "I21")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"券種別",
 			"投票レース数",
@@ -484,7 +478,7 @@ func (s *spreadSheetSummaryGateway) writeRaceCourseResult(
 	for _, k := range keys {
 		raceCourse := types.RaceCourse(k)
 		result := results[raceCourse]
-		values = append(values, []interface{}{
+		values = append(values, []any{
 			raceCourse.Name(),
 			result.RaceCount(),
 			result.BetCount(),

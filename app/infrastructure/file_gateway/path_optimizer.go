@@ -7,6 +7,7 @@ import (
 
 type PathOptimizer interface {
 	GetProjectRoot() (string, error)
+	// TODO 相対パス渡したら絶対パス返すメソッド
 }
 
 const (

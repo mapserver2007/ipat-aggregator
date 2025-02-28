@@ -41,5 +41,11 @@ func (a *summary) Execute(ctx context.Context, input *SummaryInput) error {
 }
 
 func (a *summary) ExecuteV2(ctx context.Context, input *SummaryInput) error {
-	return a.Execute(ctx, input)
+	entity := a.summaryService.Create(ctx, input.Tickets, input.Races)
+	err := a.summaryService.WriteV2(ctx, entity)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

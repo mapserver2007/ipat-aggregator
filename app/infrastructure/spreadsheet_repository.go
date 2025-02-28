@@ -71,6 +71,10 @@ func (s *spreadSheetRepository) WriteSummaryV2(
 	if err != nil {
 		return err
 	}
+	err = s.summaryGateway.StyleV2(ctx, summary)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

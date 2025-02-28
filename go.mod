@@ -5,6 +5,7 @@ go 1.23.1
 require (
 	github.com/gocolly/colly v1.2.0
 	github.com/google/wire v0.6.0
+	github.com/jinzhu/now v1.1.5
 	github.com/shopspring/decimal v1.4.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli v1.22.16

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jinzhu/now"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
@@ -60,25 +61,45 @@ func (s *summaryService) Create(
 	allTermResult := s.getAllTermResult(ctx, tickets)
 	yearTermResult := s.getYearTermResult(ctx, tickets)
 	monthTermResult := s.getMonthTermResult(ctx, tickets)
+	weekTermResult := s.getWeekTermResult(ctx, tickets)
 	ticketResultMap := s.getTicketResultMap(ctx, tickets)
+	ticketYearlyResultMap := s.getTicketYearlyResultMap(ctx, tickets)
+	ticketMonthlyResultMap := s.getTicketMonthlyResultMap(ctx, tickets)
 	classResultMap := s.getClassResultMap(ctx, tickets, races)
+	classYearlyResultMap := s.getClassYearlyResultMap(ctx, tickets, races)
+	classMonthlyResultMap := s.getClassMonthlyResultMap(ctx, tickets, races)
 	courseCategoryResultMap := s.getCourseCategoryResultMap(ctx, tickets, races)
 	distanceCategoryResultMap := s.getDistanceCategoryResultMap(ctx, tickets, races)
+	distanceCategoryYearlyResultMap := s.getDistanceCategoryYearlyResultMap(ctx, tickets, races)
+	distanceCategoryMonthlyResultMap := s.getDistanceCategoryMonthlyResultMap(ctx, tickets, races)
 	raceCourseResultMap := s.getRaceCourseResultMap(ctx, tickets, races)
+	raceCourseYearlyResultMap := s.getRaceCourseYearlyResultMap(ctx, tickets, races)
+	raceCourseMonthlyResultMap := s.getRaceCourseMonthlyResultMap(ctx, tickets, races)
+	yearlyResultMap := s.getYearlyResultMap(ctx, tickets)
 	monthlyResultMap := s.getMonthlyResultMap(ctx, tickets)
-	dailyResultMap := s.getDailyResultMap(ctx, tickets)
+	weeklyResultMap := s.getWeeklyResultMap(ctx, tickets)
 
 	return spreadsheet_entity.NewSummary(
 		allTermResult,
 		yearTermResult,
 		monthTermResult,
+		weekTermResult,
 		ticketResultMap,
+		ticketYearlyResultMap,
+		ticketMonthlyResultMap,
 		classResultMap,
+		classYearlyResultMap,
+		classMonthlyResultMap,
 		courseCategoryResultMap,
 		distanceCategoryResultMap,
+		distanceCategoryYearlyResultMap,
+		distanceCategoryMonthlyResultMap,
 		raceCourseResultMap,
+		raceCourseYearlyResultMap,
+		raceCourseMonthlyResultMap,
+		yearlyResultMap,
 		monthlyResultMap,
-		dailyResultMap,
+		weeklyResultMap,
 	)
 }
 
@@ -93,8 +114,7 @@ func (s *summaryService) WriteV2(
 	ctx context.Context,
 	data *spreadsheet_entity.Summary,
 ) error {
-	// ここに必要な処理を追加します
-	return nil // または適切な処理を実装してください
+	return s.spreadSheetRepository.WriteSummaryV2(ctx, data)
 }
 
 func (s *summaryService) createTermResult(
@@ -157,6 +177,40 @@ func (s *summaryService) getMonthTermResult(
 	return result
 }
 
+func (s *summaryService) getWeekTermResult(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+) *spreadsheet_entity.TicketResult {
+	currentTime := time.Now()
+
+	lastWeekMonday := now.New(currentTime).Monday().AddDate(0, 0, -7)
+	thisWeekMonday := now.New(currentTime).Monday()
+
+	currentMonthStart := now.New(currentTime).BeginningOfMonth()
+	if lastWeekMonday.Before(currentMonthStart) {
+		lastWeekMonday = currentMonthStart
+	}
+
+	result := s.createTermResult(ctx, tickets, lastWeekMonday, thisWeekMonday)
+
+	return result
+}
+
+func (s *summaryService) getTermRaceTicket(
+	tickets []*ticket_csv_entity.RaceTicket,
+	from time.Time,
+	to time.Time,
+) []*ticket_csv_entity.RaceTicket {
+	termRaceTicketMap := []*ticket_csv_entity.RaceTicket{}
+	for _, ticket := range tickets {
+		if ticket.Ticket().RaceDate().Date().Unix() >= from.Unix() && ticket.Ticket().RaceDate().Date().Unix() < to.Unix() {
+			termRaceTicketMap = append(termRaceTicketMap, ticket)
+		}
+	}
+
+	return termRaceTicketMap
+}
+
 func (s *summaryService) getTicketResultMap(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.RaceTicket,
@@ -175,6 +229,32 @@ func (s *summaryService) getTicketResultMap(
 		types.Trifecta, types.TrifectaFormation, types.TrifectaWheelOfFirst, types.TrifectaWheelOfSecond, types.TrifectaWheelOfFirstMulti, types.TrifectaWheelOfSecondMulti})
 
 	return ticketResultMap
+}
+
+func (s *summaryService) getTicketYearlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+) map[types.TicketType]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	yearFrom := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	nextYear := now.AddDate(1, 0, 0)
+	yearTo := time.Date(nextYear.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	ticketYearlyResultMap := s.getTicketResultMap(ctx, s.getTermRaceTicket(tickets, yearFrom, yearTo))
+
+	return ticketYearlyResultMap
+}
+
+func (s *summaryService) getTicketMonthlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+) map[types.TicketType]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	monthFrom := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	nextMonth := now.AddDate(0, 1, 0)
+	monthTo := time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	ticketMonthlyResultMap := s.getTicketResultMap(ctx, s.getTermRaceTicket(tickets, monthFrom, monthTo))
+
+	return ticketMonthlyResultMap
 }
 
 func (s *summaryService) getClassResultMap(
@@ -197,6 +277,34 @@ func (s *summaryService) getClassResultMap(
 	classResultMap[types.MakeDebut] = s.createClassResult(ctx, tickets, races, []types.GradeClass{types.MakeDebut})
 
 	return classResultMap
+}
+
+func (s *summaryService) getClassYearlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+	races []*data_cache_entity.Race,
+) map[types.GradeClass]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	yearFrom := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	nextYear := now.AddDate(1, 0, 0)
+	yearTo := time.Date(nextYear.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	classYearlyResultMap := s.getClassResultMap(ctx, s.getTermRaceTicket(tickets, yearFrom, yearTo), races)
+
+	return classYearlyResultMap
+}
+
+func (s *summaryService) getClassMonthlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+	races []*data_cache_entity.Race,
+) map[types.GradeClass]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	monthFrom := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	nextMonth := now.AddDate(0, 1, 0)
+	monthTo := time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	classMonthlyResultMap := s.getClassResultMap(ctx, s.getTermRaceTicket(tickets, monthFrom, monthTo), races)
+
+	return classMonthlyResultMap
 }
 
 func (s *summaryService) getCourseCategoryResultMap(
@@ -233,6 +341,34 @@ func (s *summaryService) getDistanceCategoryResultMap(
 	return distanceCategoryResultMap
 }
 
+func (s *summaryService) getDistanceCategoryYearlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+	races []*data_cache_entity.Race,
+) map[types.DistanceCategory]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	yearFrom := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	nextYear := now.AddDate(1, 0, 0)
+	yearTo := time.Date(nextYear.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	distanceCategoryYearlyResultMap := s.getDistanceCategoryResultMap(ctx, s.getTermRaceTicket(tickets, yearFrom, yearTo), races)
+
+	return distanceCategoryYearlyResultMap
+}
+
+func (s *summaryService) getDistanceCategoryMonthlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+	races []*data_cache_entity.Race,
+) map[types.DistanceCategory]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	monthFrom := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	nextMonth := now.AddDate(0, 1, 0)
+	monthTo := time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	distanceCategoryMonthlyResultMap := s.getDistanceCategoryResultMap(ctx, s.getTermRaceTicket(tickets, monthFrom, monthTo), races)
+
+	return distanceCategoryMonthlyResultMap
+}
+
 func (s *summaryService) getRaceCourseResultMap(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.RaceTicket,
@@ -249,6 +385,57 @@ func (s *summaryService) getRaceCourseResultMap(
 	raceCourseResultMap[types.Overseas] = s.createRaceCourseResult(ctx, tickets, races, []types.RaceCourse{types.Longchamp, types.Deauville, types.Shatin, types.Meydan, types.SantaAnitaPark, types.KingAbdulaziz, types.York, types.Delmar})
 
 	return raceCourseResultMap
+}
+
+func (s *summaryService) getRaceCourseYearlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+	races []*data_cache_entity.Race,
+) map[types.RaceCourse]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	yearFrom := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	nextYear := now.AddDate(1, 0, 0)
+	yearTo := time.Date(nextYear.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+	raceCourseYearlyResultMap := s.getRaceCourseResultMap(ctx, s.getTermRaceTicket(tickets, yearFrom, yearTo), races)
+
+	return raceCourseYearlyResultMap
+}
+
+func (s *summaryService) getRaceCourseMonthlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+	races []*data_cache_entity.Race,
+) map[types.RaceCourse]*spreadsheet_entity.TicketResult {
+	now := time.Now()
+	monthFrom := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	nextMonth := now.AddDate(0, 1, 0)
+	monthTo := time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	raceCourseMonthlyResultMap := s.getRaceCourseResultMap(ctx, s.getTermRaceTicket(tickets, monthFrom, monthTo), races)
+
+	return raceCourseMonthlyResultMap
+}
+
+func (s *summaryService) getYearlyResultMap(
+	ctx context.Context,
+	tickets []*ticket_csv_entity.RaceTicket,
+) map[time.Time]*spreadsheet_entity.TicketResult {
+	dateTimeTicketMap := map[time.Time][]*ticket_csv_entity.RaceTicket{}
+	for _, raceTicket := range tickets {
+		dateStr := fmt.Sprintf("%d", raceTicket.Ticket().RaceDate().Value())
+		dateTime, _ := time.Parse("20060102", dateStr)
+		year := time.Date(dateTime.Year(), 1, 1, 0, 0, 0, 0, time.Local)
+		if _, ok := dateTimeTicketMap[year]; !ok {
+			dateTimeTicketMap[year] = make([]*ticket_csv_entity.RaceTicket, 0)
+		}
+		dateTimeTicketMap[year] = append(dateTimeTicketMap[year], raceTicket)
+	}
+
+	yearlyResultMap := map[time.Time]*spreadsheet_entity.TicketResult{}
+	for currentYear, raceTickets := range dateTimeTicketMap {
+		yearlyResultMap[currentYear] = s.createTermResult(ctx, raceTickets, currentYear, currentYear.AddDate(1, 0, 0))
+	}
+
+	return yearlyResultMap
 }
 
 func (s *summaryService) getMonthlyResultMap(
@@ -275,7 +462,7 @@ func (s *summaryService) getMonthlyResultMap(
 	return monthlyResultMap
 }
 
-func (s *summaryService) getDailyResultMap(
+func (s *summaryService) getWeeklyResultMap(
 	ctx context.Context,
 	tickets []*ticket_csv_entity.RaceTicket,
 ) map[time.Time]*spreadsheet_entity.TicketResult {
@@ -284,21 +471,20 @@ func (s *summaryService) getDailyResultMap(
 	for _, raceTicket := range tickets {
 		dateStr := fmt.Sprintf("%d", raceTicket.Ticket().RaceDate().Value())
 		dateTime, _ := time.Parse("20060102", dateStr)
-		date := time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.Local)
-		if date.Month() == now.Month() && date.Year() == now.Year() {
-			if _, ok := dateTimeTicketMap[date]; !ok {
-				dateTimeTicketMap[date] = make([]*ticket_csv_entity.RaceTicket, 0)
+		if dateTime.Month() == now.Month() && dateTime.Year() == now.Year() {
+			if _, ok := dateTimeTicketMap[dateTime]; !ok {
+				dateTimeTicketMap[dateTime] = make([]*ticket_csv_entity.RaceTicket, 0)
 			}
-			dateTimeTicketMap[date] = append(dateTimeTicketMap[date], raceTicket)
+			dateTimeTicketMap[dateTime] = append(dateTimeTicketMap[dateTime], raceTicket)
 		}
 	}
 
-	dailyResultMap := map[time.Time]*spreadsheet_entity.TicketResult{}
-	for currentDate, raceTickets := range dateTimeTicketMap {
-		dailyResultMap[currentDate] = s.createTermResult(ctx, raceTickets, currentDate, now.AddDate(0, 0, 1))
+	weeklyResultMap := map[time.Time]*spreadsheet_entity.TicketResult{}
+	for weekStart, raceTickets := range dateTimeTicketMap {
+		weeklyResultMap[weekStart] = s.createTermResult(ctx, raceTickets, weekStart, weekStart.AddDate(0, 0, 1))
 	}
 
-	return dailyResultMap
+	return weeklyResultMap
 }
 
 func (s *summaryService) createTicketResult(

@@ -19,7 +19,6 @@ type Summary interface {
 		tickets []*ticket_csv_entity.RaceTicket,
 		races []*data_cache_entity.Race,
 	) *spreadsheet_entity.Summary
-	Write(ctx context.Context, data *spreadsheet_entity.Summary) error
 	WriteV2(ctx context.Context, data *spreadsheet_entity.Summary) error
 }
 
@@ -101,13 +100,6 @@ func (s *summaryService) Create(
 		monthlyResultMap,
 		weeklyResultMap,
 	)
-}
-
-func (s *summaryService) Write(
-	ctx context.Context,
-	data *spreadsheet_entity.Summary,
-) error {
-	return s.spreadSheetRepository.WriteSummary(ctx, data)
 }
 
 func (s *summaryService) WriteV2(

@@ -9,7 +9,6 @@ import (
 )
 
 type Summary interface {
-	Execute(ctx context.Context, input *SummaryInput) error
 	ExecuteV2(ctx context.Context, input *SummaryInput) error
 }
 
@@ -28,16 +27,6 @@ func NewSummary(
 	return &summary{
 		summaryService: summaryService,
 	}
-}
-
-func (a *summary) Execute(ctx context.Context, input *SummaryInput) error {
-	entity := a.summaryService.Create(ctx, input.Tickets, input.Races)
-	err := a.summaryService.Write(ctx, entity)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (a *summary) ExecuteV2(ctx context.Context, input *SummaryInput) error {

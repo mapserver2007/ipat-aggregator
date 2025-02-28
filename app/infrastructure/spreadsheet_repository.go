@@ -43,26 +43,6 @@ func NewSpreadSheetRepository(
 	}
 }
 
-func (s *spreadSheetRepository) WriteSummary(
-	ctx context.Context,
-	summary *spreadsheet_entity.Summary,
-) error {
-	err := s.summaryGateway.Clear(ctx)
-	if err != nil {
-		return err
-	}
-	err = s.summaryGateway.Write(ctx, summary)
-	if err != nil {
-		return err
-	}
-	err = s.summaryGateway.Style(ctx, summary)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (s *spreadSheetRepository) WriteSummaryV2(
 	ctx context.Context,
 	summary *spreadsheet_entity.Summary,

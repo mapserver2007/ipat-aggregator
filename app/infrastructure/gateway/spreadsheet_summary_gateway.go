@@ -23,6 +23,7 @@ type SpreadSheetSummaryGateway interface {
 	Style(ctx context.Context, summary *spreadsheet_entity.Summary) error
 	StyleV2(ctx context.Context, summary *spreadsheet_entity.Summary) error
 	Clear(ctx context.Context) error
+	ClearV2(ctx context.Context) error
 }
 
 type spreadSheetSummaryGateway struct {
@@ -2344,6 +2345,38 @@ func (s *spreadSheetSummaryGateway) Clear(
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
 					EndColumnIndex:   16,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err = client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetSummaryGateway) ClearV2(ctx context.Context) error {
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetSummaryV2FileName)
+	if err != nil {
+		return err
+	}
+
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          config.SheetId(),
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   50,
 					EndRowIndex:      9999,
 				},
 				Cell: &sheets.CellData{},

@@ -67,12 +67,13 @@ func (s *spreadSheetRepository) WriteSummaryV2(
 	ctx context.Context,
 	summary *spreadsheet_entity.Summary,
 ) error {
-	err := s.summaryGateway.WriteV2(ctx, summary)
-	if err != nil {
+	if err := s.summaryGateway.ClearV2(ctx); err != nil {
 		return err
 	}
-	err = s.summaryGateway.StyleV2(ctx, summary)
-	if err != nil {
+	if err := s.summaryGateway.WriteV2(ctx, summary); err != nil {
+		return err
+	}
+	if err := s.summaryGateway.StyleV2(ctx, summary); err != nil {
 		return err
 	}
 

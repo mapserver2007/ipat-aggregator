@@ -22,7 +22,7 @@ type Race struct {
 	raceEntryHorses        []*RaceEntryHorse
 	raceResultHorseNumbers []types.HorseNumber
 	odds                   []*Odds
-	predictionFilters      []filter.Id
+	predictionFilters      []filter.AttributeId
 }
 
 func NewRace(
@@ -42,7 +42,7 @@ func NewRace(
 	raceEntryHorses []*RaceEntryHorse,
 	rawRaceResultHorseNumbers []int,
 	odds []*Odds,
-	predictionFilters []filter.Id,
+	predictionFilters []filter.AttributeId,
 ) *Race {
 	raceResultHorseNumbers := make([]types.HorseNumber, len(rawRaceResultHorseNumbers))
 	for idx := range rawRaceResultHorseNumbers {
@@ -134,6 +134,6 @@ func (r *Race) Odds() []*Odds {
 	return r.odds
 }
 
-func (r *Race) PredictionFilters() []filter.Id {
+func (r *Race) PredictionFilters() []filter.AttributeId {
 	return r.predictionFilters
 }

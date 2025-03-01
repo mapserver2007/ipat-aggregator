@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 const (
@@ -22,18 +24,21 @@ const (
 
 type ticketRepository struct {
 	betNumberConverter master_service.BetNumberConverter
+	pathOptimizer      file_gateway.PathOptimizer
 }
 
 func NewTicketRepository(
 	betNumberConverter master_service.BetNumberConverter,
+	pathOptimizer file_gateway.PathOptimizer,
 ) repository.TicketRepository {
 	return &ticketRepository{
 		betNumberConverter: betNumberConverter,
+		pathOptimizer:      pathOptimizer,
 	}
 }
 
 func (t *ticketRepository) List(ctx context.Context, path string) ([]string, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := t.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +65,21 @@ func (t *ticketRepository) List(ctx context.Context, path string) ([]string, err
 	return fileNames, nil
 }
 
-func (t *ticketRepository) Read(ctx context.Context, path string) ([]*ticket_csv_entity.Ticket, error) {
-	f, err := os.Open(path)
+func (t *ticketRepository) Read(
+	ctx context.Context,
+	path string,
+) ([]*ticket_csv_entity.Ticket, error) {
+	rootPath, err := t.pathOptimizer.GetProjectRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	absPath, err := filepath.Abs(fmt.Sprintf("%s/%s", rootPath, path))
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open(absPath)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +103,7 @@ func (t *ticketRepository) Read(ctx context.Context, path string) ([]*ticket_csv
 		rawRaceCourse := record[3]
 		rawRaceNo := record[5]
 		rawTicketType := record[6]
-		rawPayment := t.extractPayment(ctx, rawTicketType, record[8])
+		rawPayment := t.extractPayment(rawTicketType, record[8])
 
 		betNumbers, err := t.convertToSubTicketTypeBetNumbers(ctx, rawTicketType, record[7])
 		if err != nil {
@@ -166,7 +184,6 @@ func (t *ticketRepository) convertToSubTicketTypeBetNumbers(
 }
 
 func (t *ticketRepository) extractPayment(
-	ctx context.Context,
 	rawTicketType,
 	rawPayment string,
 ) string {

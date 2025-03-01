@@ -3,16 +3,17 @@ package master_service
 import (
 	"context"
 	"fmt"
+	net_url "net/url"
+	"sort"
+	"sync"
+	"time"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
 	"github.com/sirupsen/logrus"
-	net_url "net/url"
-	"sort"
-	"sync"
-	"time"
 )
 
 const (
@@ -47,7 +48,9 @@ func NewRaceId(
 	}
 }
 
-func (r *raceIdService) Get(ctx context.Context) (map[types.RaceDate][]types.RaceId, []types.RaceDate, error) {
+func (r *raceIdService) Get(
+	ctx context.Context,
+) (map[types.RaceDate][]types.RaceId, []types.RaceDate, error) {
 	var (
 		raceDateMap  map[types.RaceDate][]types.RaceId
 		excludeDates []types.RaceDate

@@ -1,12 +1,13 @@
 package converter
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"strconv"
-	"strings"
 )
 
 type OddsEntityConverter interface {

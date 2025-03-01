@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
@@ -15,20 +16,33 @@ const (
 )
 
 type SpreadSheetAnalysisPlaceGateway interface {
-	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, analysisFilters []filter.Id) error
-	Style(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, analysisFilters []filter.Id) error
+	Write(ctx context.Context,
+		firstPlaceMap,
+		secondPlaceMap,
+		thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+		analysisFilters []filter.AttributeId,
+	) error
+	Style(ctx context.Context,
+		firstPlaceMap,
+		secondPlaceMap,
+		thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+		analysisFilters []filter.AttributeId,
+	) error
 	Clear(ctx context.Context) error
 }
 
 type spreadSheetAnalysisPlaceGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetAnalysisPlaceGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetAnalysisPlaceGateway {
 	return &spreadSheetAnalysisPlaceGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -36,10 +50,10 @@ func (s *spreadSheetAnalysisPlaceGateway) Write(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
-	thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	analysisFilters []filter.Id,
+	thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	analysisFilters []filter.AttributeId,
 ) error {
-	client, configs, err := getSpreadSheetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
+	client, configs, err := s.spreadSheetConfigGateway.GetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
 	if err != nil {
 		return err
 	}
@@ -318,10 +332,10 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
-	thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	analysisFilters []filter.Id,
+	thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	analysisFilters []filter.AttributeId,
 ) error {
-	client, configs, err := getSpreadSheetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
+	client, configs, err := s.spreadSheetConfigGateway.GetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
 	if err != nil {
 		return err
 	}
@@ -769,7 +783,7 @@ func (s *spreadSheetAnalysisPlaceGateway) Style(
 }
 
 func (s *spreadSheetAnalysisPlaceGateway) Clear(ctx context.Context) error {
-	client, configs, err := getSpreadSheetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
+	client, configs, err := s.spreadSheetConfigGateway.GetConfigs(ctx, spreadSheetAnalysisPlaceFileName)
 	if err != nil {
 		return err
 	}

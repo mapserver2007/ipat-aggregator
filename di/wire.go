@@ -14,6 +14,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/prediction_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
@@ -52,6 +53,7 @@ var MasterSet = wire.NewSet(
 	gateway.NewNetKeibaGateway,
 	gateway.NewNetKeibaCollector,
 	gateway.NewTospoGateway,
+	file_gateway.NewPathOptimizer,
 )
 
 var AggregationSet = wire.NewSet(
@@ -79,6 +81,7 @@ var AnalysisSet = wire.NewSet(
 	analysis_service.NewPlaceAllIn,
 	analysis_service.NewPlaceUnHit,
 	analysis_service.NewPlaceCheckList,
+	analysis_service.NewBetaWin,
 	master_service.NewHorse,
 	master_service.NewRaceForecast,
 	filter_service.NewAnalysisFilter,
@@ -115,6 +118,8 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetPredictionOddsGateway,
 	gateway.NewSpreadSheetPredictionCheckListGateway,
 	gateway.NewSpreadSheetPredictionMarkerGateway,
+	gateway.NewSpreadSheetConfigGateway,
+	file_gateway.NewPathOptimizer,
 )
 
 func NewMaster(

@@ -3,11 +3,12 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"strings"
 )
 
 const (
@@ -21,14 +22,17 @@ type SpreadSheetListGateway interface {
 }
 
 type spreadSheetListGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetListGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetListGateway {
 	return &spreadSheetListGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -36,7 +40,7 @@ func (s *spreadSheetListGateway) Write(
 	ctx context.Context,
 	rows []*spreadsheet_entity.ListRow,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetListFileName)
 	if err != nil {
 		return err
 	}
@@ -44,7 +48,7 @@ func (s *spreadSheetListGateway) Write(
 	s.logger.Infof("write list start")
 
 	writeRange := fmt.Sprintf("%s!%s", config.SheetName(), "A1")
-	values := [][]interface{}{
+	values := [][]any{
 		{
 			"レース条件",
 			"",
@@ -75,7 +79,7 @@ func (s *spreadSheetListGateway) Write(
 	}
 
 	for _, row := range rows {
-		values = append(values, []interface{}{
+		values = append(values, []any{
 			row.Data().RaceDate(),
 			row.Data().Class(),
 			row.Data().CourseCategory(),
@@ -125,7 +129,7 @@ func (s *spreadSheetListGateway) Style(
 	ctx context.Context,
 	rows []*spreadsheet_entity.ListRow,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetListFileName)
 	if err != nil {
 		return err
 	}
@@ -277,7 +281,7 @@ func (s *spreadSheetListGateway) Style(
 }
 
 func (s *spreadSheetListGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetListFileName)
 	if err != nil {
 		return err
 	}

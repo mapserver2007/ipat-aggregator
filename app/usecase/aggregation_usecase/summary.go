@@ -2,13 +2,14 @@ package aggregation_usecase
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/aggregation_service"
 )
 
 type Summary interface {
-	Execute(ctx context.Context, input *SummaryInput) error
+	ExecuteV2(ctx context.Context, input *SummaryInput) error
 }
 
 type SummaryInput struct {
@@ -28,9 +29,9 @@ func NewSummary(
 	}
 }
 
-func (a *summary) Execute(ctx context.Context, input *SummaryInput) error {
+func (a *summary) ExecuteV2(ctx context.Context, input *SummaryInput) error {
 	entity := a.summaryService.Create(ctx, input.Tickets, input.Races)
-	err := a.summaryService.Write(ctx, entity)
+	err := a.summaryService.WriteV2(ctx, entity)
 	if err != nil {
 		return err
 	}

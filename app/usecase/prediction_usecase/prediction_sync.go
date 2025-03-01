@@ -2,10 +2,11 @@ package prediction_usecase
 
 import (
 	"context"
+	"sync"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
-	"sync"
 )
 
 const markerSyncParallel = 3
@@ -41,7 +42,7 @@ func (p *prediction) Sync(ctx context.Context) error {
 		go func(splitRaceIds []types.RaceId) {
 			defer wg.Done()
 			localPredictionMarkers := make([]*prediction_entity.Marker, 0, len(splitRaceIds))
-			p.logger.Infof("prediction marker sync processing: %v/%v", end, len(splitRaceIds))
+			p.logger.Infof("prediction marker sync processing: %v/%v", end, len(raceIds))
 			for _, raceId := range splitRaceIds {
 				select {
 				case <-taskCtx.Done():

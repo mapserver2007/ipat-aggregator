@@ -3,11 +3,12 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
-	"sort"
 )
 
 const (
@@ -15,20 +16,29 @@ const (
 )
 
 type SpreadSheetPredictionOddsGateway interface {
-	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
-	Style(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
+	Write(ctx context.Context,
+		firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
+		raceCourseMap map[types.RaceCourse][]types.RaceId,
+	) error
+	Style(ctx context.Context,
+		firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
+		raceCourseMap map[types.RaceCourse][]types.RaceId,
+	) error
 	Clear(ctx context.Context) error
 }
 
 type spreadSheetPredictionOddsGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetPredictionOddsGateway(
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 	logger *logrus.Logger,
 ) SpreadSheetPredictionOddsGateway {
 	return &spreadSheetPredictionOddsGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -39,7 +49,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 	thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
 	raceCourseMap map[types.RaceCourse][]types.RaceId,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionOddsFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionOddsFileName)
 	if err != nil {
 		return err
 	}
@@ -272,7 +282,7 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 	thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
 	raceCourseMap map[types.RaceCourse][]types.RaceId,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionOddsFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionOddsFileName)
 	if err != nil {
 		return err
 	}
@@ -543,7 +553,7 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 }
 
 func (s *spreadSheetPredictionOddsGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionOddsFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionOddsFileName)
 	if err != nil {
 		return err
 	}

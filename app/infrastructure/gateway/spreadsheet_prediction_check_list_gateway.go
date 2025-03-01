@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/sheets/v4"
@@ -20,7 +21,10 @@ var checkListItems = []string{
 	"前走または2走前と今走の距離が同じなこと",
 	"前走または2走前と今走のコースが同じなこと",
 	"前走または2走前に馬券内なこと",
+	// "今走と同距離で馬券内経験があること",
+	// "今走と同コースで馬券内経験があること",
 	"今走の馬場状態と同じ馬場状態で馬券内経験があること",
+	// "同一季節内で馬券内経験があること",
 	"斤量増でないこと",
 	"昇級初戦でないこと",
 	"継続騎乗もしくは鞍上強化であること",
@@ -37,14 +41,17 @@ type SpreadSheetPredictionCheckListGateway interface {
 }
 
 type spreadSheetPredictionCheckListGateway struct {
-	logger *logrus.Logger
+	spreadSheetConfigGateway SpreadSheetConfigGateway
+	logger                   *logrus.Logger
 }
 
 func NewSpreadSheetPredictionCheckListGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetPredictionCheckListGateway {
 	return &spreadSheetPredictionCheckListGateway{
-		logger: logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
+		logger:                   logger,
 	}
 }
 
@@ -52,7 +59,7 @@ func (s *spreadSheetPredictionCheckListGateway) Write(
 	ctx context.Context,
 	rows []*spreadsheet_entity.PredictionCheckList,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionCheckListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionCheckListFileName)
 	if err != nil {
 		return err
 	}
@@ -168,7 +175,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(
 	ctx context.Context,
 	rows []*spreadsheet_entity.PredictionCheckList,
 ) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionCheckListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionCheckListFileName)
 	if err != nil {
 		return err
 	}
@@ -364,7 +371,7 @@ func (s *spreadSheetPredictionCheckListGateway) Style(
 }
 
 func (s *spreadSheetPredictionCheckListGateway) Clear(ctx context.Context) error {
-	client, config, err := getSpreadSheetConfig(ctx, spreadSheetPredictionCheckListFileName)
+	client, config, err := s.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetPredictionCheckListFileName)
 	if err != nil {
 		return err
 	}

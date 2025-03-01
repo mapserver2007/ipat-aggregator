@@ -2,6 +2,7 @@ package analysis_service
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )

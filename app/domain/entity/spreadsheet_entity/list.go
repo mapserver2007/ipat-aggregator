@@ -2,10 +2,11 @@ package spreadsheet_entity
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
-	"strconv"
 )
 
 type ListRow struct {
@@ -262,40 +263,50 @@ func NewListRow(
 		classColor = types.ThirdColor
 	}
 
-	switch favoriteHorse.HorseName() {
-	case race.RaceResults()[0].HorseName():
-		favoriteHorseColor = types.FirstColor
-	case race.RaceResults()[1].HorseName():
-		favoriteHorseColor = types.SecondColor
-	case race.RaceResults()[2].HorseName():
-		favoriteHorseColor = types.ThirdColor
-	}
+	for _, raceResult := range race.RaceResults() {
+		if raceResult.HorseName() == favoriteHorse.HorseName() {
+			switch raceResult.OrderNo() {
+			case 1:
+				favoriteHorseColor = types.FirstColor
+			case 2:
+				favoriteHorseColor = types.SecondColor
+			case 3:
+				favoriteHorseColor = types.ThirdColor
+			}
+		}
 
-	switch rivalHorse.HorseName() {
-	case race.RaceResults()[0].HorseName():
-		rivalHorseColor = types.FirstColor
-	case race.RaceResults()[1].HorseName():
-		rivalHorseColor = types.SecondColor
-	case race.RaceResults()[2].HorseName():
-		rivalHorseColor = types.ThirdColor
-	}
+		if raceResult.OrderNo() == 1 {
+			switch raceResult.PopularNumber() {
+			case 1:
+				firstPlaceHorseColor = types.FirstColor
+			case 2:
+				firstPlaceHorseColor = types.SecondColor
+			case 3:
+				firstPlaceHorseColor = types.ThirdColor
+			}
+		}
 
-	switch race.RaceResults()[0].PopularNumber() {
-	case 1:
-		firstPlaceHorseColor = types.FirstColor
-	case 2:
-		firstPlaceHorseColor = types.SecondColor
-	case 3:
-		firstPlaceHorseColor = types.ThirdColor
-	}
+		if raceResult.HorseName() == rivalHorse.HorseName() {
+			switch raceResult.OrderNo() {
+			case 1:
+				rivalHorseColor = types.FirstColor
+			case 2:
+				rivalHorseColor = types.SecondColor
+			case 3:
+				rivalHorseColor = types.ThirdColor
+			}
+		}
 
-	switch race.RaceResults()[1].PopularNumber() {
-	case 1:
-		secondPlaceHorseColor = types.FirstColor
-	case 2:
-		secondPlaceHorseColor = types.SecondColor
-	case 3:
-		secondPlaceHorseColor = types.ThirdColor
+		if raceResult.OrderNo() == 2 {
+			switch raceResult.PopularNumber() {
+			case 1:
+				secondPlaceHorseColor = types.FirstColor
+			case 2:
+				secondPlaceHorseColor = types.SecondColor
+			case 3:
+				secondPlaceHorseColor = types.ThirdColor
+			}
+		}
 	}
 
 	listStyle := &ListStyle{

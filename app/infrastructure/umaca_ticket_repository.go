@@ -4,31 +4,39 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/umaca_csv_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/umaca_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 const (
 	ticketUmacaDataSuffix = "_tohyo_umaca"
 )
 
-type umacaTicketRepository struct{}
+type umacaTicketRepository struct {
+	pathOptimizer file_gateway.PathOptimizer
+}
 
-func NewUmacaTicketRepository() repository.UmacaTicketRepository {
-	return &umacaTicketRepository{}
+func NewUmacaTicketRepository(
+	pathOptimizer file_gateway.PathOptimizer,
+) repository.UmacaTicketRepository {
+	return &umacaTicketRepository{
+		pathOptimizer: pathOptimizer,
+	}
 }
 
 func (u *umacaTicketRepository) GetMaster(
 	ctx context.Context,
 	path string,
 ) ([]*umaca_csv_entity.UmacaMaster, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := u.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +84,7 @@ func (u *umacaTicketRepository) GetMaster(
 }
 
 func (u *umacaTicketRepository) List(ctx context.Context, path string) ([]string, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := u.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +116,7 @@ func (u *umacaTicketRepository) Write(
 	path string,
 	data [][]string,
 ) error {
-	rootPath, err := os.Getwd()
+	rootPath, err := u.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return err
 	}

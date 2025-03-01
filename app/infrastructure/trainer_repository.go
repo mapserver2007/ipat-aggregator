@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"

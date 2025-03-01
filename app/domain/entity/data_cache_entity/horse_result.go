@@ -1,9 +1,10 @@
 package data_cache_entity
 
 import (
+	"strconv"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/shopspring/decimal"
-	"strconv"
 )
 
 type HorseResult struct {

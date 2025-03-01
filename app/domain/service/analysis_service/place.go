@@ -3,6 +3,8 @@ package analysis_service
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
@@ -12,13 +14,12 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
-	"strconv"
 )
 
 type Place interface {
 	Create(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race) ([]*analysis_entity.PlaceCalculable, error)
-	Convert(ctx context.Context, calculables []*analysis_entity.PlaceCalculable) (map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, []filter.Id)
-	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace, filters []filter.Id) error
+	Convert(ctx context.Context, calculables []*analysis_entity.PlaceCalculable) (map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, []filter.AttributeId)
+	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, filters []filter.AttributeId) error
 }
 
 type placeService struct {
@@ -132,14 +133,14 @@ func (p *placeService) Convert(
 	ctx context.Context,
 	calculables []*analysis_entity.PlaceCalculable,
 ) (
-	map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	[]filter.Id,
+	map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	[]filter.AttributeId,
 ) {
-	firstPlaceMap := map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
-	secondPlaceMap := map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
-	thirdPlaceMap := map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
+	firstPlaceMap := map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace{}
+	secondPlaceMap := map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace{}
+	thirdPlaceMap := map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace{}
 	analysisFilters := p.getFilters()
 
 	markers := []types.Marker{
@@ -147,9 +148,9 @@ func (p *placeService) Convert(
 	}
 
 	for _, marker := range markers {
-		firstPlaceMap[marker] = map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
-		secondPlaceMap[marker] = map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
-		thirdPlaceMap[marker] = map[filter.Id]*spreadsheet_entity.AnalysisPlace{}
+		firstPlaceMap[marker] = map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace{}
+		secondPlaceMap[marker] = map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace{}
+		thirdPlaceMap[marker] = map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace{}
 
 		for _, analysisFilter := range analysisFilters {
 			raceIdMap := map[types.RaceId]bool{}
@@ -161,7 +162,7 @@ func (p *placeService) Convert(
 					continue
 				}
 
-				var calcFilter filter.Id
+				var calcFilter filter.AttributeId
 				for _, f := range calculable.Filters() {
 					calcFilter |= f
 				}
@@ -428,8 +429,8 @@ func (p *placeService) Write(
 	ctx context.Context,
 	firstPlaceMap,
 	secondPlaceMap,
-	thirdPlaceMap map[types.Marker]map[filter.Id]*spreadsheet_entity.AnalysisPlace,
-	filters []filter.Id,
+	thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+	filters []filter.AttributeId,
 ) error {
 	return p.spreadSheetRepository.WriteAnalysisPlace(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, filters)
 }
@@ -502,8 +503,8 @@ func (p *placeService) getUnHitMarkerCombinationIds(
 	return unHitMarkerCombinationIds
 }
 
-func (p *placeService) getFilters() []filter.Id {
-	return []filter.Id{
+func (p *placeService) getFilters() []filter.AttributeId {
+	return []filter.AttributeId{
 		filter.All,
 		filter.Turf | filter.Niigata | filter.Distance1000m,
 		//filter.Turf | filter.Hakodate | filter.Distance1000m, // 現在は使われていない

@@ -4,23 +4,28 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
-	"os"
-	"path/filepath"
 )
 
 type jockeyRepository struct {
 	netKeibaGateway gateway.NetKeibaGateway
+	pathOptimizer   file_gateway.PathOptimizer
 }
 
 func NewJockeyRepository(
 	netKeibaGateway gateway.NetKeibaGateway,
+	pathOptimizer file_gateway.PathOptimizer,
 ) repository.JockeyRepository {
 	return &jockeyRepository{
 		netKeibaGateway: netKeibaGateway,
+		pathOptimizer:   pathOptimizer,
 	}
 }
 
@@ -28,7 +33,7 @@ func (j *jockeyRepository) Read(
 	ctx context.Context,
 	path string,
 ) (*raw_entity.JockeyInfo, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := j.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +67,7 @@ func (j *jockeyRepository) Write(
 		return err
 	}
 
-	rootPath, err := os.Getwd()
+	rootPath, err := j.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return err
 	}

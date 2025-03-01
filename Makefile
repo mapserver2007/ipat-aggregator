@@ -6,6 +6,9 @@ GOBIN=$(GOBASE)/bin
 gen-wire:
 	wire gen di/wire.go
 
+lint:
+	goimports -w .
+
 build:
 	go mod download
 	go build -o bin/ipat-aggreagtor cmd/main.go

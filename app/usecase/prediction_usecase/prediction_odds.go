@@ -2,10 +2,11 @@ package prediction_usecase
 
 import (
 	"context"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"sort"
 	"sync"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 )
 
 const oddsParallel = 5

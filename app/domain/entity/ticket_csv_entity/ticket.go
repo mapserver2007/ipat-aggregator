@@ -1,8 +1,9 @@
 package ticket_csv_entity
 
 import (
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"strconv"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 type Ticket struct {

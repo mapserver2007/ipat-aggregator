@@ -2,6 +2,7 @@ package aggregation_usecase
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/aggregation_service"
 )

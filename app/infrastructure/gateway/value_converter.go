@@ -1,10 +1,11 @@
 package gateway
 
 import (
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 	"io"
 	"strings"
+
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 func ConvertFromEucJPToUtf8(eucjpStr string) string {

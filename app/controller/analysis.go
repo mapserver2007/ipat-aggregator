@@ -2,11 +2,10 @@ package controller
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/sirupsen/logrus"
 )
-
-const analysisParallel = 2
 
 type Analysis struct {
 	analysisUseCase analysis_usecase.Analysis
@@ -70,4 +69,19 @@ func (a *Analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) {
 		a.logger.Errorf("analysis place un hit error: %v", err)
 	}
 	a.logger.Info("fetching analysis place un hit in end")
+}
+
+func (a *Analysis) Beta(ctx context.Context, input *AnalysisInput) {
+	a.logger.Info("fetching analysis beta start")
+	if err := a.analysisUseCase.Beta(ctx, &analysis_usecase.AnalysisInput{
+		Markers: input.Master.AnalysisMarkers,
+		Races:   input.Master.Races,
+		Odds: &analysis_usecase.AnalysisOddsInput{
+			Win:   input.Master.WinOdds,
+			Place: input.Master.PlaceOdds,
+		},
+	}); err != nil {
+		a.logger.Errorf("analysis beta error: %v", err)
+	}
+	a.logger.Info("fetching analysis beta end")
 }

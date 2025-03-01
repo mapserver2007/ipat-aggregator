@@ -4,27 +4,35 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
-	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 	"os"
 	"path/filepath"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 )
 
 type raceIdRepository struct {
 	netKeibaGateway gateway.NetKeibaGateway
+	pathOptimizer   file_gateway.PathOptimizer
 }
 
 func NewRaceIdRepository(
 	netKeibaGateway gateway.NetKeibaGateway,
+	pathOptimizer file_gateway.PathOptimizer,
 ) repository.RaceIdRepository {
 	return &raceIdRepository{
 		netKeibaGateway: netKeibaGateway,
+		pathOptimizer:   pathOptimizer,
 	}
 }
 
-func (r *raceIdRepository) Read(ctx context.Context, path string) (*raw_entity.RaceIdInfo, error) {
-	rootPath, err := os.Getwd()
+func (r *raceIdRepository) Read(
+	ctx context.Context,
+	path string,
+) (*raw_entity.RaceIdInfo, error) {
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +66,7 @@ func (r *raceIdRepository) Write(
 		return err
 	}
 
-	rootPath, err := os.Getwd()
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return err
 	}

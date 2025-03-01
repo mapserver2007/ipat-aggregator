@@ -3,6 +3,8 @@ package prediction_service
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
@@ -12,8 +14,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/shopspring/decimal"
-	"sync"
-	"time"
 )
 
 type Odds interface {
@@ -28,7 +28,6 @@ type oddsService struct {
 	raceRepository        repository.RaceRepository
 	spreadSheetRepository repository.SpreadSheetRepository
 	filterService         filter_service.PredictionFilter
-	mu                    sync.Mutex
 }
 
 func NewOdds(
@@ -49,9 +48,6 @@ func (p *oddsService) Get(
 	ctx context.Context,
 	raceId types.RaceId,
 ) (*prediction_entity.Race, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	odds, err := p.oddRepository.Fetch(ctx, fmt.Sprintf(oddsUrl, raceId))
 	if err != nil {
 		return nil, err
@@ -120,7 +116,7 @@ func (p *oddsService) Convert(
 		horseNumberOddsMap[o.HorseNumber()] = o.Odds()
 	}
 
-	var predictionFilter filter.Id
+	var predictionFilter filter.AttributeId
 	for _, f := range race.PredictionFilters() {
 		predictionFilter |= f
 	}
@@ -506,7 +502,7 @@ func (p *oddsService) ConvertAll(
 		raceCourseMap[race.RaceCourse()] = append(raceCourseMap[race.RaceCourse()], race.RaceId())
 		predictionMarker := predictionMarkerMap[race.RaceId()]
 
-		var predictionFilter filter.Id
+		var predictionFilter filter.AttributeId
 		for _, f := range race.PredictionFilters() {
 			predictionFilter |= f
 		}

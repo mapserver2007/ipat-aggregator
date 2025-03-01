@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 )
 
@@ -28,7 +29,7 @@ func NewAggregation(
 }
 
 func (a *Aggregation) Execute(ctx context.Context, input *AggregationInput) error {
-	err := a.aggregationSummaryUseCase.Execute(ctx, &aggregation_usecase.SummaryInput{
+	err := a.aggregationSummaryUseCase.ExecuteV2(ctx, &aggregation_usecase.SummaryInput{
 		Tickets: input.Master.Tickets,
 		Races:   input.Master.Races,
 	})

@@ -2,12 +2,13 @@ package master_usecase
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"strconv"
 )
 
 type Master interface {

@@ -22,7 +22,7 @@ func NewPredictionRace(
 	raceCourseId types.RaceCourse,
 	courseCategory types.CourseCategory,
 	url string,
-	filters []filter.Id,
+	filters []filter.AttributeId,
 ) *PredictionRace {
 	var filterName string
 	for _, f := range filters {

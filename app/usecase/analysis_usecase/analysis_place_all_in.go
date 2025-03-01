@@ -7,11 +7,11 @@ func (a *analysis) PlaceAllIn(ctx context.Context, input *AnalysisInput) error {
 	if err != nil {
 		return err
 	}
-	placeAllInMap, filters := a.placeAllInService.Convert(ctx, placeAllInCalculables)
+	placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters := a.placeAllInService.Convert(ctx, placeAllInCalculables)
 	if err != nil {
 		return err
 	}
-	err = a.placeAllInService.Write(ctx, placeAllInMap, filters)
+	err = a.placeAllInService.Write(ctx, placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters)
 	if err != nil {
 		return err
 	}

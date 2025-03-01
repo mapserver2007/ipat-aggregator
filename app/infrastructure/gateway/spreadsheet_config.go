@@ -4,21 +4,44 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
-	"google.golang.org/api/option"
-	"google.golang.org/api/sheets/v4"
 	"os"
 	"path/filepath"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
+	"google.golang.org/api/option"
+	"google.golang.org/api/sheets/v4"
 )
 
 const secretFileName = "secret.json"
 
-func getSpreadSheetConfig(
+type SpreadSheetConfigGateway interface {
+	GetConfig(ctx context.Context,
+		spreadSheetConfigFileName string,
+	) (*sheets.Service, *spreadsheet_entity.SpreadSheetConfig, error)
+	GetConfigs(ctx context.Context,
+		spreadSheetConfigFileName string,
+	) (*sheets.Service, []*spreadsheet_entity.SpreadSheetConfig, error)
+}
+
+type spreadSheetConfigGateway struct {
+	pathOptimizer file_gateway.PathOptimizer
+}
+
+func NewSpreadSheetConfigGateway(
+	pathOptimizer file_gateway.PathOptimizer,
+) SpreadSheetConfigGateway {
+	return &spreadSheetConfigGateway{
+		pathOptimizer: pathOptimizer,
+	}
+}
+
+func (s *spreadSheetConfigGateway) GetConfig(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, *spreadsheet_entity.SpreadSheetConfig, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := s.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,11 +86,11 @@ func getSpreadSheetConfig(
 	return service, spreadSheetConfig, nil
 }
 
-func getSpreadSheetConfigs(
+func (s *spreadSheetConfigGateway) GetConfigs(
 	ctx context.Context,
 	spreadSheetConfigFileName string,
 ) (*sheets.Service, []*spreadsheet_entity.SpreadSheetConfig, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := s.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, nil, err
 	}

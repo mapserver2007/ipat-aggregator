@@ -17,7 +17,7 @@ type PlaceCalculable struct {
 	orderNo             int
 	entries             int
 	jockeyId            types.JockeyId
-	filters             []filter.Id
+	filters             []filter.AttributeId
 }
 
 func NewPlaceCalculable(
@@ -30,7 +30,7 @@ func NewPlaceCalculable(
 	orderNo int,
 	entries int,
 	jockeyId types.JockeyId,
-	filters []filter.Id,
+	filters []filter.AttributeId,
 ) *PlaceCalculable {
 	marker, _ := types.NewMarker(markerCombinationId.Value() % 10)
 	return &PlaceCalculable{
@@ -88,6 +88,6 @@ func (n *PlaceCalculable) JockeyId() types.JockeyId {
 	return n.jockeyId
 }
 
-func (n *PlaceCalculable) Filters() []filter.Id {
+func (n *PlaceCalculable) Filters() []filter.AttributeId {
 	return n.filters
 }

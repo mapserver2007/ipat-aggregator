@@ -3,14 +3,15 @@ package aggregation_service
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"log"
-	"strconv"
-	"time"
+	"github.com/sirupsen/logrus"
 )
 
 type TicketSummary interface {
@@ -21,15 +22,18 @@ type TicketSummary interface {
 type ticketSummaryService struct {
 	termService           summary_service.Term
 	spreadSheetRepository repository.SpreadSheetRepository
+	logger                *logrus.Logger
 }
 
 func NewTicketSummary(
 	termService summary_service.Term,
 	spreadSheetRepository repository.SpreadSheetRepository,
+	logger *logrus.Logger,
 ) TicketSummary {
 	return &ticketSummaryService{
 		termService:           termService,
 		spreadSheetRepository: spreadSheetRepository,
+		logger:                logger,
 	}
 }
 
@@ -76,7 +80,7 @@ func (t *ticketSummaryService) Create(
 			case types.Trifecta:
 				trifectaRaceTickets = append(trifectaRaceTickets, raceTicket)
 			default:
-				log.Println("unknown ticket type in TicketSummary.Create")
+				t.logger.Errorf("unknown ticket type in TicketSummary.Create")
 			}
 		}
 

@@ -4,22 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gocolly/colly"
-	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/gocolly/colly"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/file_gateway"
 )
 
 type NetKeibaCollector interface {
 	Client() *colly.Collector
 	Cookies(ctx context.Context) ([]*http.Cookie, error)
-	Cache(c bool)
+	Cache(c bool) bool
 	Login(ctx context.Context) error
 }
 
 type netKeibaCollector struct {
-	client *colly.Collector
+	client        *colly.Collector
+	pathOptimizer file_gateway.PathOptimizer
 }
 
 const (
@@ -28,12 +31,15 @@ const (
 	collyCacheDir       = "colly"
 )
 
-func NewNetKeibaCollector() NetKeibaCollector {
+func NewNetKeibaCollector(
+	pathOptimizer file_gateway.PathOptimizer,
+) NetKeibaCollector {
 	client := colly.NewCollector()
 	client.AllowURLRevisit = true
 	client.DetectCharset = true
 	collector := &netKeibaCollector{
-		client: client,
+		client:        client,
+		pathOptimizer: pathOptimizer,
 	}
 	collector.Cache(true)
 
@@ -44,18 +50,23 @@ func (n *netKeibaCollector) Client() *colly.Collector {
 	return n.client
 }
 
-func (n *netKeibaCollector) Cache(c bool) {
+func (n *netKeibaCollector) Cache(c bool) bool {
 	if c {
-		rootPath, _ := os.Getwd()
+		rootPath, err := n.pathOptimizer.GetProjectRoot()
+		if err != nil {
+			return false
+		}
 		cachePath, _ := filepath.Abs(fmt.Sprintf("%s/cache/%s", rootPath, collyCacheDir))
 		n.client.CacheDir = cachePath
 	} else {
 		n.client.CacheDir = ""
 	}
+
+	return true
 }
 
 func (n *netKeibaCollector) Cookies(ctx context.Context) ([]*http.Cookie, error) {
-	rootPath, err := os.Getwd()
+	rootPath, err := n.pathOptimizer.GetProjectRoot()
 	if err != nil {
 		return nil, err
 	}

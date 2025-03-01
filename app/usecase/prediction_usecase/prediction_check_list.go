@@ -3,6 +3,9 @@ package prediction_usecase
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
@@ -10,8 +13,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
-	"sort"
-	"sync"
 )
 
 const checkListParallel = 5

@@ -1,8 +1,9 @@
 package converter
 
 import (
-	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"sort"
+
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 func SortedRaceIdKeys[T any](m map[types.RaceId]T) []types.RaceId {

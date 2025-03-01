@@ -138,22 +138,22 @@ func (l *listService) Create(
 
 			// 本命候補がいる場合
 			if status.Included(types.FavoriteCandidate) {
-				favorites, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.FavoriteCandidate, favorites, nil, rawPayment)
+				favorites, rivals, status = l.getFavoritesAndRivals(ticketTypeRaceTickets, types.FavoriteCandidate, favorites, nil, rawPayment)
 			}
 
 			// 対抗候補がいる場合
 			if status.Included(types.RivalCandidate) {
-				_, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.RivalCandidate, rivals, nil, rawPayment)
+				_, rivals, status = l.getFavoritesAndRivals(ticketTypeRaceTickets, types.RivalCandidate, rivals, nil, rawPayment)
 			}
 
 			// 本命が決定済み、対抗が未決定
 			if status.Included(types.FavoriteCompleted) {
-				_, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.FavoriteCompleted, nil, favorites, rawPayment)
+				_, rivals, status = l.getFavoritesAndRivals(ticketTypeRaceTickets, types.FavoriteCompleted, nil, favorites, rawPayment)
 			}
 
 			// 本命、対抗が未決定
 			if status.Matched(types.PredictUncompleted) {
-				favorites, rivals, status = l.getFavoritesAndRivals(ctx, ticketTypeRaceTickets, types.PredictUncompleted, nil, nil, rawPayment)
+				favorites, rivals, status = l.getFavoritesAndRivals(ticketTypeRaceTickets, types.PredictUncompleted, nil, nil, rawPayment)
 			}
 
 			// 本命または対抗が決定してる場合、処理を抜ける
@@ -167,7 +167,7 @@ func (l *listService) Create(
 			// 候補になっている馬番絡みの払い戻し金額が最大の馬番に絞り込み、本命候補とする
 			// 同額の場合は複数返る
 			// それ以外の馬番は対抗候補とする
-			favoriteCandidates, rivalCandidates, isFound := l.getBetNumbersByMaxPayout(ctx, favorites, raceTickets)
+			favoriteCandidates, rivalCandidates, isFound := l.getBetNumbersByMaxPayout(favorites, raceTickets)
 			if isFound {
 				favorites = favoriteCandidates
 				rivals = rivalCandidates
@@ -204,7 +204,7 @@ func (l *listService) Create(
 			} else if len(rivals) >= 2 {
 				// 候補になっている馬番絡みの払い戻し金額が最大の馬番に絞り込む
 				// 同額の場合は複数返る
-				rivalCandidates, _, isFound := l.getBetNumbersByMaxPayout(ctx, rivals, raceTickets)
+				rivalCandidates, _, isFound := l.getBetNumbersByMaxPayout(rivals, raceTickets)
 				if isFound {
 					rivals = rivalCandidates
 				}
@@ -334,7 +334,6 @@ func (l *listService) Write(
 }
 
 func (l *listService) getFavoritesAndRivals(
-	ctx context.Context,
 	raceTickets []*ticket_csv_entity.RaceTicket,
 	status types.PredictStatus,
 	includeBetNumbers []types.BetNumber,
@@ -371,7 +370,7 @@ func (l *listService) getFavoritesAndRivals(
 
 	// 本命が決定していない場合(未決定または本命候補がいる場合)
 	if status.Matched(types.PredictUncompleted) || status.Included(types.FavoriteCandidate) {
-		favoriteBetNumbers = l.getMaxBetNumbers(ctx, refinedTickets, nil)
+		favoriteBetNumbers = l.getMaxBetNumbers(refinedTickets, nil)
 		// 本命候補が1つの場合は本命を決定する
 		// そうでない場合は候補を保持したまま次の処理へ
 		if len(favoriteBetNumbers) == 1 {
@@ -397,7 +396,7 @@ func (l *listService) getFavoritesAndRivals(
 			// 本命が1つに定まってる場合
 			// favoriteBetNumbersの要素が1つの場合：
 			// -> 本命が決定。対抗の検出のために本命馬番は除外する
-			rivalBetNumbers = l.getMaxBetNumbers(ctx, refinedTickets, favoriteBetNumbers)
+			rivalBetNumbers = l.getMaxBetNumbers(refinedTickets, favoriteBetNumbers)
 			if len(rivalBetNumbers) == 1 {
 				// rivalBetNumbersの要素が１つの場合：
 				// -> 対抗が決定
@@ -416,7 +415,7 @@ func (l *listService) getFavoritesAndRivals(
 
 	// 対抗が決定していない場合(未決定または対抗候補がいる場合)
 	if status.Included(types.RivalCandidate | types.FavoriteCompleted) {
-		rivalBetNumbers = l.getMaxBetNumbers(ctx, refinedTickets, excludeBetNumbers)
+		rivalBetNumbers = l.getMaxBetNumbers(refinedTickets, excludeBetNumbers)
 		if len(rivalBetNumbers) == 1 {
 			// 本命が1つに定まってる場合
 			// favoriteBetNumbersの要素が1つの場合：
@@ -434,7 +433,6 @@ func (l *listService) getFavoritesAndRivals(
 }
 
 func (l *listService) getMaxBetNumbers(
-	ctx context.Context,
 	tickets []*ticket_csv_entity.Ticket,
 	excludeBetNumbers []types.BetNumber,
 ) []types.BetNumber {
@@ -535,7 +533,6 @@ func (l *listService) getMaxBetNumbers(
 }
 
 func (l *listService) getBetNumbersByMaxPayout(
-	ctx context.Context,
 	candidateBetNumbers []types.BetNumber,
 	raceTickets []*ticket_csv_entity.RaceTicket,
 ) (
@@ -590,7 +587,10 @@ func (l *listService) getBetNumbersByMaxPayout(
 	return maxKeys, otherKeys, true
 }
 
-func (l *listService) containsInSlices(betNumbers []types.BetNumber, betNumber types.BetNumber) bool {
+func (l *listService) containsInSlices(
+	betNumbers []types.BetNumber,
+	betNumber types.BetNumber,
+) bool {
 	var (
 		slice1 []int
 		slice2 []int

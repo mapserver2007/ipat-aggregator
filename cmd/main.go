@@ -99,6 +99,20 @@ func main() {
 			},
 		},
 		{
+			Name:    "analysis-place-un-hit",
+			Aliases: []string{"ap3"},
+			Usage:   "analysis-place-un-hit",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis place un hit start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.PlaceUnHit(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis place un hit end")
+				return nil
+			},
+		},
+		{
 			Name:    "analysis-beta",
 			Aliases: []string{"ap4"},
 			Usage:   "analysis-beta",

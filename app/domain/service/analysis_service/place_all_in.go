@@ -16,9 +16,25 @@ import (
 )
 
 type PlaceAllIn interface {
-	Create(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race, winOdds []*data_cache_entity.Odds, placeOdds []*data_cache_entity.Odds) ([]*analysis_entity.PlaceAllInCalculable, error)
-	Convert(ctx context.Context, calculables []*analysis_entity.PlaceAllInCalculable) (map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, []filter.AttributeId, []filter.MarkerCombinationId)
-	Write(ctx context.Context, placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, attributeFilters []filter.AttributeId, markerCombinationFilters []filter.MarkerCombinationId) error
+	Create(ctx context.Context,
+		markers []*marker_csv_entity.AnalysisMarker,
+		races []*data_cache_entity.Race,
+		winOdds []*data_cache_entity.Odds,
+		placeOdds []*data_cache_entity.Odds,
+	) ([]*analysis_entity.PlaceAllInCalculable, error)
+	Convert(ctx context.Context,
+		calculables []*analysis_entity.PlaceAllInCalculable) (
+		map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		[]filter.AttributeId,
+		[]filter.MarkerCombinationId,
+	)
+	Write(ctx context.Context,
+		placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		attributeFilters []filter.AttributeId,
+		markerCombinationFilters []filter.MarkerCombinationId,
+	) error
 }
 
 type placeAllInService struct {

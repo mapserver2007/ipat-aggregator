@@ -11,8 +11,11 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
-func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
-	unHitRaces := a.placeUnHitService.GetUnHitRaces(ctx, input.Markers, input.Races)
+func (a *analysis) PlaceUnHit(
+	ctx context.Context,
+	input *AnalysisInput,
+) error {
+	unHitRaces := a.placeUnHitService.GetUnHitRaces(ctx, input.Markers, input.Races, input.Jockeys)
 
 	horses, err := a.horseMasterService.Get(ctx)
 	if err != nil {
@@ -29,9 +32,9 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 		return err
 	}
 
-	//unHitRaceMap := converter.ConvertToMap(unHitRaces, func(race *analysis_entity.Race) types.RaceId {
-	//	return race.RaceId()
-	//})
+	unHitRaceMap := converter.ConvertToMap(unHitRaces, func(race *analysis_entity.Race) types.RaceId {
+		return race.RaceId()
+	})
 
 	cacheHorseMap := converter.ConvertToMap(horses, func(horse *data_cache_entity.Horse) types.HorseId {
 		return horse.HorseId()
@@ -111,10 +114,9 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 			})
 
 			forecasts := make([]*data_cache_entity.Forecast, 0, len(fetchRaceForecasts))
-			for i := 0; i < len(fetchRaceForecasts); i++ {
-				if _, ok = horseNumberMap[fetchRaceForecasts[i].HorseNumber()]; ok {
-					forecast := a.raceForecastEntityConverter.TospoToDataCache(fetchRaceForecasts[i], fetchTrainingComments[i])
-					forecasts = append(forecasts, forecast)
+			for i, forecast := range fetchRaceForecasts {
+				if _, ok = horseNumberMap[forecast.HorseNumber()]; ok {
+					forecasts = append(forecasts, a.raceForecastEntityConverter.TospoToDataCache(forecast, fetchTrainingComments[i]))
 				}
 			}
 			cacheRaceForecasts = append(cacheRaceForecasts, data_cache_entity.NewRaceForecast(
@@ -129,20 +131,36 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 		}
 	}
 
-	cacheHorses, err := a.horseMasterService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
 	cacheRaceForecasts, err := a.raceForecastService.Get(ctx)
 	if err != nil {
 		return err
 	}
 
-	_ = unHitRaces
-	_ = cacheHorses
-	_ = unHitRaceRateMap
-	_ = cacheRaceForecasts
+	unHitRaceForecastMap := map[types.RaceId]*data_cache_entity.RaceForecast{}
+	for _, raceForecast := range cacheRaceForecasts {
+		if _, ok := unHitRaceMap[raceForecast.RaceId()]; ok {
+			unHitRaceForecastMap[raceForecast.RaceId()] = raceForecast
+		}
+	}
+
+	cacheHorses, err := a.horseMasterService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	horseMap := converter.ConvertToMap(cacheHorses, func(horse *data_cache_entity.Horse) types.HorseId {
+		return horse.HorseId()
+	})
+
+	analysisPlaceUnhits, err := a.placeUnHitService.Convert(ctx, unHitRaces, unHitRaceRateMap, unHitRaceForecastMap, horseMap)
+	if err != nil {
+		return err
+	}
+
+	err = a.placeUnHitService.Write(ctx, analysisPlaceUnhits)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -11,6 +11,7 @@ type RaceResult struct {
 	horseName     string
 	horseNumber   types.HorseNumber
 	jockeyId      types.JockeyId
+	jockeyName    string
 	odds          decimal.Decimal
 	popularNumber int
 }
@@ -21,6 +22,7 @@ func NewRaceResult(
 	horseName string,
 	horseNumber types.HorseNumber,
 	jockeyId types.JockeyId,
+	jockeyName string,
 	odds decimal.Decimal,
 	popularNumber int,
 ) *RaceResult {
@@ -30,6 +32,7 @@ func NewRaceResult(
 		horseName:     horseName,
 		horseNumber:   horseNumber,
 		jockeyId:      jockeyId,
+		jockeyName:    jockeyName,
 		odds:          odds,
 		popularNumber: popularNumber,
 	}
@@ -53,6 +56,10 @@ func (r *RaceResult) HorseNumber() types.HorseNumber {
 
 func (r *RaceResult) JockeyId() types.JockeyId {
 	return r.jockeyId
+}
+
+func (r *RaceResult) JockeyName() string {
+	return r.jockeyName
 }
 
 func (r *RaceResult) Odds() decimal.Decimal {

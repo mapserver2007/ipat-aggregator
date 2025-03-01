@@ -61,6 +61,7 @@ func (a *Analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) {
 	if err := a.analysisUseCase.PlaceUnHit(ctx, &analysis_usecase.AnalysisInput{
 		Markers: input.Master.AnalysisMarkers,
 		Races:   input.Master.Races,
+		Jockeys: input.Master.Jockeys,
 		Odds: &analysis_usecase.AnalysisOddsInput{
 			Win:   input.Master.WinOdds,
 			Place: input.Master.PlaceOdds,

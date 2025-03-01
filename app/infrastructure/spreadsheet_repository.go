@@ -16,6 +16,7 @@ type spreadSheetRepository struct {
 	listGateway                gateway.SpreadSheetListGateway
 	analysisPlaceGateway       gateway.SpreadSheetAnalysisPlaceGateway
 	analysisPlaceAllInGateway  gateway.SpreadSheetAnalysisPlaceAllInGateway
+	analysisPlaceUnhitGateway  gateway.SpreadSheetAnalysisPlaceUnhitGateway
 	predictionOddsGateway      gateway.SpreadSheetPredictionOddsGateway
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway
 	predictionMarkerGateway    gateway.SpreadSheetPredictionMarkerGateway
@@ -27,6 +28,7 @@ func NewSpreadSheetRepository(
 	listGateway gateway.SpreadSheetListGateway,
 	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway,
 	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway,
+	analysisPlaceUnhitGateway gateway.SpreadSheetAnalysisPlaceUnhitGateway,
 	predictionOddsGateway gateway.SpreadSheetPredictionOddsGateway,
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway,
 	predictionMarkerGateway gateway.SpreadSheetPredictionMarkerGateway,
@@ -37,6 +39,7 @@ func NewSpreadSheetRepository(
 		listGateway:                listGateway,
 		analysisPlaceGateway:       analysisPlaceGateway,
 		analysisPlaceAllInGateway:  analysisPlaceAllInGateway,
+		analysisPlaceUnhitGateway:  analysisPlaceUnhitGateway,
 		predictionOddsGateway:      predictionOddsGateway,
 		predictionCheckListGateway: predictionCheckListGateway,
 		predictionMarkerGateway:    predictionMarkerGateway,
@@ -145,6 +148,23 @@ func (s *spreadSheetRepository) WriteAnalysisPlaceAllIn(
 	}
 
 	err = s.analysisPlaceAllInGateway.Style(ctx, placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WriteAnalysisPlaceUnhit(
+	ctx context.Context,
+	analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit,
+) error {
+	// err := s.analysisPlaceUnhitGateway.Clear(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err := s.analysisPlaceUnhitGateway.Write(ctx, analysisPlaceUnhits)
 	if err != nil {
 		return err
 	}

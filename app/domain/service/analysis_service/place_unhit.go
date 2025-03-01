@@ -8,6 +8,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
@@ -18,18 +19,36 @@ import (
 )
 
 type PlaceUnHit interface {
-	GetUnHitRaces(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race) []*analysis_entity.Race
-	GetUnHitRaceRate(ctx context.Context, race *analysis_entity.Race, calculables []*analysis_entity.PlaceCalculable) map[types.HorseId][]float64
-	GetCheckList(ctx context.Context, race *analysis_entity.Race, horse *data_cache_entity.Horse, raceForecast *data_cache_entity.RaceForecast) error
+	GetUnHitRaces(ctx context.Context,
+		markers []*marker_csv_entity.AnalysisMarker,
+		races []*data_cache_entity.Race,
+		jockeys []*data_cache_entity.Jockey,
+	) []*analysis_entity.Race
+	GetUnHitRaceRate(ctx context.Context,
+		race *analysis_entity.Race,
+		calculables []*analysis_entity.PlaceCalculable,
+	) map[types.HorseId][]float64
+	GetCheckList(ctx context.Context,
+		race *analysis_entity.Race,
+		horse *data_cache_entity.Horse,
+		raceForecast *data_cache_entity.RaceForecast,
+	) error
 	FetchHorse(ctx context.Context, horseId types.HorseId) (*netkeiba_entity.Horse, error)
 	FetchRaceForecasts(ctx context.Context, raceId types.RaceId) ([]*tospo_entity.Forecast, error)
 	FetchTrainingComments(ctx context.Context, raceId types.RaceId) ([]*tospo_entity.TrainingComment, error)
-	Convert(ctx context.Context) error
+	Convert(ctx context.Context,
+		races []*analysis_entity.Race,
+		raceRateMap map[types.RaceId]map[types.HorseId][]float64,
+		raceForecastMap map[types.RaceId]*data_cache_entity.RaceForecast,
+		horseMap map[types.HorseId]*data_cache_entity.Horse,
+	) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error)
+	Write(ctx context.Context, analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit) error
 }
 
 type placeUnHitService struct {
 	horseRepository        repository.HorseRepository
 	raceForecastRepository repository.RaceForecastRepository
+	spreadSheetRepository  repository.SpreadSheetRepository
 	horseEntityConverter   converter.HorseEntityConverter
 	filterService          filter_service.AnalysisFilter
 	placeCheckListService  PlaceCheckList
@@ -38,6 +57,7 @@ type placeUnHitService struct {
 func NewPlaceUnHit(
 	horseRepository repository.HorseRepository,
 	raceForecastRepository repository.RaceForecastRepository,
+	spreadSheetRepository repository.SpreadSheetRepository,
 	horseEntityConverter converter.HorseEntityConverter,
 	filterService filter_service.AnalysisFilter,
 	placeCheckListService PlaceCheckList,
@@ -45,6 +65,7 @@ func NewPlaceUnHit(
 	return &placeUnHitService{
 		horseRepository:        horseRepository,
 		raceForecastRepository: raceForecastRepository,
+		spreadSheetRepository:  spreadSheetRepository,
 		horseEntityConverter:   horseEntityConverter,
 		filterService:          filterService,
 		placeCheckListService:  placeCheckListService,
@@ -55,9 +76,14 @@ func (p *placeUnHitService) GetUnHitRaces(
 	ctx context.Context,
 	markers []*marker_csv_entity.AnalysisMarker,
 	races []*data_cache_entity.Race,
+	jockeys []*data_cache_entity.Jockey,
 ) []*analysis_entity.Race {
 	markerMap := converter.ConvertToMap(markers, func(marker *marker_csv_entity.AnalysisMarker) types.RaceId {
 		return marker.RaceId()
+	})
+
+	jockeyMap := converter.ConvertToMap(jockeys, func(jockey *data_cache_entity.Jockey) types.JockeyId {
+		return jockey.JockeyId()
 	})
 
 	var unHitRaces []*analysis_entity.Race
@@ -78,12 +104,19 @@ func (p *placeUnHitService) GetUnHitRaces(
 			}
 
 			if raceResult.Odds().InexactFloat64() < config.AnalysisUnHitWinLowerOdds && raceResult.OrderNo() > 3 {
+				jockeyName := ""
+				jockey, ok := jockeyMap[raceResult.JockeyId()]
+				if ok {
+					jockeyName = jockey.JockeyName()
+				}
+
 				analysisRaceResults = append(analysisRaceResults, analysis_entity.NewRaceResult(
 					raceResult.OrderNo(),
 					raceResult.HorseId(),
 					raceResult.HorseName(),
 					raceResult.HorseNumber(),
 					raceResult.JockeyId(),
+					jockeyName,
 					raceResult.Odds(),
 					raceResult.PopularNumber(),
 				))
@@ -464,7 +497,47 @@ func (p *placeUnHitService) FetchTrainingComments(
 	return trainingComments, nil
 }
 
-func (p *placeUnHitService) Convert(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+func (p *placeUnHitService) Convert(ctx context.Context,
+	races []*analysis_entity.Race,
+	raceRateMap map[types.RaceId]map[types.HorseId][]float64,
+	raceForecastMap map[types.RaceId]*data_cache_entity.RaceForecast,
+	horseMap map[types.HorseId]*data_cache_entity.Horse,
+) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error) {
+	placeUnHitEntites := make([]*spreadsheet_entity.AnalysisPlaceUnhit, 0, len(races))
+	for _, race := range races {
+		for _, raceResult := range race.RaceResults() {
+			placeUnHitEntites = append(placeUnHitEntites, spreadsheet_entity.NewAnalysisPlaceUnhit(
+				race.RaceId(),
+				race.RaceDate(),
+				race.RaceNumber(),
+				race.RaceCourse(),
+				race.RaceName(),
+				race.Class(),
+				race.CourseCategory(),
+				race.Distance(),
+				race.RaceWeightCondition(),
+				race.TrackCondition(),
+				race.Entries(),
+				raceResult.HorseNumber(),
+				raceResult.HorseId(),
+				raceResult.HorseName(),
+				raceResult.JockeyId(),
+				raceResult.JockeyName(),
+				raceResult.PopularNumber(),
+				raceResult.Odds(),
+				raceResult.OrderNo(),
+			))
+		}
+
+	}
+
+	// TODO: 実装を追加
+	return placeUnHitEntites, nil
+}
+
+func (p *placeUnHitService) Write(
+	ctx context.Context,
+	analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit,
+) error {
+	return p.spreadSheetRepository.WriteAnalysisPlaceUnhit(ctx, analysisPlaceUnhits)
 }

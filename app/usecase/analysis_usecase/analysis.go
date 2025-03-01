@@ -21,6 +21,7 @@ type AnalysisInput struct {
 	Markers []*marker_csv_entity.AnalysisMarker
 	Races   []*data_cache_entity.Race
 	Odds    *AnalysisOddsInput
+	Jockeys []*data_cache_entity.Jockey
 }
 
 type AnalysisOddsInput struct {

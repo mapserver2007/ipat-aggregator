@@ -17,8 +17,18 @@ const (
 )
 
 type SpreadSheetAnalysisPlaceAllInGateway interface {
-	Write(ctx context.Context, placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, attributeFilters []filter.AttributeId, markerCombinationFilters []filter.MarkerCombinationId) error
-	Style(ctx context.Context, placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, attributeFilters []filter.AttributeId, markerCombinationFilters []filter.MarkerCombinationId) error
+	Write(ctx context.Context,
+		placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		attributeFilters []filter.AttributeId,
+		markerCombinationFilters []filter.MarkerCombinationId,
+	) error
+	Style(ctx context.Context,
+		placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		attributeFilters []filter.AttributeId,
+		markerCombinationFilters []filter.MarkerCombinationId,
+	) error
 	Clear(ctx context.Context) error
 }
 

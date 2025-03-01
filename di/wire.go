@@ -115,6 +115,7 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	gateway.NewSpreadSheetListGateway,
 	gateway.NewSpreadSheetAnalysisPlaceGateway,
 	gateway.NewSpreadSheetAnalysisPlaceAllInGateway,
+	gateway.NewSpreadSheetAnalysisPlaceUnhitGateway,
 	gateway.NewSpreadSheetPredictionOddsGateway,
 	gateway.NewSpreadSheetPredictionCheckListGateway,
 	gateway.NewSpreadSheetPredictionMarkerGateway,

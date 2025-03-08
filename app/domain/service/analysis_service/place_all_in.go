@@ -89,12 +89,14 @@ func (p *placeAllInService) Create(
 	for _, wo := range winOdds {
 		race, ok := raceMap[wo.RaceId()]
 		if !ok {
-			return nil, fmt.Errorf("race not found in placeAllInService.Create: %s", wo.RaceId())
+			// 印なしのレースもoddsデータ保存してるので見つからない場合はスキップ
+			continue
 		}
 
 		po, ok := placeOddsMap[wo.RaceId()]
 		if !ok {
-			return nil, fmt.Errorf("placeOdds not found in placeAllInService.Create: %s", wo.RaceId())
+			// 印なしのレースもoddsデータ保存してるので見つからない場合はスキップ
+			continue
 		}
 
 		marker, ok := markerMap[wo.RaceId()]

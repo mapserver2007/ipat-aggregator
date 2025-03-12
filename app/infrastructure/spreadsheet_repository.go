@@ -169,6 +169,11 @@ func (s *spreadSheetRepository) WriteAnalysisPlaceUnhit(
 		return err
 	}
 
+	err = s.analysisPlaceUnhitGateway.Style(ctx, analysisPlaceUnhits)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

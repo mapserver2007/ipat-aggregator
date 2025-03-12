@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/mapserver2007/ipat-aggregator/app/controller"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"github.com/sirupsen/logrus"
@@ -42,9 +43,21 @@ func main() {
 	logger.SetOutput(io.MultiWriter(os.Stdout, logFile))
 
 	masterCtrl := di.NewMaster(logger)
+	startDate, err := types.NewRaceDate(config.RaceStartDate)
+	if err != nil {
+		logger.Errorf("failed to create race date: %v", err)
+		return
+	}
+
+	endDate, err := types.NewRaceDate(config.RaceEndDate)
+	if err != nil {
+		logger.Errorf("failed to create race date: %v", err)
+		return
+	}
+
 	master, err := masterCtrl.Execute(ctx, &controller.MasterInput{
-		StartDate: config.RaceStartDate,
-		EndDate:   config.RaceEndDate,
+		StartDate: startDate,
+		EndDate:   endDate,
 	})
 
 	if err != nil {

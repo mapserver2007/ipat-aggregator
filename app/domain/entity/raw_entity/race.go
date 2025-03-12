@@ -26,14 +26,17 @@ type Race struct {
 }
 
 type RaceResult struct {
-	OrderNo       int    `json:"order_no"`
-	HorseId       string `json:"horse_id"`
-	HorseName     string `json:"horse_name"`
-	BracketNumber int    `json:"bracket_number"`
-	HorseNumber   int    `json:"horse_number"`
-	JockeyId      string `json:"jockey_id"`
-	Odds          string `json:"odds"`
-	PopularNumber int    `json:"popular_number"`
+	OrderNo        int    `json:"order_no"`
+	HorseId        string `json:"horse_id"`
+	HorseName      string `json:"horse_name"`
+	BracketNumber  int    `json:"bracket_number"`
+	HorseNumber    int    `json:"horse_number"`
+	JockeyId       string `json:"jockey_id"`
+	Odds           string `json:"odds"`
+	PopularNumber  int    `json:"popular_number"`
+	JockeyWeight   string `json:"jockey_weight"`
+	HorseWeight    int    `json:"horse_weight"`
+	HorseWeightAdd int    `json:"horse_weight_add"`
 }
 
 type PayoutResult struct {

@@ -39,9 +39,11 @@ type spreadSheetAnalysisPlaceAllInGateway struct {
 
 func NewSpreadSheetAnalysisPlaceAllInGateway(
 	logger *logrus.Logger,
+	spreadSheetConfigGateway SpreadSheetConfigGateway,
 ) SpreadSheetAnalysisPlaceAllInGateway {
 	return &spreadSheetAnalysisPlaceAllInGateway{
-		logger: logger,
+		logger:                   logger,
+		spreadSheetConfigGateway: spreadSheetConfigGateway,
 	}
 }
 

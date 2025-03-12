@@ -9,6 +9,12 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/shopspring/decimal"
+)
+
+const (
+	winOddsThreshold           = 10.0 // 赤オッズボーダー
+	trioPopularNumberThreshold = 100  // 三連複100番人気
 )
 
 func (a *analysis) PlaceUnHit(
@@ -16,6 +22,21 @@ func (a *analysis) PlaceUnHit(
 	input *AnalysisInput,
 ) error {
 	unHitRaces := a.placeUnHitService.GetUnHitRaces(ctx, input.Markers, input.Races, input.Jockeys)
+
+	winRedOdds, err := a.placeUnHitService.GetWinRedOdds(ctx, input.Odds.Win, decimal.NewFromFloat(winOddsThreshold))
+	if err != nil {
+		return err
+	}
+
+	winOddsFaults, err := a.placeUnHitService.GetWinOddsFaults(ctx, input.Odds.Win)
+	if err != nil {
+		return err
+	}
+
+	trioOdds, err := a.placeUnHitService.GetTrioOdds(ctx, input.Odds.Trio, trioPopularNumberThreshold)
+	if err != nil {
+		return err
+	}
 
 	horses, err := a.horseMasterService.Get(ctx)
 	if err != nil {
@@ -42,6 +63,29 @@ func (a *analysis) PlaceUnHit(
 
 	cacheRaceForecastMap := converter.ConvertToMap(raceForecasts, func(forecast *data_cache_entity.RaceForecast) types.RaceId {
 		return forecast.RaceId()
+	})
+
+	winMultiOddsMap := map[types.RaceId][]*analysis_entity.Odds{}
+	for _, odds := range winRedOdds {
+		if _, ok := winMultiOddsMap[odds.RaceId()]; !ok {
+			winMultiOddsMap[odds.RaceId()] = make([]*analysis_entity.Odds, 0)
+		}
+		winMultiOddsMap[odds.RaceId()] = append(winMultiOddsMap[odds.RaceId()], odds)
+	}
+
+	winOddsFaultMap := map[types.RaceId][]*analysis_entity.OddsFault{}
+	for _, oddsFault := range winOddsFaults {
+		if oddsFault.OddsFaultNo() > 2 {
+			continue
+		}
+		if _, ok := winOddsFaultMap[oddsFault.RaceId()]; !ok {
+			winOddsFaultMap[oddsFault.RaceId()] = make([]*analysis_entity.OddsFault, 0)
+		}
+		winOddsFaultMap[oddsFault.RaceId()] = append(winOddsFaultMap[oddsFault.RaceId()], oddsFault)
+	}
+
+	trioOddsMap := converter.ConvertToMap(trioOdds, func(odds *analysis_entity.Odds) types.RaceId {
+		return odds.RaceId()
 	})
 
 	fetchHorseMap := map[types.RaceDate][]*netkeiba_entity.Horse{}
@@ -152,9 +196,23 @@ func (a *analysis) PlaceUnHit(
 		return horse.HorseId()
 	})
 
-	analysisPlaceUnhits, err := a.placeUnHitService.Convert(ctx, unHitRaces, unHitRaceRateMap, unHitRaceForecastMap, horseMap)
+	analysisPlaceUnhits, err := a.placeUnHitService.CreateUnhitRaces(
+		ctx,
+		unHitRaces,
+		unHitRaceRateMap,
+		unHitRaceForecastMap,
+		horseMap,
+		winMultiOddsMap,
+		winOddsFaultMap,
+		trioOddsMap,
+	)
 	if err != nil {
 		return err
+	}
+
+	for _, analysisPlaceUnhit := range analysisPlaceUnhits {
+		race := unHitRaceMap[analysisPlaceUnhit.RaceId()]
+		a.placeUnHitService.CreateCheckPoints(ctx, race)
 	}
 
 	err = a.placeUnHitService.Write(ctx, analysisPlaceUnhits)

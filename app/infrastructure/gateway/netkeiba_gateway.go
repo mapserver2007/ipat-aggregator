@@ -8,6 +8,7 @@ import (
 	"net/http"
 	neturl "net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -130,6 +131,18 @@ func (n *netKeibaGateway) FetchRace(
 				horseId := segments[4]
 				orderNo, _ := strconv.Atoi(ce.DOM.Find(".Rank").Text())
 
+				jockeyWeight := ce.DOM.Find(".JockeyWeight").Text()
+				regex = regexp.MustCompile(`(\d+)\s*\(([-+]\d+|.+)\)`)
+				matches := regex.FindStringSubmatch(Trim(ce.DOM.Find(".Weight").Text()))
+
+				var horseWeight, horseWeightAdd int
+				if len(matches) == 3 {
+					horseWeight, _ = strconv.Atoi(matches[1])
+					if matches[2] != "前計不" { // 前走海外の例が少ないので、前走海外は0として扱う
+						horseWeightAdd, _ = strconv.Atoi(matches[2])
+					}
+				}
+
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					orderNo,
 					horseId,
@@ -139,6 +152,9 @@ func (n *netKeibaGateway) FetchRace(
 					jockeyId,
 					oddsList[1],
 					popularNumber,
+					jockeyWeight,
+					horseWeight,
+					horseWeightAdd,
 				))
 			} else if currentOrganizer == types.OverseaOrganizer {
 				ce.ForEach(".Num > div", func(j int, ce2 *colly.HTMLElement) {
@@ -163,6 +179,8 @@ func (n *netKeibaGateway) FetchRace(
 				horseId := segments[4]
 				orderNo, _ := strconv.Atoi(ce.DOM.Find(".Rank").Text())
 
+				jockeyWeight := ce.DOM.Find(".JockeyWeight").Text()
+
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					orderNo,
 					horseId,
@@ -172,6 +190,9 @@ func (n *netKeibaGateway) FetchRace(
 					jockeyId,
 					oddsList[1],
 					popularNumber,
+					jockeyWeight,
+					0,
+					0,
 				))
 			}
 		})
@@ -205,6 +226,21 @@ func (n *netKeibaGateway) FetchRace(
 				horseId := segments[4]
 				orderNo, _ := strconv.Atoi(ce.DOM.Find(".Rank").Text())
 
+				jockeyWeight := ce.DOM.Find(".JockeyWeight").Text()
+				regex = regexp.MustCompile(`(\d+)\s*\(([-+]\d+|.+)\)`)
+				matches := regex.FindStringSubmatch(Trim(ce.DOM.Find(".Weight").Text()))
+
+				var horseWeight, horseWeightAdd int
+				if len(matches) == 3 {
+					if matches[2] != "前計不" { // 前計不の場合はhorseWeightAddを0に設定
+						horseWeight, _ = strconv.Atoi(matches[1])
+						horseWeightAdd, _ = strconv.Atoi(matches[2])
+					} else {
+						horseWeight = 0 // 前計不の場合はhorseWeightを0に設定
+						horseWeightAdd = 0
+					}
+				}
+
 				raceResults = append(raceResults, netkeiba_entity.NewRaceResult(
 					orderNo,
 					horseId,
@@ -214,6 +250,9 @@ func (n *netKeibaGateway) FetchRace(
 					jockeyId,
 					oddsList[1],
 					popularNumber,
+					jockeyWeight,
+					horseWeight,
+					horseWeightAdd,
 				))
 			}
 		})
@@ -317,6 +356,12 @@ func (n *netKeibaGateway) FetchRace(
 								raceSexCondition = types.FillyAndMareLimited
 							}
 						case 6:
+							texts := strings.Split(text, "\n")
+							if len(texts) != 11 {
+								n.logger.Warnf("invalid race weight condition data: %s", url)
+								return
+							}
+							text := texts[7]
 							if text == types.AgeWeight.String() {
 								raceWeightCondition = types.AgeWeight
 							} else if text == types.FixedWeight.String() {
@@ -821,7 +866,6 @@ func (n *netKeibaGateway) FetchRaceCard(
 			rawHorseWeight := func() float64 {
 				rawHorseWeightText := ce.DOM.Find("td:nth-child(6)").Text()
 				rawHorseWeight, _ := strconv.ParseFloat(rawHorseWeightText, 64)
-
 				return rawHorseWeight
 			}()
 
@@ -1014,11 +1058,11 @@ func (n *netKeibaGateway) FetchHorse(
 					typedGradeClass = types.OpenClass
 				} else if strings.Contains(rawRaceName, "(L)") {
 					typedGradeClass = types.ListedClass
-				} else if strings.Contains(rawRaceName, "(3勝クラス)") {
+				} else if strings.Contains(rawRaceName, "3勝") {
 					typedGradeClass = types.ThreeWinClass
-				} else if strings.Contains(rawRaceName, "(2勝クラス)") {
+				} else if strings.Contains(rawRaceName, "2勝") {
 					typedGradeClass = types.TwoWinClass
-				} else if strings.Contains(rawRaceName, "(1勝クラス)") {
+				} else if strings.Contains(rawRaceName, "1勝") {
 					typedGradeClass = types.OneWinClass
 				} else if strings.Contains(rawRaceName, "未勝利") {
 					typedGradeClass = types.Maiden
@@ -1269,9 +1313,13 @@ func (n *netKeibaGateway) FetchWinOdds(
 		rawHorseNumber, _ := strconv.Atoi(rawNumber)
 		horseNumber := types.HorseNumber(rawHorseNumber)
 		odds = append(odds, netkeiba_entity.NewOdds(
-			types.Win, []string{list[0], list[1]}, popularNumber, []types.HorseNumber{horseNumber}, raceDate,
+			types.Win, []string{list[0]}, popularNumber, []types.HorseNumber{horseNumber}, raceDate,
 		))
 	}
+
+	sort.Slice(odds, func(i, j int) bool {
+		return odds[i].PopularNumber() < odds[j].PopularNumber()
+	})
 
 	return odds, nil
 }
@@ -1323,6 +1371,10 @@ func (n *netKeibaGateway) FetchPlaceOdds(
 		))
 	}
 
+	sort.Slice(odds, func(i, j int) bool {
+		return odds[i].PopularNumber() < odds[j].PopularNumber()
+	})
+
 	return odds, nil
 }
 
@@ -1359,16 +1411,17 @@ func (n *netKeibaGateway) FetchTrioOdds(
 	}
 
 	var odds []*netkeiba_entity.Odds
-	for rawNumber, list := range oddsInfo.Data.Odds.Trios {
-		rawHorseNumber1, _ := strconv.Atoi(rawNumber[0:2])
-		rawHorseNumber2, _ := strconv.Atoi(rawNumber[2:4])
-		rawHorseNumber3, _ := strconv.Atoi(rawNumber[4:6])
+	for _, list := range oddsInfo.Data.Odds.Trios {
+		popularNumber, _ := strconv.Atoi(list[2])
+		rawHorseNumber := list[3]
+		rawHorseNumber1, _ := strconv.Atoi(rawHorseNumber[0:2])
+		rawHorseNumber2, _ := strconv.Atoi(rawHorseNumber[2:4])
+		rawHorseNumber3, _ := strconv.Atoi(rawHorseNumber[4:6])
 		horseNumber1 := types.HorseNumber(rawHorseNumber1)
 		horseNumber2 := types.HorseNumber(rawHorseNumber2)
 		horseNumber3 := types.HorseNumber(rawHorseNumber3)
-		popularNumber, _ := strconv.Atoi(list[2])
 		odds = append(odds, netkeiba_entity.NewOdds(
-			types.Trio, []string{list[0], list[1]}, popularNumber, []types.HorseNumber{horseNumber1, horseNumber2, horseNumber3}, raceDate,
+			types.Trio, []string{list[0]}, popularNumber, []types.HorseNumber{horseNumber1, horseNumber2, horseNumber3}, raceDate,
 		))
 	}
 

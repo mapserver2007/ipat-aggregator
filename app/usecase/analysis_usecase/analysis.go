@@ -27,14 +27,15 @@ type AnalysisInput struct {
 type AnalysisOddsInput struct {
 	Win   []*data_cache_entity.Odds
 	Place []*data_cache_entity.Odds
+	Trio  []*data_cache_entity.Odds
 }
 
 type analysis struct {
 	placeService                analysis_service.Place
-	trioService                 analysis_service.Trio
 	placeAllInService           analysis_service.PlaceAllIn
 	placeUnHitService           analysis_service.PlaceUnHit
 	betaWinService              analysis_service.BetaWin
+	placeCheckPointService      analysis_service.PlaceCheckPoint
 	horseMasterService          master_service.Horse
 	raceForecastService         master_service.RaceForecast
 	raceForecastEntityConverter converter.RaceForecastEntityConverter
@@ -43,10 +44,10 @@ type analysis struct {
 
 func NewAnalysis(
 	placeService analysis_service.Place,
-	trioService analysis_service.Trio,
 	placeAllInService analysis_service.PlaceAllIn,
 	placeUnHitService analysis_service.PlaceUnHit,
 	betaWinService analysis_service.BetaWin,
+	placeCheckPointService analysis_service.PlaceCheckPoint,
 	horseMasterService master_service.Horse,
 	raceForecastService master_service.RaceForecast,
 	raceForecastEntityConverter converter.RaceForecastEntityConverter,
@@ -54,10 +55,10 @@ func NewAnalysis(
 ) Analysis {
 	return &analysis{
 		placeService:                placeService,
-		trioService:                 trioService,
 		placeAllInService:           placeAllInService,
 		placeUnHitService:           placeUnHitService,
 		betaWinService:              betaWinService,
+		placeCheckPointService:      placeCheckPointService,
 		horseMasterService:          horseMasterService,
 		raceForecastService:         raceForecastService,
 		raceForecastEntityConverter: raceForecastEntityConverter,

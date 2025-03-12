@@ -77,11 +77,12 @@ var AggregationSet = wire.NewSet(
 var AnalysisSet = wire.NewSet(
 	analysis_usecase.NewAnalysis,
 	analysis_service.NewPlace,
-	analysis_service.NewTrio,
 	analysis_service.NewPlaceAllIn,
 	analysis_service.NewPlaceUnHit,
 	analysis_service.NewPlaceCheckList,
 	analysis_service.NewBetaWin,
+	analysis_service.NewPlaceCheckPoint,
+	analysis_service.NewPlaceNegativeCheck,
 	master_service.NewHorse,
 	master_service.NewRaceForecast,
 	filter_service.NewAnalysisFilter,

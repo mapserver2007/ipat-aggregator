@@ -16,6 +16,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
 	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/shopspring/decimal"
 )
 
 type PlaceUnHit interface {
@@ -33,15 +34,30 @@ type PlaceUnHit interface {
 		horse *data_cache_entity.Horse,
 		raceForecast *data_cache_entity.RaceForecast,
 	) error
+	GetWinRedOdds(ctx context.Context,
+		oddsList []*data_cache_entity.Odds,
+		thresholdOdds decimal.Decimal,
+	) ([]*analysis_entity.Odds, error)
+	GetWinOddsFaults(ctx context.Context,
+		oddsList []*data_cache_entity.Odds,
+	) ([]*analysis_entity.OddsFault, error)
+	GetTrioOdds(ctx context.Context,
+		oddsList []*data_cache_entity.Odds,
+		popularNumber int,
+	) ([]*analysis_entity.Odds, error)
 	FetchHorse(ctx context.Context, horseId types.HorseId) (*netkeiba_entity.Horse, error)
 	FetchRaceForecasts(ctx context.Context, raceId types.RaceId) ([]*tospo_entity.Forecast, error)
 	FetchTrainingComments(ctx context.Context, raceId types.RaceId) ([]*tospo_entity.TrainingComment, error)
-	Convert(ctx context.Context,
+	CreateUnhitRaces(ctx context.Context,
 		races []*analysis_entity.Race,
 		raceRateMap map[types.RaceId]map[types.HorseId][]float64,
 		raceForecastMap map[types.RaceId]*data_cache_entity.RaceForecast,
 		horseMap map[types.HorseId]*data_cache_entity.Horse,
+		winMultiOddsMap map[types.RaceId][]*analysis_entity.Odds,
+		winOddsFaultMap map[types.RaceId][]*analysis_entity.OddsFault,
+		trioOddsMap map[types.RaceId]*analysis_entity.Odds,
 	) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error)
+	CreateCheckPoints(ctx context.Context, race *analysis_entity.Race) error
 	Write(ctx context.Context, analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit) error
 }
 
@@ -52,6 +68,7 @@ type placeUnHitService struct {
 	horseEntityConverter   converter.HorseEntityConverter
 	filterService          filter_service.AnalysisFilter
 	placeCheckListService  PlaceCheckList
+	placeCheckPointService PlaceCheckPoint
 }
 
 func NewPlaceUnHit(
@@ -61,6 +78,7 @@ func NewPlaceUnHit(
 	horseEntityConverter converter.HorseEntityConverter,
 	filterService filter_service.AnalysisFilter,
 	placeCheckListService PlaceCheckList,
+	placeCheckPointService PlaceCheckPoint,
 ) PlaceUnHit {
 	return &placeUnHitService{
 		horseRepository:        horseRepository,
@@ -69,6 +87,7 @@ func NewPlaceUnHit(
 		horseEntityConverter:   horseEntityConverter,
 		filterService:          filterService,
 		placeCheckListService:  placeCheckListService,
+		placeCheckPointService: placeCheckPointService,
 	}
 }
 
@@ -119,6 +138,9 @@ func (p *placeUnHitService) GetUnHitRaces(
 					jockeyName,
 					raceResult.Odds(),
 					raceResult.PopularNumber(),
+					raceResult.JockeyWeight(),
+					raceResult.HorseWeight(),
+					raceResult.HorseWeightAdd(),
 				))
 
 				marker := types.NoMarker
@@ -461,6 +483,96 @@ func (p *placeUnHitService) GetCheckList(
 	panic("implement me")
 }
 
+func (p *placeUnHitService) GetWinRedOdds(
+	ctx context.Context,
+	oddsList []*data_cache_entity.Odds,
+	thresholdOdds decimal.Decimal,
+) ([]*analysis_entity.Odds, error) {
+	winOdds := make([]*analysis_entity.Odds, 0)
+	for _, odds := range oddsList {
+		newWinOdds := make([]string, 0)
+		for _, oddsStr := range odds.Odds() {
+			decimalOdds, err := decimal.NewFromString(oddsStr)
+			if err != nil {
+				return nil, err
+			}
+			if decimalOdds.LessThan(thresholdOdds) {
+				newWinOdds = append(newWinOdds, oddsStr)
+			}
+		}
+		if len(newWinOdds) > 0 {
+			newOdds, err := analysis_entity.NewOdds(
+				odds.RaceId(),
+				odds.RaceDate(),
+				odds.TicketType(),
+				odds.Number(),
+				odds.PopularNumber(),
+				newWinOdds,
+			)
+			if err != nil {
+				return nil, err
+			}
+			winOdds = append(winOdds, newOdds)
+		}
+	}
+
+	return winOdds, nil
+}
+
+func (p *placeUnHitService) GetWinOddsFaults(
+	ctx context.Context,
+	oddsList []*data_cache_entity.Odds,
+) ([]*analysis_entity.OddsFault, error) {
+	oddsFaults := make([]*analysis_entity.OddsFault, 0)
+	if len(oddsList) < 2 {
+		return nil, fmt.Errorf("oddsList must contain at least two elements")
+	}
+
+	for i := range oddsList {
+		if i == len(oddsList)-1 {
+			break
+		}
+		oddsFault, err := analysis_entity.NewOddsFault(
+			oddsList[i].RaceId(),
+			oddsList[i].Odds()[0],
+			oddsList[i+1].Odds()[0],
+			oddsList[i].PopularNumber(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		oddsFaults = append(oddsFaults, oddsFault)
+	}
+
+	return oddsFaults, nil
+}
+
+func (p *placeUnHitService) GetTrioOdds(
+	ctx context.Context,
+	oddsList []*data_cache_entity.Odds,
+	popularNumber int,
+) ([]*analysis_entity.Odds, error) {
+	trioOdds := make([]*analysis_entity.Odds, 0)
+	for _, odds := range oddsList {
+		if odds.PopularNumber() == popularNumber {
+			newTrioOdds, err := analysis_entity.NewOdds(
+				odds.RaceId(),
+				odds.RaceDate(),
+				odds.TicketType(),
+				odds.Number(),
+				odds.PopularNumber(),
+				odds.Odds(),
+			)
+			if err != nil {
+				return nil, err
+			}
+			trioOdds = append(trioOdds, newTrioOdds)
+		}
+	}
+
+	return trioOdds, nil
+}
+
 func (p *placeUnHitService) FetchHorse(
 	ctx context.Context,
 	horseId types.HorseId,
@@ -497,15 +609,39 @@ func (p *placeUnHitService) FetchTrainingComments(
 	return trainingComments, nil
 }
 
-func (p *placeUnHitService) Convert(ctx context.Context,
+func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 	races []*analysis_entity.Race,
 	raceRateMap map[types.RaceId]map[types.HorseId][]float64,
 	raceForecastMap map[types.RaceId]*data_cache_entity.RaceForecast,
 	horseMap map[types.HorseId]*data_cache_entity.Horse,
+	winMultiOddsMap map[types.RaceId][]*analysis_entity.Odds,
+	winOddsFaultMap map[types.RaceId][]*analysis_entity.OddsFault,
+	trioOddsMap map[types.RaceId]*analysis_entity.Odds,
 ) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error) {
 	placeUnHitEntites := make([]*spreadsheet_entity.AnalysisPlaceUnhit, 0, len(races))
 	for _, race := range races {
+		raceForecast, ok := raceForecastMap[race.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("raceForecast not found: %s", race.RaceId())
+		}
+		raceForecastMap := converter.ConvertToMap(raceForecast.Forecasts(), func(raceForecast *data_cache_entity.Forecast) types.HorseNumber {
+			return raceForecast.HorseNumber()
+		})
+
+		winOddsFaults, ok := winOddsFaultMap[race.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("winOddsFaultMap not found: %s", race.RaceId())
+		}
+
 		for _, raceResult := range race.RaceResults() {
+			raceForecast, ok := raceForecastMap[raceResult.HorseNumber()]
+			if !ok {
+				return nil, fmt.Errorf("raceForecast not found: raceId: %s, horseNumber: %d", race.RaceId(), raceResult.HorseNumber())
+			}
+
+			winMultiOdds := winMultiOddsMap[race.RaceId()]
+			trioOdds := trioOddsMap[race.RaceId()]
+
 			placeUnHitEntites = append(placeUnHitEntites, spreadsheet_entity.NewAnalysisPlaceUnhit(
 				race.RaceId(),
 				race.RaceDate(),
@@ -526,13 +662,36 @@ func (p *placeUnHitService) Convert(ctx context.Context,
 				raceResult.PopularNumber(),
 				raceResult.Odds(),
 				raceResult.OrderNo(),
+				raceResult.JockeyWeight(),
+				raceResult.HorseWeight(),
+				raceResult.HorseWeightAdd(),
+				func() *decimal.Decimal {
+					if trioOdds != nil {
+						odds := trioOdds.Odds()
+						return &odds
+					}
+					return nil
+				}(),
+				len(winMultiOdds),
+				winOddsFaults[0].OddsFault(),
+				winOddsFaults[1].OddsFault(),
+				raceForecast.TrainingComment(),
 			))
 		}
-
 	}
 
-	// TODO: 実装を追加
 	return placeUnHitEntites, nil
+}
+
+func (p *placeUnHitService) CreateCheckPoints(
+	ctx context.Context,
+	race *analysis_entity.Race,
+) error {
+
+	p.placeCheckPointService.GetNegativePoint(ctx, race)
+
+	// 実装を追加
+	return nil
 }
 
 func (p *placeUnHitService) Write(

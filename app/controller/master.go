@@ -6,12 +6,13 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 )
 
 type MasterInput struct {
-	StartDate string
-	EndDate   string
+	StartDate types.RaceDate
+	EndDate   types.RaceDate
 }
 
 type MasterOutput struct {

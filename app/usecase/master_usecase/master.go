@@ -2,7 +2,6 @@ package master_usecase
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
@@ -17,8 +16,8 @@ type Master interface {
 }
 
 type MasterInput struct {
-	StartDate string
-	EndDate   string
+	StartDate types.RaceDate
+	EndDate   types.RaceDate
 }
 
 type MasterOutput struct {
@@ -153,17 +152,14 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 	// umaca投票データに追加されたraceIdは未キャッシュなので更新する
-	latestEndDate, err := types.NewRaceDate(input.EndDate)
-	if err != nil {
-		return err
-	}
+	latestEndDate := input.EndDate
 	for _, umacaMaster := range umacaMasters {
 		if latestEndDate.Value() < umacaMaster.RaceDate().Value() {
 			latestEndDate = umacaMaster.RaceDate()
 		}
 	}
 
-	err = m.raceIdService.CreateOrUpdate(ctx, input.StartDate, strconv.Itoa(latestEndDate.Value()))
+	err = m.raceIdService.CreateOrUpdate(ctx, input.StartDate, latestEndDate)
 	if err != nil {
 		return err
 	}
@@ -285,7 +281,7 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.winOddsService.CreateOrUpdate(ctx, winOdds, markers)
+	err = m.winOddsService.CreateOrUpdateV2(ctx, winOdds, races)
 	if err != nil {
 		return err
 	}
@@ -295,7 +291,7 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.trioOddsService.CreateOrUpdate(ctx, trioOdds, markers)
+	err = m.trioOddsService.CreateOrUpdateV2(ctx, trioOdds, races)
 	if err != nil {
 		return err
 	}

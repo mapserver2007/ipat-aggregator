@@ -65,6 +65,7 @@ func (a *Analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) {
 		Odds: &analysis_usecase.AnalysisOddsInput{
 			Win:   input.Master.WinOdds,
 			Place: input.Master.PlaceOdds,
+			Trio:  input.Master.TrioOdds,
 		},
 	}); err != nil {
 		a.logger.Errorf("analysis place un hit error: %v", err)

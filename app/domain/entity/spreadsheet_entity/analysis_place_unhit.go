@@ -8,6 +8,7 @@ import (
 )
 
 type AnalysisPlaceUnhit struct {
+	raceId              types.RaceId
 	raceUrl             string
 	raceDate            types.RaceDate
 	raceNumber          int
@@ -27,6 +28,14 @@ type AnalysisPlaceUnhit struct {
 	popularNumber       int
 	odds                decimal.Decimal
 	orderNo             int
+	jockeyWeight        string
+	horseWeight         int
+	horseWeightAdd      int
+	trioOdds100         decimal.Decimal
+	winRedOddsNum       int
+	oddsFault1          decimal.Decimal
+	oddsFault2          decimal.Decimal
+	trainingComment     string
 }
 
 func NewAnalysisPlaceUnhit(
@@ -49,8 +58,17 @@ func NewAnalysisPlaceUnhit(
 	popularNumber int,
 	odds decimal.Decimal,
 	orderNo int,
+	jockeyWeight string,
+	horseWeight int,
+	horseWeightAdd int,
+	trioOdds100 *decimal.Decimal,
+	winRedOddsNum int,
+	oddsFault1 decimal.Decimal,
+	oddsFault2 decimal.Decimal,
+	trainingComment string,
 ) *AnalysisPlaceUnhit {
 	return &AnalysisPlaceUnhit{
+		raceId:              raceId,
 		raceUrl:             fmt.Sprintf("https://race.netkeiba.com/race/shutuba.html?race_id=%s", raceId.String()),
 		raceDate:            raceDate,
 		raceNumber:          raceNumber,
@@ -70,7 +88,24 @@ func NewAnalysisPlaceUnhit(
 		popularNumber:       popularNumber,
 		odds:                odds,
 		orderNo:             orderNo,
+		jockeyWeight:        jockeyWeight,
+		horseWeight:         horseWeight,
+		horseWeightAdd:      horseWeightAdd,
+		trioOdds100: func() decimal.Decimal {
+			if trioOdds100 != nil {
+				return *trioOdds100
+			}
+			return decimal.Zero
+		}(),
+		winRedOddsNum:   winRedOddsNum,
+		oddsFault1:      oddsFault1,
+		oddsFault2:      oddsFault2,
+		trainingComment: trainingComment,
 	}
+}
+
+func (a *AnalysisPlaceUnhit) RaceId() types.RaceId {
+	return a.raceId
 }
 
 func (a *AnalysisPlaceUnhit) RaceUrl() string {
@@ -147,4 +182,36 @@ func (a *AnalysisPlaceUnhit) Odds() decimal.Decimal {
 
 func (a *AnalysisPlaceUnhit) OrderNo() int {
 	return a.orderNo
+}
+
+func (a *AnalysisPlaceUnhit) JockeyWeight() string {
+	return a.jockeyWeight
+}
+
+func (a *AnalysisPlaceUnhit) HorseWeight() int {
+	return a.horseWeight
+}
+
+func (a *AnalysisPlaceUnhit) HorseWeightAdd() int {
+	return a.horseWeightAdd
+}
+
+func (a *AnalysisPlaceUnhit) TrioOdds100() decimal.Decimal {
+	return a.trioOdds100
+}
+
+func (a *AnalysisPlaceUnhit) WinRedOddsNum() int {
+	return a.winRedOddsNum
+}
+
+func (a *AnalysisPlaceUnhit) OddsFault1() decimal.Decimal {
+	return a.oddsFault1
+}
+
+func (a *AnalysisPlaceUnhit) OddsFault2() decimal.Decimal {
+	return a.oddsFault2
+}
+
+func (a *AnalysisPlaceUnhit) TrainingComment() string {
+	return a.trainingComment
 }

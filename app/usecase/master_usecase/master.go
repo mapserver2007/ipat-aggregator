@@ -27,6 +27,7 @@ type MasterOutput struct {
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
 	TrioOdds          []*data_cache_entity.Odds
+	QuinellaOdds      []*data_cache_entity.Odds
 	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
 	PredictionMarkers []*marker_csv_entity.PredictionMarker
 }
@@ -39,6 +40,7 @@ type master struct {
 	jockeyService           master_service.Jockey
 	winOddsService          master_service.WinOdds
 	placeOddsService        master_service.PlaceOdds
+	quinellaOddsService     master_service.QuinellaOdds
 	trioOddsService         master_service.TrioOdds
 	analysisMarkerService   master_service.AnalysisMarker
 	predictionMarkerService master_service.PredictionMarker
@@ -53,6 +55,7 @@ func NewMaster(
 	jockeyService master_service.Jockey,
 	winOddsService master_service.WinOdds,
 	placeOddsService master_service.PlaceOdds,
+	quinellaOddsService master_service.QuinellaOdds,
 	trioOddsService master_service.TrioOdds,
 	analysisMarkerService master_service.AnalysisMarker,
 	predictionMarkerService master_service.PredictionMarker,
@@ -66,6 +69,7 @@ func NewMaster(
 		jockeyService:           jockeyService,
 		winOddsService:          winOddsService,
 		placeOddsService:        placeOddsService,
+		quinellaOddsService:     quinellaOddsService,
 		trioOddsService:         trioOddsService,
 		analysisMarkerService:   analysisMarkerService,
 		predictionMarkerService: predictionMarkerService,
@@ -104,6 +108,11 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		return nil, err
 	}
 
+	quinellaOdds, err := m.quinellaOddsService.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	analysisMarkers, err := m.analysisMarkerService.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -121,6 +130,7 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		WinOdds:           winOdds,
 		PlaceOdds:         placeOdds,
 		TrioOdds:          trioOdds,
+		QuinellaOdds:      quinellaOdds,
 		AnalysisMarkers:   analysisMarkers,
 		PredictionMarkers: predictionMarkers,
 	}, nil
@@ -246,11 +256,6 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	//err = m.raceForecastService.CreateOrUpdate(ctx, races)
-	//if err != nil {
-	//	return err
-	//}
-
 	jockeys, excludeJockeyIds, err := m.jockeyService.Get(ctx)
 	if err != nil {
 		return err
@@ -271,22 +276,32 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
+	quinellaOdds, err := m.quinellaOddsService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
 	trioOdds, err := m.trioOddsService.Get(ctx)
 	if err != nil {
 		return err
 	}
 
-	markers, err := m.analysisMarkerService.Get(ctx)
-	if err != nil {
-		return err
-	}
+	// markers, err := m.analysisMarkerService.Get(ctx)
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = m.winOddsService.CreateOrUpdateV2(ctx, winOdds, races)
 	if err != nil {
 		return err
 	}
 
-	err = m.placeOddsService.CreateOrUpdate(ctx, placeOdds, markers)
+	err = m.placeOddsService.CreateOrUpdateV2(ctx, placeOdds, races)
+	if err != nil {
+		return err
+	}
+
+	err = m.quinellaOddsService.CreateOrUpdateV2(ctx, quinellaOdds, races)
 	if err != nil {
 		return err
 	}

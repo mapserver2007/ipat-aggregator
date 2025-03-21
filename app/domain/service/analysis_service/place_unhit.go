@@ -3,6 +3,7 @@ package analysis_service
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
@@ -37,13 +38,21 @@ type PlaceUnHit interface {
 	GetWinRedOdds(ctx context.Context,
 		oddsList []*data_cache_entity.Odds,
 		thresholdOdds decimal.Decimal,
+		raceMap map[types.RaceId]*analysis_entity.Race,
 	) ([]*analysis_entity.Odds, error)
 	GetWinOddsFaults(ctx context.Context,
 		oddsList []*data_cache_entity.Odds,
+		raceMap map[types.RaceId]*analysis_entity.Race,
 	) ([]*analysis_entity.OddsFault, error)
 	GetTrioOdds(ctx context.Context,
 		oddsList []*data_cache_entity.Odds,
 		popularNumber int,
+		raceMap map[types.RaceId]*analysis_entity.Race,
+	) ([]*analysis_entity.Odds, error)
+	GetQuinellaOddsWheelCombinations(ctx context.Context,
+		oddsList []*data_cache_entity.Odds,
+		winOddsMap map[types.RaceId][]*analysis_entity.Odds,
+		raceMap map[types.RaceId]*analysis_entity.Race,
 	) ([]*analysis_entity.Odds, error)
 	FetchHorse(ctx context.Context, horseId types.HorseId) (*netkeiba_entity.Horse, error)
 	FetchRaceForecasts(ctx context.Context, raceId types.RaceId) ([]*tospo_entity.Forecast, error)
@@ -56,6 +65,8 @@ type PlaceUnHit interface {
 		winMultiOddsMap map[types.RaceId][]*analysis_entity.Odds,
 		winOddsFaultMap map[types.RaceId][]*analysis_entity.OddsFault,
 		trioOddsMap map[types.RaceId]*analysis_entity.Odds,
+		quinellaConsecutiveNumberMap map[types.RaceId]int,
+		quinellaCombinationTotalOddsMap map[types.RaceId]decimal.Decimal,
 	) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error)
 	CreateCheckPoints(ctx context.Context, race *analysis_entity.Race) error
 	Write(ctx context.Context, analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit) error
@@ -487,9 +498,14 @@ func (p *placeUnHitService) GetWinRedOdds(
 	ctx context.Context,
 	oddsList []*data_cache_entity.Odds,
 	thresholdOdds decimal.Decimal,
+	raceMap map[types.RaceId]*analysis_entity.Race,
 ) ([]*analysis_entity.Odds, error) {
 	winOdds := make([]*analysis_entity.Odds, 0)
 	for _, odds := range oddsList {
+		if _, ok := raceMap[odds.RaceId()]; !ok {
+			continue
+		}
+
 		newWinOdds := make([]string, 0)
 		for _, oddsStr := range odds.Odds() {
 			decimalOdds, err := decimal.NewFromString(oddsStr)
@@ -522,6 +538,7 @@ func (p *placeUnHitService) GetWinRedOdds(
 func (p *placeUnHitService) GetWinOddsFaults(
 	ctx context.Context,
 	oddsList []*data_cache_entity.Odds,
+	raceMap map[types.RaceId]*analysis_entity.Race,
 ) ([]*analysis_entity.OddsFault, error) {
 	oddsFaults := make([]*analysis_entity.OddsFault, 0)
 	if len(oddsList) < 2 {
@@ -529,6 +546,10 @@ func (p *placeUnHitService) GetWinOddsFaults(
 	}
 
 	for i := range oddsList {
+		if _, ok := raceMap[oddsList[i].RaceId()]; !ok {
+			continue
+		}
+
 		if i == len(oddsList)-1 {
 			break
 		}
@@ -551,9 +572,13 @@ func (p *placeUnHitService) GetTrioOdds(
 	ctx context.Context,
 	oddsList []*data_cache_entity.Odds,
 	popularNumber int,
+	raceMap map[types.RaceId]*analysis_entity.Race,
 ) ([]*analysis_entity.Odds, error) {
 	trioOdds := make([]*analysis_entity.Odds, 0)
 	for _, odds := range oddsList {
+		if _, ok := raceMap[odds.RaceId()]; !ok {
+			continue
+		}
 		if odds.PopularNumber() == popularNumber {
 			newTrioOdds, err := analysis_entity.NewOdds(
 				odds.RaceId(),
@@ -571,6 +596,67 @@ func (p *placeUnHitService) GetTrioOdds(
 	}
 
 	return trioOdds, nil
+}
+
+func (p *placeUnHitService) GetQuinellaOddsWheelCombinations(
+	ctx context.Context,
+	oddsList []*data_cache_entity.Odds,
+	winOddsMap map[types.RaceId][]*analysis_entity.Odds,
+	raceMap map[types.RaceId]*analysis_entity.Race,
+) ([]*analysis_entity.Odds, error) {
+	quinellaWheelCombinationsMap := make(map[types.RaceId][]*analysis_entity.Odds)
+	for _, odds := range oddsList {
+		if _, ok := raceMap[odds.RaceId()]; !ok {
+			continue
+		}
+		if _, ok := quinellaWheelCombinationsMap[odds.RaceId()]; !ok {
+			quinellaWheelCombinationsMap[odds.RaceId()] = make([]*analysis_entity.Odds, 0)
+		}
+		newOdds, err := analysis_entity.NewOdds(
+			odds.RaceId(),
+			odds.RaceDate(),
+			odds.TicketType(),
+			odds.Number(),
+			odds.PopularNumber(),
+			odds.Odds(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		quinellaWheelCombinationsMap[odds.RaceId()] = append(quinellaWheelCombinationsMap[odds.RaceId()], newOdds)
+	}
+
+	quinellaWheelCombinations := make([]*analysis_entity.Odds, 0)
+	for raceId, quinellaOddsList := range quinellaWheelCombinationsMap {
+		winOddsList, ok := winOddsMap[raceId]
+		if !ok {
+			return nil, fmt.Errorf("winOddsMap not found: %s", raceId)
+		}
+		if len(winOddsList) == 0 {
+			return nil, fmt.Errorf("winOddsList is empty: %s", raceId)
+		}
+
+		var firstWinOdds *analysis_entity.Odds
+		for _, winOdds := range winOddsList {
+			if winOdds.PopularNumber() == 1 {
+				firstWinOdds = winOdds
+				break
+			}
+		}
+
+		if firstWinOdds == nil {
+			return nil, fmt.Errorf("firstWinOdds not found: %s", raceId)
+		}
+
+		for _, odds := range quinellaOddsList {
+			horseNumber := firstWinOdds.Number().List()[0]
+			if slices.Contains(odds.Number().List(), horseNumber) {
+				quinellaWheelCombinations = append(quinellaWheelCombinations, odds)
+			}
+		}
+	}
+
+	return quinellaWheelCombinations, nil
 }
 
 func (p *placeUnHitService) FetchHorse(
@@ -617,6 +703,8 @@ func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 	winMultiOddsMap map[types.RaceId][]*analysis_entity.Odds,
 	winOddsFaultMap map[types.RaceId][]*analysis_entity.OddsFault,
 	trioOddsMap map[types.RaceId]*analysis_entity.Odds,
+	quinellaConsecutiveNumberMap map[types.RaceId]int,
+	quinellaCombinationTotalOddsMap map[types.RaceId]decimal.Decimal,
 ) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error) {
 	placeUnHitEntites := make([]*spreadsheet_entity.AnalysisPlaceUnhit, 0, len(races))
 	for _, race := range races {
@@ -641,6 +729,8 @@ func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 
 			winMultiOdds := winMultiOddsMap[race.RaceId()]
 			trioOdds := trioOddsMap[race.RaceId()]
+			quinellaConsecutiveNumber := quinellaConsecutiveNumberMap[race.RaceId()]
+			quinellaCombinationTotalOdds := quinellaCombinationTotalOddsMap[race.RaceId()]
 
 			placeUnHitEntites = append(placeUnHitEntites, spreadsheet_entity.NewAnalysisPlaceUnhit(
 				race.RaceId(),
@@ -675,6 +765,8 @@ func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 				len(winMultiOdds),
 				winOddsFaults[0].OddsFault(),
 				winOddsFaults[1].OddsFault(),
+				quinellaConsecutiveNumber,
+				quinellaCombinationTotalOdds,
 				raceForecast.TrainingComment(),
 			))
 		}

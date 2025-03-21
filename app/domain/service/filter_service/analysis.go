@@ -42,6 +42,8 @@ func (f *filterService) CreatePlaceAllInFilters(
 	attributeFilterIds = append(attributeFilterIds, DistanceFilters(race.Distance())...)
 	attributeFilterIds = append(attributeFilterIds, RaceCourseFilters(race.RaceCourseId())...)
 	attributeFilterIds = append(attributeFilterIds, TrackConditionFilters(race.TrackCondition())...)
+	attributeFilterIds = append(attributeFilterIds, GradeClassFilters(race.Class())...)
+	attributeFilterIds = append(attributeFilterIds, SeasonFilters(race.RaceDate())...)
 
 	markerCombinationFilterIds = append(markerCombinationFilterIds, MarkerCombinationFilter(race, markerCombinationId)...)
 

@@ -8,34 +8,36 @@ import (
 )
 
 type AnalysisPlaceUnhit struct {
-	raceId              types.RaceId
-	raceUrl             string
-	raceDate            types.RaceDate
-	raceNumber          int
-	raceCourse          types.RaceCourse
-	raceName            string
-	class               types.GradeClass
-	courseCategory      types.CourseCategory
-	distance            int
-	raceWeightCondition types.RaceWeightCondition
-	trackCondition      types.TrackCondition
-	entries             int
-	horseNumber         types.HorseNumber
-	horseUrl            string
-	horseName           string
-	jockeyUrl           string
-	jockeyName          string
-	popularNumber       int
-	odds                decimal.Decimal
-	orderNo             int
-	jockeyWeight        string
-	horseWeight         int
-	horseWeightAdd      int
-	trioOdds100         decimal.Decimal
-	winRedOddsNum       int
-	oddsFault1          decimal.Decimal
-	oddsFault2          decimal.Decimal
-	trainingComment     string
+	raceId                    types.RaceId
+	raceUrl                   string
+	raceDate                  types.RaceDate
+	raceNumber                int
+	raceCourse                types.RaceCourse
+	raceName                  string
+	class                     types.GradeClass
+	courseCategory            types.CourseCategory
+	distance                  int
+	raceWeightCondition       types.RaceWeightCondition
+	trackCondition            types.TrackCondition
+	entries                   int
+	horseNumber               types.HorseNumber
+	horseUrl                  string
+	horseName                 string
+	jockeyUrl                 string
+	jockeyName                string
+	popularNumber             int
+	odds                      decimal.Decimal
+	orderNo                   int
+	jockeyWeight              string
+	horseWeight               int
+	horseWeightAdd            int
+	trioOdds100               decimal.Decimal
+	winRedOddsNum             int
+	oddsFault1                decimal.Decimal
+	oddsFault2                decimal.Decimal
+	quinellaConsecutiveNumber int
+	quinellaWheelAverageOdds  decimal.Decimal
+	trainingComment           string
 }
 
 func NewAnalysisPlaceUnhit(
@@ -65,6 +67,8 @@ func NewAnalysisPlaceUnhit(
 	winRedOddsNum int,
 	oddsFault1 decimal.Decimal,
 	oddsFault2 decimal.Decimal,
+	quinellaConsecutiveNumber int,
+	quinellaCombinationTotalOdds decimal.Decimal,
 	trainingComment string,
 ) *AnalysisPlaceUnhit {
 	return &AnalysisPlaceUnhit{
@@ -97,10 +101,12 @@ func NewAnalysisPlaceUnhit(
 			}
 			return decimal.Zero
 		}(),
-		winRedOddsNum:   winRedOddsNum,
-		oddsFault1:      oddsFault1,
-		oddsFault2:      oddsFault2,
-		trainingComment: trainingComment,
+		winRedOddsNum:             winRedOddsNum,
+		oddsFault1:                oddsFault1,
+		oddsFault2:                oddsFault2,
+		quinellaConsecutiveNumber: quinellaConsecutiveNumber,
+		quinellaWheelAverageOdds:  quinellaCombinationTotalOdds.Div(decimal.NewFromInt(int64(entries - 1))),
+		trainingComment:           trainingComment,
 	}
 }
 
@@ -210,6 +216,14 @@ func (a *AnalysisPlaceUnhit) OddsFault1() decimal.Decimal {
 
 func (a *AnalysisPlaceUnhit) OddsFault2() decimal.Decimal {
 	return a.oddsFault2
+}
+
+func (a *AnalysisPlaceUnhit) QuinellaConsecutiveNumber() int {
+	return a.quinellaConsecutiveNumber
+}
+
+func (a *AnalysisPlaceUnhit) QuinellaWheelAverageOdds() decimal.Decimal {
+	return a.quinellaWheelAverageOdds
 }
 
 func (a *AnalysisPlaceUnhit) TrainingComment() string {

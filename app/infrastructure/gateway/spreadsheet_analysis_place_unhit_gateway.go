@@ -68,7 +68,8 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) Write(
 			"赤単数",
 			"断層1",
 			"断層2",
-			// "",
+			"馬連続",
+			"連平均",
 		},
 	}
 
@@ -100,7 +101,8 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) Write(
 			analysisPlaceUnhit.WinRedOddsNum(),
 			analysisPlaceUnhit.OddsFault1().String(),
 			analysisPlaceUnhit.OddsFault2().String(),
-			// analysisPlaceUnhit.TrainingComment(),
+			analysisPlaceUnhit.QuinellaConsecutiveNumber(),
+			analysisPlaceUnhit.QuinellaWheelAverageOdds().Round(1).String(),
 		})
 	}
 
@@ -299,6 +301,20 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleOddsFault(
 
 	return nil
 }
+
+// func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleQuinellaConsecutiveNumber(
+// 	client *sheets.Service,
+// 	config *spreadsheet_entity.SpreadSheetConfig,
+// 	analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit,
+// ) error {
+// 	g.logger.Infof("writing spreadsheet writeStyleQuinellaConsecutiveNumber")
+
+// 	requests := make([]*sheets.Request, 0, len(analysisPlaceUnhits))
+// 	for idx, analysisPlaceUnhit := range analysisPlaceUnhits {
+// 		rowNum := 1 + idx
+// 	}
+// 	return nil
+// }
 
 func (g *spreadSheetAnalysisPlaceUnhitGateway) createTextFormatRequest(
 	sheetId int64,

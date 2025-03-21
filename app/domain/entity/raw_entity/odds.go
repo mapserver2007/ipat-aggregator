@@ -13,9 +13,10 @@ type OddsData struct {
 }
 
 type TicketTypeOdds struct {
-	Wins   map[string][]string `json:"1"`
-	Places map[string][]string `json:"2"`
-	Trios  map[string][]string `json:"7"`
+	Wins      map[string][]string `json:"1"`
+	Places    map[string][]string `json:"2"`
+	Quinellas map[string][]string `json:"4"`
+	Trios     map[string][]string `json:"7"`
 }
 
 type RaceOddsInfo struct {

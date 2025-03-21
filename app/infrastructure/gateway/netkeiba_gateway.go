@@ -31,6 +31,7 @@ type NetKeibaGateway interface {
 	FetchMarker(ctx context.Context, url string) ([]*netkeiba_entity.Marker, error)
 	FetchWinOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchPlaceOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
+	FetchQuinellaOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 }
 
@@ -85,17 +86,19 @@ func (n *netKeibaGateway) FetchRace(
 	defer n.mu.Unlock()
 
 	var (
-		raceResults       []*netkeiba_entity.RaceResult
-		payoutResults     []*netkeiba_entity.PayoutResult
-		raceName          string
-		trackCondition    types.TrackCondition
-		startTime         string
-		raceTime          string
-		courseCategory    types.CourseCategory
-		distance, entries int
-		gradeClass        types.GradeClass
+		raceResults           []*netkeiba_entity.RaceResult
+		payoutResults         []*netkeiba_entity.PayoutResult
+		raceName              string
+		trackCondition        types.TrackCondition
+		startTime             string
+		raceTime              string
+		courseCategory        types.CourseCategory
+		distance, entries     int
+		gradeClass            types.GradeClass
+		raceCourseCornerIndex types.RaceCourseCornerIndex
 	)
 	raceSexCondition := types.NoRaceSexCondition
+	raceAgeCondition := types.UnknownRaceAgeCondition
 	raceWeightCondition := types.FixedWeight
 
 	n.collector.Client().OnHTML("#All_Result_Table", func(e *colly.HTMLElement) {
@@ -319,33 +322,117 @@ func (n *netKeibaGateway) FetchRace(
 		})
 		e.ForEach("div", func(i int, ce *colly.HTMLElement) {
 			query := ce.Request.URL.Query()
+			rawRaceId := query.Get("race_id")
 			rawCurrentOrganizer, _ := strconv.Atoi(query.Get("organizer"))
 			currentOrganizer := types.NewOrganizer(rawCurrentOrganizer)
 			if currentOrganizer == types.JRA {
 				switch i {
 				case 0:
 					text := Trim(ce.DOM.Text())
-					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)[\s\S]+馬場:(.+)`)
-					trackConditionText := "良" // 前日だと馬場が表示されない場合があるのでデフォルトで良を設定
+					regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+).*\((?:(右|左|直線).+?(外?).*?|.+?)\)[\s\S]+馬場:(.+)`)
 					matches := regex.FindAllStringSubmatch(text, -1)
-					if matches == nil {
-						regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+)`)
-						matches = regex.FindAllStringSubmatch(text, -1)
-					} else {
-						startTime = matches[0][1]
+					trackCondition = types.GoodToFirm // 前日は良で固定
+					if matches != nil {               // 前日の場合情報が少ない
 						courseCategory = types.NewCourseCategory(matches[0][2])
+						startTime = matches[0][1]
 						distance, _ = strconv.Atoi(matches[0][3])
-						trackConditionText = matches[0][4]
-					}
+						trackConditionText := matches[0][6]
+						if strings.Contains(trackConditionText, "良") {
+							trackCondition = types.GoodToFirm
+						} else if strings.Contains(trackConditionText, "稍") {
+							trackCondition = types.Good
+						} else if strings.Contains(trackConditionText, "重") {
+							trackCondition = types.Yielding
+						} else if strings.Contains(trackConditionText, "不") {
+							trackCondition = types.Soft
+						}
 
-					if strings.Contains(trackConditionText, "良") {
-						trackCondition = types.GoodToFirm
-					} else if strings.Contains(trackConditionText, "稍") {
-						trackCondition = types.Good
-					} else if strings.Contains(trackConditionText, "重") {
-						trackCondition = types.Yielding
-					} else if strings.Contains(trackConditionText, "不") {
-						trackCondition = types.Soft
+						inOut := matches[0][5]
+						typedRaceCourse := types.RaceCourse(rawRaceId[4:6])
+						if inOut == "外" {
+							switch typedRaceCourse {
+							case types.Nakayama:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.NakayamaTurfOuterCorner
+								}
+							case types.Hanshin:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.HanshinTurfOuterCorner
+								}
+							case types.Kyoto:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.KyotoTurfOuterCorner
+								}
+							case types.Niigata:
+								if courseCategory == types.Turf {
+									// 新潟は外回り、内回り同じ角度
+									raceCourseCornerIndex = types.NiigataTurfCorner
+								}
+							}
+						} else {
+							switch typedRaceCourse {
+							case types.Tokyo:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.TokyoTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.TokyoDirtCorner
+								}
+							case types.Nakayama:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.NakayamaTurfInnerCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.NakayamaDirtCorner
+								}
+							case types.Hanshin:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.HanshinTurfInnerCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.HanshinDirtCorner
+								}
+							case types.Kyoto:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.KyotoTurfInnerCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.KyotoDirtCorner
+								}
+							case types.Chukyo:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.ChukyoTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.ChukyoDirtCorner
+								}
+							case types.Kokura:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.KokuraTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.KokuraDirtCorner
+								}
+							case types.Niigata:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.NiigataTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.NiigataDirtCorner
+								}
+							case types.Hakodate:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.HakodateTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.HakodateDirtCorner
+								}
+							case types.Sapporo:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.SapporoTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.SapporoDirtCorner
+								}
+							case types.Fukushima:
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.FukushimaTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.FukushimaDirtCorner
+								}
+							}
+						}
 					}
 				case 1:
 					ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
@@ -361,7 +448,17 @@ func (n *netKeibaGateway) FetchRace(
 								n.logger.Warnf("invalid race weight condition data: %s", url)
 								return
 							}
-							text := texts[7]
+							text := texts[3]
+							if strings.Contains(text, "３歳以上") {
+								raceAgeCondition = types.ThreeYearsAndOlder
+							} else if strings.Contains(text, "４歳以上") {
+								raceAgeCondition = types.FourYearsAndOlder
+							} else if strings.Contains(text, "３歳") {
+								raceAgeCondition = types.ThreeYearsOld
+							} else if strings.Contains(text, "２歳") {
+								raceAgeCondition = types.TwoYearsOld
+							}
+							text = texts[7]
 							if text == types.AgeWeight.String() {
 								raceWeightCondition = types.AgeWeight
 							} else if text == types.FixedWeight.String() {
@@ -632,6 +729,9 @@ func (n *netKeibaGateway) FetchRace(
 		return nil, err
 	}
 	raceId := queryParams.Get("race_id")
+	raceCourseId := raceId[4:6]
+	raceNumber, _ := strconv.Atoi(raceId[10:])
+
 	organizer, err := strconv.Atoi(queryParams.Get("organizer"))
 	if err != nil {
 		return nil, err
@@ -649,6 +749,8 @@ func (n *netKeibaGateway) FetchRace(
 
 	return netkeiba_entity.NewRace(
 		raceId,
+		raceCourseId,
+		raceNumber,
 		raceDate,
 		raceName,
 		organizer,
@@ -662,6 +764,8 @@ func (n *netKeibaGateway) FetchRace(
 		trackCondition.Value(),
 		raceSexCondition.Value(),
 		raceWeightCondition.Value(),
+		raceCourseCornerIndex.Value(),
+		raceAgeCondition.Value(),
 		nil,
 		raceResults,
 		payoutResults,
@@ -687,6 +791,8 @@ func (n *netKeibaGateway) FetchRaceCard(
 	)
 	raceSexCondition := types.NoRaceSexCondition
 	raceWeightCondition := types.FixedWeight
+	raceCourseCornerIndex := types.UnknownCorner
+	raceAgeCondition := types.UnknownRaceAgeCondition
 
 	parsedUrl, err := neturl.Parse(url)
 	if err != nil {
@@ -704,17 +810,19 @@ func (n *netKeibaGateway) FetchRaceCard(
 	n.collector.Cache(cache)
 
 	raceId := queryParams.Get("race_id")
+	raceCourseId := raceId[4:6]
+	raceNumber, _ := strconv.Atoi(raceId[10:])
 
 	n.collector.Client().OnHTML("#RaceList_DateList dd.Active a", func(e *colly.HTMLElement) {
 		path := e.Attr("href")
 		u, err := neturl.Parse(path)
 		if err != nil {
-			fmt.Errorf("failed to parse url: %s, %v", path, err)
+			fmt.Println(fmt.Errorf("failed to parse url: %s, %v", path, err))
 		}
 		rawRaceDate := u.Query().Get("kaisai_date")
 		raceDate, err = types.NewRaceDate(rawRaceDate)
 		if err != nil {
-			fmt.Errorf("failed to convert to raceDate: %s, %v", rawRaceDate, err)
+			fmt.Println(fmt.Errorf("failed to convert to raceDate: %s, %v", rawRaceDate, err))
 		}
 	})
 
@@ -780,28 +888,118 @@ func (n *netKeibaGateway) FetchRaceCard(
 		e.ForEach("div", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 0:
-				text := ce.DOM.Text()
-				regex := regexp.MustCompile(`(\d+:\d+).+(ダ|芝|障)(\d+)(?:[\s\S]*馬場:(.+))?`)
+				text := Trim(ce.DOM.Text())
+				rawRaceId := queryParams.Get("race_id")
+				regex := regexp.MustCompile(`(\d+\:\d+).+(ダ|芝|障)(\d+).*\((?:(右|左|直線).+?(外?).*?|.+?)\)[\s\S]+馬場:(.+)`)
 				matches := regex.FindAllStringSubmatch(text, -1)
-				startTime = matches[0][1]
-				courseCategory = types.NewCourseCategory(matches[0][2])
-				distance, _ = strconv.Atoi(matches[0][3])
+				trackCondition = types.GoodToFirm // 前日は良で固定
+				if matches != nil {               // 前日の場合情報が少ない
+					startTime = matches[0][1]
+					courseCategory = types.NewCourseCategory(matches[0][2])
+					distance, _ = strconv.Atoi(matches[0][3])
+					trackConditionText := matches[0][6]
+					if strings.Contains(trackConditionText, "良") {
+						trackCondition = types.GoodToFirm
+					} else if strings.Contains(trackConditionText, "稍") {
+						trackCondition = types.Good
+					} else if strings.Contains(trackConditionText, "重") {
+						trackCondition = types.Yielding
+					} else if strings.Contains(trackConditionText, "不") {
+						trackCondition = types.Soft
+					}
 
-				trackConditionText := matches[0][4]
-				// 前日の早い段階では馬場が確定していないため、matches[0][4]は空になる場合があるので暫定で初期値は良にしておく
-				trackCondition = types.GoodToFirm
-				if strings.Contains(trackConditionText, "良") {
-					trackCondition = types.GoodToFirm
-				} else if strings.Contains(trackConditionText, "稍") {
-					trackCondition = types.Good
-				} else if strings.Contains(trackConditionText, "重") {
-					trackCondition = types.Yielding
-				} else if strings.Contains(trackConditionText, "不") {
-					trackCondition = types.Soft
+					turn := matches[0][4]
+					inOut := matches[0][5]
+					typedRaceCourse := types.NewRaceCourse(rawRaceId[4:6])
+					if inOut == "外" {
+						switch typedRaceCourse {
+						case types.Nakayama:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.NakayamaTurfOuterCorner
+							}
+						case types.Hanshin:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.HanshinTurfOuterCorner
+							}
+						case types.Kyoto:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.KyotoTurfOuterCorner
+							}
+						}
+					} else {
+						switch typedRaceCourse {
+						case types.Tokyo:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.TokyoTurfCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.TokyoDirtCorner
+							}
+						case types.Nakayama:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.NakayamaTurfInnerCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.NakayamaDirtCorner
+							}
+						case types.Hanshin:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.HanshinTurfInnerCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.HanshinDirtCorner
+							}
+						case types.Kyoto:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.KyotoTurfInnerCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.KyotoDirtCorner
+							}
+						case types.Chukyo:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.ChukyoTurfCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.ChukyoDirtCorner
+							}
+						case types.Kokura:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.KokuraTurfCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.KokuraDirtCorner
+							}
+						case types.Niigata:
+							if turn == "直線" {
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.NiigataTurfStraight
+								}
+							} else {
+								if courseCategory == types.Turf {
+									raceCourseCornerIndex = types.NiigataTurfCorner
+								} else if courseCategory == types.Dirt {
+									raceCourseCornerIndex = types.NiigataDirtCorner
+								}
+							}
+						case types.Hakodate:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.HakodateTurfCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.HakodateDirtCorner
+							}
+						case types.Sapporo:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.SapporoTurfCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.SapporoDirtCorner
+							}
+						case types.Fukushima:
+							if courseCategory == types.Turf {
+								raceCourseCornerIndex = types.FukushimaTurfCorner
+							} else if courseCategory == types.Dirt {
+								raceCourseCornerIndex = types.FukushimaDirtCorner
+							}
+						}
+					}
 				}
 			case 1:
 				ce.ForEach("span", func(j int, ce2 *colly.HTMLElement) {
-					text := ce.DOM.Text()
+					text := Trim(ce.DOM.Text())
 					switch j {
 					case 5:
 						if strings.Contains(text, "牝") {
@@ -889,6 +1087,8 @@ func (n *netKeibaGateway) FetchRaceCard(
 
 	return netkeiba_entity.NewRace(
 		raceId,
+		raceCourseId,
+		raceNumber,
 		raceDate.Value(),
 		raceName,
 		int(types.JRA),
@@ -902,6 +1102,8 @@ func (n *netKeibaGateway) FetchRaceCard(
 		trackCondition.Value(),
 		raceSexCondition.Value(),
 		raceWeightCondition.Value(),
+		raceCourseCornerIndex.Value(),
+		raceAgeCondition.Value(),
 		raceEntryHorses,
 		nil,
 		nil,
@@ -1374,6 +1576,54 @@ func (n *netKeibaGateway) FetchPlaceOdds(
 	sort.Slice(odds, func(i, j int) bool {
 		return odds[i].PopularNumber() < odds[j].PopularNumber()
 	})
+
+	return odds, nil
+}
+
+func (n *netKeibaGateway) FetchQuinellaOdds(
+	ctx context.Context,
+	url string,
+) ([]*netkeiba_entity.Odds, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.logger.Infof("fetching quinella odds from %s", url)
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var oddsInfo *raw_entity.OddsInfo
+	if err := json.Unmarshal(body, &oddsInfo); err != nil {
+		return nil, err
+	}
+
+	dateTime, err := time.Parse("2006-01-02 15:04:05", oddsInfo.Data.OfficialDatetime)
+	if err != nil {
+		return nil, err
+	}
+	raceDate, err := types.NewRaceDate(dateTime.Format("20060102"))
+	if err != nil {
+		return nil, err
+	}
+
+	var odds []*netkeiba_entity.Odds
+	for _, list := range oddsInfo.Data.Odds.Quinellas {
+		popularNumber, _ := strconv.Atoi(list[2])
+		rawHorseNumber := list[3]
+		rawHorseNumber1, _ := strconv.Atoi(rawHorseNumber[0:2])
+		rawHorseNumber2, _ := strconv.Atoi(rawHorseNumber[2:4])
+		horseNumber1 := types.HorseNumber(rawHorseNumber1)
+		horseNumber2 := types.HorseNumber(rawHorseNumber2)
+		odds = append(odds, netkeiba_entity.NewOdds(
+			types.Quinella, []string{list[0]}, popularNumber, []types.HorseNumber{horseNumber1, horseNumber2}, raceDate,
+		))
+	}
 
 	return odds, nil
 }

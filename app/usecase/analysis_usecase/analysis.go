@@ -25,9 +25,10 @@ type AnalysisInput struct {
 }
 
 type AnalysisOddsInput struct {
-	Win   []*data_cache_entity.Odds
-	Place []*data_cache_entity.Odds
-	Trio  []*data_cache_entity.Odds
+	Win      []*data_cache_entity.Odds
+	Place    []*data_cache_entity.Odds
+	Trio     []*data_cache_entity.Odds
+	Quinella []*data_cache_entity.Odds
 }
 
 type analysis struct {

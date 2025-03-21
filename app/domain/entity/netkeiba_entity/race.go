@@ -1,33 +1,33 @@
 package netkeiba_entity
 
-import (
-	"strconv"
-)
-
 type Race struct {
-	raceId              string
-	raceDate            int
-	raceName            string
-	raceCourseId        string
-	raceNumber          int
-	organizer           int
-	url                 string
-	time                string
-	startTime           string
-	entries             int
-	distance            int
-	class               int
-	courseCategory      int
-	trackCondition      int
-	raceSexCondition    int
-	raceWeightCondition int
-	raceEntryHorses     []*RaceEntryHorse
-	raceResults         []*RaceResult
-	payoutResults       []*PayoutResult
+	raceId                string
+	raceDate              int
+	raceName              string
+	raceCourseId          string
+	raceNumber            int
+	organizer             int
+	url                   string
+	time                  string
+	startTime             string
+	entries               int
+	distance              int
+	class                 int
+	courseCategory        int
+	trackCondition        int
+	raceSexCondition      int
+	raceWeightCondition   int
+	raceCourseCornerIndex int
+	raceAgeCondition      int
+	raceEntryHorses       []*RaceEntryHorse
+	raceResults           []*RaceResult
+	payoutResults         []*PayoutResult
 }
 
 func NewRace(
 	raceId string,
+	raceCourseId string,
+	raceNumber int,
 	raceDate int,
 	raceName string,
 	organizer int,
@@ -41,32 +41,34 @@ func NewRace(
 	trackCondition int,
 	raceSexCondition int,
 	raceWeightCondition int,
+	raceCourseCornerIndex int,
+	raceAgeCondition int,
 	raceEntryHorses []*RaceEntryHorse,
 	raceResults []*RaceResult,
 	payoutResults []*PayoutResult,
 ) *Race {
-	raceCourseId := raceId[4:6]
-	raceNumber, _ := strconv.Atoi(raceId[10:])
 	return &Race{
-		raceId:              raceId,
-		raceDate:            raceDate,
-		raceName:            raceName,
-		raceCourseId:        raceCourseId,
-		raceNumber:          raceNumber,
-		organizer:           organizer,
-		url:                 url,
-		time:                time,
-		startTime:           startTime,
-		entries:             entries,
-		distance:            distance,
-		class:               class,
-		courseCategory:      courseCategory,
-		trackCondition:      trackCondition,
-		raceSexCondition:    raceSexCondition,
-		raceWeightCondition: raceWeightCondition,
-		raceEntryHorses:     raceEntryHorses,
-		raceResults:         raceResults,
-		payoutResults:       payoutResults,
+		raceId:                raceId,
+		raceDate:              raceDate,
+		raceName:              raceName,
+		raceCourseId:          raceCourseId,
+		raceNumber:            raceNumber,
+		organizer:             organizer,
+		url:                   url,
+		time:                  time,
+		startTime:             startTime,
+		entries:               entries,
+		distance:              distance,
+		class:                 class,
+		courseCategory:        courseCategory,
+		trackCondition:        trackCondition,
+		raceSexCondition:      raceSexCondition,
+		raceWeightCondition:   raceWeightCondition,
+		raceCourseCornerIndex: raceCourseCornerIndex,
+		raceAgeCondition:      raceAgeCondition,
+		raceEntryHorses:       raceEntryHorses,
+		raceResults:           raceResults,
+		payoutResults:         payoutResults,
 	}
 }
 
@@ -132,6 +134,14 @@ func (r *Race) RaceSexCondition() int {
 
 func (r *Race) RaceWeightCondition() int {
 	return r.raceWeightCondition
+}
+
+func (r *Race) RaceCourseCornerIndex() int {
+	return r.raceCourseCornerIndex
+}
+
+func (r *Race) RaceAgeCondition() int {
+	return r.raceAgeCondition
 }
 
 func (r *Race) RaceEntryHorses() []*RaceEntryHorse {

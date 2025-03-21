@@ -22,6 +22,7 @@ type MasterOutput struct {
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
 	TrioOdds          []*data_cache_entity.Odds
+	QuinellaOdds      []*data_cache_entity.Odds
 	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
 	PredictionMarkers []*marker_csv_entity.PredictionMarker
 }
@@ -60,6 +61,7 @@ func (m *Master) Execute(
 		WinOdds:           output.WinOdds,
 		PlaceOdds:         output.PlaceOdds,
 		TrioOdds:          output.TrioOdds,
+		QuinellaOdds:      output.QuinellaOdds,
 		AnalysisMarkers:   output.AnalysisMarkers,
 		PredictionMarkers: output.PredictionMarkers,
 	}, nil

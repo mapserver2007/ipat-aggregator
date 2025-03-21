@@ -23,17 +23,53 @@ func (a *analysis) PlaceUnHit(
 ) error {
 	unHitRaces := a.placeUnHitService.GetUnHitRaces(ctx, input.Markers, input.Races, input.Jockeys)
 
-	winRedOdds, err := a.placeUnHitService.GetWinRedOdds(ctx, input.Odds.Win, decimal.NewFromFloat(winOddsThreshold))
+	unHitRaceMap := converter.ConvertToMap(unHitRaces, func(race *analysis_entity.Race) types.RaceId {
+		return race.RaceId()
+	})
+
+	winRedOdds, err := a.placeUnHitService.GetWinRedOdds(
+		ctx,
+		input.Odds.Win,
+		decimal.NewFromFloat(winOddsThreshold),
+		unHitRaceMap,
+	)
 	if err != nil {
 		return err
 	}
 
-	winOddsFaults, err := a.placeUnHitService.GetWinOddsFaults(ctx, input.Odds.Win)
+	winMultiOddsMap := map[types.RaceId][]*analysis_entity.Odds{}
+	for _, odds := range winRedOdds {
+		if _, ok := winMultiOddsMap[odds.RaceId()]; !ok {
+			winMultiOddsMap[odds.RaceId()] = make([]*analysis_entity.Odds, 0)
+		}
+		winMultiOddsMap[odds.RaceId()] = append(winMultiOddsMap[odds.RaceId()], odds)
+	}
+
+	winOddsFaults, err := a.placeUnHitService.GetWinOddsFaults(
+		ctx,
+		input.Odds.Win,
+		unHitRaceMap,
+	)
 	if err != nil {
 		return err
 	}
 
-	trioOdds, err := a.placeUnHitService.GetTrioOdds(ctx, input.Odds.Trio, trioPopularNumberThreshold)
+	trioOdds, err := a.placeUnHitService.GetTrioOdds(
+		ctx,
+		input.Odds.Trio,
+		trioPopularNumberThreshold,
+		unHitRaceMap,
+	)
+	if err != nil {
+		return err
+	}
+
+	quinellaOddsWheelCombinations, err := a.placeUnHitService.GetQuinellaOddsWheelCombinations(
+		ctx,
+		input.Odds.Quinella,
+		winMultiOddsMap,
+		unHitRaceMap,
+	)
 	if err != nil {
 		return err
 	}
@@ -53,10 +89,6 @@ func (a *analysis) PlaceUnHit(
 		return err
 	}
 
-	unHitRaceMap := converter.ConvertToMap(unHitRaces, func(race *analysis_entity.Race) types.RaceId {
-		return race.RaceId()
-	})
-
 	cacheHorseMap := converter.ConvertToMap(horses, func(horse *data_cache_entity.Horse) types.HorseId {
 		return horse.HorseId()
 	})
@@ -64,14 +96,6 @@ func (a *analysis) PlaceUnHit(
 	cacheRaceForecastMap := converter.ConvertToMap(raceForecasts, func(forecast *data_cache_entity.RaceForecast) types.RaceId {
 		return forecast.RaceId()
 	})
-
-	winMultiOddsMap := map[types.RaceId][]*analysis_entity.Odds{}
-	for _, odds := range winRedOdds {
-		if _, ok := winMultiOddsMap[odds.RaceId()]; !ok {
-			winMultiOddsMap[odds.RaceId()] = make([]*analysis_entity.Odds, 0)
-		}
-		winMultiOddsMap[odds.RaceId()] = append(winMultiOddsMap[odds.RaceId()], odds)
-	}
 
 	winOddsFaultMap := map[types.RaceId][]*analysis_entity.OddsFault{}
 	for _, oddsFault := range winOddsFaults {
@@ -88,6 +112,25 @@ func (a *analysis) PlaceUnHit(
 		return odds.RaceId()
 	})
 
+	quinellaCombinationOddsMap := converter.ConvertToSliceMap(quinellaOddsWheelCombinations, func(odds *analysis_entity.Odds) types.RaceId {
+		return odds.RaceId()
+	})
+
+	quinellaConsecutiveNumberMap := make(map[types.RaceId]int)
+	quinellaCombinationTotalOddsMap := make(map[types.RaceId]decimal.Decimal)
+	for raceId, oddsList := range quinellaCombinationOddsMap {
+		quinellaConsecutiveNumberMap[raceId] = 0
+		quinellaCombinationTotalOddsMap[raceId] = decimal.Zero
+		for i, odds := range oddsList {
+			quinellaCombinationTotalOddsMap[raceId] = quinellaCombinationTotalOddsMap[raceId].Add(odds.Odds())
+			if i+1 == odds.PopularNumber() {
+				quinellaConsecutiveNumberMap[raceId]++
+			} else {
+				continue
+			}
+		}
+	}
+
 	fetchHorseMap := map[types.RaceDate][]*netkeiba_entity.Horse{}
 	fetchRaceForecastMap := map[types.RaceId][]*tospo_entity.Forecast{}
 	fetchTrainingCommentMap := map[types.RaceId][]*tospo_entity.TrainingComment{}
@@ -98,7 +141,7 @@ func (a *analysis) PlaceUnHit(
 		// 実用上は1レースで分析対象のオッズは1つ想定だが、仕様上は複数オッズも計算可能なのでループを回す
 		for _, raceResult := range race.RaceResults() {
 			cachedHorse, ok := cacheHorseMap[raceResult.HorseId()]
-			if !ok || race.RaceDate() != cachedHorse.LatestRaceDate() {
+			if !ok || race.RaceDate() > cachedHorse.LatestRaceDate() {
 				fetchHorse, err := a.placeUnHitService.FetchHorse(ctx, raceResult.HorseId())
 				if err != nil {
 					return err
@@ -205,6 +248,8 @@ func (a *analysis) PlaceUnHit(
 		winMultiOddsMap,
 		winOddsFaultMap,
 		trioOddsMap,
+		quinellaConsecutiveNumberMap,
+		quinellaCombinationTotalOddsMap,
 	)
 	if err != nil {
 		return err

@@ -143,7 +143,7 @@ func (r *raceService) CreateOrUpdate(
 	for results := range resultCh {
 		for _, race := range results {
 			rawRace := r.raceEntityConverter.NetKeibaToRaw(race)
-			raceMap[types.RaceDate(rawRace.RaceDate)] = append(raceMap[types.RaceDate(rawRace.RaceDate)], r.raceEntityConverter.NetKeibaToRaw(race))
+			raceMap[types.RaceDate(rawRace.RaceDate)] = append(raceMap[types.RaceDate(rawRace.RaceDate)], rawRace)
 		}
 	}
 

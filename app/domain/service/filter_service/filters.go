@@ -108,6 +108,37 @@ func TrackConditionFilters(trackCondition types.TrackCondition) []filter.Attribu
 	return filterIds
 }
 
+func GradeClassFilters(gradeClass types.GradeClass) []filter.AttributeId {
+	var filterIds []filter.AttributeId
+	switch gradeClass {
+	case types.Maiden:
+		filterIds = append(filterIds, filter.Maiden)
+	case types.OneWinClass:
+		filterIds = append(filterIds, filter.OneWinClass)
+	case types.TwoWinClass:
+		filterIds = append(filterIds, filter.TwoWinClass)
+	case types.ThreeWinClass:
+		filterIds = append(filterIds, filter.ThreeWinClass)
+	case types.OpenClass, types.ListedClass:
+		filterIds = append(filterIds, filter.OpenListedClass)
+	}
+	return filterIds
+}
+
+func SeasonFilters(raceDate types.RaceDate) []filter.AttributeId {
+	switch raceDate.Month() {
+	case 12, 1, 2:
+		return []filter.AttributeId{filter.Winter}
+	case 3, 4, 5:
+		return []filter.AttributeId{filter.Spring}
+	case 6, 7, 8:
+		return []filter.AttributeId{filter.Summer}
+	case 9, 10, 11:
+		return []filter.AttributeId{filter.Autumn}
+	}
+	return nil
+}
+
 func MarkerCombinationFilter(
 	race *data_cache_entity.Race,
 	markerCombinationId types.MarkerCombinationId,

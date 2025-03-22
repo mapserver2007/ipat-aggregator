@@ -34,18 +34,25 @@ func (p *prediction) Odds(ctx context.Context, input *PredictionInput) error {
 			defer wg.Done()
 			localPredictionRaces := make([]*prediction_entity.Race, 0, len(markers))
 			p.logger.Infof("prediction odds processing: %v/%v", end, len(predictionMarkers))
+
+			var localError error
 			for _, marker := range markers {
 				select {
 				case <-taskCtx.Done():
 					return
 				default:
+					if localError != nil {
+						continue
+					}
 					predictionRace, err := p.predictionOddsService.Get(taskCtx, marker.RaceId())
 					if err != nil {
+						localError = err
 						select {
-						case errorCh <- err: // 最初に発生したエラーをチャネルに送信
-							cancel() // すべてのスレッドを停止する
+						case errorCh <- err:
+							cancel()
+						default:
 						}
-						return
+						continue
 					}
 
 					localPredictionRaces = append(localPredictionRaces, predictionRace)

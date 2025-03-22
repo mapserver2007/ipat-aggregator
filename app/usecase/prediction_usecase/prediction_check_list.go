@@ -45,20 +45,27 @@ func (p *prediction) CheckList(ctx context.Context, input *PredictionInput) erro
 			defer wg.Done()
 			localCheckLists := make([]*spreadsheet_entity.PredictionCheckList, 0, len(markers)*6)
 			p.logger.Infof("prediction checkLlst processing: %v/%v", end, len(predictionMarkers))
+
+			var localError error
 			for _, marker := range markers {
 				select {
 				case <-taskCtx.Done():
+					resultCh <- localCheckLists
 					return
 				default:
+					if localError != nil {
+						continue
+					}
 					checkLists, err := p.createCheckList(taskCtx, calculables, marker)
 					if err != nil {
+						localError = err
 						select {
 						case errorCh <- err:
 							cancel()
+						default:
 						}
-						return
+						continue
 					}
-
 					localCheckLists = append(localCheckLists, checkLists...)
 				}
 			}

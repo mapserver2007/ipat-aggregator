@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
+	net_url "net/url"
 	"sort"
 	"sync"
 
@@ -15,7 +17,7 @@ import (
 )
 
 type TospoGateway interface {
-	FetchForecast(ctx context.Context, url string) ([]*tospo_entity.Forecast, error)
+	FetchForecast(ctx context.Context, url string, cookie *raw_entity.TospoCookie) ([]*tospo_entity.Forecast, error)
 	FetchTrainingComment(ctx context.Context, url string) ([]*tospo_entity.TrainingComment, error)
 	FetchReporterMemo(ctx context.Context, url string) ([]*tospo_entity.ReporterMemo, error)
 	FetchPaddockComment(ctx context.Context, url string) ([]*tospo_entity.PaddockComment, error)
@@ -37,12 +39,34 @@ func NewTospoGateway(
 func (t *tospoGateway) FetchForecast(
 	ctx context.Context,
 	url string,
+	cookie *raw_entity.TospoCookie,
 ) ([]*tospo_entity.Forecast, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{
+		Jar: jar,
+	}
+	u, _ := net_url.Parse(url)
+
+	cookies := []*http.Cookie{
+		{
+			Name:     cookie.Name,
+			Value:    cookie.Value,
+			Path:     cookie.Path,
+			Domain:   cookie.Domain,
+			HttpOnly: true,
+		},
+	}
+	jar.SetCookies(u, cookies)
+
 	t.logger.Infof("fetching forecast from %s", url)
-	res, err := http.Get(url)
+	res, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -52,14 +76,8 @@ func (t *tospoGateway) FetchForecast(
 		return nil, err
 	}
 
-	var rawForecast *raw_entity.ForecastInfo
+	var rawForecast raw_entity.ForecastInfo
 	if err = json.Unmarshal(body, &rawForecast); err != nil {
-		return nil, err
-	}
-
-	var raceForecastDataMap map[string]map[string]raw_entity.RaceForecastData
-	err = json.Unmarshal(rawForecast.Body.RaceForecastDataList, &raceForecastDataMap)
-	if err != nil {
 		return nil, err
 	}
 
@@ -68,11 +86,12 @@ func (t *tospoGateway) FetchForecast(
 		horseNameMap[raceEntry.HorseName] = types.HorseNumber(raceEntry.HorseNumber)
 	}
 
-	markerNum := len(raceForecastDataMap)
+	raceForecastMarkerMap := rawForecast.Body.RaceForecastElement.RaceForecastMarkerMap
+	markerNum := len(raceForecastMarkerMap)
 	favoriteMarkerMap := map[types.HorseNumber]int{}
 	rivalMarkerMap := map[types.HorseNumber]int{}
 
-	for _, raceForecastData := range raceForecastDataMap {
+	for _, raceForecastData := range raceForecastMarkerMap {
 		for _, forecastData := range raceForecastData {
 			horseNumber, ok := horseNameMap[forecastData.HorseName]
 			if ok {

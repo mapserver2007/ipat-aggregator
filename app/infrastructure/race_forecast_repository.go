@@ -93,7 +93,27 @@ func (r *raceForecastRepository) FetchRaceForecast(
 	ctx context.Context,
 	url string,
 ) ([]*tospo_entity.Forecast, error) {
-	forecasts, err := r.tospoGateway.FetchForecast(ctx, url)
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	absPath, err := filepath.Abs(fmt.Sprintf("%s/secret/tospo_cookie.json", rootPath))
+	if err != nil {
+		return nil, err
+	}
+
+	cookieFile, err := os.ReadFile(absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var cookie raw_entity.TospoCookie
+	if err := json.Unmarshal(cookieFile, &cookie); err != nil {
+		return nil, err
+	}
+
+	forecasts, err := r.tospoGateway.FetchForecast(ctx, url, &cookie)
 	if err != nil {
 		return nil, err
 	}

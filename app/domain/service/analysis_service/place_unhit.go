@@ -44,11 +44,16 @@ type PlaceUnHit interface {
 		oddsList []*data_cache_entity.Odds,
 		raceMap map[types.RaceId]*analysis_entity.Race,
 	) ([]*analysis_entity.OddsFault, error)
-	GetTrioOdds(ctx context.Context,
+	GetTrioOdds100(ctx context.Context,
 		oddsList []*data_cache_entity.Odds,
 		popularNumber int,
 		raceMap map[types.RaceId]*analysis_entity.Race,
 	) ([]*analysis_entity.Odds, error)
+	GetTrioFavoriteContains(ctx context.Context,
+		oddsList []*data_cache_entity.Odds,
+		winOddsMap map[types.RaceId][]*analysis_entity.Odds,
+		raceMap map[types.RaceId]*analysis_entity.Race,
+	) (map[types.RaceId]int, error)
 	GetQuinellaOddsWheelCombinations(ctx context.Context,
 		oddsList []*data_cache_entity.Odds,
 		winOddsMap map[types.RaceId][]*analysis_entity.Odds,
@@ -67,6 +72,7 @@ type PlaceUnHit interface {
 		trioOddsMap map[types.RaceId]*analysis_entity.Odds,
 		quinellaConsecutiveNumberMap map[types.RaceId]int,
 		quinellaCombinationTotalOddsMap map[types.RaceId]decimal.Decimal,
+		trioFavoriteCountMap map[types.RaceId]int,
 	) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error)
 	CreateCheckPoints(ctx context.Context, race *analysis_entity.Race) error
 	Write(ctx context.Context, analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit) error
@@ -568,7 +574,7 @@ func (p *placeUnHitService) GetWinOddsFaults(
 	return oddsFaults, nil
 }
 
-func (p *placeUnHitService) GetTrioOdds(
+func (p *placeUnHitService) GetTrioOdds100(
 	ctx context.Context,
 	oddsList []*data_cache_entity.Odds,
 	popularNumber int,
@@ -596,6 +602,35 @@ func (p *placeUnHitService) GetTrioOdds(
 	}
 
 	return trioOdds, nil
+}
+
+func (p *placeUnHitService) GetTrioFavoriteContains(ctx context.Context,
+	oddsList []*data_cache_entity.Odds,
+	winOddsMap map[types.RaceId][]*analysis_entity.Odds,
+	raceMap map[types.RaceId]*analysis_entity.Race,
+) (map[types.RaceId]int, error) {
+	horseNumberCountMap := make(map[types.RaceId]int)
+	for _, odds := range oddsList {
+		if odds.PopularNumber() > 100 {
+			continue
+		}
+		if _, ok := raceMap[odds.RaceId()]; !ok {
+			continue
+		}
+		winOdds, ok := winOddsMap[odds.RaceId()]
+		if !ok {
+			return nil, fmt.Errorf("winOddsMap not found: %s", odds.RaceId())
+		}
+		if len(winOdds) == 0 {
+			return nil, fmt.Errorf("winOddsList is empty: %s", odds.RaceId())
+		}
+		firstOdds := winOdds[0].Number().List()[0]
+		if slices.Contains(odds.Number().List(), firstOdds) {
+			horseNumberCountMap[odds.RaceId()]++
+		}
+	}
+
+	return horseNumberCountMap, nil
 }
 
 func (p *placeUnHitService) GetQuinellaOddsWheelCombinations(
@@ -705,6 +740,7 @@ func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 	trioOddsMap map[types.RaceId]*analysis_entity.Odds,
 	quinellaConsecutiveNumberMap map[types.RaceId]int,
 	quinellaCombinationTotalOddsMap map[types.RaceId]decimal.Decimal,
+	trioFavoriteCountMap map[types.RaceId]int,
 ) ([]*spreadsheet_entity.AnalysisPlaceUnhit, error) {
 	placeUnHitEntites := make([]*spreadsheet_entity.AnalysisPlaceUnhit, 0, len(races))
 	for _, race := range races {
@@ -731,6 +767,14 @@ func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 			trioOdds := trioOddsMap[race.RaceId()]
 			quinellaConsecutiveNumber := quinellaConsecutiveNumberMap[race.RaceId()]
 			quinellaCombinationTotalOdds := quinellaCombinationTotalOddsMap[race.RaceId()]
+			trioFavoriteCount := trioFavoriteCountMap[race.RaceId()]
+
+			marker := types.NoMarker
+			for _, m := range race.Markers() {
+				if m.HorseNumber() == raceResult.HorseNumber() {
+					marker = m.Marker()
+				}
+			}
 
 			placeUnHitEntites = append(placeUnHitEntites, spreadsheet_entity.NewAnalysisPlaceUnhit(
 				race.RaceId(),
@@ -755,6 +799,7 @@ func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 				raceResult.JockeyWeight(),
 				raceResult.HorseWeight(),
 				raceResult.HorseWeightAdd(),
+				marker,
 				func() *decimal.Decimal {
 					if trioOdds != nil {
 						odds := trioOdds.Odds()
@@ -767,6 +812,7 @@ func (p *placeUnHitService) CreateUnhitRaces(ctx context.Context,
 				winOddsFaults[1].OddsFault(),
 				quinellaConsecutiveNumber,
 				quinellaCombinationTotalOdds,
+				trioFavoriteCount,
 				raceForecast.TrainingComment(),
 			))
 		}

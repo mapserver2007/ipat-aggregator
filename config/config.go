@@ -4,8 +4,8 @@ const (
 	CsvDir                          = "csv"
 	CacheDir                        = "cache"
 	RaceStartDate                   = "20230729"
-	RaceEndDate                     = "20250308"
+	RaceEndDate                     = "20250322"
 	AnalysisUnHitWinLowerOdds       = 2.0 // 未満設定
-	PredictionSyncRaceDate          = "20250316"
+	PredictionSyncRaceDate          = "20250322"
 	PredictionCheckListWinLowerOdds = 2.9
 )

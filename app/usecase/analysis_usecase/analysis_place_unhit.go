@@ -54,10 +54,20 @@ func (a *analysis) PlaceUnHit(
 		return err
 	}
 
-	trioOdds, err := a.placeUnHitService.GetTrioOdds(
+	trioOdds100, err := a.placeUnHitService.GetTrioOdds100(
 		ctx,
 		input.Odds.Trio,
 		trioPopularNumberThreshold,
+		unHitRaceMap,
+	)
+	if err != nil {
+		return err
+	}
+
+	trioFavoriteContains, err := a.placeUnHitService.GetTrioFavoriteContains(
+		ctx,
+		input.Odds.Trio,
+		winMultiOddsMap,
 		unHitRaceMap,
 	)
 	if err != nil {
@@ -108,7 +118,7 @@ func (a *analysis) PlaceUnHit(
 		winOddsFaultMap[oddsFault.RaceId()] = append(winOddsFaultMap[oddsFault.RaceId()], oddsFault)
 	}
 
-	trioOddsMap := converter.ConvertToMap(trioOdds, func(odds *analysis_entity.Odds) types.RaceId {
+	trioOddsMap := converter.ConvertToMap(trioOdds100, func(odds *analysis_entity.Odds) types.RaceId {
 		return odds.RaceId()
 	})
 
@@ -250,6 +260,7 @@ func (a *analysis) PlaceUnHit(
 		trioOddsMap,
 		quinellaConsecutiveNumberMap,
 		quinellaCombinationTotalOddsMap,
+		trioFavoriteContains,
 	)
 	if err != nil {
 		return err

@@ -61,6 +61,7 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) Write(
 			"騎手",
 			"馬体重",
 			"増減",
+			"印",
 			"人気",
 			"オッズ",
 			"着",
@@ -70,6 +71,7 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) Write(
 			"断層2",
 			"馬連続",
 			"連平均",
+			"軸出現",
 		},
 	}
 
@@ -89,6 +91,7 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) Write(
 			fmt.Sprintf("=HYPERLINK(\"%s\",\"%s\")", analysisPlaceUnhit.JockeyUrl(), analysisPlaceUnhit.JockeyName()),
 			analysisPlaceUnhit.HorseWeight(),
 			analysisPlaceUnhit.HorseWeightAdd(),
+			analysisPlaceUnhit.Marker().String(),
 			analysisPlaceUnhit.PopularNumber(),
 			analysisPlaceUnhit.Odds().String(),
 			func() string {
@@ -103,6 +106,7 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) Write(
 			analysisPlaceUnhit.OddsFault2().String(),
 			analysisPlaceUnhit.QuinellaConsecutiveNumber(),
 			analysisPlaceUnhit.QuinellaWheelAverageOdds().Round(1).String(),
+			analysisPlaceUnhit.TrioFavoriteCount(),
 		})
 	}
 
@@ -164,18 +168,18 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleTrioOdds100(
 		if analysisPlaceUnhit.TrioOdds100().LessThanOrEqual(decimal.NewFromInt(1350)) && analysisPlaceUnhit.TrioOdds100().GreaterThanOrEqual(decimal.NewFromInt(650)) {
 			requests = append(requests, g.createBackgroundColorRequest(
 				config.SheetId(),
-				17, rowNum, 18, rowNum+1,
+				18, rowNum, 19, rowNum+1,
 				1.0, 1.0, 0.0,
 			))
 		} else {
 			requests = append(requests, g.createBackgroundColorRequest(
 				config.SheetId(),
-				17, rowNum, 18, rowNum+1,
+				18, rowNum, 19, rowNum+1,
 				1.0, 0.0, 0.0,
 			))
 			requests = append(requests, g.createTextFormatRequest(
 				config.SheetId(),
-				17, rowNum, 18, rowNum+1,
+				18, rowNum, 19, rowNum+1,
 				1.0, 1.0, 1.0,
 			))
 		}
@@ -205,18 +209,18 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleWinRedOddsNum(
 		if analysisPlaceUnhit.WinRedOddsNum() > 3 {
 			requests = append(requests, g.createBackgroundColorRequest(
 				config.SheetId(),
-				18, rowNum, 19, rowNum+1,
+				19, rowNum, 20, rowNum+1,
 				1.0, 0.0, 0.0,
 			))
 			requests = append(requests, g.createTextFormatRequest(
 				config.SheetId(),
-				18, rowNum, 19, rowNum+1,
+				19, rowNum, 20, rowNum+1,
 				1.0, 1.0, 1.0,
 			))
 		} else {
 			requests = append(requests, g.createBackgroundColorRequest(
 				config.SheetId(),
-				18, rowNum, 19, rowNum+1,
+				19, rowNum, 20, rowNum+1,
 				1.0, 1.0, 0.0,
 			))
 		}

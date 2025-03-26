@@ -121,11 +121,12 @@ func NewAnalysis(logger *logrus.Logger) *controller.Analysis {
 	placeNegativeCheck := analysis_service.NewPlaceNegativeCheck()
 	placeCheckPoint := analysis_service.NewPlaceCheckPoint(placeNegativeCheck)
 	placeUnHit := analysis_service.NewPlaceUnHit(horseRepository, raceForecastRepository, spreadSheetRepository, horseEntityConverter, analysisFilter, placeCheckList, placeCheckPoint)
+	placeJockey := analysis_service.NewPlaceJockey()
 	betaWin := analysis_service.NewBetaWin(analysisFilter)
 	horse := master_service.NewHorse(horseRepository, horseEntityConverter)
 	raceForecastEntityConverter := converter.NewRaceForecastEntityConverter()
 	raceForecast := master_service.NewRaceForecast(raceForecastRepository, raceForecastEntityConverter)
-	analysis := analysis_usecase.NewAnalysis(place, placeAllIn, placeUnHit, betaWin, placeCheckPoint, horse, raceForecast, raceForecastEntityConverter, horseEntityConverter)
+	analysis := analysis_usecase.NewAnalysis(place, placeAllIn, placeUnHit, placeJockey, betaWin, placeCheckPoint, horse, raceForecast, raceForecastEntityConverter, horseEntityConverter)
 	controllerAnalysis := controller.NewAnalysis(analysis, logger)
 	return controllerAnalysis
 }
@@ -173,7 +174,7 @@ var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, 
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 
-var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewPlaceAllIn, analysis_service.NewPlaceUnHit, analysis_service.NewPlaceCheckList, analysis_service.NewBetaWin, analysis_service.NewPlaceCheckPoint, analysis_service.NewPlaceNegativeCheck, master_service.NewHorse, master_service.NewRaceForecast, filter_service.NewAnalysisFilter, infrastructure.NewHorseRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewSpreadSheetRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, converter.NewHorseEntityConverter, converter.NewRaceForecastEntityConverter)
+var AnalysisSet = wire.NewSet(analysis_usecase.NewAnalysis, analysis_service.NewPlace, analysis_service.NewPlaceAllIn, analysis_service.NewPlaceUnHit, analysis_service.NewPlaceJockey, analysis_service.NewPlaceCheckList, analysis_service.NewBetaWin, analysis_service.NewPlaceCheckPoint, analysis_service.NewPlaceNegativeCheck, master_service.NewHorse, master_service.NewRaceForecast, filter_service.NewAnalysisFilter, infrastructure.NewHorseRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewSpreadSheetRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, converter.NewHorseEntityConverter, converter.NewRaceForecastEntityConverter)
 
 var PredictionSet = wire.NewSet(prediction_usecase.NewPrediction, prediction_service.NewOdds, prediction_service.NewPlaceCandidate, prediction_service.NewMarkerSync, filter_service.NewPredictionFilter, infrastructure.NewOddsRepository, infrastructure.NewRaceRepository, infrastructure.NewJockeyRepository, infrastructure.NewTrainerRepository, infrastructure.NewRaceIdRepository, converter.NewRaceEntityConverter)
 

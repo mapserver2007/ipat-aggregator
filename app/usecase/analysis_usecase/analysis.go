@@ -14,6 +14,7 @@ type Analysis interface {
 	Place(ctx context.Context, input *AnalysisInput) error
 	PlaceAllIn(ctx context.Context, input *AnalysisInput) error
 	PlaceUnHit(ctx context.Context, input *AnalysisInput) error
+	PlaceJockey(ctx context.Context, input *AnalysisInput) error
 	Beta(ctx context.Context, input *AnalysisInput) error
 }
 
@@ -35,6 +36,7 @@ type analysis struct {
 	placeService                analysis_service.Place
 	placeAllInService           analysis_service.PlaceAllIn
 	placeUnHitService           analysis_service.PlaceUnHit
+	placeJockeyService          analysis_service.PlaceJockey
 	betaWinService              analysis_service.BetaWin
 	placeCheckPointService      analysis_service.PlaceCheckPoint
 	horseMasterService          master_service.Horse
@@ -47,6 +49,7 @@ func NewAnalysis(
 	placeService analysis_service.Place,
 	placeAllInService analysis_service.PlaceAllIn,
 	placeUnHitService analysis_service.PlaceUnHit,
+	placeJockeyService analysis_service.PlaceJockey,
 	betaWinService analysis_service.BetaWin,
 	placeCheckPointService analysis_service.PlaceCheckPoint,
 	horseMasterService master_service.Horse,
@@ -58,6 +61,7 @@ func NewAnalysis(
 		placeService:                placeService,
 		placeAllInService:           placeAllInService,
 		placeUnHitService:           placeUnHitService,
+		placeJockeyService:          placeJockeyService,
 		betaWinService:              betaWinService,
 		placeCheckPointService:      placeCheckPointService,
 		horseMasterService:          horseMasterService,

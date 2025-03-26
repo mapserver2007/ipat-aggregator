@@ -52,7 +52,10 @@ func (t *tospoGateway) FetchForecast(
 	client := &http.Client{
 		Jar: jar,
 	}
-	u, _ := net_url.Parse(url)
+	u, err := net_url.Parse(url)
+	if err != nil {
+		return nil, err
+	}
 
 	cookies := []*http.Cookie{
 		{
@@ -60,7 +63,8 @@ func (t *tospoGateway) FetchForecast(
 			Value:    cookie.Value,
 			Path:     cookie.Path,
 			Domain:   cookie.Domain,
-			HttpOnly: true,
+			Secure:   cookie.Secure,
+			HttpOnly: cookie.HttpOnly,
 		},
 	}
 	jar.SetCookies(u, cookies)

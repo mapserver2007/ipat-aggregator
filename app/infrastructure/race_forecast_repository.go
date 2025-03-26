@@ -15,6 +15,10 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure/gateway"
 )
 
+const (
+	cookieFileName = "tospo_cookie.json"
+)
+
 type raceForecastRepository struct {
 	tospoGateway  gateway.TospoGateway
 	pathOptimizer file_gateway.PathOptimizer
@@ -98,7 +102,7 @@ func (r *raceForecastRepository) FetchRaceForecast(
 		return nil, err
 	}
 
-	absPath, err := filepath.Abs(fmt.Sprintf("%s/secret/tospo_cookie.json", rootPath))
+	absPath, err := filepath.Abs(fmt.Sprintf("%s/secret/%s", rootPath, cookieFileName))
 	if err != nil {
 		return nil, err
 	}

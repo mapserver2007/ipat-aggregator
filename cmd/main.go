@@ -126,8 +126,22 @@ func main() {
 			},
 		},
 		{
-			Name:    "analysis-beta",
+			Name:    "analysis-place-jockey",
 			Aliases: []string{"ap4"},
+			Usage:   "analysis-place-jockey",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis place jockey start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.PlaceJockey(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis place jockey end")
+				return nil
+			},
+		},
+		{
+			Name:    "analysis-beta",
+			Aliases: []string{"ap5"},
 			Usage:   "analysis-beta",
 			Action: func(c *cli.Context) error {
 				logger.Infof("analysis beta in start")

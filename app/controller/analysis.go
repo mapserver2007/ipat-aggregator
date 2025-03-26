@@ -74,6 +74,17 @@ func (a *Analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) {
 	a.logger.Info("fetching analysis place un hit in end")
 }
 
+func (a *Analysis) PlaceJockey(ctx context.Context, input *AnalysisInput) {
+	a.logger.Info("fetching analysis place jockey start")
+	if err := a.analysisUseCase.PlaceJockey(ctx, &analysis_usecase.AnalysisInput{
+		Markers: input.Master.AnalysisMarkers,
+		Races:   input.Master.Races,
+	}); err != nil {
+		a.logger.Errorf("analysis place jockey error: %v", err)
+	}
+	a.logger.Info("fetching analysis place jockey end")
+}
+
 func (a *Analysis) Beta(ctx context.Context, input *AnalysisInput) {
 	a.logger.Info("fetching analysis beta start")
 	if err := a.analysisUseCase.Beta(ctx, &analysis_usecase.AnalysisInput{

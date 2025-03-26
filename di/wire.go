@@ -80,6 +80,7 @@ var AnalysisSet = wire.NewSet(
 	analysis_service.NewPlace,
 	analysis_service.NewPlaceAllIn,
 	analysis_service.NewPlaceUnHit,
+	analysis_service.NewPlaceJockey,
 	analysis_service.NewPlaceCheckList,
 	analysis_service.NewBetaWin,
 	analysis_service.NewPlaceCheckPoint,

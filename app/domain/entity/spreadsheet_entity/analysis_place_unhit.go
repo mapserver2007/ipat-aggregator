@@ -31,12 +31,14 @@ type AnalysisPlaceUnhit struct {
 	jockeyWeight              string
 	horseWeight               int
 	horseWeightAdd            int
+	marker                    types.Marker
 	trioOdds100               decimal.Decimal
 	winRedOddsNum             int
 	oddsFault1                decimal.Decimal
 	oddsFault2                decimal.Decimal
 	quinellaConsecutiveNumber int
 	quinellaWheelAverageOdds  decimal.Decimal
+	trioFavoriteCount         int
 	trainingComment           string
 }
 
@@ -63,12 +65,14 @@ func NewAnalysisPlaceUnhit(
 	jockeyWeight string,
 	horseWeight int,
 	horseWeightAdd int,
+	marker types.Marker,
 	trioOdds100 *decimal.Decimal,
 	winRedOddsNum int,
 	oddsFault1 decimal.Decimal,
 	oddsFault2 decimal.Decimal,
 	quinellaConsecutiveNumber int,
 	quinellaCombinationTotalOdds decimal.Decimal,
+	trioFavoriteCount int,
 	trainingComment string,
 ) *AnalysisPlaceUnhit {
 	return &AnalysisPlaceUnhit{
@@ -95,6 +99,7 @@ func NewAnalysisPlaceUnhit(
 		jockeyWeight:        jockeyWeight,
 		horseWeight:         horseWeight,
 		horseWeightAdd:      horseWeightAdd,
+		marker:              marker,
 		trioOdds100: func() decimal.Decimal {
 			if trioOdds100 != nil {
 				return *trioOdds100
@@ -106,6 +111,7 @@ func NewAnalysisPlaceUnhit(
 		oddsFault2:                oddsFault2,
 		quinellaConsecutiveNumber: quinellaConsecutiveNumber,
 		quinellaWheelAverageOdds:  quinellaCombinationTotalOdds.Div(decimal.NewFromInt(int64(entries - 1))),
+		trioFavoriteCount:         trioFavoriteCount,
 		trainingComment:           trainingComment,
 	}
 }
@@ -202,6 +208,10 @@ func (a *AnalysisPlaceUnhit) HorseWeightAdd() int {
 	return a.horseWeightAdd
 }
 
+func (a *AnalysisPlaceUnhit) Marker() types.Marker {
+	return a.marker
+}
+
 func (a *AnalysisPlaceUnhit) TrioOdds100() decimal.Decimal {
 	return a.trioOdds100
 }
@@ -224,6 +234,10 @@ func (a *AnalysisPlaceUnhit) QuinellaConsecutiveNumber() int {
 
 func (a *AnalysisPlaceUnhit) QuinellaWheelAverageOdds() decimal.Decimal {
 	return a.quinellaWheelAverageOdds
+}
+
+func (a *AnalysisPlaceUnhit) TrioFavoriteCount() int {
+	return a.trioFavoriteCount
 }
 
 func (a *AnalysisPlaceUnhit) TrainingComment() string {

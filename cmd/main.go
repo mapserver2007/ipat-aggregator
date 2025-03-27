@@ -140,6 +140,20 @@ func main() {
 			},
 		},
 		{
+			Name:    "analysis-race",
+			Aliases: []string{"ap5"},
+			Usage:   "analysis-race",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis race time start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.RaceTime(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis race time end")
+				return nil
+			},
+		},
+		{
 			Name:    "analysis-beta",
 			Aliases: []string{"ap5"},
 			Usage:   "analysis-beta",

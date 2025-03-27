@@ -15,6 +15,7 @@ type Analysis interface {
 	PlaceAllIn(ctx context.Context, input *AnalysisInput) error
 	PlaceUnHit(ctx context.Context, input *AnalysisInput) error
 	PlaceJockey(ctx context.Context, input *AnalysisInput) error
+	RaceTime(ctx context.Context, input *AnalysisInput) error
 	Beta(ctx context.Context, input *AnalysisInput) error
 }
 

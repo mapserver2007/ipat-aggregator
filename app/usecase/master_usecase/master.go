@@ -23,6 +23,7 @@ type MasterInput struct {
 type MasterOutput struct {
 	Tickets           []*ticket_csv_entity.RaceTicket
 	Races             []*data_cache_entity.Race
+	RaceTimes         []*data_cache_entity.RaceTime
 	Jockeys           []*data_cache_entity.Jockey
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
@@ -36,6 +37,7 @@ type master struct {
 	ticketService           master_service.Ticket
 	raceIdService           master_service.RaceId
 	raceService             master_service.Race
+	raceTimeService         master_service.RaceTime
 	raceForecastService     master_service.RaceForecast
 	jockeyService           master_service.Jockey
 	winOddsService          master_service.WinOdds
@@ -51,6 +53,7 @@ func NewMaster(
 	ticketService master_service.Ticket,
 	raceIdService master_service.RaceId,
 	raceService master_service.Race,
+	raceTimeService master_service.RaceTime,
 	raceForecastService master_service.RaceForecast,
 	jockeyService master_service.Jockey,
 	winOddsService master_service.WinOdds,
@@ -65,6 +68,7 @@ func NewMaster(
 		ticketService:           ticketService,
 		raceIdService:           raceIdService,
 		raceService:             raceService,
+		raceTimeService:         raceTimeService,
 		raceForecastService:     raceForecastService,
 		jockeyService:           jockeyService,
 		winOddsService:          winOddsService,
@@ -84,6 +88,11 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 	}
 
 	raceTickets, err := m.ticketService.Get(ctx, races)
+	if err != nil {
+		return nil, err
+	}
+
+	raceTimes, err := m.raceTimeService.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +135,7 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 	return &MasterOutput{
 		Tickets:           raceTickets,
 		Races:             races,
+		RaceTimes:         raceTimes,
 		Jockeys:           jockeys,
 		WinOdds:           winOdds,
 		PlaceOdds:         placeOdds,
@@ -153,6 +163,21 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	}
 
 	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
+	if err != nil {
+		return err
+	}
+
+	raceTimes, err := m.raceTimeService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	races, err = m.raceService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = m.raceTimeService.CreateOrUpdate(ctx, raceTimes, races, raceDateMap)
 	if err != nil {
 		return err
 	}

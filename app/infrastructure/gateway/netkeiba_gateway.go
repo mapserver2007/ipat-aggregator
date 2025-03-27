@@ -18,6 +18,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,6 +34,7 @@ type NetKeibaGateway interface {
 	FetchPlaceOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchQuinellaOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
+	FetchRaceTime(ctx context.Context, url string) (*netkeiba_entity.RaceTime, error)
 }
 
 type netKeibaGateway struct {
@@ -1676,4 +1678,100 @@ func (n *netKeibaGateway) FetchTrioOdds(
 	}
 
 	return odds, nil
+}
+
+func (n *netKeibaGateway) FetchRaceTime(
+	ctx context.Context,
+	url string,
+) (*netkeiba_entity.RaceTime, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	var (
+		time       string
+		timeIndex  int
+		trackIndex int
+		rapTimes   []decimal.Decimal
+		raceDate   int
+	)
+
+	err := n.collector.Login(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedUrl, err := neturl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	queryParams, err := neturl.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	cache := true
+	if queryParams.Get("cache") == "false" {
+		cache = false
+	}
+	n.collector.Cache(cache)
+
+	n.collector.Client().OnHTML(".race_table_01 tbody", func(e *colly.HTMLElement) {
+		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
+			switch i {
+			case 1:
+				time = ce.DOM.Find("td:nth-child(8)").Text()
+				timeIndex, _ = strconv.Atoi(strings.ReplaceAll(ce.DOM.Find("td:nth-child(10)").Text(), "\n", ""))
+			}
+		})
+	})
+
+	n.collector.Client().OnHTML("div.result_info.box_left > table:nth-child(2) > tbody > tr:nth-child(1) > td", func(e *colly.HTMLElement) {
+		regex := regexp.MustCompile(`(-?\d+)`)
+		result := regex.FindStringSubmatch(e.DOM.Text())
+		trackIndex, _ = strconv.Atoi(result[1])
+	})
+
+	n.collector.Client().OnHTML("td.race_lap_cell", func(e *colly.HTMLElement) {
+		if len(rapTimes) > 0 {
+			return
+		}
+		raceRapText := e.DOM.Text()
+		parts := strings.Split(raceRapText, "-")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if value, err := decimal.NewFromString(part); err == nil {
+				rapTimes = append(rapTimes, value)
+			} else {
+				n.logger.Errorf("FetchRaceTime error: %v", err)
+			}
+		}
+	})
+
+	n.collector.Client().OnHTML(".result_link > a", func(e *colly.HTMLElement) {
+		rawRaceDate := strings.Split(e.Attr("href"), "/")[3]
+		raceDate, err = strconv.Atoi(rawRaceDate)
+		if err != nil {
+			n.logger.Errorf("FetchRaceTime error: %v", err)
+		}
+	})
+
+	n.collector.Client().OnError(func(r *colly.Response, err error) {
+		n.logger.Errorf("FetchRaceTime error: %v", err)
+	})
+
+	n.logger.Infof("fetching race time from %s", url)
+
+	err = n.collector.Client().Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return netkeiba_entity.NewRaceTime(
+		strings.Split(url, "/")[4],
+		raceDate,
+		time,
+		timeIndex,
+		trackIndex,
+		rapTimes,
+	), nil
 }

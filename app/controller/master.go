@@ -18,6 +18,7 @@ type MasterInput struct {
 type MasterOutput struct {
 	Tickets           []*ticket_csv_entity.RaceTicket
 	Races             []*data_cache_entity.Race
+	RaceTimes         []*data_cache_entity.RaceTime
 	Jockeys           []*data_cache_entity.Jockey
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
@@ -57,6 +58,7 @@ func (m *Master) Execute(
 	return &MasterOutput{
 		Tickets:           output.Tickets,
 		Races:             output.Races,
+		RaceTimes:         output.RaceTimes,
 		Jockeys:           output.Jockeys,
 		WinOdds:           output.WinOdds,
 		PlaceOdds:         output.PlaceOdds,

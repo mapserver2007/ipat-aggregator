@@ -85,6 +85,17 @@ func (a *Analysis) PlaceJockey(ctx context.Context, input *AnalysisInput) {
 	a.logger.Info("fetching analysis place jockey end")
 }
 
+func (a *Analysis) RaceTime(ctx context.Context, input *AnalysisInput) {
+	a.logger.Info("fetching analysis race time start")
+	if err := a.analysisUseCase.RaceTime(ctx, &analysis_usecase.AnalysisInput{
+		Markers: input.Master.AnalysisMarkers,
+		Races:   input.Master.Races,
+	}); err != nil {
+		a.logger.Errorf("analysis race time error: %v", err)
+	}
+	a.logger.Info("fetching analysis race time end")
+}
+
 func (a *Analysis) Beta(ctx context.Context, input *AnalysisInput) {
 	a.logger.Info("fetching analysis beta start")
 	if err := a.analysisUseCase.Beta(ctx, &analysis_usecase.AnalysisInput{

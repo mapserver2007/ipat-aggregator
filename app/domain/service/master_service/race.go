@@ -116,7 +116,7 @@ func (r *raceService) CreateOrUpdate(
 				case <-taskCtx.Done():
 					return
 				default:
-					race, err := r.raceRepository.FetchRace(ctx, url)
+					race, err := r.raceRepository.FetchRace(taskCtx, url)
 					if err != nil {
 						select {
 						case errorCh <- err:

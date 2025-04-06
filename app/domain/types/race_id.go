@@ -38,11 +38,22 @@ func NewRaceIdForOverseas(
 	raceNo int,
 ) RaceId {
 	rawRaceId := fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day, raceNo)
-	// 海外の場合、日をまたぐケースがあり開催日時とrace_idが一致しない場合がある(例：3月のドバイ)
-	if raceCourse == Meydan || raceCourse == KingAbdulaziz || raceCourse == SantaAnitaPark || raceCourse == Delmar {
+
+	switch raceCourse {
+	case Meydan:
+		// 2025ドバイ開催のIDはなぜか0101になっているので特殊対応
+		if year == 2025 {
+			rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, 1, 1, raceNo)
+		} else {
+			// 日付を-1してraceIdを設定する特殊対応
+			// 月をまたぐわけではないのでtimeパッケージで厳密にはやらない
+			rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day-1, raceNo)
+		}
+	case KingAbdulaziz, SantaAnitaPark, Delmar:
 		// 日付を-1してraceIdを設定する特殊対応
 		// 月をまたぐわけではないのでtimeパッケージで厳密にはやらない
 		rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day-1, raceNo)
 	}
+
 	return RaceId(rawRaceId)
 }

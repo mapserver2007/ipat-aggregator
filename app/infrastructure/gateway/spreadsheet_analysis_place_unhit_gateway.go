@@ -306,20 +306,6 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleOddsFault(
 	return nil
 }
 
-// func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleQuinellaConsecutiveNumber(
-// 	client *sheets.Service,
-// 	config *spreadsheet_entity.SpreadSheetConfig,
-// 	analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit,
-// ) error {
-// 	g.logger.Infof("writing spreadsheet writeStyleQuinellaConsecutiveNumber")
-
-// 	requests := make([]*sheets.Request, 0, len(analysisPlaceUnhits))
-// 	for idx, analysisPlaceUnhit := range analysisPlaceUnhits {
-// 		rowNum := 1 + idx
-// 	}
-// 	return nil
-// }
-
 func (g *spreadSheetAnalysisPlaceUnhitGateway) createTextFormatRequest(
 	sheetId int64,
 	startCol, startRow, endCol, endRow int,

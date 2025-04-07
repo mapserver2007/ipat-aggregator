@@ -88,8 +88,9 @@ func (a *Analysis) PlaceJockey(ctx context.Context, input *AnalysisInput) {
 func (a *Analysis) RaceTime(ctx context.Context, input *AnalysisInput) {
 	a.logger.Info("fetching analysis race time start")
 	if err := a.analysisUseCase.RaceTime(ctx, &analysis_usecase.AnalysisInput{
-		Markers: input.Master.AnalysisMarkers,
-		Races:   input.Master.Races,
+		Markers:   input.Master.AnalysisMarkers,
+		Races:     input.Master.Races,
+		RaceTimes: input.Master.RaceTimes,
 	}); err != nil {
 		a.logger.Errorf("analysis race time error: %v", err)
 	}

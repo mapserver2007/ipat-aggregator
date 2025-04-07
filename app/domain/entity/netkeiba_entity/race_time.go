@@ -1,6 +1,8 @@
 package netkeiba_entity
 
-import "github.com/shopspring/decimal"
+import (
+	"time"
+)
 
 type RaceTime struct {
 	raceId     string
@@ -8,7 +10,7 @@ type RaceTime struct {
 	time       string
 	timeIndex  int
 	trackIndex int
-	rapTimes   []decimal.Decimal
+	rapTimes   []time.Duration
 }
 
 func NewRaceTime(
@@ -17,7 +19,7 @@ func NewRaceTime(
 	time string,
 	timeIndex int,
 	trackIndex int,
-	rapTimes []decimal.Decimal,
+	rapTimes []time.Duration,
 ) *RaceTime {
 	return &RaceTime{
 		raceId:     raceId,
@@ -49,6 +51,6 @@ func (r *RaceTime) TrackIndex() int {
 	return r.trackIndex
 }
 
-func (r *RaceTime) RapTimes() []decimal.Decimal {
+func (r *RaceTime) RapTimes() []time.Duration {
 	return r.rapTimes
 }

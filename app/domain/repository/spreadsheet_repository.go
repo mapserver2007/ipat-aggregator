@@ -23,6 +23,11 @@ type SpreadSheetRepository interface {
 		markerCombinationFilters []filter.MarkerCombinationId,
 	) error
 	WriteAnalysisPlaceUnhit(ctx context.Context, analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit) error
+	WriteAnalysisRaceTime(ctx context.Context,
+		analysisRaceTimeMap map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime,
+		attributeFilters []filter.AttributeId,
+		conditionFilters []filter.AttributeId,
+	) error
 	WritePredictionOdds(ctx context.Context,
 		firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
 		raceCourseMap map[types.RaceCourse][]types.RaceId,

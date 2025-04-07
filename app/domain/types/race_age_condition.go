@@ -14,8 +14,8 @@ var raceAgeConditionMap = map[RaceAgeCondition]string{
 	UnknownRaceAgeCondition: "未定義年齡条件",
 	TwoYearsOld:             "2歳",
 	ThreeYearsOld:           "3歳",
-	ThreeYearsAndOlder:      "3歳以上",
-	FourYearsAndOlder:       "4歳以上",
+	ThreeYearsAndOlder:      "3歳上",
+	FourYearsAndOlder:       "4歳上",
 }
 
 func (r RaceAgeCondition) Value() int {

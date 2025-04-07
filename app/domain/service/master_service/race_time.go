@@ -95,15 +95,6 @@ func (r *raceTimeService) CreateOrUpdate(
 		return nil
 	}
 
-	raceTimeMap := map[types.RaceDate][]*raw_entity.RaceTime{}
-	for _, raceTime := range raceTimes {
-		_, ok := raceTimeMap[raceTime.RaceDate()]
-		if !ok {
-			raceTimeMap[raceTime.RaceDate()] = make([]*raw_entity.RaceTime, 0)
-		}
-		raceTimeMap[raceTime.RaceDate()] = append(raceTimeMap[raceTime.RaceDate()], r.raceTimeEntityConverter.DataCacheToRaw(raceTime))
-	}
-
 	var wg sync.WaitGroup
 	const raceIdParallel = 5
 	errorCh := make(chan error, 1)
@@ -151,6 +142,7 @@ func (r *raceTimeService) CreateOrUpdate(
 		return err
 	}
 
+	raceTimeMap := map[types.RaceDate][]*raw_entity.RaceTime{}
 	for results := range resultCh {
 		for _, raceTime := range results {
 			rawRaceTime := r.raceTimeEntityConverter.NetKeibaToRaw(raceTime)

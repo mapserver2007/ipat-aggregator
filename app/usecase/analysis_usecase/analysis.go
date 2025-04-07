@@ -20,10 +20,11 @@ type Analysis interface {
 }
 
 type AnalysisInput struct {
-	Markers []*marker_csv_entity.AnalysisMarker
-	Races   []*data_cache_entity.Race
-	Odds    *AnalysisOddsInput
-	Jockeys []*data_cache_entity.Jockey
+	Markers   []*marker_csv_entity.AnalysisMarker
+	Races     []*data_cache_entity.Race
+	RaceTimes []*data_cache_entity.RaceTime
+	Odds      *AnalysisOddsInput
+	Jockeys   []*data_cache_entity.Jockey
 }
 
 type AnalysisOddsInput struct {
@@ -40,6 +41,7 @@ type analysis struct {
 	placeJockeyService          analysis_service.PlaceJockey
 	betaWinService              analysis_service.BetaWin
 	placeCheckPointService      analysis_service.PlaceCheckPoint
+	raceTimeService             analysis_service.RaceTime
 	horseMasterService          master_service.Horse
 	raceForecastService         master_service.RaceForecast
 	raceForecastEntityConverter converter.RaceForecastEntityConverter
@@ -53,6 +55,7 @@ func NewAnalysis(
 	placeJockeyService analysis_service.PlaceJockey,
 	betaWinService analysis_service.BetaWin,
 	placeCheckPointService analysis_service.PlaceCheckPoint,
+	raceTimeService analysis_service.RaceTime,
 	horseMasterService master_service.Horse,
 	raceForecastService master_service.RaceForecast,
 	raceForecastEntityConverter converter.RaceForecastEntityConverter,
@@ -67,6 +70,7 @@ func NewAnalysis(
 		placeCheckPointService:      placeCheckPointService,
 		horseMasterService:          horseMasterService,
 		raceForecastService:         raceForecastService,
+		raceTimeService:             raceTimeService,
 		raceForecastEntityConverter: raceForecastEntityConverter,
 		horseEntityConverter:        horseEntityConverter,
 	}

@@ -121,6 +121,12 @@ func GradeClassFilters(gradeClass types.GradeClass) []filter.AttributeId {
 		filterIds = append(filterIds, filter.ThreeWinClass)
 	case types.OpenClass, types.ListedClass:
 		filterIds = append(filterIds, filter.OpenListedClass)
+	case types.Grade3:
+		filterIds = append(filterIds, filter.Grade3)
+	case types.Grade2:
+		filterIds = append(filterIds, filter.Grade2)
+	case types.Grade1:
+		filterIds = append(filterIds, filter.Grade1)
 	}
 	return filterIds
 }
@@ -139,6 +145,20 @@ func SeasonFilters(raceDate types.RaceDate) []filter.AttributeId {
 	return nil
 }
 
+func RaceAgeConditionFilters(raceAgeCondition types.RaceAgeCondition) []filter.AttributeId {
+	var filterIds []filter.AttributeId
+	switch raceAgeCondition {
+	case types.TwoYearsOld:
+		filterIds = append(filterIds, filter.TwoYearsOld)
+	case types.ThreeYearsOld:
+		filterIds = append(filterIds, filter.ThreeYearsOld)
+	case types.ThreeYearsAndOlder:
+		filterIds = append(filterIds, filter.ThreeYearsAndOlder)
+	case types.FourYearsAndOlder:
+		filterIds = append(filterIds, filter.FourYearsAndOlder)
+	}
+	return filterIds
+}
 func MarkerCombinationFilter(
 	race *data_cache_entity.Race,
 	markerCombinationId types.MarkerCombinationId,

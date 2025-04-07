@@ -10,7 +10,11 @@ import (
 
 type AnalysisFilter interface {
 	CreatePlaceFilters(ctx context.Context, race *data_cache_entity.Race) []filter.AttributeId
-	CreatePlaceAllInFilters(ctx context.Context, race *data_cache_entity.Race, markerCombinationId types.MarkerCombinationId) ([]filter.AttributeId, []filter.MarkerCombinationId)
+	CreatePlaceAllInFilters(ctx context.Context,
+		race *data_cache_entity.Race,
+		markerCombinationId types.MarkerCombinationId,
+	) ([]filter.AttributeId, []filter.MarkerCombinationId)
+	CreateRaceTimeFilters(ctx context.Context, race *data_cache_entity.Race) []filter.AttributeId
 	CreateBetaFilters(ctx context.Context, race *data_cache_entity.Race, markerCombinationIds []types.MarkerCombinationId) []filter.AttributeId
 }
 
@@ -48,6 +52,22 @@ func (f *filterService) CreatePlaceAllInFilters(
 	markerCombinationFilterIds = append(markerCombinationFilterIds, MarkerCombinationFilter(race, markerCombinationId)...)
 
 	return attributeFilterIds, markerCombinationFilterIds
+}
+
+func (f *filterService) CreateRaceTimeFilters(
+	ctx context.Context,
+	race *data_cache_entity.Race,
+) []filter.AttributeId {
+	var attributeFilterIds []filter.AttributeId
+	attributeFilterIds = append(attributeFilterIds, CourseCategoryFilters(race.CourseCategory())...)
+	attributeFilterIds = append(attributeFilterIds, DistanceFilters(race.Distance())...)
+	attributeFilterIds = append(attributeFilterIds, RaceCourseFilters(race.RaceCourseId())...)
+	attributeFilterIds = append(attributeFilterIds, TrackConditionFilters(race.TrackCondition())...)
+	attributeFilterIds = append(attributeFilterIds, GradeClassFilters(race.Class())...)
+	attributeFilterIds = append(attributeFilterIds, SeasonFilters(race.RaceDate())...)
+	attributeFilterIds = append(attributeFilterIds, RaceAgeConditionFilters(race.RaceAgeCondition())...)
+
+	return attributeFilterIds
 }
 
 func (f *filterService) CreateBetaFilters(

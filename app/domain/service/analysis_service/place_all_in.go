@@ -69,7 +69,7 @@ func (p *placeAllInService) Create(
 	for _, race := range races {
 		if _, ok := markerMap[race.RaceId()]; !ok {
 			switch race.Class() {
-			case types.MakeDebut, types.JumpMaiden, types.JumpGrade1, types.JumpGrade2, types.JumpGrade3:
+			case types.MakeDebut, types.JumpMaiden, types.JumpGrade1, types.JumpGrade2, types.JumpGrade3, types.JumpOpenClass:
 				// 新馬・障害は分析印なしなのでスキップ
 			default:
 				// 印が不完全な場合がたまにあり(同じ印がついていたり、取り消しによる印6個未満の場合)、その場合はスキップ

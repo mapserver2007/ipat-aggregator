@@ -3,15 +3,22 @@ package analysis_service
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 	"time"
 
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/spreadsheet_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/repository"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types/filter"
+)
+
+const (
+	timeFormat    = "0:00.0"
+	rapTimeFormat = "0.0"
 )
 
 type RaceTime interface {
@@ -21,6 +28,11 @@ type RaceTime interface {
 	) ([]*analysis_entity.RaceTimeCalculable, error)
 	Convert(ctx context.Context,
 		calculables []*analysis_entity.RaceTimeCalculable,
+	) (map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime, []filter.AttributeId, []filter.AttributeId)
+	Write(ctx context.Context,
+		analysisRaceTimeMap map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime,
+		attributeFilters []filter.AttributeId,
+		conditionFilters []filter.AttributeId,
 	) error
 }
 
@@ -86,10 +98,11 @@ func (r *raceTimeService) Create(
 func (r *raceTimeService) Convert(
 	ctx context.Context,
 	calculables []*analysis_entity.RaceTimeCalculable,
-) error {
+) (map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime, []filter.AttributeId, []filter.AttributeId) {
 	filterRaceTimeMap := make(map[filter.AttributeId][]*analysis_entity.RaceTimeCalculable)
-
-	for _, attributeFilter := range r.getAttributeFilters() {
+	attributeFilters := r.getAttributeFilters()
+	conditionFilters := r.getConditionFilters()
+	for _, attributeFilter := range attributeFilters {
 		for _, calculable := range calculables {
 			var calcFilter filter.AttributeId
 			for _, f := range calculable.AttributeFilterIds() {
@@ -101,71 +114,112 @@ func (r *raceTimeService) Convert(
 		}
 	}
 
+	analysisRaceTimeMap := make(map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime)
 	for attributeFilter, calculables := range filterRaceTimeMap {
-		_ = attributeFilter
-		averageRaceTime := r.calcAverageRaceTime(calculables)
-		medianRaceTime := r.calcMedianRaceTime(calculables)
-		averageFirst3f := r.calcAverageFirst3f(calculables)
-		medianFirst3f := r.calcMedianFirst3f(calculables)
-		averageFirst4f := r.calcAverageFirst4f(calculables)
-		medianFirst4f := r.calcMedianFirst4f(calculables)
-		averageLast3f := r.calcAverageLast3f(calculables)
-		medianLast3f := r.calcMedianLast3f(calculables)
-		averageLast4f := r.calcAverageLast4f(calculables)
-		medianLast4f := r.calcMedianLast4f(calculables)
-		averageRap5f := r.calcAverageRap5f(calculables)
-		medianRap5f := r.calcMedianRap5f(calculables)
+		metrics := []struct {
+			time func(*analysis_entity.RaceTimeCalculable) time.Duration
+		}{
+			{func(c *analysis_entity.RaceTimeCalculable) time.Duration { return c.Time() }},
+			{func(c *analysis_entity.RaceTimeCalculable) time.Duration { return c.First3f() }},
+			{func(c *analysis_entity.RaceTimeCalculable) time.Duration { return c.First4f() }},
+			{func(c *analysis_entity.RaceTimeCalculable) time.Duration { return c.Last3f() }},
+			{func(c *analysis_entity.RaceTimeCalculable) time.Duration { return c.Last4f() }},
+			{func(c *analysis_entity.RaceTimeCalculable) time.Duration { return c.Rap5f() }},
+		}
 
-		fmt.Println(averageRaceTime)
-		fmt.Println(medianRaceTime)
-		fmt.Println(averageFirst3f)
-		fmt.Println(medianFirst3f)
-		fmt.Println(averageFirst4f)
-		fmt.Println(medianFirst4f)
-		fmt.Println(averageLast3f)
-		fmt.Println(medianLast3f)
-		fmt.Println(averageLast4f)
-		fmt.Println(medianLast4f)
-		fmt.Println(averageRap5f)
-		fmt.Println(medianRap5f)
+		times := make([]string, 0, len(metrics)*2)
+		for i, metric := range metrics {
+			format := rapTimeFormat
+			if i == 0 {
+				format = timeFormat
+			}
+			times = append(times, r.calcAverageTime(calculables, metric.time, format))
+			times = append(times, r.calcMedianTime(calculables, metric.time, format))
+		}
+
+		trackIndices := make([]int, 0, len(calculables))
+		timeIndices := make([]int, 0, len(calculables))
+		for _, calculable := range calculables {
+			trackIndices = append(trackIndices, calculable.TrackIndex())
+			timeIndices = append(timeIndices, calculable.TimeIndex())
+		}
+
+		averageTrackIndex := r.calcAverage(trackIndices)
+		maxTrackIndex := r.calcMax(trackIndices)
+		minTrackIndex := r.calcMin(trackIndices)
+		averageTimeIndex := r.calcAverage(timeIndices)
+
+		analysisRaceTimeMap[attributeFilter] = spreadsheet_entity.NewAnalysisRaceTime(
+			times[0],
+			times[1],
+			times[2],
+			times[3],
+			times[4],
+			times[5],
+			times[6],
+			times[7],
+			times[8],
+			times[9],
+			times[10],
+			times[11],
+			averageTrackIndex,
+			maxTrackIndex,
+			minTrackIndex,
+			averageTimeIndex,
+			len(calculables),
+		)
 	}
 
-	return nil
+	return analysisRaceTimeMap, attributeFilters, conditionFilters
 }
 
-func (r *raceTimeService) calcAverageRaceTime(
+func (r *raceTimeService) Write(
+	ctx context.Context,
+	analysisRaceTimeMap map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime,
+	attributeFilters []filter.AttributeId,
+	conditionFilters []filter.AttributeId,
+) error {
+	return r.spreadSheetRepository.WriteAnalysisRaceTime(ctx, analysisRaceTimeMap, attributeFilters, conditionFilters)
+}
+
+func (r *raceTimeService) calcAverageTime(
 	calculables []*analysis_entity.RaceTimeCalculable,
+	getter func(*analysis_entity.RaceTimeCalculable) time.Duration,
+	format string,
 ) string {
 	if len(calculables) == 0 {
-		return "0:00.0"
+		return format
 	}
 
-	var totalRaceTime time.Duration
+	var totalTime time.Duration
 	for _, calculable := range calculables {
-		totalRaceTime += calculable.Time()
+		totalTime += getter(calculable)
 	}
-	averageRaceTime := totalRaceTime / time.Duration(len(calculables))
+	averageTime := totalTime / time.Duration(len(calculables))
 
-	totalSeconds := averageRaceTime.Seconds()
+	totalSeconds := averageTime.Seconds()
 	minutes := int(totalSeconds) / 60
 	seconds := totalSeconds - float64(minutes*60)
 
-	if minutes > 0 {
+	if format == timeFormat {
 		return fmt.Sprintf("%d:%04.1f", minutes, seconds)
 	}
-	return fmt.Sprintf("%.1f", seconds)
+
+	return fmt.Sprintf("%.1f", totalSeconds)
 }
 
-func (r *raceTimeService) calcMedianRaceTime(
+func (r *raceTimeService) calcMedianTime(
 	calculables []*analysis_entity.RaceTimeCalculable,
+	getter func(*analysis_entity.RaceTimeCalculable) time.Duration,
+	format string,
 ) string {
 	if len(calculables) == 0 {
-		return "0:00.0"
+		return format
 	}
 
 	durations := make([]time.Duration, 0, len(calculables))
 	for _, c := range calculables {
-		durations = append(durations, c.Time())
+		durations = append(durations, getter(c))
 	}
 
 	slices.Sort(durations)
@@ -182,262 +236,154 @@ func (r *raceTimeService) calcMedianRaceTime(
 	minutes := int(totalSeconds) / 60
 	seconds := totalSeconds - float64(minutes*60)
 
-	if minutes > 0 {
+	if format == timeFormat {
 		return fmt.Sprintf("%d:%04.1f", minutes, seconds)
 	}
-	return fmt.Sprintf("%.1f", seconds)
+
+	return fmt.Sprintf("%.1f", totalSeconds)
 }
 
-func (r *raceTimeService) calcAverageFirst3f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
+func (r *raceTimeService) calcAverage(values []int) int {
+	if len(values) == 0 {
+		return 0
 	}
 
-	var totalFirst3f time.Duration
-	for _, calculable := range calculables {
-		totalFirst3f += calculable.First3f()
+	sum := 0
+	for _, v := range values {
+		sum += v
 	}
-	averageRaceTime := totalFirst3f / time.Duration(len(calculables))
-
-	totalSeconds := averageRaceTime.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
+	return int(math.Round(float64(sum) / float64(len(values))))
 }
 
-func (r *raceTimeService) calcMedianFirst3f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
+func (r *raceTimeService) calcMax(values []int) int {
+	if len(values) == 0 {
+		return 0
 	}
 
-	durations := make([]time.Duration, 0, len(calculables))
-	for _, c := range calculables {
-		durations = append(durations, c.First3f())
+	max := values[0]
+	for _, v := range values[1:] {
+		if v > max {
+			max = v
+		}
 	}
-
-	slices.Sort(durations)
-
-	var median time.Duration
-	n := len(durations)
-	if n%2 == 1 {
-		median = durations[n/2]
-	} else {
-		median = (durations[n/2-1] + durations[n/2]) / 2
-	}
-
-	totalSeconds := median.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
+	return max
 }
 
-func (r *raceTimeService) calcAverageFirst4f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
+func (r *raceTimeService) calcMin(values []int) int {
+	if len(values) == 0 {
+		return 0
 	}
 
-	var totalFirst4f time.Duration
-	for _, calculable := range calculables {
-		totalFirst4f += calculable.First4f()
+	min := values[0]
+	for _, v := range values[1:] {
+		if v < min {
+			min = v
+		}
 	}
-	averageFirst4f := totalFirst4f / time.Duration(len(calculables))
-
-	totalSeconds := averageFirst4f.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
+	return min
 }
 
-func (r *raceTimeService) calcMedianFirst4f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
+func (r *raceTimeService) getConditionFilters() []filter.AttributeId {
+	return []filter.AttributeId{
+		filter.Tokyo | filter.Nakayama | filter.Kyoto | filter.Hanshin | filter.Niigata | filter.Chukyo | filter.Sapporo | filter.Hakodate | filter.Fukushima | filter.Kokura,
+		filter.Turf | filter.Dirt,
+		filter.Distance1000m | filter.Distance1150m | filter.Distance1200m | filter.Distance1300m | filter.Distance1400m | filter.Distance1500m | filter.Distance1600m | filter.Distance1700m | filter.Distance1800m | filter.Distance1900m | filter.Distance2000m | filter.Distance2100m | filter.Distance2200m | filter.Distance2300m | filter.Distance2400m | filter.Distance2500m | filter.Distance2600m | filter.Distance3000m | filter.Distance3200m | filter.Distance3400m | filter.Distance3600m,
+		filter.GoodToFirm | filter.Good | filter.Yielding | filter.Soft,
+		filter.Maiden | filter.OneWinClass | filter.TwoWinClass | filter.ThreeWinClass | filter.OpenListedClass | filter.Grade3 | filter.Grade2 | filter.Grade1,
+		filter.TwoYearsOld | filter.ThreeYearsOld | filter.ThreeYearsAndOlder | filter.FourYearsAndOlder,
 	}
-
-	durations := make([]time.Duration, 0, len(calculables))
-	for _, c := range calculables {
-		durations = append(durations, c.First4f())
-	}
-
-	slices.Sort(durations)
-
-	var median time.Duration
-	n := len(durations)
-	if n%2 == 1 {
-		median = durations[n/2]
-	} else {
-		median = (durations[n/2-1] + durations[n/2]) / 2
-	}
-
-	totalSeconds := median.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
-}
-
-func (r *raceTimeService) calcAverageLast3f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
-	}
-
-	var totalLast3f time.Duration
-	for _, calculable := range calculables {
-		totalLast3f += calculable.Last3f()
-	}
-	averageLast3f := totalLast3f / time.Duration(len(calculables))
-
-	totalSeconds := averageLast3f.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
-}
-
-func (r *raceTimeService) calcMedianLast3f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
-	}
-
-	durations := make([]time.Duration, 0, len(calculables))
-	for _, c := range calculables {
-		durations = append(durations, c.Last3f())
-	}
-
-	slices.Sort(durations)
-
-	var median time.Duration
-	n := len(durations)
-	if n%2 == 1 {
-		median = durations[n/2]
-	} else {
-		median = (durations[n/2-1] + durations[n/2]) / 2
-	}
-
-	totalSeconds := median.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
-}
-
-func (r *raceTimeService) calcAverageLast4f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
-	}
-
-	var totalLast4f time.Duration
-	for _, calculable := range calculables {
-		totalLast4f += calculable.Last4f()
-	}
-	averageLast4f := totalLast4f / time.Duration(len(calculables))
-
-	totalSeconds := averageLast4f.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
-}
-
-func (r *raceTimeService) calcMedianLast4f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
-	}
-
-	durations := make([]time.Duration, 0, len(calculables))
-	for _, c := range calculables {
-		durations = append(durations, c.Last4f())
-	}
-
-	slices.Sort(durations)
-
-	var median time.Duration
-	n := len(durations)
-	if n%2 == 1 {
-		median = durations[n/2]
-	} else {
-		median = (durations[n/2-1] + durations[n/2]) / 2
-	}
-
-	totalSeconds := median.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
-}
-
-func (r *raceTimeService) calcAverageRap5f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
-	}
-
-	var totalRap5f time.Duration
-	for _, calculable := range calculables {
-		totalRap5f += calculable.Rap5f()
-	}
-	averageRap5f := totalRap5f / time.Duration(len(calculables))
-
-	totalSeconds := averageRap5f.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
-}
-
-func (r *raceTimeService) calcMedianRap5f(
-	calculables []*analysis_entity.RaceTimeCalculable,
-) string {
-	if len(calculables) == 0 {
-		return "0.0"
-	}
-
-	durations := make([]time.Duration, 0, len(calculables))
-	for _, c := range calculables {
-		durations = append(durations, c.Rap5f())
-	}
-
-	slices.Sort(durations)
-
-	var median time.Duration
-	n := len(durations)
-	if n%2 == 1 {
-		median = durations[n/2]
-	} else {
-		median = (durations[n/2-1] + durations[n/2]) / 2
-	}
-
-	totalSeconds := median.Seconds()
-	minutes := int(totalSeconds) / 60
-	seconds := totalSeconds - float64(minutes*60)
-
-	return fmt.Sprintf("%.1f", seconds)
 }
 
 func (r *raceTimeService) getAttributeFilters() []filter.AttributeId {
-	return []filter.AttributeId{
-		filter.Turf | filter.Tokyo | filter.Distance1600m | filter.GoodToFirm | filter.Maiden | filter.TwoYearsOld,
-		filter.Turf | filter.Tokyo | filter.Distance1600m | filter.GoodToFirm | filter.Maiden | filter.ThreeYearsOld,
-		filter.Turf | filter.Tokyo | filter.Distance1600m | filter.GoodToFirm | filter.Maiden | filter.ThreeYearsAndOlder,
-		filter.Turf | filter.Tokyo | filter.Distance1600m | filter.GoodToFirm | filter.Maiden | filter.FourYearsAndOlder,
+	var filters []filter.AttributeId
+
+	// 競馬場
+	courses := []filter.AttributeId{
+		filter.Tokyo,
+		filter.Nakayama,
+		filter.Kyoto,
+		filter.Hanshin,
+		filter.Niigata,
+		filter.Chukyo,
+		filter.Sapporo,
+		filter.Hakodate,
+		filter.Fukushima,
+		filter.Kokura,
 	}
+
+	// 馬場
+	surfaces := []filter.AttributeId{
+		filter.Turf,
+		filter.Dirt,
+	}
+
+	// 距離（AttributeIdで定義されているすべての距離）
+	distances := []filter.AttributeId{
+		filter.Distance1000m,
+		filter.Distance1150m,
+		filter.Distance1200m,
+		filter.Distance1300m,
+		filter.Distance1400m,
+		filter.Distance1500m,
+		filter.Distance1600m,
+		filter.Distance1700m,
+		filter.Distance1800m,
+		filter.Distance1900m,
+		filter.Distance2000m,
+		filter.Distance2100m,
+		filter.Distance2200m,
+		filter.Distance2300m,
+		filter.Distance2400m,
+		filter.Distance2500m,
+		filter.Distance2600m,
+		filter.Distance3000m,
+		filter.Distance3200m,
+		filter.Distance3400m,
+		filter.Distance3600m,
+	}
+
+	// クラス
+	classes := []filter.AttributeId{
+		filter.Maiden,
+		filter.OneWinClass,
+		filter.TwoWinClass,
+		filter.ThreeWinClass,
+		filter.OpenListedClass,
+		filter.Grade3,
+		filter.Grade2,
+		filter.Grade1,
+	}
+
+	// 馬場状態
+	conditions := []filter.AttributeId{
+		filter.GoodToFirm,
+		filter.Good,
+		filter.Yielding,
+		filter.Soft,
+	}
+
+	// 年齢
+	ages := []filter.AttributeId{
+		filter.TwoYearsOld,
+		filter.ThreeYearsOld,
+		filter.ThreeYearsAndOlder,
+		filter.FourYearsAndOlder,
+	}
+
+	// フィルターの組み合わせを生成
+	for _, course := range courses {
+		for _, surface := range surfaces {
+			for _, distance := range distances {
+				for _, class := range classes {
+					for _, condition := range conditions {
+						for _, age := range ages {
+							filters = append(filters, course|surface|distance|class|condition|age)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return filters
 }

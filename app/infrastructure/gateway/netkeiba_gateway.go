@@ -18,7 +18,6 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -276,7 +275,7 @@ func (n *netKeibaGateway) FetchRace(
 			} else if len(ce.DOM.Find(".Icon_GradeType3").Nodes) > 0 {
 				gradeClass = types.Grade3
 			} else if len(ce.DOM.Find(".Icon_GradeType5").Nodes) > 0 {
-				if strings.Contains(raceName, "障害") {
+				if regexp.MustCompile(`障害|ジャンプS|JS`).MatchString(raceName) {
 					gradeClass = types.JumpOpenClass
 				} else {
 					gradeClass = types.OpenClass
@@ -1688,10 +1687,10 @@ func (n *netKeibaGateway) FetchRaceTime(
 	defer n.mu.Unlock()
 
 	var (
-		time       string
+		raceTime   string
 		timeIndex  int
 		trackIndex int
-		rapTimes   []decimal.Decimal
+		rapTimes   []time.Duration
 		raceDate   int
 	)
 
@@ -1719,7 +1718,7 @@ func (n *netKeibaGateway) FetchRaceTime(
 		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 1:
-				time = ce.DOM.Find("td:nth-child(8)").Text()
+				raceTime = ce.DOM.Find("td:nth-child(8)").Text()
 				timeIndex, _ = strconv.Atoi(strings.ReplaceAll(ce.DOM.Find("td:nth-child(10)").Text(), "\n", ""))
 			}
 		})
@@ -1738,12 +1737,13 @@ func (n *netKeibaGateway) FetchRaceTime(
 		raceRapText := e.DOM.Text()
 		parts := strings.Split(raceRapText, "-")
 		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if value, err := decimal.NewFromString(part); err == nil {
-				rapTimes = append(rapTimes, value)
-			} else {
+			seconds, err := strconv.ParseFloat(strings.TrimSpace(part), 64)
+			if err != nil {
 				n.logger.Errorf("FetchRaceTime error: %v", err)
+				return
 			}
+			rapTimeDuration := time.Duration(seconds * float64(time.Second))
+			rapTimes = append(rapTimes, rapTimeDuration)
 		}
 	})
 
@@ -1769,7 +1769,7 @@ func (n *netKeibaGateway) FetchRaceTime(
 	return netkeiba_entity.NewRaceTime(
 		strings.Split(url, "/")[4],
 		raceDate,
-		time,
+		raceTime,
 		timeIndex,
 		trackIndex,
 		rapTimes,

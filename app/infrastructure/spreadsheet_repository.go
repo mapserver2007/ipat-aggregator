@@ -17,6 +17,7 @@ type spreadSheetRepository struct {
 	analysisPlaceGateway       gateway.SpreadSheetAnalysisPlaceGateway
 	analysisPlaceAllInGateway  gateway.SpreadSheetAnalysisPlaceAllInGateway
 	analysisPlaceUnhitGateway  gateway.SpreadSheetAnalysisPlaceUnhitGateway
+	analysisRaceTimeGateway    gateway.SpreadSheetAnalysisRaceTimeGateway
 	predictionOddsGateway      gateway.SpreadSheetPredictionOddsGateway
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway
 	predictionMarkerGateway    gateway.SpreadSheetPredictionMarkerGateway
@@ -29,6 +30,7 @@ func NewSpreadSheetRepository(
 	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway,
 	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway,
 	analysisPlaceUnhitGateway gateway.SpreadSheetAnalysisPlaceUnhitGateway,
+	analysisRaceTimeGateway gateway.SpreadSheetAnalysisRaceTimeGateway,
 	predictionOddsGateway gateway.SpreadSheetPredictionOddsGateway,
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway,
 	predictionMarkerGateway gateway.SpreadSheetPredictionMarkerGateway,
@@ -40,6 +42,7 @@ func NewSpreadSheetRepository(
 		analysisPlaceGateway:       analysisPlaceGateway,
 		analysisPlaceAllInGateway:  analysisPlaceAllInGateway,
 		analysisPlaceUnhitGateway:  analysisPlaceUnhitGateway,
+		analysisRaceTimeGateway:    analysisRaceTimeGateway,
 		predictionOddsGateway:      predictionOddsGateway,
 		predictionCheckListGateway: predictionCheckListGateway,
 		predictionMarkerGateway:    predictionMarkerGateway,
@@ -170,6 +173,30 @@ func (s *spreadSheetRepository) WriteAnalysisPlaceUnhit(
 	}
 
 	err = s.analysisPlaceUnhitGateway.Style(ctx, analysisPlaceUnhits)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WriteAnalysisRaceTime(
+	ctx context.Context,
+	analysisRaceTimeMap map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime,
+	attributeFilters []filter.AttributeId,
+	conditionFilters []filter.AttributeId,
+) error {
+	err := s.analysisRaceTimeGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.analysisRaceTimeGateway.Write(ctx, analysisRaceTimeMap, attributeFilters, conditionFilters)
+	if err != nil {
+		return err
+	}
+
+	err = s.analysisRaceTimeGateway.Style(ctx, analysisRaceTimeMap, attributeFilters, conditionFilters)
 	if err != nil {
 		return err
 	}

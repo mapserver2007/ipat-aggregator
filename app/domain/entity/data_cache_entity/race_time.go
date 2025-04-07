@@ -1,8 +1,9 @@
 package data_cache_entity
 
 import (
+	"time"
+
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
-	"github.com/shopspring/decimal"
 )
 
 type RaceTime struct {
@@ -11,12 +12,12 @@ type RaceTime struct {
 	time       string
 	timeIndex  int
 	trackIndex int
-	rapTimes   []decimal.Decimal
-	first3f    decimal.Decimal
-	first4f    decimal.Decimal
-	last3f     decimal.Decimal
-	last4f     decimal.Decimal
-	rap5f      decimal.Decimal
+	rapTimes   []time.Duration
+	first3f    time.Duration
+	first4f    time.Duration
+	last3f     time.Duration
+	last4f     time.Duration
+	rap5f      time.Duration
 }
 
 func NewRaceTime(
@@ -25,12 +26,12 @@ func NewRaceTime(
 	time string,
 	timeIndex int,
 	trackIndex int,
-	rapTimes []decimal.Decimal,
-	first3f decimal.Decimal,
-	first4f decimal.Decimal,
-	last3f decimal.Decimal,
-	last4f decimal.Decimal,
-	rap5f decimal.Decimal,
+	rapTimes []time.Duration,
+	first3f time.Duration,
+	first4f time.Duration,
+	last3f time.Duration,
+	last4f time.Duration,
+	rap5f time.Duration,
 ) *RaceTime {
 	return &RaceTime{
 		raceId:     raceId,
@@ -67,26 +68,26 @@ func (r *RaceTime) TrackIndex() int {
 	return r.trackIndex
 }
 
-func (r *RaceTime) RapTimes() []decimal.Decimal {
+func (r *RaceTime) RapTimes() []time.Duration {
 	return r.rapTimes
 }
 
-func (r *RaceTime) First3f() decimal.Decimal {
+func (r *RaceTime) First3f() time.Duration {
 	return r.first3f
 }
 
-func (r *RaceTime) First4f() decimal.Decimal {
+func (r *RaceTime) First4f() time.Duration {
 	return r.first4f
 }
 
-func (r *RaceTime) Last3f() decimal.Decimal {
+func (r *RaceTime) Last3f() time.Duration {
 	return r.last3f
 }
 
-func (r *RaceTime) Last4f() decimal.Decimal {
+func (r *RaceTime) Last4f() time.Duration {
 	return r.last4f
 }
 
-func (r *RaceTime) Rap5f() decimal.Decimal {
+func (r *RaceTime) Rap5f() time.Duration {
 	return r.rap5f
 }

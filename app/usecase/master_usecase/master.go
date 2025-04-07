@@ -311,11 +311,6 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	// markers, err := m.analysisMarkerService.Get(ctx)
-	// if err != nil {
-	// 	return err
-	// }
-
 	err = m.winOddsService.CreateOrUpdateV2(ctx, winOdds, races)
 	if err != nil {
 		return err

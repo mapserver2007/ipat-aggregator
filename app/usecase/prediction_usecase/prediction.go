@@ -20,6 +20,7 @@ type PredictionInput struct {
 	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
 	PredictionMarkers []*marker_csv_entity.PredictionMarker
 	Races             []*data_cache_entity.Race
+	RaceTimes         []*data_cache_entity.RaceTime
 }
 
 type prediction struct {
@@ -27,6 +28,7 @@ type prediction struct {
 	predictionPlaceCandidateService prediction_service.PlaceCandidate
 	predictionMarkerSyncService     prediction_service.MarkerSync
 	placeService                    analysis_service.Place
+	raceTimeService                 analysis_service.RaceTime
 	logger                          *logrus.Logger
 }
 
@@ -35,6 +37,7 @@ func NewPrediction(
 	predictionPlaceCandidateService prediction_service.PlaceCandidate,
 	predictionMarkerSyncService prediction_service.MarkerSync,
 	placeService analysis_service.Place,
+	raceTimeService analysis_service.RaceTime,
 	logger *logrus.Logger,
 ) Prediction {
 	return &prediction{
@@ -42,6 +45,7 @@ func NewPrediction(
 		predictionPlaceCandidateService: predictionPlaceCandidateService,
 		predictionMarkerSyncService:     predictionMarkerSyncService,
 		placeService:                    placeService,
+		raceTimeService:                 raceTimeService,
 		logger:                          logger,
 	}
 }

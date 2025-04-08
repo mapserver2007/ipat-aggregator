@@ -6,21 +6,22 @@ import (
 )
 
 type Race struct {
-	raceId              types.RaceId
-	raceDate            types.RaceDate
-	raceNumber          int
-	raceCourse          types.RaceCourse
-	raceName            string
-	url                 string
-	entries             int
-	distance            int
-	class               types.GradeClass
-	courseCategory      types.CourseCategory
-	trackCondition      types.TrackCondition
-	raceWeightCondition types.RaceWeightCondition
-	raceResults         []*RaceResult
-	markers             []*Marker
-	analysisFilters     []filter.AttributeId
+	raceId                   types.RaceId
+	raceDate                 types.RaceDate
+	raceNumber               int
+	raceCourse               types.RaceCourse
+	raceName                 string
+	url                      string
+	entries                  int
+	distance                 int
+	class                    types.GradeClass
+	courseCategory           types.CourseCategory
+	trackCondition           types.TrackCondition
+	raceWeightCondition      types.RaceWeightCondition
+	raceResults              []*RaceResult
+	markers                  []*Marker
+	raceConditionFilters     []filter.AttributeId
+	raceTimeConditionFilters []filter.AttributeId
 }
 
 func NewRace(
@@ -38,24 +39,26 @@ func NewRace(
 	raceWeightCondition types.RaceWeightCondition,
 	raceResults []*RaceResult,
 	markers []*Marker,
-	analysisFilters []filter.AttributeId,
+	raceConditionFilters []filter.AttributeId,
+	raceTimeConditionFilters []filter.AttributeId,
 ) *Race {
 	return &Race{
-		raceId:              raceId,
-		raceDate:            raceDate,
-		raceNumber:          raceNumber,
-		raceCourse:          raceCourse,
-		raceName:            raceName,
-		url:                 url,
-		entries:             entries,
-		distance:            distance,
-		class:               class,
-		courseCategory:      courseCategory,
-		trackCondition:      trackCondition,
-		raceWeightCondition: raceWeightCondition,
-		raceResults:         raceResults,
-		markers:             markers,
-		analysisFilters:     analysisFilters,
+		raceId:                   raceId,
+		raceDate:                 raceDate,
+		raceNumber:               raceNumber,
+		raceCourse:               raceCourse,
+		raceName:                 raceName,
+		url:                      url,
+		entries:                  entries,
+		distance:                 distance,
+		class:                    class,
+		courseCategory:           courseCategory,
+		trackCondition:           trackCondition,
+		raceWeightCondition:      raceWeightCondition,
+		raceResults:              raceResults,
+		markers:                  markers,
+		raceConditionFilters:     raceConditionFilters,
+		raceTimeConditionFilters: raceTimeConditionFilters,
 	}
 }
 
@@ -115,6 +118,10 @@ func (r *Race) Markers() []*Marker {
 	return r.markers
 }
 
-func (r *Race) AnalysisFilters() []filter.AttributeId {
-	return r.analysisFilters
+func (r *Race) RaceConditionFilters() []filter.AttributeId {
+	return r.raceConditionFilters
+}
+
+func (r *Race) RaceTimeConditionFilters() []filter.AttributeId {
+	return r.raceTimeConditionFilters
 }

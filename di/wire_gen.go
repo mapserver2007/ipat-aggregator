@@ -170,7 +170,8 @@ func NewPrediction(logger *logrus.Logger) *controller.Prediction {
 	markerSync := prediction_service.NewMarkerSync(raceIdRepository, raceRepository, spreadSheetRepository)
 	analysisFilter := filter_service.NewAnalysisFilter()
 	place := analysis_service.NewPlace(analysisFilter, spreadSheetRepository)
-	prediction := prediction_usecase.NewPrediction(odds, placeCandidate, markerSync, place, logger)
+	raceTime := analysis_service.NewRaceTime(analysisFilter, spreadSheetRepository)
+	prediction := prediction_usecase.NewPrediction(odds, placeCandidate, markerSync, place, raceTime, logger)
 	controllerPrediction := controller.NewPrediction(prediction, logger)
 	return controllerPrediction
 }

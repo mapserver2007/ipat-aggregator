@@ -199,6 +199,7 @@ func (p *placeUnHitService) GetUnHitRaces(
 				analysisRaceResults,
 				analysisMarkers,
 				p.filterService.CreatePlaceFilters(ctx, race),
+				nil, // TODO あとでタイム分析のとき設定する
 			))
 		}
 	}
@@ -212,7 +213,7 @@ func (p *placeUnHitService) GetUnHitRaceRate(
 	calculables []*analysis_entity.PlaceCalculable,
 ) map[types.HorseId][]float64 {
 	var analysisFilter filter.AttributeId
-	for _, f := range race.AnalysisFilters() {
+	for _, f := range race.RaceConditionFilters() {
 		analysisFilter |= f
 	}
 

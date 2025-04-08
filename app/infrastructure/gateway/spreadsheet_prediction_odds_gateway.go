@@ -72,10 +72,10 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 	courseIdx := 0
 	for _, raceCourseId := range raceCourseIds {
 		raceIds := raceCourseMap[types.RaceCourse(raceCourseId)]
-		var valuesList [][]interface{}
+		var valuesList [][]any
 		for _, raceId := range raceIds {
-			values := make([][][]interface{}, 4)
-			values[0] = [][]interface{}{
+			values := make([][][]any, 4)
+			values[0] = [][]any{
 				{
 					"",
 					"",
@@ -93,7 +93,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 			for idx, placeMap := range []map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace{firstPlaceMap, secondPlaceMap, thirdPlaceMap} {
 				switch idx {
 				case 0:
-					values[1] = [][]interface{}{
+					values[1] = [][]any{
 						{
 							"",
 							"1着率",
@@ -109,7 +109,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 						},
 					}
 				case 1:
-					values[2] = [][]interface{}{
+					values[2] = [][]any{
 						{
 							"",
 							"2着率",
@@ -125,7 +125,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 						},
 					}
 				case 2:
-					values[3] = [][]interface{}{
+					values[3] = [][]any{
 						{
 							"",
 							"3着率",
@@ -149,10 +149,11 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 					if values[0][0][1] == "" {
 						title := fmt.Sprintf("%s%dR %s %s", predictionRace.RaceCourseId().Name(), predictionRace.RaceNumber(), predictionRace.RaceName(), predictionRace.FilterName())
 						raceCount := markerPlaceMap[types.Favorite].RateData().RaceCount()
-						values[0][0][1] = fmt.Sprintf("=HYPERLINK(\"%s\",\"%s(%d)\")", predictionRace.Url(), title, raceCount)
+						raceTime := fmt.Sprintf("基準時計: %s/%s/%s/%s/%s/%s", predictionRace.RaceTime().AverageRaceTime(), predictionRace.RaceTime().AverageFirst3f(), predictionRace.RaceTime().AverageFirst4f(), predictionRace.RaceTime().AverageRap5f(), predictionRace.RaceTime().AverageLast4f(), predictionRace.RaceTime().AverageLast3f())
+						values[0][0][1] = fmt.Sprintf("=HYPERLINK(\"%s\",\"%s(%d) 【%s】\")", predictionRace.Url(), title, raceCount, raceTime)
 					}
 
-					values[idx+1] = append(values[idx+1], [][]interface{}{
+					values[idx+1] = append(values[idx+1], [][]any{
 						{
 							types.Favorite.String(),
 							markerPlaceMap[types.Favorite].RateData().HitRateFormat(),
@@ -167,7 +168,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.Favorite].RateData().OddsRange9Hit()) + markerPlaceMap[types.Favorite].RateData().OddsRange9RateFormat(),
 						},
 					}...)
-					values[idx+1] = append(values[idx+1], [][]interface{}{
+					values[idx+1] = append(values[idx+1], [][]any{
 						{
 							types.Rival.String(),
 							markerPlaceMap[types.Rival].RateData().HitRateFormat(),
@@ -182,7 +183,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.Rival].RateData().OddsRange9Hit()) + markerPlaceMap[types.Rival].RateData().OddsRange9RateFormat(),
 						},
 					}...)
-					values[idx+1] = append(values[idx+1], [][]interface{}{
+					values[idx+1] = append(values[idx+1], [][]any{
 						{
 							types.BrackTriangle.String(),
 							markerPlaceMap[types.BrackTriangle].RateData().HitRateFormat(),
@@ -197,7 +198,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.BrackTriangle].RateData().OddsRange9Hit()) + markerPlaceMap[types.BrackTriangle].RateData().OddsRange9RateFormat(),
 						},
 					}...)
-					values[idx+1] = append(values[idx+1], [][]interface{}{
+					values[idx+1] = append(values[idx+1], [][]any{
 						{
 							types.WhiteTriangle.String(),
 							markerPlaceMap[types.WhiteTriangle].RateData().HitRateFormat(),
@@ -212,7 +213,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.WhiteTriangle].RateData().OddsRange9Hit()) + markerPlaceMap[types.WhiteTriangle].RateData().OddsRange9RateFormat(),
 						},
 					}...)
-					values[idx+1] = append(values[idx+1], [][]interface{}{
+					values[idx+1] = append(values[idx+1], [][]any{
 						{
 							types.Star.String(),
 							markerPlaceMap[types.Star].RateData().HitRateFormat(),
@@ -227,7 +228,7 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 							isHitIconFunc(markerPlaceMap[types.Star].RateData().OddsRange9Hit()) + markerPlaceMap[types.Star].RateData().OddsRange9RateFormat(),
 						},
 					}...)
-					values[idx+1] = append(values[idx+1], [][]interface{}{
+					values[idx+1] = append(values[idx+1], [][]any{
 						{
 							types.Check.String(),
 							markerPlaceMap[types.Check].RateData().HitRateFormat(),
@@ -300,8 +301,8 @@ func (s *spreadSheetPredictionOddsGateway) Style(
 	for _, raceCourseId := range raceCourseIds {
 		raceIds := raceCourseMap[types.RaceCourse(raceCourseId)]
 		for raceIndex, raceId := range raceIds {
-			values := make([][][]interface{}, 4)
-			values[0] = [][]interface{}{
+			values := make([][][]any, 4)
+			values[0] = [][]any{
 				{
 					"",
 					"",

@@ -43,6 +43,7 @@ func (p *Prediction) Prediction(ctx context.Context, input *PredictionInput) {
 					AnalysisMarkers:   input.Master.AnalysisMarkers,
 					PredictionMarkers: input.Master.PredictionMarkers,
 					Races:             input.Master.Races,
+					RaceTimes:         input.Master.RaceTimes,
 				}); err != nil {
 					errors <- err
 				}

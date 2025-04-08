@@ -13,6 +13,7 @@ type PredictionRace struct {
 	courseCategory types.CourseCategory
 	url            string
 	filterName     string
+	raceTime       *PredictionRaceTime
 }
 
 func NewPredictionRace(
@@ -23,6 +24,7 @@ func NewPredictionRace(
 	courseCategory types.CourseCategory,
 	url string,
 	filters []filter.AttributeId,
+	raceTime *PredictionRaceTime,
 ) *PredictionRace {
 	var filterName string
 	for _, f := range filters {
@@ -37,6 +39,7 @@ func NewPredictionRace(
 		courseCategory: courseCategory,
 		url:            url,
 		filterName:     filterName,
+		raceTime:       raceTime,
 	}
 }
 
@@ -66,4 +69,8 @@ func (p *PredictionRace) Url() string {
 
 func (p *PredictionRace) FilterName() string {
 	return p.filterName
+}
+
+func (p *PredictionRace) RaceTime() *PredictionRaceTime {
+	return p.raceTime
 }

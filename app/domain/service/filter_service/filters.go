@@ -159,6 +159,7 @@ func RaceAgeConditionFilters(raceAgeCondition types.RaceAgeCondition) []filter.A
 	}
 	return filterIds
 }
+
 func MarkerCombinationFilter(
 	race *data_cache_entity.Race,
 	markerCombinationId types.MarkerCombinationId,

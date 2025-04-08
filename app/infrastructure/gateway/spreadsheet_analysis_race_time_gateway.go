@@ -215,7 +215,7 @@ func (s *spreadSheetAnalysisRaceTimeGateway) Clear(ctx context.Context) error {
 					SheetId:          config.SheetId(),
 					StartColumnIndex: 0,
 					StartRowIndex:    0,
-					EndColumnIndex:   12,
+					EndColumnIndex:   16,
 					EndRowIndex:      9999,
 				},
 				Cell: &sheets.CellData{},

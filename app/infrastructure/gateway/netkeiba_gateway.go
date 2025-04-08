@@ -1007,6 +1007,22 @@ func (n *netKeibaGateway) FetchRaceCard(
 							raceSexCondition = types.FillyAndMareLimited
 						}
 					case 6:
+						texts := strings.Split(text, "\n")
+						if len(texts) != 11 {
+							n.logger.Warnf("invalid race weight condition data: %s", url)
+							return
+						}
+						text := texts[3]
+						if strings.Contains(text, "３歳以上") {
+							raceAgeCondition = types.ThreeYearsAndOlder
+						} else if strings.Contains(text, "４歳以上") {
+							raceAgeCondition = types.FourYearsAndOlder
+						} else if strings.Contains(text, "３歳") {
+							raceAgeCondition = types.ThreeYearsOld
+						} else if strings.Contains(text, "２歳") {
+							raceAgeCondition = types.TwoYearsOld
+						}
+						text = texts[7]
 						if text == types.AgeWeight.String() {
 							raceWeightCondition = types.AgeWeight
 						} else if text == types.FixedWeight.String() {

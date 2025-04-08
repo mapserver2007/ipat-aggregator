@@ -44,7 +44,7 @@ func (p *prediction) Odds(ctx context.Context, input *PredictionInput) error {
 					if localError != nil {
 						continue
 					}
-					predictionRace, err := p.predictionOddsService.Get(taskCtx, marker.RaceId())
+					predictionRace, err := p.predictionOddsService.GetRace(taskCtx, marker.RaceId())
 					if err != nil {
 						localError = err
 						select {
@@ -54,7 +54,6 @@ func (p *prediction) Odds(ctx context.Context, input *PredictionInput) error {
 						}
 						continue
 					}
-
 					localPredictionRaces = append(localPredictionRaces, predictionRace)
 				}
 			}
@@ -75,16 +74,22 @@ func (p *prediction) Odds(ctx context.Context, input *PredictionInput) error {
 		predictionRaces = append(predictionRaces, races...)
 	}
 
-	calculables, err := p.placeService.Create(ctx, input.AnalysisMarkers, input.Races)
+	placeCalculables, err := p.placeService.Create(ctx, input.AnalysisMarkers, input.Races)
 	if err != nil {
 		return err
 	}
+
+	raceTimeCalculables, err := p.raceTimeService.Create(ctx, input.Races, input.RaceTimes)
+	if err != nil {
+		return err
+	}
+	analysisRaceTimeMap, _, _ := p.raceTimeService.Convert(ctx, raceTimeCalculables)
 
 	sort.Slice(predictionRaces, func(i, j int) bool {
 		return predictionRaces[i].RaceId() < predictionRaces[j].RaceId()
 	})
 
-	firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap := p.predictionOddsService.ConvertAll(ctx, predictionRaces, predictionMarkers, calculables)
+	firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap := p.predictionOddsService.ConvertAll(ctx, predictionRaces, predictionMarkers, placeCalculables, analysisRaceTimeMap)
 	err = p.predictionOddsService.Write(ctx, firstPlaceMap, secondPlaceMap, thirdPlaceMap, raceCourseMap)
 	if err != nil {
 		return err

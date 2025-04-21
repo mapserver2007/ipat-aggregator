@@ -149,8 +149,8 @@ func (s *spreadSheetPredictionOddsGateway) Write(
 					if values[0][0][1] == "" {
 						title := fmt.Sprintf("%s%dR %s %s", predictionRace.RaceCourseId().Name(), predictionRace.RaceNumber(), predictionRace.RaceName(), predictionRace.FilterName())
 						raceCount := markerPlaceMap[types.Favorite].RateData().RaceCount()
-						raceTime := fmt.Sprintf("基準時計: %s/%s/%s/%s/%s/%s", predictionRace.RaceTime().AverageRaceTime(), predictionRace.RaceTime().AverageFirst3f(), predictionRace.RaceTime().AverageFirst4f(), predictionRace.RaceTime().AverageRap5f(), predictionRace.RaceTime().AverageLast4f(), predictionRace.RaceTime().AverageLast3f())
-						values[0][0][1] = fmt.Sprintf("=HYPERLINK(\"%s\",\"%s(%d) 【%s】\")", predictionRace.Url(), title, raceCount, raceTime)
+						raceTime := fmt.Sprintf("【基準時計】 %s, %s, %s, %s, %s, %s", predictionRace.RaceTime().AverageRaceTime(), predictionRace.RaceTime().AverageFirst3f(), predictionRace.RaceTime().AverageFirst4f(), predictionRace.RaceTime().AverageRap5f(), predictionRace.RaceTime().AverageLast4f(), predictionRace.RaceTime().AverageLast3f())
+						values[0][0][1] = fmt.Sprintf("=HYPERLINK(\"%s\",\"%s(%d) %s\")", predictionRace.Url(), title, raceCount, raceTime)
 					}
 
 					values[idx+1] = append(values[idx+1], [][]any{

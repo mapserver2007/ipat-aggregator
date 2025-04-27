@@ -49,6 +49,11 @@ func NewRaceIdForOverseas(
 			// 月をまたぐわけではないのでtimeパッケージで厳密にはやらない
 			rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, month, day-1, raceNo)
 		}
+	case Shatin:
+		// 2025シャティン開催のIDはなぜか0101になっているので特殊対応
+		if year == 2025 {
+			rawRaceId = fmt.Sprintf("%d%s%02d%02d%02d", year, raceCourse, 1, 1, raceNo)
+		}
 	case KingAbdulaziz, SantaAnitaPark, Delmar:
 		// 日付を-1してraceIdを設定する特殊対応
 		// 月をまたぐわけではないのでtimeパッケージで厳密にはやらない

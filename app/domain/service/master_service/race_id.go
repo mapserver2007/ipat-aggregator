@@ -25,6 +25,7 @@ const (
 // 数自体少ないので個別に管理する
 var overseasRaceDates = map[types.RaceDate][]types.RaceId{
 	20241208: {"2024H1120805", "2024H1120808"},
+	20250427: {"2025H1010105", "2025H1010107"},
 }
 
 type RaceId interface {

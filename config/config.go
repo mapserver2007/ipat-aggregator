@@ -12,6 +12,6 @@ const (
 	// 分析用設定
 	AnalysisUnHitWinLowerOdds = 2.0 // 未満設定
 	// 予想用設定
-	PredictionSyncRaceDate          = "20250420"
+	PredictionSyncRaceDate          = "20250427"
 	PredictionCheckListWinLowerOdds = 2.9
 )

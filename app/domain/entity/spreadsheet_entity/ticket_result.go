@@ -14,6 +14,7 @@ type TicketResult struct {
 	hitRate       string
 	payment       int
 	payout        int
+	profit        int
 	averagePayout int
 	maxPayout     int
 	minPayout     int
@@ -38,6 +39,7 @@ func NewTicketResult(
 	if payment > 0 {
 		payoutRate = fmt.Sprintf("%s%s", strconv.FormatFloat((float64(payout)*float64(100))/float64(payment), 'f', 2, 64), "%")
 	}
+
 	return &TicketResult{
 		raceCount:     raceCount.Value(),
 		betCount:      betCount.Value(),
@@ -45,6 +47,7 @@ func NewTicketResult(
 		hitRate:       hitRate,
 		payment:       payment.Value(),
 		payout:        payout.Value(),
+		profit:        payout.Value() - payment.Value(),
 		averagePayout: averagePayout.Value(),
 		maxPayout:     maxPayout.Value(),
 		minPayout:     minPayout.Value(),
@@ -74,6 +77,10 @@ func (s *TicketResult) Payment() int {
 
 func (s *TicketResult) Payout() int {
 	return s.payout
+}
+
+func (s *TicketResult) Profit() int {
+	return s.profit
 }
 
 func (s *TicketResult) AveragePayout() int {

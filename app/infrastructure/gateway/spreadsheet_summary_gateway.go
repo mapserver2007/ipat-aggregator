@@ -260,6 +260,10 @@ func (s *spreadSheetSummaryGateway) writeTotalResultV2(
 			yearResult.PayoutRate(),
 		},
 		{
+			"収支",
+			yearResult.Profit(),
+		},
+		{
 			"月間累計",
 			"",
 		},
@@ -276,6 +280,10 @@ func (s *spreadSheetSummaryGateway) writeTotalResultV2(
 			monthResult.PayoutRate(),
 		},
 		{
+			"収支",
+			monthResult.Profit(),
+		},
+		{
 			"週間累計",
 			"",
 		},
@@ -290,6 +298,10 @@ func (s *spreadSheetSummaryGateway) writeTotalResultV2(
 		{
 			"回収率",
 			weekResult.PayoutRate(),
+		},
+		{
+			"収支",
+			weekResult.Profit(),
 		},
 	}
 
@@ -669,10 +681,10 @@ func (s *spreadSheetSummaryGateway) writeStyleAllResultV2(
 	s.logger.Infof("writing spreadsheet writeStyleAllResultV2")
 	requests := []*sheets.Request{
 		s.createBackgroundColorRequest(config.SheetId(), 0, 1, 1, 4, 1.0, 0.937, 0.498),
-		s.createBackgroundColorRequest(config.SheetId(), 0, 5, 1, 8, 1.0, 0.937, 0.498),
-		s.createBackgroundColorRequest(config.SheetId(), 0, 9, 1, 12, 1.0, 0.937, 0.498),
-		s.createBackgroundColorRequest(config.SheetId(), 0, 13, 1, 16, 1.0, 0.937, 0.498),
-		s.createBoldTextRequest(config.SheetId(), 0, 0, 2, 16),
+		s.createBackgroundColorRequest(config.SheetId(), 0, 5, 1, 9, 1.0, 0.937, 0.498),
+		s.createBackgroundColorRequest(config.SheetId(), 0, 10, 1, 14, 1.0, 0.937, 0.498),
+		s.createBackgroundColorRequest(config.SheetId(), 0, 15, 1, 19, 1.0, 0.937, 0.498),
+		s.createBoldTextRequest(config.SheetId(), 0, 0, 2, 19),
 	}
 	_, err := client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: requests,

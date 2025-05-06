@@ -8,9 +8,6 @@ func (a *analysis) PlaceAllIn(ctx context.Context, input *AnalysisInput) error {
 		return err
 	}
 	placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters := a.placeAllInService.Convert(ctx, placeAllInCalculables)
-	if err != nil {
-		return err
-	}
 	err = a.placeAllInService.Write(ctx, placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters)
 	if err != nil {
 		return err

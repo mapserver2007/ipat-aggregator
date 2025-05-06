@@ -16,9 +16,25 @@ import (
 )
 
 type PlaceAllIn interface {
-	Create(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race, winOdds []*data_cache_entity.Odds, placeOdds []*data_cache_entity.Odds) ([]*analysis_entity.PlaceAllInCalculable, error)
-	Convert(ctx context.Context, calculables []*analysis_entity.PlaceAllInCalculable) (map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, []filter.AttributeId, []filter.MarkerCombinationId)
-	Write(ctx context.Context, placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn, placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn, attributeFilters []filter.AttributeId, markerCombinationFilters []filter.MarkerCombinationId) error
+	Create(ctx context.Context,
+		markers []*marker_csv_entity.AnalysisMarker,
+		races []*data_cache_entity.Race,
+		winOdds []*data_cache_entity.Odds,
+		placeOdds []*data_cache_entity.Odds,
+	) ([]*analysis_entity.PlaceAllInCalculable, error)
+	Convert(ctx context.Context,
+		calculables []*analysis_entity.PlaceAllInCalculable) (
+		map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		[]filter.AttributeId,
+		[]filter.MarkerCombinationId,
+	)
+	Write(ctx context.Context,
+		placeAllInMap1 map[filter.AttributeId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		placeAllInMap2 map[filter.MarkerCombinationId]*spreadsheet_entity.AnalysisPlaceAllIn,
+		attributeFilters []filter.AttributeId,
+		markerCombinationFilters []filter.MarkerCombinationId,
+	) error
 }
 
 type placeAllInService struct {
@@ -53,7 +69,7 @@ func (p *placeAllInService) Create(
 	for _, race := range races {
 		if _, ok := markerMap[race.RaceId()]; !ok {
 			switch race.Class() {
-			case types.MakeDebut, types.JumpMaiden, types.JumpGrade1, types.JumpGrade2, types.JumpGrade3:
+			case types.MakeDebut, types.JumpMaiden, types.JumpGrade1, types.JumpGrade2, types.JumpGrade3, types.JumpOpenClass:
 				// 新馬・障害は分析印なしなのでスキップ
 			default:
 				// 印が不完全な場合がたまにあり(同じ印がついていたり、取り消しによる印6個未満の場合)、その場合はスキップ
@@ -73,12 +89,14 @@ func (p *placeAllInService) Create(
 	for _, wo := range winOdds {
 		race, ok := raceMap[wo.RaceId()]
 		if !ok {
-			return nil, fmt.Errorf("race not found in placeAllInService.Create: %s", wo.RaceId())
+			// 印なしのレースもoddsデータ保存してるので見つからない場合はスキップ
+			continue
 		}
 
 		po, ok := placeOddsMap[wo.RaceId()]
 		if !ok {
-			return nil, fmt.Errorf("placeOdds not found in placeAllInService.Create: %s", wo.RaceId())
+			// 印なしのレースもoddsデータ保存してるので見つからない場合はスキップ
+			continue
 		}
 
 		marker, ok := markerMap[wo.RaceId()]
@@ -623,6 +641,28 @@ func (p *placeAllInService) getAttributeFilters() []filter.AttributeId {
 		filter.Dirt | filter.Good,
 		filter.Dirt | filter.Yielding,
 		filter.Dirt | filter.Soft,
+		filter.Turf | filter.Maiden,
+		filter.Turf | filter.OneWinClass,
+		filter.Turf | filter.TwoWinClass,
+		filter.Turf | filter.ThreeWinClass,
+		filter.Turf | filter.OpenListedClass,
+		filter.Dirt | filter.Maiden,
+		filter.Dirt | filter.OneWinClass,
+		filter.Dirt | filter.TwoWinClass,
+		filter.Dirt | filter.ThreeWinClass,
+		filter.Dirt | filter.OpenListedClass,
+		filter.Maiden | filter.Summer,
+		filter.Maiden | filter.Autumn,
+		filter.Maiden | filter.Winter,
+		filter.Maiden | filter.Spring,
+		filter.Turf | filter.Maiden | filter.Summer,
+		filter.Turf | filter.Maiden | filter.Autumn,
+		filter.Turf | filter.Maiden | filter.Winter,
+		filter.Turf | filter.Maiden | filter.Spring,
+		filter.Dirt | filter.Maiden | filter.Summer,
+		filter.Dirt | filter.Maiden | filter.Autumn,
+		filter.Dirt | filter.Maiden | filter.Winter,
+		filter.Dirt | filter.Maiden | filter.Spring,
 		filter.Turf | filter.Tokyo,
 		filter.Turf | filter.Nakayama,
 		filter.Turf | filter.Kyoto,

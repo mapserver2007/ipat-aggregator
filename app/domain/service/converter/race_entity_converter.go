@@ -19,8 +19,16 @@ type RaceEntityConverter interface {
 	NetKeibaToRaw(input *netkeiba_entity.Race) *raw_entity.Race
 	RawToDataCache(input *raw_entity.Race) *data_cache_entity.Race
 	DataCacheToList(input *data_cache_entity.Race) *list_entity.Race
-	NetKeibaToPrediction(input1 *netkeiba_entity.Race, input2 []*netkeiba_entity.Odds, filters []filter.AttributeId) *prediction_entity.Race
-	TospoToPrediction(input1 *tospo_entity.Forecast, input2 *tospo_entity.TrainingComment, input3 []*tospo_entity.Memo, input4 *tospo_entity.PaddockComment) *prediction_entity.RaceForecast
+	NetKeibaToPrediction(
+		input1 *netkeiba_entity.Race,
+		input2 []*netkeiba_entity.Odds,
+		filters1 []filter.AttributeId,
+		filters2 []filter.AttributeId,
+	) *prediction_entity.Race
+	TospoToPrediction(
+		input1 *tospo_entity.Forecast,
+		input2 *tospo_entity.TrainingComment,
+		input3 []*tospo_entity.Memo, input4 *tospo_entity.PaddockComment) *prediction_entity.RaceForecast
 	PredictionToAnalysis(input *prediction_entity.Race) *analysis_entity.Race
 }
 
@@ -34,14 +42,17 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 	raceResults := make([]*raw_entity.RaceResult, 0, len(input.RaceResults()))
 	for _, raceResult := range input.RaceResults() {
 		raceResults = append(raceResults, &raw_entity.RaceResult{
-			OrderNo:       raceResult.OrderNo(),
-			HorseId:       raceResult.HorseId().Value(),
-			HorseName:     raceResult.HorseName(),
-			BracketNumber: raceResult.BracketNumber(),
-			HorseNumber:   raceResult.HorseNumber().Value(),
-			JockeyId:      raceResult.JockeyId().Value(),
-			Odds:          raceResult.Odds().StringFixed(1),
-			PopularNumber: raceResult.PopularNumber(),
+			OrderNo:        raceResult.OrderNo(),
+			HorseId:        raceResult.HorseId().Value(),
+			HorseName:      raceResult.HorseName(),
+			BracketNumber:  raceResult.BracketNumber(),
+			HorseNumber:    raceResult.HorseNumber().Value(),
+			JockeyId:       raceResult.JockeyId().Value(),
+			Odds:           raceResult.Odds().StringFixed(1),
+			PopularNumber:  raceResult.PopularNumber(),
+			JockeyWeight:   raceResult.JockeyWeight(),
+			HorseWeight:    raceResult.HorseWeight(),
+			HorseWeightAdd: raceResult.HorseWeightAdd(),
 		})
 	}
 	payoutResults := make([]*raw_entity.PayoutResult, 0, len(input.PayoutResults()))
@@ -59,24 +70,26 @@ func (r *raceEntityConverter) DataCacheToRaw(input *data_cache_entity.Race) *raw
 	}
 
 	return &raw_entity.Race{
-		RaceId:              input.RaceId().String(),
-		RaceDate:            input.RaceDate().Value(),
-		RaceNumber:          input.RaceNumber(),
-		RaceCourseId:        input.RaceCourseId().Value(),
-		RaceName:            input.RaceName(),
-		Organizer:           input.Organizer().Value(),
-		Url:                 input.Url(),
-		Time:                input.Time(),
-		StartTime:           input.StartTime(),
-		Entries:             input.Entries(),
-		Distance:            input.Distance(),
-		Class:               input.Class().Value(),
-		CourseCategory:      input.CourseCategory().Value(),
-		TrackCondition:      input.TrackCondition().Value(),
-		RaceSexCondition:    input.RaceSexCondition().Value(),
-		RaceWeightCondition: input.RaceWeightCondition().Value(),
-		RaceResults:         raceResults,
-		PayoutResults:       payoutResults,
+		RaceId:                input.RaceId().String(),
+		RaceDate:              input.RaceDate().Value(),
+		RaceNumber:            input.RaceNumber(),
+		RaceCourseId:          input.RaceCourseId().Value(),
+		RaceName:              input.RaceName(),
+		Organizer:             input.Organizer().Value(),
+		Url:                   input.Url(),
+		Time:                  input.Time(),
+		StartTime:             input.StartTime(),
+		Entries:               input.Entries(),
+		Distance:              input.Distance(),
+		Class:                 input.Class().Value(),
+		CourseCategory:        input.CourseCategory().Value(),
+		TrackCondition:        input.TrackCondition().Value(),
+		RaceSexCondition:      input.RaceSexCondition().Value(),
+		RaceWeightCondition:   input.RaceWeightCondition().Value(),
+		RaceCourseCornerIndex: input.RaceCourseCornerIndex().Value(),
+		RaceAgeCondition:      input.RaceAgeCondition().Value(),
+		RaceResults:           raceResults,
+		PayoutResults:         payoutResults,
 	}
 }
 
@@ -84,14 +97,17 @@ func (r *raceEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Race) *raw_en
 	raceResults := make([]*raw_entity.RaceResult, 0, len(input.RaceResults()))
 	for _, raceResult := range input.RaceResults() {
 		raceResults = append(raceResults, &raw_entity.RaceResult{
-			OrderNo:       raceResult.OrderNo(),
-			HorseId:       raceResult.HorseId(),
-			HorseName:     raceResult.HorseName(),
-			BracketNumber: raceResult.BracketNumber(),
-			HorseNumber:   raceResult.HorseNumber(),
-			JockeyId:      raceResult.JockeyId(),
-			Odds:          raceResult.Odds(),
-			PopularNumber: raceResult.PopularNumber(),
+			OrderNo:        raceResult.OrderNo(),
+			HorseId:        raceResult.HorseId(),
+			HorseName:      raceResult.HorseName(),
+			BracketNumber:  raceResult.BracketNumber(),
+			HorseNumber:    raceResult.HorseNumber(),
+			JockeyId:       raceResult.JockeyId(),
+			Odds:           raceResult.Odds(),
+			PopularNumber:  raceResult.PopularNumber(),
+			JockeyWeight:   raceResult.JockeyWeight(),
+			HorseWeight:    raceResult.HorseWeight(),
+			HorseWeightAdd: raceResult.HorseWeightAdd(),
 		})
 	}
 	payoutResults := make([]*raw_entity.PayoutResult, 0, len(input.PayoutResults()))
@@ -109,24 +125,26 @@ func (r *raceEntityConverter) NetKeibaToRaw(input *netkeiba_entity.Race) *raw_en
 	}
 
 	return &raw_entity.Race{
-		RaceId:              input.RaceId(),
-		RaceDate:            input.RaceDate(),
-		RaceNumber:          input.RaceNumber(),
-		RaceCourseId:        input.RaceCourseId(),
-		RaceName:            input.RaceName(),
-		Organizer:           input.Organizer(),
-		Url:                 input.Url(),
-		Time:                input.Time(),
-		StartTime:           input.StartTime(),
-		Entries:             input.Entries(),
-		Distance:            input.Distance(),
-		Class:               input.Class(),
-		CourseCategory:      input.CourseCategory(),
-		TrackCondition:      input.TrackCondition(),
-		RaceSexCondition:    input.RaceSexCondition(),
-		RaceWeightCondition: input.RaceWeightCondition(),
-		RaceResults:         raceResults,
-		PayoutResults:       payoutResults,
+		RaceId:                input.RaceId(),
+		RaceDate:              input.RaceDate(),
+		RaceNumber:            input.RaceNumber(),
+		RaceCourseId:          input.RaceCourseId(),
+		RaceName:              input.RaceName(),
+		Organizer:             input.Organizer(),
+		Url:                   input.Url(),
+		Time:                  input.Time(),
+		StartTime:             input.StartTime(),
+		Entries:               input.Entries(),
+		Distance:              input.Distance(),
+		Class:                 input.Class(),
+		CourseCategory:        input.CourseCategory(),
+		TrackCondition:        input.TrackCondition(),
+		RaceSexCondition:      input.RaceSexCondition(),
+		RaceWeightCondition:   input.RaceWeightCondition(),
+		RaceCourseCornerIndex: input.RaceCourseCornerIndex(),
+		RaceAgeCondition:      input.RaceAgeCondition(),
+		RaceResults:           raceResults,
+		PayoutResults:         payoutResults,
 	}
 }
 
@@ -147,6 +165,9 @@ func (r *raceEntityConverter) RawToDataCache(input *raw_entity.Race) *data_cache
 			raceResult.JockeyId,
 			raceResult.Odds,
 			raceResult.PopularNumber,
+			raceResult.JockeyWeight,
+			raceResult.HorseWeight,
+			raceResult.HorseWeightAdd,
 		))
 	}
 	payoutResults := make([]*data_cache_entity.PayoutResult, 0, len(input.PayoutResults))
@@ -176,6 +197,8 @@ func (r *raceEntityConverter) RawToDataCache(input *raw_entity.Race) *data_cache
 		input.TrackCondition,
 		input.RaceSexCondition,
 		input.RaceWeightCondition,
+		input.RaceCourseCornerIndex,
+		input.RaceAgeCondition,
 		raceResults,
 		payoutResults,
 	)
@@ -214,7 +237,8 @@ func (r *raceEntityConverter) DataCacheToList(input *data_cache_entity.Race) *li
 func (r *raceEntityConverter) NetKeibaToPrediction(
 	input1 *netkeiba_entity.Race,
 	input2 []*netkeiba_entity.Odds,
-	filters []filter.AttributeId,
+	filters1 []filter.AttributeId,
+	filters2 []filter.AttributeId,
 ) *prediction_entity.Race {
 	raceEntryHorses := make([]*prediction_entity.RaceEntryHorse, 0, len(input1.RaceEntryHorses()))
 	for _, rawRaceEntryHorse := range input1.RaceEntryHorses() {
@@ -258,7 +282,8 @@ func (r *raceEntityConverter) NetKeibaToPrediction(
 		raceEntryHorses,
 		raceResultHorseNumbers,
 		predictionOdds,
-		filters,
+		filters1,
+		filters2,
 	)
 }
 
@@ -319,6 +344,7 @@ func (r *raceEntityConverter) PredictionToAnalysis(
 		input.RaceWeightCondition(),
 		nil,
 		nil,
-		input.PredictionFilters(),
+		input.RaceConditionFilters(),
+		input.RaceTimeConditionFilters(),
 	)
 }

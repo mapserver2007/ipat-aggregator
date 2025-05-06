@@ -25,11 +25,12 @@ const (
 // 数自体少ないので個別に管理する
 var overseasRaceDates = map[types.RaceDate][]types.RaceId{
 	20241208: {"2024H1120805", "2024H1120808"},
+	20250427: {"2025H1010105", "2025H1010107"},
 }
 
 type RaceId interface {
 	Get(ctx context.Context) (map[types.RaceDate][]types.RaceId, []types.RaceDate, error)
-	CreateOrUpdate(ctx context.Context, startDate, endDate string) error
+	CreateOrUpdate(ctx context.Context, startDate, endDate types.RaceDate) error
 	Update(ctx context.Context, raceDateMapForNAROrOversea map[types.RaceDate][]types.RaceId) error
 }
 
@@ -85,7 +86,7 @@ func (r *raceIdService) Get(
 
 func (r *raceIdService) CreateOrUpdate(
 	ctx context.Context,
-	startDate, endDate string,
+	startDate, endDate types.RaceDate,
 ) error {
 	taskCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -284,7 +285,7 @@ func (r *raceIdService) Update(ctx context.Context, raceDateMapForNAROrOversea m
 }
 
 func (r *raceIdService) createRaceIdUrls(
-	dateFrom, dateTo string,
+	dateFrom, dateTo types.RaceDate,
 	raceIdMap map[types.RaceDate][]types.RaceId,
 	excludeDates []types.RaceDate,
 ) ([]string, error) {
@@ -294,17 +295,15 @@ func (r *raceIdService) createRaceIdUrls(
 		excludeDateMap[excludeDate] = true
 	}
 
-	startTime, _ := time.Parse("20060102", dateFrom)
-	endTime, _ := time.Parse("20060102", dateTo)
+	startTime, _ := time.Parse("20060102", dateFrom.Format("20060102"))
+	endTime, _ := time.Parse("20060102", dateTo.Format("20060102"))
 	for d := startTime; d.Before(endTime) || d.Equal(endTime); d = d.AddDate(0, 0, 1) {
 		date, err := types.NewRaceDate(d.Format("20060102"))
 		if err != nil {
 			return nil, err
 		}
-		if excludeDateMap != nil {
-			if _, ok := excludeDateMap[date]; ok {
-				continue
-			}
+		if _, ok := excludeDateMap[date]; ok {
+			continue
 		}
 		if raceIdMap == nil {
 			urls = append(urls, fmt.Sprintf(raceListUrlForJRA, date))

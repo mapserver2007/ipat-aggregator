@@ -9,10 +9,80 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/tospo_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/shopspring/decimal"
 )
 
-func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
-	unHitRaces := a.placeUnHitService.GetUnHitRaces(ctx, input.Markers, input.Races)
+const (
+	winOddsThreshold           = 10.0 // 赤オッズボーダー
+	trioPopularNumberThreshold = 100  // 三連複100番人気
+)
+
+func (a *analysis) PlaceUnHit(
+	ctx context.Context,
+	input *AnalysisInput,
+) error {
+	unHitRaces := a.placeUnHitService.GetUnHitRaces(ctx, input.Markers, input.Races, input.Jockeys)
+
+	unHitRaceMap := converter.ConvertToMap(unHitRaces, func(race *analysis_entity.Race) types.RaceId {
+		return race.RaceId()
+	})
+
+	winRedOdds, err := a.placeUnHitService.GetWinRedOdds(
+		ctx,
+		input.Odds.Win,
+		decimal.NewFromFloat(winOddsThreshold),
+		unHitRaceMap,
+	)
+	if err != nil {
+		return err
+	}
+
+	winMultiOddsMap := map[types.RaceId][]*analysis_entity.Odds{}
+	for _, odds := range winRedOdds {
+		if _, ok := winMultiOddsMap[odds.RaceId()]; !ok {
+			winMultiOddsMap[odds.RaceId()] = make([]*analysis_entity.Odds, 0)
+		}
+		winMultiOddsMap[odds.RaceId()] = append(winMultiOddsMap[odds.RaceId()], odds)
+	}
+
+	winOddsFaults, err := a.placeUnHitService.GetWinOddsFaults(
+		ctx,
+		input.Odds.Win,
+		unHitRaceMap,
+	)
+	if err != nil {
+		return err
+	}
+
+	trioOdds100, err := a.placeUnHitService.GetTrioOdds100(
+		ctx,
+		input.Odds.Trio,
+		trioPopularNumberThreshold,
+		unHitRaceMap,
+	)
+	if err != nil {
+		return err
+	}
+
+	trioFavoriteContains, err := a.placeUnHitService.GetTrioFavoriteContains(
+		ctx,
+		input.Odds.Trio,
+		winMultiOddsMap,
+		unHitRaceMap,
+	)
+	if err != nil {
+		return err
+	}
+
+	quinellaOddsWheelCombinations, err := a.placeUnHitService.GetQuinellaOddsWheelCombinations(
+		ctx,
+		input.Odds.Quinella,
+		winMultiOddsMap,
+		unHitRaceMap,
+	)
+	if err != nil {
+		return err
+	}
 
 	horses, err := a.horseMasterService.Get(ctx)
 	if err != nil {
@@ -29,10 +99,6 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 		return err
 	}
 
-	//unHitRaceMap := converter.ConvertToMap(unHitRaces, func(race *analysis_entity.Race) types.RaceId {
-	//	return race.RaceId()
-	//})
-
 	cacheHorseMap := converter.ConvertToMap(horses, func(horse *data_cache_entity.Horse) types.HorseId {
 		return horse.HorseId()
 	})
@@ -40,6 +106,40 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 	cacheRaceForecastMap := converter.ConvertToMap(raceForecasts, func(forecast *data_cache_entity.RaceForecast) types.RaceId {
 		return forecast.RaceId()
 	})
+
+	winOddsFaultMap := map[types.RaceId][]*analysis_entity.OddsFault{}
+	for _, oddsFault := range winOddsFaults {
+		if oddsFault.OddsFaultNo() > 2 {
+			continue
+		}
+		if _, ok := winOddsFaultMap[oddsFault.RaceId()]; !ok {
+			winOddsFaultMap[oddsFault.RaceId()] = make([]*analysis_entity.OddsFault, 0)
+		}
+		winOddsFaultMap[oddsFault.RaceId()] = append(winOddsFaultMap[oddsFault.RaceId()], oddsFault)
+	}
+
+	trioOddsMap := converter.ConvertToMap(trioOdds100, func(odds *analysis_entity.Odds) types.RaceId {
+		return odds.RaceId()
+	})
+
+	quinellaCombinationOddsMap := converter.ConvertToSliceMap(quinellaOddsWheelCombinations, func(odds *analysis_entity.Odds) types.RaceId {
+		return odds.RaceId()
+	})
+
+	quinellaConsecutiveNumberMap := make(map[types.RaceId]int)
+	quinellaCombinationTotalOddsMap := make(map[types.RaceId]decimal.Decimal)
+	for raceId, oddsList := range quinellaCombinationOddsMap {
+		quinellaConsecutiveNumberMap[raceId] = 0
+		quinellaCombinationTotalOddsMap[raceId] = decimal.Zero
+		for i, odds := range oddsList {
+			quinellaCombinationTotalOddsMap[raceId] = quinellaCombinationTotalOddsMap[raceId].Add(odds.Odds())
+			if i+1 == odds.PopularNumber() {
+				quinellaConsecutiveNumberMap[raceId]++
+			} else {
+				continue
+			}
+		}
+	}
 
 	fetchHorseMap := map[types.RaceDate][]*netkeiba_entity.Horse{}
 	fetchRaceForecastMap := map[types.RaceId][]*tospo_entity.Forecast{}
@@ -51,7 +151,7 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 		// 実用上は1レースで分析対象のオッズは1つ想定だが、仕様上は複数オッズも計算可能なのでループを回す
 		for _, raceResult := range race.RaceResults() {
 			cachedHorse, ok := cacheHorseMap[raceResult.HorseId()]
-			if !ok || race.RaceDate() != cachedHorse.LatestRaceDate() {
+			if !ok || race.RaceDate() > cachedHorse.LatestRaceDate() {
 				fetchHorse, err := a.placeUnHitService.FetchHorse(ctx, raceResult.HorseId())
 				if err != nil {
 					return err
@@ -111,10 +211,9 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 			})
 
 			forecasts := make([]*data_cache_entity.Forecast, 0, len(fetchRaceForecasts))
-			for i := 0; i < len(fetchRaceForecasts); i++ {
-				if _, ok = horseNumberMap[fetchRaceForecasts[i].HorseNumber()]; ok {
-					forecast := a.raceForecastEntityConverter.TospoToDataCache(fetchRaceForecasts[i], fetchTrainingComments[i])
-					forecasts = append(forecasts, forecast)
+			for i, forecast := range fetchRaceForecasts {
+				if _, ok = horseNumberMap[forecast.HorseNumber()]; ok {
+					forecasts = append(forecasts, a.raceForecastEntityConverter.TospoToDataCache(forecast, fetchTrainingComments[i]))
 				}
 			}
 			cacheRaceForecasts = append(cacheRaceForecasts, data_cache_entity.NewRaceForecast(
@@ -129,20 +228,53 @@ func (a *analysis) PlaceUnHit(ctx context.Context, input *AnalysisInput) error {
 		}
 	}
 
-	cacheHorses, err := a.horseMasterService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
 	cacheRaceForecasts, err := a.raceForecastService.Get(ctx)
 	if err != nil {
 		return err
 	}
 
-	_ = unHitRaces
-	_ = cacheHorses
-	_ = unHitRaceRateMap
-	_ = cacheRaceForecasts
+	unHitRaceForecastMap := map[types.RaceId]*data_cache_entity.RaceForecast{}
+	for _, raceForecast := range cacheRaceForecasts {
+		if _, ok := unHitRaceMap[raceForecast.RaceId()]; ok {
+			unHitRaceForecastMap[raceForecast.RaceId()] = raceForecast
+		}
+	}
+
+	cacheHorses, err := a.horseMasterService.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	horseMap := converter.ConvertToMap(cacheHorses, func(horse *data_cache_entity.Horse) types.HorseId {
+		return horse.HorseId()
+	})
+
+	analysisPlaceUnhits, err := a.placeUnHitService.CreateUnhitRaces(
+		ctx,
+		unHitRaces,
+		unHitRaceRateMap,
+		unHitRaceForecastMap,
+		horseMap,
+		winMultiOddsMap,
+		winOddsFaultMap,
+		trioOddsMap,
+		quinellaConsecutiveNumberMap,
+		quinellaCombinationTotalOddsMap,
+		trioFavoriteContains,
+	)
+	if err != nil {
+		return err
+	}
+
+	for _, analysisPlaceUnhit := range analysisPlaceUnhits {
+		race := unHitRaceMap[analysisPlaceUnhit.RaceId()]
+		a.placeUnHitService.CreateCheckPoints(ctx, race)
+	}
+
+	err = a.placeUnHitService.Write(ctx, analysisPlaceUnhits)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

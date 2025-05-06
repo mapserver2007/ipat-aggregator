@@ -18,9 +18,28 @@ import (
 
 type Odds interface {
 	Get(ctx context.Context, raceId types.RaceId) (*prediction_entity.Race, error)
-	Convert(ctx context.Context, race *prediction_entity.Race, horseNumber types.HorseNumber, marker types.Marker, calculables []*analysis_entity.PlaceCalculable) []*spreadsheet_entity.PredictionPlace
-	ConvertAll(ctx context.Context, predictionRaces []*prediction_entity.Race, predictionMarkers []*marker_csv_entity.PredictionMarker, calculables []*analysis_entity.PlaceCalculable) (map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[types.RaceCourse][]types.RaceId)
-	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, raceCourseMap map[types.RaceCourse][]types.RaceId) error
+	Convert(
+		ctx context.Context,
+		race *prediction_entity.Race,
+		horseNumber types.HorseNumber,
+		marker types.Marker,
+		calculables []*analysis_entity.PlaceCalculable,
+	) []*spreadsheet_entity.PredictionPlace
+	ConvertAll(ctx context.Context,
+		predictionRaces []*prediction_entity.Race,
+		predictionMarkers []*marker_csv_entity.PredictionMarker,
+		placeCalculables []*analysis_entity.PlaceCalculable,
+		raceTimeMap map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime,
+	) (
+		map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
+		map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
+		map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace, map[types.RaceCourse][]types.RaceId)
+	Write(ctx context.Context,
+		firstPlaceMap,
+		secondPlaceMap,
+		thirdPlaceMap map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
+		raceCourseMap map[types.RaceCourse][]types.RaceId,
+	) error
 }
 
 type oddsService struct {
@@ -98,7 +117,8 @@ func (p *oddsService) Get(
 		nil,
 		raceResultHorseNumbers,
 		predictionOdds,
-		p.filterService.CreatePredictionOddsFilters(ctx, raceCard),
+		p.filterService.CreateRaceConditionFilters(ctx, raceCard),
+		p.filterService.CreateRaceTimeConditionFilters(ctx, raceCard),
 	)
 
 	return predictionRace, nil
@@ -117,7 +137,7 @@ func (p *oddsService) Convert(
 	}
 
 	var predictionFilter filter.AttributeId
-	for _, f := range race.PredictionFilters() {
+	for _, f := range race.RaceConditionFilters() {
 		predictionFilter |= f
 	}
 
@@ -128,7 +148,8 @@ func (p *oddsService) Convert(
 		race.RaceCourse(),
 		race.CourseCategory(),
 		race.Url(),
-		race.PredictionFilters(),
+		race.RaceConditionFilters(),
+		nil, // TODO 後ほど足す
 	)
 
 	firstPlaceMap := map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace{}
@@ -459,7 +480,8 @@ func (p *oddsService) ConvertAll(
 	ctx context.Context,
 	predictionRaces []*prediction_entity.Race,
 	predictionMarkers []*marker_csv_entity.PredictionMarker,
-	calculables []*analysis_entity.PlaceCalculable,
+	placeCalculables []*analysis_entity.PlaceCalculable,
+	raceTimeMap map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime,
 ) (
 	map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
 	map[spreadsheet_entity.PredictionRace]map[types.Marker]*spreadsheet_entity.PredictionPlace,
@@ -482,6 +504,30 @@ func (p *oddsService) ConvertAll(
 		if _, ok := raceCourseMap[race.RaceCourse()]; !ok {
 			raceCourseMap[race.RaceCourse()] = make([]types.RaceId, 0)
 		}
+
+		var (
+			raceConditionFilter     filter.AttributeId
+			raceTimeConditionFilter filter.AttributeId
+		)
+		for _, f := range race.RaceConditionFilters() {
+			raceConditionFilter |= f
+		}
+		for _, f := range race.RaceTimeConditionFilters() {
+			raceTimeConditionFilter |= f
+		}
+
+		predictionRaceTime := spreadsheet_entity.InitPredictionRaceTime()
+		if raceTime, ok := raceTimeMap[raceTimeConditionFilter]; ok {
+			predictionRaceTime = spreadsheet_entity.NewPredictionRaceTime(
+				raceTime.AverageRaceTime(),
+				raceTime.AverageFirst3f(),
+				raceTime.AverageFirst4f(),
+				raceTime.AverageLast3f(),
+				raceTime.AverageLast4f(),
+				raceTime.AverageRap5f(),
+			)
+		}
+
 		predictionRace := spreadsheet_entity.NewPredictionRace(
 			race.RaceId(),
 			race.RaceName(),
@@ -489,7 +535,8 @@ func (p *oddsService) ConvertAll(
 			race.RaceCourse(),
 			race.CourseCategory(),
 			race.Url(),
-			race.PredictionFilters(),
+			race.RaceConditionFilters(),
+			predictionRaceTime,
 		)
 		horseNumberOddsMap := map[types.HorseNumber]decimal.Decimal{}
 		for _, o := range race.Odds() {
@@ -501,11 +548,6 @@ func (p *oddsService) ConvertAll(
 		thirdPlaceMap[*predictionRace] = map[types.Marker]*spreadsheet_entity.PredictionPlace{}
 		raceCourseMap[race.RaceCourse()] = append(raceCourseMap[race.RaceCourse()], race.RaceId())
 		predictionMarker := predictionMarkerMap[race.RaceId()]
-
-		var predictionFilter filter.AttributeId
-		for _, f := range race.PredictionFilters() {
-			predictionFilter |= f
-		}
 
 		for _, marker := range []types.Marker{types.Favorite, types.Rival, types.BrackTriangle, types.WhiteTriangle, types.Star, types.Check} {
 			raceIdMap := map[types.RaceId]bool{}
@@ -568,14 +610,14 @@ func (p *oddsService) ConvertAll(
 				thirdPlaceHitOddsRangeSlice[8] = isThirdPlaceHit
 			}
 
-			for _, calculable := range calculables {
+			for _, calculable := range placeCalculables {
 				if calculable.Marker() != marker {
 					continue
 				}
 
 				match := true
 				for _, f := range calculable.Filters() {
-					if f&predictionFilter == 0 {
+					if f&raceConditionFilter == 0 {
 						match = false
 						break
 					}

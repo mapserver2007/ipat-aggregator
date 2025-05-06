@@ -6,21 +6,24 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/marker_csv_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/ticket_csv_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
 )
 
 type MasterInput struct {
-	StartDate string
-	EndDate   string
+	StartDate types.RaceDate
+	EndDate   types.RaceDate
 }
 
 type MasterOutput struct {
 	Tickets           []*ticket_csv_entity.RaceTicket
 	Races             []*data_cache_entity.Race
+	RaceTimes         []*data_cache_entity.RaceTime
 	Jockeys           []*data_cache_entity.Jockey
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
 	TrioOdds          []*data_cache_entity.Odds
+	QuinellaOdds      []*data_cache_entity.Odds
 	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
 	PredictionMarkers []*marker_csv_entity.PredictionMarker
 }
@@ -55,10 +58,12 @@ func (m *Master) Execute(
 	return &MasterOutput{
 		Tickets:           output.Tickets,
 		Races:             output.Races,
+		RaceTimes:         output.RaceTimes,
 		Jockeys:           output.Jockeys,
 		WinOdds:           output.WinOdds,
 		PlaceOdds:         output.PlaceOdds,
 		TrioOdds:          output.TrioOdds,
+		QuinellaOdds:      output.QuinellaOdds,
 		AnalysisMarkers:   output.AnalysisMarkers,
 		PredictionMarkers: output.PredictionMarkers,
 	}, nil

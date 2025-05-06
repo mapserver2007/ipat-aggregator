@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/mapserver2007/ipat-aggregator/app/controller"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
 	"github.com/mapserver2007/ipat-aggregator/di"
 	"github.com/sirupsen/logrus"
@@ -42,9 +43,21 @@ func main() {
 	logger.SetOutput(io.MultiWriter(os.Stdout, logFile))
 
 	masterCtrl := di.NewMaster(logger)
+	startDate, err := types.NewRaceDate(config.RaceStartDate)
+	if err != nil {
+		logger.Errorf("failed to create race date: %v", err)
+		return
+	}
+
+	endDate, err := types.NewRaceDate(config.RaceEndDate)
+	if err != nil {
+		logger.Errorf("failed to create race date: %v", err)
+		return
+	}
+
 	master, err := masterCtrl.Execute(ctx, &controller.MasterInput{
-		StartDate: config.RaceStartDate,
-		EndDate:   config.RaceEndDate,
+		StartDate: startDate,
+		EndDate:   endDate,
 	})
 
 	if err != nil {
@@ -99,8 +112,50 @@ func main() {
 			},
 		},
 		{
-			Name:    "analysis-beta",
+			Name:    "analysis-place-un-hit",
+			Aliases: []string{"ap3"},
+			Usage:   "analysis-place-un-hit",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis place un hit start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.PlaceUnHit(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis place un hit end")
+				return nil
+			},
+		},
+		{
+			Name:    "analysis-place-jockey",
 			Aliases: []string{"ap4"},
+			Usage:   "analysis-place-jockey",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis place jockey start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.PlaceJockey(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis place jockey end")
+				return nil
+			},
+		},
+		{
+			Name:    "analysis-race",
+			Aliases: []string{"ap5"},
+			Usage:   "analysis-race",
+			Action: func(c *cli.Context) error {
+				logger.Infof("analysis race time start")
+				analysisCtrl := di.NewAnalysis(logger)
+				analysisCtrl.RaceTime(ctx, &controller.AnalysisInput{
+					Master: master,
+				})
+				logger.Infof("analysis race time end")
+				return nil
+			},
+		},
+		{
+			Name:    "analysis-beta",
+			Aliases: []string{"ap5"},
 			Usage:   "analysis-beta",
 			Action: func(c *cli.Context) error {
 				logger.Infof("analysis beta in start")

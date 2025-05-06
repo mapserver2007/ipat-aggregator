@@ -35,3 +35,12 @@ func SortedRaceDateKeys[T any](m map[types.RaceDate]T) []types.RaceDate {
 
 	return raceDates
 }
+
+func ReverseSlice[T any](s []T) []T {
+	n := len(s)
+	result := make([]T, n)
+	for i := 0; i < n; i++ {
+		result[i] = s[n-1-i]
+	}
+	return result
+}

@@ -8,7 +8,7 @@ const (
 	raceMarkerUrl          = "https://race.netkeiba.com/api/api_post_social_cart.html?race_id=%s"
 	horseUrl               = "https://db.netkeiba.com/horse/%s?cache=false"
 	trainerUrl             = "https://db.netkeiba.com/trainer/%s"
-	raceForecastUrl        = "https://tospo-keiba.jp/race/detail/%s/forecast"
+	raceForecastUrl        = "https://tospo-keiba.jp/race/detail/%s/card"
 	raceTrainingCommentUrl = "https://tospo-keiba.jp/race/detail/%s/comment"
 	raceReporterMemoUrl    = "https://tospo-keiba.jp/race/detail/%s/reporter-memo"
 	racePaddockCommentUrl  = "https://tospo-keiba.jp/race/detail/%s/card"

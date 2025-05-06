@@ -88,9 +88,10 @@ func (p *placeCandidateService) GetRaceCard(
 		return nil, err
 	}
 
-	filters := p.filterService.CreatePredictionOddsFilters(ctx, rawRace)
+	raceConditionFilters := p.filterService.CreateRaceConditionFilters(ctx, rawRace)
+	raceTimeConditionFilters := p.filterService.CreateRaceTimeConditionFilters(ctx, rawRace)
 
-	race := p.raceEntityConverter.NetKeibaToPrediction(rawRace, rawOdds, filters)
+	race := p.raceEntityConverter.NetKeibaToPrediction(rawRace, rawOdds, raceConditionFilters, raceTimeConditionFilters)
 
 	return race, nil
 }

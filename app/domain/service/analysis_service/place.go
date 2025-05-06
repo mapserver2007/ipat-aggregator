@@ -17,9 +17,21 @@ import (
 )
 
 type Place interface {
-	Create(ctx context.Context, markers []*marker_csv_entity.AnalysisMarker, races []*data_cache_entity.Race) ([]*analysis_entity.PlaceCalculable, error)
-	Convert(ctx context.Context, calculables []*analysis_entity.PlaceCalculable) (map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, []filter.AttributeId)
-	Write(ctx context.Context, firstPlaceMap, secondPlaceMap, thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, filters []filter.AttributeId) error
+	Create(ctx context.Context,
+		markers []*marker_csv_entity.AnalysisMarker,
+		races []*data_cache_entity.Race,
+	) ([]*analysis_entity.PlaceCalculable, error)
+	Convert(ctx context.Context,
+		calculables []*analysis_entity.PlaceCalculable,
+	) (
+		map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+		map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace, []filter.AttributeId)
+	Write(ctx context.Context,
+		firstPlaceMap,
+		secondPlaceMap,
+		thirdPlaceMap map[types.Marker]map[filter.AttributeId]*spreadsheet_entity.AnalysisPlace,
+		filters []filter.AttributeId,
+	) error
 }
 
 type placeService struct {

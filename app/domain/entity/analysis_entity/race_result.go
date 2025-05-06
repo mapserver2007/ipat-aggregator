@@ -6,13 +6,17 @@ import (
 )
 
 type RaceResult struct {
-	orderNo       int
-	horseId       types.HorseId
-	horseName     string
-	horseNumber   types.HorseNumber
-	jockeyId      types.JockeyId
-	odds          decimal.Decimal
-	popularNumber int
+	orderNo        int
+	horseId        types.HorseId
+	horseName      string
+	horseNumber    types.HorseNumber
+	jockeyId       types.JockeyId
+	jockeyName     string
+	odds           decimal.Decimal
+	popularNumber  int
+	jockeyWeight   string
+	horseWeight    int
+	horseWeightAdd int
 }
 
 func NewRaceResult(
@@ -21,17 +25,25 @@ func NewRaceResult(
 	horseName string,
 	horseNumber types.HorseNumber,
 	jockeyId types.JockeyId,
+	jockeyName string,
 	odds decimal.Decimal,
 	popularNumber int,
+	jockeyWeight string,
+	horseWeight int,
+	horseWeightAdd int,
 ) *RaceResult {
 	return &RaceResult{
-		orderNo:       orderNo,
-		horseId:       horseId,
-		horseName:     horseName,
-		horseNumber:   horseNumber,
-		jockeyId:      jockeyId,
-		odds:          odds,
-		popularNumber: popularNumber,
+		orderNo:        orderNo,
+		horseId:        horseId,
+		horseName:      horseName,
+		horseNumber:    horseNumber,
+		jockeyId:       jockeyId,
+		jockeyName:     jockeyName,
+		odds:           odds,
+		popularNumber:  popularNumber,
+		jockeyWeight:   jockeyWeight,
+		horseWeight:    horseWeight,
+		horseWeightAdd: horseWeightAdd,
 	}
 }
 
@@ -55,10 +67,26 @@ func (r *RaceResult) JockeyId() types.JockeyId {
 	return r.jockeyId
 }
 
+func (r *RaceResult) JockeyName() string {
+	return r.jockeyName
+}
+
 func (r *RaceResult) Odds() decimal.Decimal {
 	return r.odds
 }
 
 func (r *RaceResult) PopularNumber() int {
 	return r.popularNumber
+}
+
+func (r *RaceResult) JockeyWeight() string {
+	return r.jockeyWeight
+}
+
+func (r *RaceResult) HorseWeight() int {
+	return r.horseWeight
+}
+
+func (r *RaceResult) HorseWeightAdd() int {
+	return r.horseWeightAdd
 }

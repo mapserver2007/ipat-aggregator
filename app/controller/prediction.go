@@ -32,9 +32,9 @@ func (p *Prediction) Prediction(ctx context.Context, input *PredictionInput) {
 	const predictionParallel = 2
 	errors := make(chan error, predictionParallel)
 
-	for i := 0; i < predictionParallel; i++ {
+	for i := range make([]struct{}, predictionParallel) {
 		wg.Add(1)
-		go func() {
+		go func(i int) {
 			defer wg.Done()
 			switch i {
 			case 0:
@@ -43,6 +43,7 @@ func (p *Prediction) Prediction(ctx context.Context, input *PredictionInput) {
 					AnalysisMarkers:   input.Master.AnalysisMarkers,
 					PredictionMarkers: input.Master.PredictionMarkers,
 					Races:             input.Master.Races,
+					RaceTimes:         input.Master.RaceTimes,
 				}); err != nil {
 					errors <- err
 				}
@@ -58,7 +59,7 @@ func (p *Prediction) Prediction(ctx context.Context, input *PredictionInput) {
 				}
 				p.logger.Info("fetching prediction checklist end")
 			}
-		}()
+		}(i)
 	}
 
 	wg.Wait()

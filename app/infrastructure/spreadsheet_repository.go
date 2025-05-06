@@ -16,6 +16,8 @@ type spreadSheetRepository struct {
 	listGateway                gateway.SpreadSheetListGateway
 	analysisPlaceGateway       gateway.SpreadSheetAnalysisPlaceGateway
 	analysisPlaceAllInGateway  gateway.SpreadSheetAnalysisPlaceAllInGateway
+	analysisPlaceUnhitGateway  gateway.SpreadSheetAnalysisPlaceUnhitGateway
+	analysisRaceTimeGateway    gateway.SpreadSheetAnalysisRaceTimeGateway
 	predictionOddsGateway      gateway.SpreadSheetPredictionOddsGateway
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway
 	predictionMarkerGateway    gateway.SpreadSheetPredictionMarkerGateway
@@ -27,6 +29,8 @@ func NewSpreadSheetRepository(
 	listGateway gateway.SpreadSheetListGateway,
 	analysisPlaceGateway gateway.SpreadSheetAnalysisPlaceGateway,
 	analysisPlaceAllInGateway gateway.SpreadSheetAnalysisPlaceAllInGateway,
+	analysisPlaceUnhitGateway gateway.SpreadSheetAnalysisPlaceUnhitGateway,
+	analysisRaceTimeGateway gateway.SpreadSheetAnalysisRaceTimeGateway,
 	predictionOddsGateway gateway.SpreadSheetPredictionOddsGateway,
 	predictionCheckListGateway gateway.SpreadSheetPredictionCheckListGateway,
 	predictionMarkerGateway gateway.SpreadSheetPredictionMarkerGateway,
@@ -37,6 +41,8 @@ func NewSpreadSheetRepository(
 		listGateway:                listGateway,
 		analysisPlaceGateway:       analysisPlaceGateway,
 		analysisPlaceAllInGateway:  analysisPlaceAllInGateway,
+		analysisPlaceUnhitGateway:  analysisPlaceUnhitGateway,
+		analysisRaceTimeGateway:    analysisRaceTimeGateway,
 		predictionOddsGateway:      predictionOddsGateway,
 		predictionCheckListGateway: predictionCheckListGateway,
 		predictionMarkerGateway:    predictionMarkerGateway,
@@ -145,6 +151,52 @@ func (s *spreadSheetRepository) WriteAnalysisPlaceAllIn(
 	}
 
 	err = s.analysisPlaceAllInGateway.Style(ctx, placeAllInMap1, placeAllInMap2, attributeFilters, markerCombinationFilters)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WriteAnalysisPlaceUnhit(
+	ctx context.Context,
+	analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit,
+) error {
+	// err := s.analysisPlaceUnhitGateway.Clear(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err := s.analysisPlaceUnhitGateway.Write(ctx, analysisPlaceUnhits)
+	if err != nil {
+		return err
+	}
+
+	err = s.analysisPlaceUnhitGateway.Style(ctx, analysisPlaceUnhits)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *spreadSheetRepository) WriteAnalysisRaceTime(
+	ctx context.Context,
+	analysisRaceTimeMap map[filter.AttributeId]*spreadsheet_entity.AnalysisRaceTime,
+	attributeFilters []filter.AttributeId,
+	conditionFilters []filter.AttributeId,
+) error {
+	err := s.analysisRaceTimeGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.analysisRaceTimeGateway.Write(ctx, analysisRaceTimeMap, attributeFilters, conditionFilters)
+	if err != nil {
+		return err
+	}
+
+	err = s.analysisRaceTimeGateway.Style(ctx, analysisRaceTimeMap, attributeFilters, conditionFilters)
 	if err != nil {
 		return err
 	}

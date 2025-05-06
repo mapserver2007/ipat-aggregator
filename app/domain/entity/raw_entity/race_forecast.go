@@ -1,7 +1,5 @@
 package raw_entity
 
-import "encoding/json"
-
 type RaceForecastInfo struct {
 	RaceForecasts []*RaceForecast `json:"race_forecasts"`
 }
@@ -27,10 +25,9 @@ type ForecastInfo struct {
 }
 
 type ForecastBody struct {
-	RaceDateInfo          *RaceDateInfo           `json:"raceInfo"`
-	RaceEntries           []*RaceEntry            `json:"raceEntryList"`
-	RaceForecastReporters []*RaceForecastReporter `json:"raceForecastReporterList"`
-	RaceForecastDataList  json.RawMessage         `json:"raceForecastDataList"`
+	RaceDateInfo        *RaceDateInfo        `json:"raceInfo"`
+	RaceEntries         []*RaceEntry         `json:"raceEntryList"`
+	RaceForecastElement *RaceForecastElement `json:"raceForecast"`
 }
 
 type RaceDateInfo struct {
@@ -42,11 +39,16 @@ type RaceEntry struct {
 	HorseName   string `json:"horseName"`
 }
 
+type RaceForecastElement struct {
+	ReporterList          []*RaceForecastReporter                  `json:"reporterList"`
+	RaceForecastMarkerMap map[string]map[string]RaceForecastMarker `json:"reporterMarks"`
+}
+
 type RaceForecastReporter struct {
 	ReporterId int `json:"reporterId"`
 }
 
-type RaceForecastData struct {
+type RaceForecastMarker struct {
 	ReporterMarkType int    `json:"reporterMarkType"`
 	HorseName        string `json:"horseName"`
 }

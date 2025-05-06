@@ -6,23 +6,24 @@ import (
 )
 
 type Race struct {
-	raceId                 types.RaceId
-	raceName               string
-	raceDate               types.RaceDate
-	raceNumber             int
-	entries                int
-	distance               int
-	class                  types.GradeClass
-	courseCategory         types.CourseCategory
-	trackCondition         types.TrackCondition
-	raceSexCondition       types.RaceSexCondition
-	raceWeightCondition    types.RaceWeightCondition
-	raceCourse             types.RaceCourse
-	url                    string
-	raceEntryHorses        []*RaceEntryHorse
-	raceResultHorseNumbers []types.HorseNumber
-	odds                   []*Odds
-	predictionFilters      []filter.AttributeId
+	raceId                   types.RaceId
+	raceName                 string
+	raceDate                 types.RaceDate
+	raceNumber               int
+	entries                  int
+	distance                 int
+	class                    types.GradeClass
+	courseCategory           types.CourseCategory
+	trackCondition           types.TrackCondition
+	raceSexCondition         types.RaceSexCondition
+	raceWeightCondition      types.RaceWeightCondition
+	raceCourse               types.RaceCourse
+	url                      string
+	raceEntryHorses          []*RaceEntryHorse
+	raceResultHorseNumbers   []types.HorseNumber
+	odds                     []*Odds
+	raceConditionFilters     []filter.AttributeId
+	raceTimeConditionFilters []filter.AttributeId
 }
 
 func NewRace(
@@ -42,7 +43,8 @@ func NewRace(
 	raceEntryHorses []*RaceEntryHorse,
 	rawRaceResultHorseNumbers []int,
 	odds []*Odds,
-	predictionFilters []filter.AttributeId,
+	raceConditionFilters []filter.AttributeId,
+	raceTimeConditionFilters []filter.AttributeId,
 ) *Race {
 	raceResultHorseNumbers := make([]types.HorseNumber, len(rawRaceResultHorseNumbers))
 	for idx := range rawRaceResultHorseNumbers {
@@ -50,23 +52,24 @@ func NewRace(
 	}
 
 	return &Race{
-		raceId:                 types.RaceId(raceId),
-		raceName:               raceName,
-		raceDate:               types.RaceDate(raceDate),
-		raceNumber:             raceNumber,
-		entries:                entries,
-		distance:               distance,
-		class:                  types.GradeClass(class),
-		courseCategory:         types.CourseCategory(courseCategory),
-		trackCondition:         types.TrackCondition(trackCondition),
-		raceSexCondition:       types.RaceSexCondition(raceSexCondition),
-		raceWeightCondition:    types.RaceWeightCondition(raceWeightCondition),
-		raceCourse:             types.RaceCourse(raceCourseId),
-		url:                    url,
-		raceEntryHorses:        raceEntryHorses,
-		raceResultHorseNumbers: raceResultHorseNumbers,
-		odds:                   odds,
-		predictionFilters:      predictionFilters,
+		raceId:                   types.RaceId(raceId),
+		raceName:                 raceName,
+		raceDate:                 types.RaceDate(raceDate),
+		raceNumber:               raceNumber,
+		entries:                  entries,
+		distance:                 distance,
+		class:                    types.GradeClass(class),
+		courseCategory:           types.CourseCategory(courseCategory),
+		trackCondition:           types.TrackCondition(trackCondition),
+		raceSexCondition:         types.RaceSexCondition(raceSexCondition),
+		raceWeightCondition:      types.RaceWeightCondition(raceWeightCondition),
+		raceCourse:               types.RaceCourse(raceCourseId),
+		url:                      url,
+		raceEntryHorses:          raceEntryHorses,
+		raceResultHorseNumbers:   raceResultHorseNumbers,
+		odds:                     odds,
+		raceConditionFilters:     raceConditionFilters,
+		raceTimeConditionFilters: raceTimeConditionFilters,
 	}
 }
 
@@ -134,6 +137,10 @@ func (r *Race) Odds() []*Odds {
 	return r.odds
 }
 
-func (r *Race) PredictionFilters() []filter.AttributeId {
-	return r.predictionFilters
+func (r *Race) RaceConditionFilters() []filter.AttributeId {
+	return r.raceConditionFilters
+}
+
+func (r *Race) RaceTimeConditionFilters() []filter.AttributeId {
+	return r.raceTimeConditionFilters
 }

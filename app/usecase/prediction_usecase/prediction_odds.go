@@ -44,7 +44,7 @@ func (p *prediction) Odds(ctx context.Context, input *PredictionInput) error {
 					if localError != nil {
 						continue
 					}
-					predictionRace, err := p.predictionOddsService.GetRace(taskCtx, marker.RaceId())
+					predictionRace, err := p.predictionOddsService.Get(taskCtx, marker.RaceId())
 					if err != nil {
 						localError = err
 						select {

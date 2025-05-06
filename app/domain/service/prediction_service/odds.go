@@ -17,7 +17,7 @@ import (
 )
 
 type Odds interface {
-	GetRace(ctx context.Context, raceId types.RaceId) (*prediction_entity.Race, error)
+	Get(ctx context.Context, raceId types.RaceId) (*prediction_entity.Race, error)
 	Convert(
 		ctx context.Context,
 		race *prediction_entity.Race,
@@ -63,7 +63,7 @@ func NewOdds(
 	}
 }
 
-func (p *oddsService) GetRace(
+func (p *oddsService) Get(
 	ctx context.Context,
 	raceId types.RaceId,
 ) (*prediction_entity.Race, error) {

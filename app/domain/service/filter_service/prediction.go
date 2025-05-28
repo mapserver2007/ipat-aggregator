@@ -27,6 +27,7 @@ func (p *predictionFilter) CreateRaceConditionFilters(
 	filterIds = append(filterIds, CourseCategoryFilters(types.CourseCategory(race.CourseCategory()))...)
 	filterIds = append(filterIds, DistanceFilters(race.Distance())...)
 	filterIds = append(filterIds, RaceCourseFilters(types.RaceCourse(race.RaceCourseId()))...)
+	filterIds = append(filterIds, TrackConditionFilters(types.TrackCondition(race.TrackCondition()))...)
 
 	return filterIds
 }

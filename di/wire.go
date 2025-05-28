@@ -11,6 +11,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/converter"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/filter_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/master_service"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/service/mcp_tool_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/prediction_service"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/service/summary_service"
 	"github.com/mapserver2007/ipat-aggregator/app/infrastructure"
@@ -19,6 +20,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/aggregation_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/analysis_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/master_usecase"
+	"github.com/mapserver2007/ipat-aggregator/app/usecase/mcp_usecase"
 	"github.com/mapserver2007/ipat-aggregator/app/usecase/prediction_usecase"
 	"github.com/sirupsen/logrus"
 )
@@ -131,6 +133,11 @@ var SpreadSheetGatewaySet = wire.NewSet(
 	file_gateway.NewPathOptimizer,
 )
 
+var McpServerSet = wire.NewSet(
+	mcp_usecase.NewTool,
+	mcp_tool_service.NewMCPToolResult,
+)
+
 func NewMaster(
 	logger *logrus.Logger,
 ) *controller.Master {
@@ -171,6 +178,17 @@ func NewPrediction(
 		AnalysisSet,
 		SpreadSheetGatewaySet,
 		controller.NewPrediction,
+	)
+	return nil
+}
+
+func NewMcpServer(
+	logger *logrus.Logger,
+) *controller.MCPServer {
+	wire.Build(
+		MasterSet,
+		McpServerSet,
+		controller.NewMCPServer,
 	)
 	return nil
 }

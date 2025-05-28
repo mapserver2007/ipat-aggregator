@@ -1,23 +1,27 @@
 package data_cache_entity
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 )
 
 type RaceTime struct {
-	raceId     types.RaceId
-	raceDate   types.RaceDate
-	time       string
-	timeIndex  int
-	trackIndex int
-	rapTimes   []time.Duration
-	first3f    time.Duration
-	first4f    time.Duration
-	last3f     time.Duration
-	last4f     time.Duration
-	rap5f      time.Duration
+	raceId       types.RaceId
+	raceDate     types.RaceDate
+	time         string
+	durationTime time.Duration
+	timeIndex    int
+	trackIndex   int
+	rapTimes     []time.Duration
+	first3f      time.Duration
+	first4f      time.Duration
+	last3f       time.Duration
+	last4f       time.Duration
+	rap5f        time.Duration
 }
 
 func NewRaceTime(
@@ -33,18 +37,20 @@ func NewRaceTime(
 	last4f time.Duration,
 	rap5f time.Duration,
 ) *RaceTime {
+	durationTime, _ := timeToDuration(time)
 	return &RaceTime{
-		raceId:     raceId,
-		raceDate:   raceDate,
-		time:       time,
-		timeIndex:  timeIndex,
-		trackIndex: trackIndex,
-		rapTimes:   rapTimes,
-		first3f:    first3f,
-		first4f:    first4f,
-		last3f:     last3f,
-		last4f:     last4f,
-		rap5f:      rap5f,
+		raceId:       raceId,
+		raceDate:     raceDate,
+		time:         time,
+		durationTime: durationTime,
+		timeIndex:    timeIndex,
+		trackIndex:   trackIndex,
+		rapTimes:     rapTimes,
+		first3f:      first3f,
+		first4f:      first4f,
+		last3f:       last3f,
+		last4f:       last4f,
+		rap5f:        rap5f,
 	}
 }
 
@@ -58,6 +64,14 @@ func (r *RaceTime) RaceDate() types.RaceDate {
 
 func (r *RaceTime) Time() string {
 	return r.time
+}
+
+func (r *RaceTime) DurationTime() time.Duration {
+	return r.durationTime
+}
+
+func (r *RaceTime) DurationTimeFormat() string {
+	return formatRaceTime(r.durationTime)
 }
 
 func (r *RaceTime) TimeIndex() int {
@@ -90,4 +104,44 @@ func (r *RaceTime) Last4f() time.Duration {
 
 func (r *RaceTime) Rap5f() time.Duration {
 	return r.rap5f
+}
+
+func timeToDuration(input string) (time.Duration, error) {
+	var minutes, seconds float64
+
+	if strings.Contains(input, ":") {
+		parts := strings.Split(input, ":")
+		if len(parts) != 2 {
+			return 0, fmt.Errorf("invalid time format: %s", input)
+		}
+		min, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return 0, fmt.Errorf("invalid minutes: %w", err)
+		}
+		sec, err := strconv.ParseFloat(parts[1], 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid seconds: %w", err)
+		}
+		minutes = float64(min)
+		seconds = sec
+	} else {
+		sec, err := strconv.ParseFloat(input, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid seconds: %w", err)
+		}
+		seconds = sec
+	}
+
+	totalSeconds := minutes*60 + seconds
+	return time.Duration(totalSeconds * float64(time.Second)), nil
+}
+
+func formatRaceTime(d time.Duration) string {
+	minutes := int(d / time.Minute)
+	seconds := int((d % time.Minute) / time.Second)
+	tenths := int((d % time.Second) / (time.Millisecond * 100))
+	if minutes > 0 {
+		return fmt.Sprintf("%d分%d秒%d", minutes, seconds, tenths)
+	}
+	return fmt.Sprintf("%d秒%d", seconds, tenths)
 }

@@ -17,6 +17,7 @@ const (
 type SpreadSheetAnalysisPlaceUnhitGateway interface {
 	Write(ctx context.Context, analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit) error
 	Style(ctx context.Context, analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit) error
+	Clear(ctx context.Context) error
 }
 
 type spreadSheetAnalysisPlaceUnhitGateway struct {
@@ -152,6 +153,38 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) Style(
 	return nil
 }
 
+func (g *spreadSheetAnalysisPlaceUnhitGateway) Clear(ctx context.Context) error {
+	client, config, err := g.spreadSheetConfigGateway.GetConfig(ctx, spreadSheetAnalysisPlaceUnhitFileName)
+	if err != nil {
+		return err
+	}
+
+	requests := []*sheets.Request{
+		{
+			RepeatCell: &sheets.RepeatCellRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          config.SheetId(),
+					StartColumnIndex: 0,
+					StartRowIndex:    0,
+					EndColumnIndex:   40,
+					EndRowIndex:      9999,
+				},
+				Cell: &sheets.CellData{},
+			},
+		},
+	}
+	_, err = client.Spreadsheets.BatchUpdate(config.SpreadSheetId(), &sheets.BatchUpdateSpreadsheetRequest{
+		Requests: requests,
+	}).Do()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleTrioOdds100(
 	client *sheets.Service,
 	config *spreadsheet_entity.SpreadSheetConfig,
@@ -165,13 +198,7 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleTrioOdds100(
 		if analysisPlaceUnhit.TrioOdds100().Equal(decimal.Zero) {
 			continue
 		}
-		if analysisPlaceUnhit.TrioOdds100().LessThanOrEqual(decimal.NewFromInt(1350)) && analysisPlaceUnhit.TrioOdds100().GreaterThanOrEqual(decimal.NewFromInt(650)) {
-			requests = append(requests, g.createBackgroundColorRequest(
-				config.SheetId(),
-				18, rowNum, 19, rowNum+1,
-				1.0, 1.0, 0.0,
-			))
-		} else {
+		if !analysisPlaceUnhit.TrioOdds100().LessThanOrEqual(decimal.NewFromInt(1350)) || !analysisPlaceUnhit.TrioOdds100().GreaterThanOrEqual(decimal.NewFromInt(650)) {
 			requests = append(requests, g.createBackgroundColorRequest(
 				config.SheetId(),
 				18, rowNum, 19, rowNum+1,
@@ -217,12 +244,6 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleWinRedOddsNum(
 				19, rowNum, 20, rowNum+1,
 				1.0, 1.0, 1.0,
 			))
-		} else {
-			requests = append(requests, g.createBackgroundColorRequest(
-				config.SheetId(),
-				19, rowNum, 20, rowNum+1,
-				1.0, 1.0, 0.0,
-			))
 		}
 	}
 
@@ -250,47 +271,25 @@ func (g *spreadSheetAnalysisPlaceUnhitGateway) writeStyleOddsFault(
 		if analysisPlaceUnhit.OddsFault1().LessThan(decimal.NewFromFloat(3.0)) {
 			requests = append(requests, g.createBackgroundColorRequest(
 				config.SheetId(),
-				19, rowNum, 20, rowNum+1,
+				20, rowNum, 21, rowNum+1,
 				1.0, 0.0, 0.0,
 			))
 			requests = append(requests, g.createTextFormatRequest(
 				config.SheetId(),
-				19, rowNum, 20, rowNum+1,
+				20, rowNum, 21, rowNum+1,
 				1.0, 1.0, 1.0,
-			))
-		} else {
-			requests = append(requests, g.createBackgroundColorRequest(
-				config.SheetId(),
-				19, rowNum, 20, rowNum+1,
-				1.0, 1.0, 0.0,
-			))
-			requests = append(requests, g.createTextFormatRequest(
-				config.SheetId(),
-				19, rowNum, 20, rowNum+1,
-				0.0, 0.0, 0.0,
 			))
 		}
 		if analysisPlaceUnhit.OddsFault2().LessThan(decimal.NewFromFloat(3.0)) {
 			requests = append(requests, g.createBackgroundColorRequest(
 				config.SheetId(),
-				20, rowNum, 21, rowNum+1,
+				21, rowNum, 22, rowNum+1,
 				1.0, 0.0, 0.0,
 			))
 			requests = append(requests, g.createTextFormatRequest(
 				config.SheetId(),
-				20, rowNum, 21, rowNum+1,
+				21, rowNum, 22, rowNum+1,
 				1.0, 1.0, 1.0,
-			))
-		} else {
-			requests = append(requests, g.createBackgroundColorRequest(
-				config.SheetId(),
-				20, rowNum, 21, rowNum+1,
-				1.0, 1.0, 0.0,
-			))
-			requests = append(requests, g.createTextFormatRequest(
-				config.SheetId(),
-				20, rowNum, 21, rowNum+1,
-				0.0, 0.0, 0.0,
 			))
 		}
 	}

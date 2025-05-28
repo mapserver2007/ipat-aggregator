@@ -155,7 +155,7 @@ func calcLastDistanceTime(rapTimes []time.Duration) (time.Duration, time.Duratio
 func (r *raceTimeEntityConverter) RawToDataCache(input *raw_entity.RaceTime) *data_cache_entity.RaceTime {
 	rapTimes := make([]time.Duration, 0, len(input.RapTimes))
 	for _, rawRapTime := range input.RapTimes {
-		rapTime, _ := time.ParseDuration(rawRapTime)
+		rapTime, _ := time.ParseDuration(rawRapTime + "s")
 		rapTimes = append(rapTimes, rapTime)
 	}
 

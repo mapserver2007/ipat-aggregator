@@ -57,7 +57,7 @@ func (t *ticketService) Get(
 					ticket.RaceDate().Year(),
 					ticket.RaceDate().Month(),
 					ticket.RaceDate().Day(),
-					ticket.RaceCourse().Value(),
+					ticket.RaceCourse(),
 					ticket.RaceNo(),
 				)
 				raceTickets = append(raceTickets, ticket_csv_entity.NewRaceTicket(
@@ -70,7 +70,7 @@ func (t *ticketService) Get(
 					ticket.RaceDate().Year(),
 					ticket.RaceDate().Month(),
 					ticket.RaceDate().Day(),
-					ticket.RaceCourse().Value(),
+					ticket.RaceCourse(),
 					ticket.RaceNo(),
 				)
 				raceTickets = append(raceTickets, ticket_csv_entity.NewRaceTicket(

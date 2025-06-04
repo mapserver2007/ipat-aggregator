@@ -244,10 +244,10 @@ func (r *raceIdService) Update(ctx context.Context, raceDateMapForNAROrOversea m
 	}
 
 	for _, raceDate := range converter.SortedRaceDateKeys(raceDateMap) {
-		raceIdMap := map[types.RaceId]bool{}
+		raceIdMap := map[types.RaceId]struct{}{}
 		raceIds := raceDateMap[raceDate]
 		for _, raceId := range raceIds {
-			raceIdMap[raceId] = true
+			raceIdMap[raceId] = struct{}{}
 		}
 
 		rawRaceIds := make([]string, 0, len(raceIdMap))

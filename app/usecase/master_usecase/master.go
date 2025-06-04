@@ -162,22 +162,7 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
-	if err != nil {
-		return err
-	}
-
 	raceTimes, err := m.raceTimeService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	races, err = m.raceService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = m.raceTimeService.CreateOrUpdate(ctx, raceTimes, races, raceDateMap)
 	if err != nil {
 		return err
 	}
@@ -186,27 +171,13 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	if err != nil {
 		return err
 	}
+
 	// umaca投票データに追加されたraceIdは未キャッシュなので更新する
 	latestEndDate := input.EndDate
 	for _, umacaMaster := range umacaMasters {
 		if latestEndDate.Value() < umacaMaster.RaceDate().Value() {
 			latestEndDate = umacaMaster.RaceDate()
 		}
-	}
-
-	err = m.raceIdService.CreateOrUpdate(ctx, input.StartDate, latestEndDate)
-	if err != nil {
-		return err
-	}
-
-	raceDateMap, _, err = m.raceIdService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	races, err = m.raceService.Get(ctx)
-	if err != nil {
-		return err
 	}
 
 	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
@@ -225,6 +196,16 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	}
 
 	umacaRaceTickets, err := m.umacaTicketService.Get(ctx, races)
+	if err != nil {
+		return err
+	}
+
+	err = m.raceTimeService.CreateOrUpdate(ctx, raceTimes, races, raceDateMap)
+	if err != nil {
+		return err
+	}
+
+	raceTimes, err = m.raceTimeService.Get(ctx)
 	if err != nil {
 		return err
 	}
@@ -261,11 +242,6 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	}
 
 	raceDateMap, _, err = m.raceIdService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	races, err = m.raceService.Get(ctx)
 	if err != nil {
 		return err
 	}

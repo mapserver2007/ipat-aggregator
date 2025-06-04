@@ -81,12 +81,21 @@ func (r *raceTimeService) CreateOrUpdate(
 	taskCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	raceMap := make(map[types.RaceId]*data_cache_entity.Race)
+	for _, race := range races {
+		raceMap[race.RaceId()] = race
+	}
+
 	// 除外レース
 	excludeRaceIdMap := make(map[types.RaceId]struct{})
-	for _, race := range races {
-		switch race.Class() {
-		case types.JumpGrade1, types.JumpGrade2, types.JumpGrade3, types.JumpMaiden, types.JumpOpenClass:
-			excludeRaceIdMap[race.RaceId()] = struct{}{}
+	for _, raceIds := range raceDateMap {
+		for _, raceId := range raceIds {
+			if race, ok := raceMap[raceId]; ok {
+				switch race.Class() {
+				case types.JumpGrade1, types.JumpGrade2, types.JumpGrade3, types.JumpMaiden, types.JumpOpenClass:
+					excludeRaceIdMap[raceId] = struct{}{}
+				}
+			}
 		}
 	}
 
@@ -145,6 +154,10 @@ func (r *raceTimeService) CreateOrUpdate(
 	raceTimeMap := map[types.RaceDate][]*raw_entity.RaceTime{}
 	for results := range resultCh {
 		for _, raceTime := range results {
+			if len(raceTime.RapTimes()) == 0 {
+				r.logger.Warnf("race time is empty: %v", raceTime.RaceId())
+				continue
+			}
 			rawRaceTime := r.raceTimeEntityConverter.NetKeibaToRaw(raceTime)
 			raceTimeMap[types.RaceDate(rawRaceTime.RaceDate)] = append(raceTimeMap[types.RaceDate(rawRaceTime.RaceDate)], rawRaceTime)
 		}

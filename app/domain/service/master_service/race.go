@@ -84,6 +84,14 @@ func (r *raceService) CreateOrUpdate(
 		return nil
 	}
 
+	raceMap := map[types.RaceDate][]*data_cache_entity.Race{}
+	for _, race := range races {
+		if _, ok := raceMap[race.RaceDate()]; !ok {
+			raceMap[race.RaceDate()] = make([]*data_cache_entity.Race, 0)
+		}
+		raceMap[race.RaceDate()] = append(raceMap[race.RaceDate()], race)
+	}
+
 	var wg sync.WaitGroup
 	const raceIdParallel = 5
 	errorCh := make(chan error, 1)
@@ -131,15 +139,21 @@ func (r *raceService) CreateOrUpdate(
 		return err
 	}
 
-	raceMap := map[types.RaceDate][]*raw_entity.Race{}
+	newRaceMap := map[types.RaceDate][]*raw_entity.Race{}
 	for results := range resultCh {
 		for _, race := range results {
+			// 保存済みのJRAのレースデータにさらに馬券購入の海外・地方レースがある場合はmergeする
+			if cacheRaces, ok := raceMap[types.RaceDate(race.RaceDate())]; ok {
+				for _, cacheRace := range cacheRaces {
+					newRaceMap[types.RaceDate(race.RaceDate())] = append(newRaceMap[types.RaceDate(race.RaceDate())], r.raceEntityConverter.DataCacheToRaw(cacheRace))
+				}
+			}
 			rawRace := r.raceEntityConverter.NetKeibaToRaw(race)
-			raceMap[types.RaceDate(rawRace.RaceDate)] = append(raceMap[types.RaceDate(rawRace.RaceDate)], rawRace)
+			newRaceMap[types.RaceDate(rawRace.RaceDate)] = append(newRaceMap[types.RaceDate(rawRace.RaceDate)], rawRace)
 		}
 	}
 
-	for raceDate, rawRaces := range raceMap {
+	for raceDate, rawRaces := range newRaceMap {
 		sort.Slice(rawRaces, func(i, j int) bool {
 			return rawRaces[i].RaceId < rawRaces[j].RaceId
 		})
@@ -161,9 +175,9 @@ func (r *raceService) createRaceUrls(
 ) []string {
 	var raceUrls []string
 
-	raceMap := map[types.RaceId]*data_cache_entity.Race{}
+	raceMap := map[types.RaceId]struct{}{}
 	for _, race := range races {
-		raceMap[race.RaceId()] = race
+		raceMap[race.RaceId()] = struct{}{}
 	}
 
 	raceIdMap := map[types.RaceId]types.RaceDate{}

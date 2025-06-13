@@ -63,7 +63,7 @@ func NewMaster(logger *logrus.Logger) *controller.Master {
 	predictionMarkerRepository := infrastructure.NewPredictionMarkerRepository(netKeibaGateway, pathOptimizer)
 	predictionMarker := master_service.NewPredictionMarker(predictionMarkerRepository)
 	umacaTicketRepository := infrastructure.NewUmacaTicketRepository(pathOptimizer)
-	umacaTicket := master_service.NewUmacaTicket(umacaTicketRepository, ticketRepository)
+	umacaTicket := master_service.NewUmacaTicket(umacaTicketRepository, ticketRepository, logger)
 	master := master_usecase.NewMaster(ticket, raceId, race, raceTime, raceForecast, jockey, winOdds, placeOdds, quinellaOdds, trioOdds, analysisMarker, predictionMarker, umacaTicket)
 	controllerMaster := controller.NewMaster(master)
 	return controllerMaster
@@ -211,7 +211,7 @@ func NewMcpServer(logger *logrus.Logger) *controller.MCPServer {
 	predictionMarkerRepository := infrastructure.NewPredictionMarkerRepository(netKeibaGateway, pathOptimizer)
 	predictionMarker := master_service.NewPredictionMarker(predictionMarkerRepository)
 	umacaTicketRepository := infrastructure.NewUmacaTicketRepository(pathOptimizer)
-	umacaTicket := master_service.NewUmacaTicket(umacaTicketRepository, ticketRepository)
+	umacaTicket := master_service.NewUmacaTicket(umacaTicketRepository, ticketRepository, logger)
 	master := master_usecase.NewMaster(ticket, raceId, race, raceTime, raceForecast, jockey, winOdds, placeOdds, quinellaOdds, trioOdds, analysisMarker, predictionMarker, umacaTicket)
 	mcpToolResult := mcp_tool_service.NewMCPToolResult(raceEntityConverter, jockeyEntityConverter, logger)
 	tool := mcp_usecase.NewTool(master, mcpToolResult, logger)

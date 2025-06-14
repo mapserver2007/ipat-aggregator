@@ -40,6 +40,7 @@ type master struct {
 	raceTimeService         master_service.RaceTime
 	raceForecastService     master_service.RaceForecast
 	jockeyService           master_service.Jockey
+	jockeyResultService     master_service.JockeyResult
 	winOddsService          master_service.WinOdds
 	placeOddsService        master_service.PlaceOdds
 	quinellaOddsService     master_service.QuinellaOdds
@@ -56,6 +57,7 @@ func NewMaster(
 	raceTimeService master_service.RaceTime,
 	raceForecastService master_service.RaceForecast,
 	jockeyService master_service.Jockey,
+	jockeyResultService master_service.JockeyResult,
 	winOddsService master_service.WinOdds,
 	placeOddsService master_service.PlaceOdds,
 	quinellaOddsService master_service.QuinellaOdds,
@@ -71,6 +73,7 @@ func NewMaster(
 		raceTimeService:         raceTimeService,
 		raceForecastService:     raceForecastService,
 		jockeyService:           jockeyService,
+		jockeyResultService:     jockeyResultService,
 		winOddsService:          winOddsService,
 		placeOddsService:        placeOddsService,
 		quinellaOddsService:     quinellaOddsService,
@@ -263,6 +266,11 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	}
 
 	err = m.jockeyService.CreateOrUpdate(ctx, jockeys, excludeJockeyIds)
+	if err != nil {
+		return err
+	}
+
+	err = m.jockeyResultService.CreateOrUpdate(ctx, nil)
 	if err != nil {
 		return err
 	}

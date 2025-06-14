@@ -52,6 +52,8 @@ func NewMaster(logger *logrus.Logger) *controller.Master {
 	jockeyRepository := infrastructure.NewJockeyRepository(netKeibaGateway, pathOptimizer)
 	jockeyEntityConverter := converter.NewJockeyEntityConverter()
 	jockey := master_service.NewJockey(jockeyRepository, jockeyEntityConverter, logger)
+	jockeyResultRepository := infrastructure.NewJockeyResultRepository(netKeibaGateway, pathOptimizer)
+	jockeyResult := master_service.NewJockeyResult(jockeyResultRepository, logger)
 	oddsRepository := infrastructure.NewOddsRepository(netKeibaGateway, pathOptimizer)
 	oddsEntityConverter := converter.NewOddsEntityConverter()
 	winOdds := master_service.NewWinOdds(oddsRepository, oddsEntityConverter, logger)
@@ -64,7 +66,7 @@ func NewMaster(logger *logrus.Logger) *controller.Master {
 	predictionMarker := master_service.NewPredictionMarker(predictionMarkerRepository)
 	umacaTicketRepository := infrastructure.NewUmacaTicketRepository(pathOptimizer)
 	umacaTicket := master_service.NewUmacaTicket(umacaTicketRepository, ticketRepository, logger)
-	master := master_usecase.NewMaster(ticket, raceId, race, raceTime, raceForecast, jockey, winOdds, placeOdds, quinellaOdds, trioOdds, analysisMarker, predictionMarker, umacaTicket)
+	master := master_usecase.NewMaster(ticket, raceId, race, raceTime, raceForecast, jockey, jockeyResult, winOdds, placeOdds, quinellaOdds, trioOdds, analysisMarker, predictionMarker, umacaTicket)
 	controllerMaster := controller.NewMaster(master)
 	return controllerMaster
 }
@@ -200,6 +202,8 @@ func NewMcpServer(logger *logrus.Logger) *controller.MCPServer {
 	jockeyRepository := infrastructure.NewJockeyRepository(netKeibaGateway, pathOptimizer)
 	jockeyEntityConverter := converter.NewJockeyEntityConverter()
 	jockey := master_service.NewJockey(jockeyRepository, jockeyEntityConverter, logger)
+	jockeyResultRepository := infrastructure.NewJockeyResultRepository(netKeibaGateway, pathOptimizer)
+	jockeyResult := master_service.NewJockeyResult(jockeyResultRepository, logger)
 	oddsRepository := infrastructure.NewOddsRepository(netKeibaGateway, pathOptimizer)
 	oddsEntityConverter := converter.NewOddsEntityConverter()
 	winOdds := master_service.NewWinOdds(oddsRepository, oddsEntityConverter, logger)
@@ -212,7 +216,7 @@ func NewMcpServer(logger *logrus.Logger) *controller.MCPServer {
 	predictionMarker := master_service.NewPredictionMarker(predictionMarkerRepository)
 	umacaTicketRepository := infrastructure.NewUmacaTicketRepository(pathOptimizer)
 	umacaTicket := master_service.NewUmacaTicket(umacaTicketRepository, ticketRepository, logger)
-	master := master_usecase.NewMaster(ticket, raceId, race, raceTime, raceForecast, jockey, winOdds, placeOdds, quinellaOdds, trioOdds, analysisMarker, predictionMarker, umacaTicket)
+	master := master_usecase.NewMaster(ticket, raceId, race, raceTime, raceForecast, jockey, jockeyResult, winOdds, placeOdds, quinellaOdds, trioOdds, analysisMarker, predictionMarker, umacaTicket)
 	mcpToolResult := mcp_tool_service.NewMCPToolResult(raceEntityConverter, jockeyEntityConverter, logger)
 	tool := mcp_usecase.NewTool(master, mcpToolResult, logger)
 	mcpServer := controller.NewMCPServer(tool, logger)
@@ -221,7 +225,7 @@ func NewMcpServer(logger *logrus.Logger) *controller.MCPServer {
 
 // wire.go:
 
-var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewWinOdds, master_service.NewPlaceOdds, master_service.NewQuinellaOdds, master_service.NewTrioOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, master_service.NewUmacaTicket, master_service.NewRaceForecast, master_service.NewRaceTime, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, converter.NewRaceForecastEntityConverter, converter.NewRaceTimeEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, infrastructure.NewUmacaTicketRepository, infrastructure.NewRaceTimeRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, file_gateway.NewPathOptimizer)
+var MasterSet = wire.NewSet(master_usecase.NewMaster, master_service.NewTicket, master_service.NewRaceId, master_service.NewRace, master_service.NewJockey, master_service.NewWinOdds, master_service.NewPlaceOdds, master_service.NewQuinellaOdds, master_service.NewTrioOdds, master_service.NewAnalysisMarker, master_service.NewPredictionMarker, master_service.NewBetNumberConverter, master_service.NewUmacaTicket, master_service.NewRaceForecast, master_service.NewRaceTime, master_service.NewJockeyResult, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter, converter.NewOddsEntityConverter, converter.NewRaceForecastEntityConverter, converter.NewRaceTimeEntityConverter, infrastructure.NewTicketRepository, infrastructure.NewRaceIdRepository, infrastructure.NewRaceRepository, infrastructure.NewRaceForecastRepository, infrastructure.NewJockeyRepository, infrastructure.NewOddsRepository, infrastructure.NewAnalysisMarkerRepository, infrastructure.NewPredictionMarkerRepository, infrastructure.NewUmacaTicketRepository, infrastructure.NewRaceTimeRepository, infrastructure.NewJockeyResultRepository, gateway.NewNetKeibaGateway, gateway.NewNetKeibaCollector, gateway.NewTospoGateway, file_gateway.NewPathOptimizer)
 
 var AggregationSet = wire.NewSet(aggregation_usecase.NewSummary, aggregation_usecase.NewTicketSummary, aggregation_usecase.NewList, aggregation_service.NewSummary, aggregation_service.NewTicketSummary, aggregation_service.NewList, summary_service.NewTerm, summary_service.NewTicket, summary_service.NewClass, summary_service.NewCourseCategory, summary_service.NewDistanceCategory, summary_service.NewRaceCourse, infrastructure.NewSpreadSheetRepository, converter.NewRaceEntityConverter, converter.NewJockeyEntityConverter)
 

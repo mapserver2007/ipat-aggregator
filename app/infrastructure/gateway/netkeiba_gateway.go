@@ -34,6 +34,7 @@ type NetKeibaGateway interface {
 	FetchQuinellaOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchRaceTime(ctx context.Context, url string) (*netkeiba_entity.RaceTime, error)
+	FetchJockeyResult(ctx context.Context, url string) (*netkeiba_entity.JockeyResult, error)
 }
 
 type netKeibaGateway struct {
@@ -1790,4 +1791,11 @@ func (n *netKeibaGateway) FetchRaceTime(
 		trackIndex,
 		rapTimes,
 	), nil
+}
+
+func (n *netKeibaGateway) FetchJockeyResult(
+	ctx context.Context,
+	url string,
+) (*netkeiba_entity.JockeyResult, error) {
+	return nil, nil
 }

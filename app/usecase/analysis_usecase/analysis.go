@@ -17,6 +17,7 @@ type Analysis interface {
 	PlaceJockey(ctx context.Context, input *AnalysisInput) error
 	RaceTime(ctx context.Context, input *AnalysisInput) error
 	Beta(ctx context.Context, input *AnalysisInput) error
+	Usm(ctx context.Context, input *AnalysisInput) error
 }
 
 type AnalysisInput struct {

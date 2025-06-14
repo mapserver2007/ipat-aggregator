@@ -111,3 +111,17 @@ func (a *Analysis) Beta(ctx context.Context, input *AnalysisInput) {
 	}
 	a.logger.Info("fetching analysis beta end")
 }
+
+func (a *Analysis) Usm(ctx context.Context, input *AnalysisInput) {
+	a.logger.Info("fetching analysis usm start")
+	if err := a.analysisUseCase.Usm(ctx, &analysis_usecase.AnalysisInput{
+		Markers: input.Master.AnalysisMarkers,
+		Races:   input.Master.Races,
+		Odds: &analysis_usecase.AnalysisOddsInput{
+			Win:   input.Master.WinOdds,
+			Place: input.Master.PlaceOdds,
+		},
+	}); err != nil {
+		a.logger.Errorf("analysis usm error: %v", err)
+	}
+}

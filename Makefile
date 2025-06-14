@@ -7,6 +7,8 @@ install:
 	go get github.com/mark3labs/mcp-go
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/google/wire/cmd/wire@latest
+	go install github.com/go-delve/delve/cmd/dlv@v1.24.2
+	go install github.com/air-verse/air@v1.62.0
 
 .PHONY: gen-wire
 gen-wire:

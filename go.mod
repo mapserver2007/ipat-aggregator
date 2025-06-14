@@ -1,12 +1,12 @@
 module github.com/mapserver2007/ipat-aggregator
 
-go 1.23.1
+go 1.24.3
 
 require (
 	github.com/gocolly/colly v1.2.0
 	github.com/google/wire v0.6.0
 	github.com/jinzhu/now v1.1.5
-	github.com/mark3labs/mcp-go v0.29.0
+	github.com/mark3labs/mcp-go v0.32.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli v1.22.16

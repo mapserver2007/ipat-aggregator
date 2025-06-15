@@ -1704,12 +1704,15 @@ func (n *netKeibaGateway) FetchRaceTime(
 	defer n.mu.Unlock()
 
 	var (
+		raceTimeId string
 		raceTime   string
 		timeIndex  int
 		trackIndex int
 		rapTimes   []time.Duration
 		raceDate   int
 	)
+
+	raceId := strings.Split(url, "/")[4]
 
 	err := n.collector.Login(ctx)
 	if err != nil {
@@ -1735,6 +1738,14 @@ func (n *netKeibaGateway) FetchRaceTime(
 		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 1:
+				href, _ := ce.DOM.Find("td:nth-child(4) > a").Attr("href")
+				horseId := strings.Split(href, "/")[2]
+				typedRaceTimeId, err := types.NewRaceTime(raceId + horseId)
+				if err != nil {
+					n.logger.Errorf("FetchRaceTime error: %v", err)
+					return
+				}
+				raceTimeId = typedRaceTimeId.Value()
 				raceTime = ce.DOM.Find("td:nth-child(8)").Text()
 				timeIndex, _ = strconv.Atoi(strings.ReplaceAll(ce.DOM.Find("td:nth-child(10)").Text(), "\n", ""))
 			}
@@ -1752,8 +1763,7 @@ func (n *netKeibaGateway) FetchRaceTime(
 			return
 		}
 		raceRapText := e.DOM.Text()
-		parts := strings.Split(raceRapText, "-")
-		for _, part := range parts {
+		for part := range strings.SplitSeq(raceRapText, "-") {
 			seconds, err := strconv.ParseFloat(strings.TrimSpace(part), 64)
 			if err != nil {
 				n.logger.Errorf("FetchRaceTime error: %v", err)
@@ -1784,7 +1794,8 @@ func (n *netKeibaGateway) FetchRaceTime(
 	}
 
 	return netkeiba_entity.NewRaceTime(
-		strings.Split(url, "/")[4],
+		raceTimeId,
+		raceId,
 		raceDate,
 		raceTime,
 		timeIndex,

@@ -5,6 +5,7 @@ type RaceTimeInfo struct {
 }
 
 type RaceTime struct {
+	RaceTimeId string   `json:"race_time_id"`
 	RaceId     string   `json:"race_id"`
 	RaceDate   int      `json:"race_date"`
 	Time       string   `json:"time"`

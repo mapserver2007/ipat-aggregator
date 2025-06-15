@@ -10,6 +10,7 @@ import (
 )
 
 type RaceTime struct {
+	raceTimeId   types.RaceTime
 	raceId       types.RaceId
 	raceDate     types.RaceDate
 	time         string
@@ -25,6 +26,7 @@ type RaceTime struct {
 }
 
 func NewRaceTime(
+	raceTimeId types.RaceTime,
 	raceId types.RaceId,
 	raceDate types.RaceDate,
 	time string,
@@ -39,6 +41,7 @@ func NewRaceTime(
 ) *RaceTime {
 	durationTime, _ := timeToDuration(time)
 	return &RaceTime{
+		raceTimeId:   raceTimeId,
 		raceId:       raceId,
 		raceDate:     raceDate,
 		time:         time,
@@ -52,6 +55,10 @@ func NewRaceTime(
 		last4f:       last4f,
 		rap5f:        rap5f,
 	}
+}
+
+func (r *RaceTime) RaceTimeId() types.RaceTime {
+	return r.raceTimeId
 }
 
 func (r *RaceTime) RaceId() types.RaceId {

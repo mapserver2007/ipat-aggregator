@@ -5,6 +5,7 @@ import (
 )
 
 type RaceTime struct {
+	raceTimeId string
 	raceId     string
 	raceDate   int
 	time       string
@@ -14,6 +15,7 @@ type RaceTime struct {
 }
 
 func NewRaceTime(
+	raceTimeId string,
 	raceId string,
 	raceDate int,
 	time string,
@@ -22,6 +24,7 @@ func NewRaceTime(
 	rapTimes []time.Duration,
 ) *RaceTime {
 	return &RaceTime{
+		raceTimeId: raceTimeId,
 		raceId:     raceId,
 		raceDate:   raceDate,
 		time:       time,
@@ -29,6 +32,10 @@ func NewRaceTime(
 		trackIndex: trackIndex,
 		rapTimes:   rapTimes,
 	}
+}
+
+func (r *RaceTime) RaceTimeId() string {
+	return r.raceTimeId
 }
 
 func (r *RaceTime) RaceId() string {

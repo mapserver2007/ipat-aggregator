@@ -61,6 +61,7 @@ func (r *raceTimeEntityConverter) NetKeibaToRaw(input *netkeiba_entity.RaceTime)
 	last3f, last4f = calcLastDistanceTime(rapTimes)
 
 	return &raw_entity.RaceTime{
+		RaceTimeId: input.RaceTimeId(),
 		RaceId:     input.RaceId(),
 		RaceDate:   input.RaceDate(),
 		Time:       input.Time(),
@@ -166,6 +167,7 @@ func (r *raceTimeEntityConverter) RawToDataCache(input *raw_entity.RaceTime) *da
 	rap5f, _ := time.ParseDuration(input.Rap5f + "s")
 
 	return data_cache_entity.NewRaceTime(
+		types.RaceTime(input.RaceTimeId),
 		types.RaceId(input.RaceId),
 		types.RaceDate(input.RaceDate),
 		input.Time,

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/vo/data_cache_vo"
 )
 
 type RaceTime struct {
@@ -23,6 +24,17 @@ type RaceTime struct {
 	last3f       time.Duration
 	last4f       time.Duration
 	rap5f        time.Duration
+}
+
+type RaceTimeV2 struct {
+	raceTimeId   types.RaceTime
+	raceId       types.RaceId
+	raceDate     types.RaceDate
+	time         string
+	durationTime time.Duration
+	timeIndex    int
+	trackIndex   int
+	rapTimeRap   *data_cache_vo.RaceTimeRap
 }
 
 func NewRaceTime(
@@ -111,6 +123,64 @@ func (r *RaceTime) Last4f() time.Duration {
 
 func (r *RaceTime) Rap5f() time.Duration {
 	return r.rap5f
+}
+
+func NewRaceTimeV2(
+	raceTimeId types.RaceTime,
+	raceId types.RaceId,
+	raceDate types.RaceDate,
+	time string,
+	timeIndex int,
+	trackIndex int,
+	rapTimeRap *data_cache_vo.RaceTimeRap,
+) *RaceTimeV2 {
+	durationTime, _ := timeToDuration(time)
+	return &RaceTimeV2{
+		raceTimeId:   raceTimeId,
+		raceId:       raceId,
+		raceDate:     raceDate,
+		time:         time,
+		durationTime: durationTime,
+		timeIndex:    timeIndex,
+		trackIndex:   trackIndex,
+		rapTimeRap:   rapTimeRap,
+	}
+}
+
+func (r *RaceTimeV2) RaceTimeId() types.RaceTime {
+	return r.raceTimeId
+}
+
+func (r *RaceTimeV2) RaceId() types.RaceId {
+	return r.raceId
+}
+
+func (r *RaceTimeV2) RaceDate() types.RaceDate {
+	return r.raceDate
+}
+
+func (r *RaceTimeV2) Time() string {
+	return r.time
+}
+
+func (r *RaceTimeV2) DurationTime() time.Duration {
+	return r.durationTime
+}
+
+func (r *RaceTimeV2) DurationTimeFormat() string {
+	return formatRaceTime(r.durationTime)
+}
+
+func (r *RaceTimeV2) TimeIndex() int {
+	return r.timeIndex
+}
+
+func (r *RaceTimeV2) TrackIndex() int {
+	return r.trackIndex
+}
+
+func (r *RaceTimeV2) RapTimeRap() *data_cache_vo.RaceTimeRap {
+	return r.rapTimeRap
 }
 
 func timeToDuration(input string) (time.Duration, error) {

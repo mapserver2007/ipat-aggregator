@@ -24,6 +24,7 @@ const (
 
 type RaceTime interface {
 	Get(ctx context.Context) ([]*data_cache_entity.RaceTime, error)
+	GetV2(ctx context.Context) ([]*data_cache_entity.RaceTimeV2, error)
 	CreateOrUpdate(
 		ctx context.Context,
 		raceTimes []*data_cache_entity.RaceTime,
@@ -70,6 +71,28 @@ func (r *raceTimeService) Get(
 	}
 
 	return raceTimes, nil
+}
+
+func (r *raceTimeService) GetV2(
+	ctx context.Context,
+) ([]*data_cache_entity.RaceTimeV2, error) {
+	files, err := r.raceTimeRepository.List(ctx, fmt.Sprintf("%s/race_times_v2", config.CacheDir))
+	if err != nil {
+		return nil, err
+	}
+
+	var raceTimesV2 []*data_cache_entity.RaceTimeV2
+	for _, file := range files {
+		rawRaceTimesV2, err := r.raceTimeRepository.ReadV2(ctx, fmt.Sprintf("%s/race_times_v2/%s", config.CacheDir, file))
+		if err != nil {
+			return nil, err
+		}
+		for _, rawRaceTimeV2 := range rawRaceTimesV2 {
+			raceTimesV2 = append(raceTimesV2, r.raceTimeEntityConverter.RawToDataCacheV2(rawRaceTimeV2))
+		}
+	}
+
+	return raceTimesV2, nil
 }
 
 func (r *raceTimeService) CreateOrUpdate(
@@ -151,7 +174,12 @@ func (r *raceTimeService) CreateOrUpdate(
 		return err
 	}
 
+	// TODO v1とv2を同期完了するまで共存させる
+	// fetch条件はv1の方にあわせる
+
 	raceTimeMap := map[types.RaceDate][]*raw_entity.RaceTime{}
+	raceTimeMapV2 := make(map[types.RaceDate][]*raw_entity.RaceTimeV2)
+
 	for results := range resultCh {
 		for _, raceTime := range results {
 			if len(raceTime.RapTimes()) == 0 {
@@ -160,6 +188,9 @@ func (r *raceTimeService) CreateOrUpdate(
 			}
 			rawRaceTime := r.raceTimeEntityConverter.NetKeibaToRaw(raceTime)
 			raceTimeMap[types.RaceDate(rawRaceTime.RaceDate)] = append(raceTimeMap[types.RaceDate(rawRaceTime.RaceDate)], rawRaceTime)
+
+			rawRaceTimeV2 := r.raceTimeEntityConverter.NetKeibaToRawV2(raceTime)
+			raceTimeMapV2[types.RaceDate(rawRaceTimeV2.RaceDate)] = append(raceTimeMapV2[types.RaceDate(rawRaceTimeV2.RaceDate)], rawRaceTimeV2)
 		}
 	}
 
@@ -171,6 +202,19 @@ func (r *raceTimeService) CreateOrUpdate(
 			RaceTimes: rawRaceTimes,
 		}
 		err := r.raceTimeRepository.Write(ctx, fmt.Sprintf("%s/race_times/%s", config.CacheDir, fmt.Sprintf(raceTimeFileName, raceDate.Value())), &raceTimeInfo)
+		if err != nil {
+			return err
+		}
+	}
+
+	for raceDate, rawRaceTimes := range raceTimeMapV2 {
+		sort.Slice(rawRaceTimes, func(i, j int) bool {
+			return rawRaceTimes[i].RaceId < rawRaceTimes[j].RaceId
+		})
+		raceTimeInfo := raw_entity.RaceTimeInfoV2{
+			RaceTimes: rawRaceTimes,
+		}
+		err := r.raceTimeRepository.WriteV2(ctx, fmt.Sprintf("%s/race_times_v2/%s", config.CacheDir, fmt.Sprintf(raceTimeFileName, raceDate.Value())), &raceTimeInfo)
 		if err != nil {
 			return err
 		}

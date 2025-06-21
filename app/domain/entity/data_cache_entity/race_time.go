@@ -27,14 +27,13 @@ type RaceTime struct {
 }
 
 type RaceTimeV2 struct {
-	raceTimeId   types.RaceTime
-	raceId       types.RaceId
-	raceDate     types.RaceDate
-	time         string
-	durationTime time.Duration
-	timeIndex    int
-	trackIndex   int
-	rapTimeRap   *data_cache_vo.RaceTimeRap
+	raceTimeId types.RaceTime
+	raceId     types.RaceId
+	raceDate   types.RaceDate
+	time       *data_cache_vo.RaceTime
+	timeIndex  int
+	trackIndex int
+	rapTimeRap *data_cache_vo.RaceTimeRap
 }
 
 func NewRaceTime(
@@ -129,21 +128,19 @@ func NewRaceTimeV2(
 	raceTimeId types.RaceTime,
 	raceId types.RaceId,
 	raceDate types.RaceDate,
-	time string,
+	time *data_cache_vo.RaceTime,
 	timeIndex int,
 	trackIndex int,
 	rapTimeRap *data_cache_vo.RaceTimeRap,
 ) *RaceTimeV2 {
-	durationTime, _ := timeToDuration(time)
 	return &RaceTimeV2{
-		raceTimeId:   raceTimeId,
-		raceId:       raceId,
-		raceDate:     raceDate,
-		time:         time,
-		durationTime: durationTime,
-		timeIndex:    timeIndex,
-		trackIndex:   trackIndex,
-		rapTimeRap:   rapTimeRap,
+		raceTimeId: raceTimeId,
+		raceId:     raceId,
+		raceDate:   raceDate,
+		time:       time,
+		timeIndex:  timeIndex,
+		trackIndex: trackIndex,
+		rapTimeRap: rapTimeRap,
 	}
 }
 
@@ -159,16 +156,8 @@ func (r *RaceTimeV2) RaceDate() types.RaceDate {
 	return r.raceDate
 }
 
-func (r *RaceTimeV2) Time() string {
+func (r *RaceTimeV2) Time() *data_cache_vo.RaceTime {
 	return r.time
-}
-
-func (r *RaceTimeV2) DurationTime() time.Duration {
-	return r.durationTime
-}
-
-func (r *RaceTimeV2) DurationTimeFormat() string {
-	return formatRaceTime(r.durationTime)
 }
 
 func (r *RaceTimeV2) TimeIndex() int {

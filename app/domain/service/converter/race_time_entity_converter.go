@@ -210,7 +210,7 @@ func (r *raceTimeEntityConverter) RawToDataCacheV2(input *raw_entity.RaceTimeV2)
 		types.RaceTime(input.RaceTimeId),
 		types.RaceId(input.RaceId),
 		types.RaceDate(input.RaceDate),
-		input.Time,
+		data_cache_vo.NewRaceTime(input.Time),
 		input.TimeIndex,
 		input.TrackIndex,
 		data_cache_vo.NewRaceTimeRap(input.RapTimes),

@@ -17,17 +17,17 @@ func NewRaceTime(time string) *RaceTime {
 	}
 }
 
-func (r *RaceTime) Time() string {
+func (r *RaceTime) String() string {
 	return r.time
 }
 
-func (r *RaceTime) DurationTime() time.Duration {
+func (r *RaceTime) Duration() time.Duration {
 	durationTime, _ := timeToDuration(r.time)
 	return durationTime
 }
 
-func (r *RaceTime) DurationTimeFormat() string {
-	return formatRaceTime(r.DurationTime())
+func (r *RaceTime) DurationFormat() string {
+	return formatRaceTime(r.Duration())
 }
 
 func timeToDuration(input string) (time.Duration, error) {

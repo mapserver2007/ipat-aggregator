@@ -20,7 +20,7 @@ type PredictionInput struct {
 	AnalysisMarkers   []*marker_csv_entity.AnalysisMarker
 	PredictionMarkers []*marker_csv_entity.PredictionMarker
 	Races             []*data_cache_entity.Race
-	RaceTimes         []*data_cache_entity.RaceTime
+	RaceTimes         []*data_cache_entity.RaceTimeV2
 }
 
 type prediction struct {

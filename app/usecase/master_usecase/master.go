@@ -23,7 +23,7 @@ type MasterInput struct {
 type MasterOutput struct {
 	Tickets           []*ticket_csv_entity.RaceTicket
 	Races             []*data_cache_entity.Race
-	RaceTimes         []*data_cache_entity.RaceTime
+	RaceTimes         []*data_cache_entity.RaceTimeV2
 	Jockeys           []*data_cache_entity.Jockey
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
@@ -95,7 +95,7 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		return nil, err
 	}
 
-	raceTimes, err := m.raceTimeService.Get(ctx)
+	raceTimes, err := m.raceTimeService.GetV2(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	raceTimes, err := m.raceTimeService.Get(ctx)
+	raceTimes, err := m.raceTimeService.GetV2(ctx)
 	if err != nil {
 		return err
 	}
@@ -203,12 +203,12 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.raceTimeService.CreateOrUpdate(ctx, raceTimes, races, raceDateMap)
+	err = m.raceTimeService.CreateOrUpdateV2(ctx, raceTimes, races, raceDateMap)
 	if err != nil {
 		return err
 	}
 
-	raceTimes, err = m.raceTimeService.Get(ctx)
+	raceTimes, err = m.raceTimeService.GetV2(ctx)
 	if err != nil {
 		return err
 	}

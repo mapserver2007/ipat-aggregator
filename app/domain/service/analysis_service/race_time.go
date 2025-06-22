@@ -24,7 +24,7 @@ const (
 type RaceTime interface {
 	Create(ctx context.Context,
 		races []*data_cache_entity.Race,
-		raceTimes []*data_cache_entity.RaceTime,
+		raceTimes []*data_cache_entity.RaceTimeV2,
 	) ([]*analysis_entity.RaceTimeCalculable, error)
 	Convert(ctx context.Context,
 		calculables []*analysis_entity.RaceTimeCalculable,
@@ -54,7 +54,7 @@ func NewRaceTime(
 func (r *raceTimeService) Create(
 	ctx context.Context,
 	races []*data_cache_entity.Race,
-	raceTimes []*data_cache_entity.RaceTime,
+	raceTimes []*data_cache_entity.RaceTimeV2,
 ) ([]*analysis_entity.RaceTimeCalculable, error) {
 	raceMap := make(map[types.RaceId]*data_cache_entity.Race)
 
@@ -74,15 +74,15 @@ func (r *raceTimeService) Create(
 			raceCalculable, err := analysis_entity.NewRaceTimeCalculable(
 				race.RaceId(),
 				race.RaceDate(),
-				raceTime.Time(),
+				raceTime.Time().String(),
 				raceTime.TimeIndex(),
 				raceTime.TrackIndex(),
-				raceTime.RapTimes(),
-				raceTime.First3f(),
-				raceTime.First4f(),
-				raceTime.Last3f(),
-				raceTime.Last4f(),
-				raceTime.Rap5f(),
+				raceTime.RaceTimeRap().RapTimes(),
+				raceTime.RaceTimeRap().First3f(),
+				raceTime.RaceTimeRap().First4f(),
+				raceTime.RaceTimeRap().Last3f(),
+				raceTime.RaceTimeRap().Last4f(),
+				raceTime.RaceTimeRap().Rap5f(),
 				attributeFilterIds,
 			)
 			if err != nil {

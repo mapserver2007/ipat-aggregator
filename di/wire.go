@@ -47,6 +47,7 @@ var MasterSet = wire.NewSet(
 	converter.NewOddsEntityConverter,
 	converter.NewRaceForecastEntityConverter,
 	converter.NewRaceTimeEntityConverter,
+	converter.NewJockeyResultEntityConverter,
 	infrastructure.NewTicketRepository,
 	infrastructure.NewRaceIdRepository,
 	infrastructure.NewRaceRepository,

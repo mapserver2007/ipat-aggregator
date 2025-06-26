@@ -99,10 +99,7 @@ func (r *raceService) CreateOrUpdate(
 	chunkSize := (len(urls) + raceIdParallel - 1) / raceIdParallel
 
 	for i := 0; i < len(urls); i += chunkSize {
-		end := i + chunkSize
-		if end > len(urls) {
-			end = len(urls)
-		}
+		end := min(i+chunkSize, len(urls))
 
 		wg.Add(1)
 		go func(splitUrls []string) {

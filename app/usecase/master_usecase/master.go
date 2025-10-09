@@ -25,6 +25,7 @@ type MasterOutput struct {
 	Races             []*data_cache_entity.Race
 	RaceTimes         []*data_cache_entity.RaceTimeV2
 	Jockeys           []*data_cache_entity.Jockey
+	JockeyResults     []*data_cache_entity.JockeyResult
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
 	TrioOdds          []*data_cache_entity.Odds
@@ -105,6 +106,11 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		return nil, err
 	}
 
+	jockeyResults, err := m.jockeyResultService.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	winOdds, err := m.winOddsService.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -140,6 +146,7 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		Races:             races,
 		RaceTimes:         raceTimes,
 		Jockeys:           jockeys,
+		JockeyResults:     jockeyResults,
 		WinOdds:           winOdds,
 		PlaceOdds:         placeOdds,
 		TrioOdds:          trioOdds,
@@ -270,10 +277,15 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.jockeyResultService.CreateOrUpdate(ctx, nil)
-	if err != nil {
-		return err
-	}
+	// jockeyResults, err := m.jockeyResultService.Get(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = m.jockeyResultService.CreateOrUpdate(ctx, jockeyResults)
+	// if err != nil {
+	// 	return err
+	// }
 
 	winOdds, err := m.winOddsService.Get(ctx)
 	if err != nil {

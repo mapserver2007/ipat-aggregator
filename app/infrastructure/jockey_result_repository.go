@@ -30,6 +30,64 @@ func NewJockeyResultRepository(
 	}
 }
 
+func (j *jockeyResultRepository) List(
+	ctx context.Context,
+	path string,
+) ([]string, error) {
+	rootPath, err := j.pathOptimizer.GetProjectRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	absPath, err := filepath.Abs(fmt.Sprintf("%s/%s", rootPath, path))
+	if err != nil {
+		return nil, err
+	}
+
+	pattern := filepath.Join(absPath, "*.json")
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	fileNames := make([]string, 0, len(files))
+	for _, file := range files {
+		fileNames = append(fileNames, filepath.Base(file))
+	}
+
+	return fileNames, nil
+}
+
+func (j *jockeyResultRepository) Read(
+	ctx context.Context,
+	path string,
+) ([]*raw_entity.JockeyResult, error) {
+	jockeyResults := make([]*raw_entity.JockeyResult, 0)
+	rootPath, err := j.pathOptimizer.GetProjectRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	filePath, err := filepath.Abs(fmt.Sprintf("%s/%s", rootPath, path))
+	if err != nil {
+		return nil, err
+	}
+
+	// ファイルが存在しない場合はエラーは返さず処理を継続する
+	bytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return jockeyResults, nil
+	}
+
+	var raceInfo *raw_entity.JockeyResultInfo
+	if err := json.Unmarshal(bytes, &raceInfo); err != nil {
+		return nil, err
+	}
+	jockeyResults = raceInfo.JockeyResults
+
+	return jockeyResults, nil
+}
+
 func (j *jockeyResultRepository) Write(
 	ctx context.Context,
 	path string,
@@ -61,7 +119,14 @@ func (j *jockeyResultRepository) Write(
 	return nil
 }
 
-func (j *jockeyResultRepository) FetchUrls(
+func (j *jockeyResultRepository) FetchJockeyResultCounts(
+	ctx context.Context,
+	url string,
+) ([]*raw_entity.JockeyResultCount, error) {
+	return j.netKeibaGateway.FetchJockeyResultCounts(ctx, url)
+}
+
+func (j *jockeyResultRepository) FetchJockeyResultUrls(
 	ctx context.Context,
 	url string,
 ) ([]string, error) {

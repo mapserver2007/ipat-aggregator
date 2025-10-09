@@ -1,7 +1,8 @@
 package raw_entity
 
 type JockeyResultInfo struct {
-	JockeyResults []*JockeyResult `json:"jockey_results"`
+	JockeyResults     []*JockeyResult      `json:"jockey_results"`
+	JockeyResultCount []*JockeyResultCount `json:"jockey_result_count"`
 }
 
 type JockeyResult struct {
@@ -15,4 +16,11 @@ type JockeyResult struct {
 	HorseId          string `json:"horse_id"`
 	CourseCategoryId int    `json:"course_category_id"`
 	Distance         int    `json:"distance"`
+}
+
+type JockeyResultCount struct {
+	JockeyId string `json:"jockey_id"`
+	Year     int    `json:"year"`
+	Place    string `json:"place"`
+	Count    int    `json:"count"`
 }

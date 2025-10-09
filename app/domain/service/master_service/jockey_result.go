@@ -18,11 +18,12 @@ import (
 )
 
 const (
-	jockeyResultUrl      = "https://db.netkeiba.com/?pid=jockey_select&id=%s&year=%d&mode=%s&start_date=%d&end_date=%d"
+	jockeyResultUrl      = "https://db.netkeiba.com/?pid=jockey_select&id=%s&year=%d&mode=%s"
 	jockeyResultFileName = "jockey_result_%s.json"
 )
 
 type JockeyResult interface {
+	Get(ctx context.Context) ([]*data_cache_entity.JockeyResult, error)
 	CreateOrUpdate(ctx context.Context, jockeyResults []*data_cache_entity.JockeyResult) error
 }
 
@@ -44,6 +45,26 @@ func NewJockeyResult(
 	}
 }
 
+func (j *jockeyResultService) Get(ctx context.Context) ([]*data_cache_entity.JockeyResult, error) {
+	files, err := j.jockeyResultRepository.List(ctx, fmt.Sprintf("%s/jockey_results", config.CacheDir))
+	if err != nil {
+		return nil, err
+	}
+
+	var jockeyResults []*data_cache_entity.JockeyResult
+	for _, file := range files {
+		rawJockeyResults, err := j.jockeyResultRepository.Read(ctx, fmt.Sprintf("%s/jockey_results/%s", config.CacheDir, file))
+		if err != nil {
+			return nil, err
+		}
+		for _, jockeyResult := range rawJockeyResults {
+			jockeyResults = append(jockeyResults, j.jockeyResultEntityConverter.RawToDataCache(jockeyResult))
+		}
+	}
+
+	return jockeyResults, nil
+}
+
 func (j *jockeyResultService) CreateOrUpdate(
 	ctx context.Context,
 	jockeyResults []*data_cache_entity.JockeyResult,
@@ -51,7 +72,7 @@ func (j *jockeyResultService) CreateOrUpdate(
 	taskCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	urls, err := j.createJockeyResultUrls(taskCtx)
+	urls, err := j.createJockeyResultUrls(taskCtx, jockeyResults)
 	if err != nil {
 		return err
 	}
@@ -128,7 +149,24 @@ func (j *jockeyResultService) CreateOrUpdate(
 	return nil
 }
 
-func (j *jockeyResultService) createJockeyResultUrls(ctx context.Context) ([]string, error) {
+func (j *jockeyResultService) createJockeyResultUrls(
+	ctx context.Context,
+	jockeyResults []*data_cache_entity.JockeyResult,
+) ([]string, error) {
+	jockeyResultCacheMap := make(map[string]struct{})
+	for _, jockeyResult := range jockeyResults {
+		place := "r4"
+		switch jockeyResult.OrderNo() {
+		case 1:
+			place = "r1"
+		case 2:
+			place = "r2"
+		case 3:
+			place = "r3"
+		}
+		jockeyResultCacheMap[fmt.Sprintf("%s%d%s", jockeyResult.JockeyId(), jockeyResult.RaceDate().Year(), place)] = struct{}{}
+	}
+
 	startDate, err := types.NewRaceDate(config.JockeyResultStartDate)
 	if err != nil {
 		return nil, err
@@ -152,8 +190,11 @@ func (j *jockeyResultService) createJockeyResultUrls(ctx context.Context) ([]str
 	for _, rawJockeyId := range config.JockeyResultTargetIds {
 		for _, year := range years {
 			for _, place := range places {
-				url := fmt.Sprintf(jockeyResultUrl, rawJockeyId, year, place, startDate.Value(), endDate.Value())
-				jockeyResultBaseUrls = append(jockeyResultBaseUrls, url)
+				key := fmt.Sprintf("%s%d%s", rawJockeyId, year, place)
+				if _, ok := jockeyResultCacheMap[key]; !ok {
+					url := fmt.Sprintf(jockeyResultUrl, rawJockeyId, year, place)
+					jockeyResultBaseUrls = append(jockeyResultBaseUrls, url)
+				}
 			}
 		}
 	}
@@ -182,7 +223,7 @@ func (j *jockeyResultService) createJockeyResultUrls(ctx context.Context) ([]str
 				case <-taskCtx.Done():
 					return
 				default:
-					urls, err := j.jockeyResultRepository.FetchUrls(taskCtx, url)
+					urls, err := j.jockeyResultRepository.FetchJockeyResultUrls(taskCtx, url)
 					if err != nil {
 						select {
 						case errorCh <- err:
@@ -215,4 +256,61 @@ func (j *jockeyResultService) createJockeyResultUrls(ctx context.Context) ([]str
 	}
 
 	return jockeyResultUrls, nil
+}
+
+func (j *jockeyResultService) createJockeyResultCounts(
+	ctx context.Context,
+) error {
+	taskCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	const jockeyIdParallel = 5
+	errorCh := make(chan error, jockeyIdParallel)
+	resultCh := make(chan []string, jockeyIdParallel)
+	chunkSize := (len(config.JockeyResultTargetIds) + jockeyIdParallel - 1) / jockeyIdParallel
+
+	for i := 0; i < len(config.JockeyResultTargetIds); i += chunkSize {
+		end := min(i+chunkSize, len(config.JockeyResultTargetIds))
+
+		wg.Add(1)
+		go func(splitJockeyIds []string) {
+			defer wg.Done()
+
+			var localJockeyUrls []string
+			j.logger.Infof("jockey page fetch processing: %v/%v", end, len(config.JockeyResultTargetIds))
+
+			for _, jockeyId := range splitJockeyIds {
+				time.Sleep(time.Microsecond * 500)
+				select {
+				case <-taskCtx.Done():
+					return
+				default:
+					_, err := j.jockeyResultRepository.FetchJockeyResultCounts(taskCtx, fmt.Sprintf(jockeyUrl, jockeyId))
+					if err != nil {
+						select {
+						case errorCh <- err:
+							cancel()
+						default:
+						}
+						return
+					}
+				}
+			}
+
+			resultCh <- localJockeyUrls
+		}(config.JockeyResultTargetIds[i:end])
+	}
+
+	wg.Wait()
+	close(errorCh)
+	close(resultCh)
+
+	for err := range errorCh {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

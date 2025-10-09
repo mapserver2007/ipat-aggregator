@@ -2,7 +2,6 @@ package mcp_usecase
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/mapserver2007/ipat-aggregator/config"
 
@@ -54,9 +53,6 @@ func (t *tool) GetRaceTimeToolHandler(
 	ctx context.Context,
 	request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	t.logger.Info(fmt.Sprintf("args: %v", request.GetArguments()))
-	t.logger.Info(fmt.Sprintf("args2: %v", request.GetIntSlice("raceDate", []int{})))
-
 	startDate, err := types.NewRaceDate(config.RaceStartDate)
 	if err != nil {
 		t.logger.Errorf("failed to create race date: %v", err)

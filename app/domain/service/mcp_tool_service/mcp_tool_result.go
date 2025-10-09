@@ -40,29 +40,37 @@ func (m *mcpToolResult) Create(
 	master *master_usecase.MasterOutput,
 ) (*mcp.CallToolResult, error) {
 	// TODO package配下の部品で各絞り込みを行い、最終的にunion allして返す
-	var jockeys []*mcp_result_entity.Jockey
-	for _, jockey := range master.Jockeys {
-		jockeys = append(jockeys, m.jockeyEntityConverter.DataCacheToMCPResult(jockey))
+	// var jockeys []*mcp_result_entity.Jockey
+	// for _, jockey := range master.Jockeys {
+	// 	jockeys = append(jockeys, m.jockeyEntityConverter.DataCacheToMCPResult(jockey))
+	// }
+
+	var mcpRaces []*mcp_result_entity.Race
+	for _, race := range master.Races {
+		mcpRaces = append(mcpRaces, m.raceEntityConverter.DataCacheToMCPResult(race))
 	}
 
-	races, err := m.findByRaceName(master.Races, &RaceNameInput{
-		RaceNames: arg.RaceNames(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	m.logger.Infof("findByRaceName len: %v", len(races))
-
-	// races, err = m.findByOdds(master.Races, &OddsInput{
-	// 	OddsList: arg.Odds(),
+	// races, err := m.findByRaceName(master.Races, &RaceNameInput{
+	// 	RaceNames: arg.RaceNames(),
 	// })
 	// if err != nil {
 	// 	return nil, err
 	// }
+	// m.logger.Infof("findByRaceName len: %v", len(races))
+
+	mcpOdds, err := m.findByOdds(mcpRaces, &OddsInput{
+		OddsList: arg.Odds(),
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	result := mcp_result_entity.MCPResult{
-		Races:    races,
-		Jockeys:  jockeys,
+		Races: mcpRaces,
+		Condition: &mcp_result_entity.Condition{
+			Odds:          mcpOdds,
+			ConditionNote: "Condtionで指定されている各要素を使ってRacesのデータを絞り込む",
+		},
 		RaceNote: raceNote,
 	}
 

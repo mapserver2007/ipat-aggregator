@@ -24,6 +24,7 @@ func LoadMCPArgument(request mcp.CallToolRequest) (*vo.MCPArgument, error) {
 	for _, name := range rawRaceNames {
 		raceNames = append(raceNames, name)
 	}
+
 	rawRaceDates := request.GetIntSlice(toolNameRaceDate, []int{})
 	raceDates := make([]types.RaceDate, 0)
 	for _, i := range rawRaceDates {

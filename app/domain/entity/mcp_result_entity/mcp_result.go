@@ -1,9 +1,9 @@
 package mcp_result_entity
 
 type MCPResult struct {
-	Races    []*Race   `json:"races"`
-	Jockeys  []*Jockey `json:"jockeys"`
-	RaceNote string    `json:"race_note"`
+	Races     []*Race    `json:"races"`
+	RaceNote  string     `json:"race_note"`
+	Condition *Condition `json:"condition"`
 }
 
 type Race struct {
@@ -38,9 +38,20 @@ type RaceResult struct {
 	HorseWeightAdd int    `json:"horse_weight_add"`
 }
 
-type Jockey struct {
-	JockeyId   string `json:"jockey_id"`
-	JockeyName string `json:"jockey_name"`
+type Condition struct {
+	Odds          *Odds  `json:"odds"`
+	ConditionNote string `json:"condition_note"`
+}
+
+// type Jockey struct {
+// 	JockeyId   string `json:"jockey_id"`
+// 	JockeyName string `json:"jockey_name"`
+// }
+
+type Odds struct {
+	OddsList []string `json:"odds_list"`
+	RaceIds  []string `json:"race_ids"`
+	OddsNote string   `json:"odds_note"`
 }
 
 // type RaceUrl struct {
@@ -48,5 +59,5 @@ type Jockey struct {
 // 	Note string `json:"note"`
 // }
 
-type RaceTime struct {
-}
+// type RaceTime struct {
+// }

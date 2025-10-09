@@ -18,6 +18,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,6 +36,7 @@ type NetKeibaGateway interface {
 	FetchQuinellaOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchRaceTime(ctx context.Context, url string) (*netkeiba_entity.RaceTime, error)
+	FetchJockeyResultCounts(ctx context.Context, url string) ([]*raw_entity.JockeyResultCount, error)
 	FetchJockeyResultUrls(ctx context.Context, url string) ([]string, error)
 	FetchJockeyResults(ctx context.Context, url string) ([]*netkeiba_entity.JockeyResult, error)
 }
@@ -1224,7 +1227,7 @@ func (n *netKeibaGateway) FetchHorse(
 				ownerId = segments[2]
 			}
 
-			if rowCount == 10 && i == 3 || rowCount == 11 && i == 4 { // 個人馬主 or 一口会員
+			if rowCount == 11 && i == 3 || rowCount == 12 && i == 4 { // 個人馬主 or 一口会員
 				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
 				segments = strings.Split(path, "/")
 				breederId = segments[2]
@@ -1805,6 +1808,14 @@ func (n *netKeibaGateway) FetchRaceTime(
 	), nil
 }
 
+func (n *netKeibaGateway) FetchJockeyResultCounts(
+	ctx context.Context,
+	url string,
+) ([]*raw_entity.JockeyResultCount, error) {
+	// TODO
+	return nil, nil
+}
+
 func (n *netKeibaGateway) FetchJockeyResultUrls(
 	ctx context.Context,
 	url string,
@@ -1865,14 +1876,18 @@ func (n *netKeibaGateway) FetchJockeyResults(
 	if err != nil {
 		return nil, err
 	}
-	startDate, err := types.NewRaceDate(queryParams.Get("start_date"))
+
+	startDate, err := types.NewRaceDate(config.JockeyResultStartDate)
 	if err != nil {
 		return nil, err
 	}
-	endDate, err := types.NewRaceDate(queryParams.Get("end_date"))
+
+	endDate, err := types.NewRaceDate(config.JockeyResultEndDate)
 	if err != nil {
 		return nil, err
 	}
+	jockeryResultOdds := decimal.NewFromInt(config.JockeyResultOdds)
+
 	rawJockeyId := queryParams.Get("id")
 
 	jockeyResults := make([]*netkeiba_entity.JockeyResult, 0)
@@ -1929,6 +1944,17 @@ func (n *netKeibaGateway) FetchJockeyResults(
 					}
 				case 9: // 単勝オッズ
 					rawOdds = Trim(tdElement.Text())
+					if rawOdds == "" {
+						return
+					}
+					odds, err := decimal.NewFromString(rawOdds)
+					if err != nil {
+						n.logger.Errorf("failed to convert odds to decimal: %v, %v", err, url)
+						return
+					}
+					if odds.GreaterThanOrEqual(jockeryResultOdds) {
+						return
+					}
 				case 11: // 着順
 					orderNo, err = strconv.Atoi(Trim(tdElement.Text()))
 					if err != nil {

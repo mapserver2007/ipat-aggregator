@@ -12,6 +12,7 @@ type JockeyEntityConverter interface {
 	RawToDataCache(input *raw_entity.Jockey) *data_cache_entity.Jockey
 	NetKeibaToRaw(input *netkeiba_entity.Jockey) *raw_entity.Jockey
 	DataCacheToList(input *data_cache_entity.Jockey) *list_entity.Jockey
+	// DataCacheToMCPResult(input *data_cache_entity.Jockey) *mcp_result_entity.Jockey
 }
 
 type jockeyEntityConverter struct{}
@@ -47,3 +48,10 @@ func (j *jockeyEntityConverter) DataCacheToList(input *data_cache_entity.Jockey)
 		input.JockeyName(),
 	)
 }
+
+// func (j *jockeyEntityConverter) DataCacheToMCPResult(input *data_cache_entity.Jockey) *mcp_result_entity.Jockey {
+// 	return &mcp_result_entity.Jockey{
+// 		JockeyId:   input.JockeyId().Value(),
+// 		JockeyName: input.JockeyName(),
+// 	}
+// }

@@ -88,10 +88,71 @@ func (r *raceTimeRepository) Read(
 	return raceTimes, nil
 }
 
+func (r *raceTimeRepository) ReadV2(
+	ctx context.Context,
+	path string,
+) ([]*raw_entity.RaceTimeV2, error) {
+	raceTimes := make([]*raw_entity.RaceTimeV2, 0)
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	filePath, err := filepath.Abs(fmt.Sprintf("%s/%s", rootPath, path))
+	if err != nil {
+		return nil, err
+	}
+
+	// ファイルが存在しない場合はエラーは返さず処理を継続する
+	bytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return raceTimes, nil
+	}
+
+	var raceTimeInfo *raw_entity.RaceTimeInfoV2
+	if err := json.Unmarshal(bytes, &raceTimeInfo); err != nil {
+		return nil, err
+	}
+	raceTimes = raceTimeInfo.RaceTimes
+
+	return raceTimes, nil
+}
+
 func (r *raceTimeRepository) Write(
 	ctx context.Context,
 	path string,
 	raceTimeInfo *raw_entity.RaceTimeInfo,
+) error {
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
+	enc.SetEscapeHTML(false)
+	err := enc.Encode(raceTimeInfo)
+	if err != nil {
+		return err
+	}
+
+	rootPath, err := r.pathOptimizer.GetProjectRoot()
+	if err != nil {
+		return err
+	}
+
+	filePath, err := filepath.Abs(fmt.Sprintf("%s/%s", rootPath, path))
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(filePath, buffer.Bytes(), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *raceTimeRepository) WriteV2(
+	ctx context.Context,
+	path string,
+	raceTimeInfo *raw_entity.RaceTimeInfoV2,
 ) error {
 	var buffer bytes.Buffer
 	enc := json.NewEncoder(&buffer)

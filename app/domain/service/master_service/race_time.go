@@ -23,10 +23,10 @@ const (
 )
 
 type RaceTime interface {
-	Get(ctx context.Context) ([]*data_cache_entity.RaceTime, error)
-	CreateOrUpdate(
+	GetV2(ctx context.Context) ([]*data_cache_entity.RaceTimeV2, error)
+	CreateOrUpdateV2(
 		ctx context.Context,
-		raceTimes []*data_cache_entity.RaceTime,
+		raceTimes []*data_cache_entity.RaceTimeV2,
 		races []*data_cache_entity.Race,
 		raceDateMap map[types.RaceDate][]types.RaceId,
 	) error
@@ -50,43 +50,52 @@ func NewRaceTime(
 	}
 }
 
-func (r *raceTimeService) Get(
+func (r *raceTimeService) GetV2(
 	ctx context.Context,
-) ([]*data_cache_entity.RaceTime, error) {
+) ([]*data_cache_entity.RaceTimeV2, error) {
 	files, err := r.raceTimeRepository.List(ctx, fmt.Sprintf("%s/race_times", config.CacheDir))
 	if err != nil {
 		return nil, err
 	}
 
-	var raceTimes []*data_cache_entity.RaceTime
+	var raceTimesV2 []*data_cache_entity.RaceTimeV2
 	for _, file := range files {
-		rawRaceTimes, err := r.raceTimeRepository.Read(ctx, fmt.Sprintf("%s/race_times/%s", config.CacheDir, file))
+		rawRaceTimesV2, err := r.raceTimeRepository.ReadV2(ctx, fmt.Sprintf("%s/race_times/%s", config.CacheDir, file))
 		if err != nil {
 			return nil, err
 		}
-		for _, rawRaceTime := range rawRaceTimes {
-			raceTimes = append(raceTimes, r.raceTimeEntityConverter.RawToDataCache(rawRaceTime))
+		for _, rawRaceTimeV2 := range rawRaceTimesV2 {
+			raceTimesV2 = append(raceTimesV2, r.raceTimeEntityConverter.RawToDataCacheV2(rawRaceTimeV2))
 		}
 	}
 
-	return raceTimes, nil
+	return raceTimesV2, nil
 }
 
-func (r *raceTimeService) CreateOrUpdate(
+func (r *raceTimeService) CreateOrUpdateV2(
 	ctx context.Context,
-	raceTimes []*data_cache_entity.RaceTime,
+	raceTimes []*data_cache_entity.RaceTimeV2,
 	races []*data_cache_entity.Race,
 	raceDateMap map[types.RaceDate][]types.RaceId,
 ) error {
 	taskCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	raceMap := make(map[types.RaceId]*data_cache_entity.Race)
+	for _, race := range races {
+		raceMap[race.RaceId()] = race
+	}
+
 	// 除外レース
 	excludeRaceIdMap := make(map[types.RaceId]struct{})
-	for _, race := range races {
-		switch race.Class() {
-		case types.JumpGrade1, types.JumpGrade2, types.JumpGrade3, types.JumpMaiden, types.JumpOpenClass:
-			excludeRaceIdMap[race.RaceId()] = struct{}{}
+	for _, raceIds := range raceDateMap {
+		for _, raceId := range raceIds {
+			if race, ok := raceMap[raceId]; ok {
+				switch race.Class() {
+				case types.JumpGrade1, types.JumpGrade2, types.JumpGrade3, types.JumpMaiden, types.JumpOpenClass:
+					excludeRaceIdMap[raceId] = struct{}{}
+				}
+			}
 		}
 	}
 
@@ -142,22 +151,27 @@ func (r *raceTimeService) CreateOrUpdate(
 		return err
 	}
 
-	raceTimeMap := map[types.RaceDate][]*raw_entity.RaceTime{}
+	raceTimeMapV2 := make(map[types.RaceDate][]*raw_entity.RaceTimeV2)
+
 	for results := range resultCh {
 		for _, raceTime := range results {
-			rawRaceTime := r.raceTimeEntityConverter.NetKeibaToRaw(raceTime)
-			raceTimeMap[types.RaceDate(rawRaceTime.RaceDate)] = append(raceTimeMap[types.RaceDate(rawRaceTime.RaceDate)], rawRaceTime)
+			if len(raceTime.RapTimes()) == 0 {
+				r.logger.Warnf("race time is empty: %v", raceTime.RaceId())
+				continue
+			}
+			rawRaceTimeV2 := r.raceTimeEntityConverter.NetKeibaToRawV2(raceTime)
+			raceTimeMapV2[types.RaceDate(rawRaceTimeV2.RaceDate)] = append(raceTimeMapV2[types.RaceDate(rawRaceTimeV2.RaceDate)], rawRaceTimeV2)
 		}
 	}
 
-	for raceDate, rawRaceTimes := range raceTimeMap {
+	for raceDate, rawRaceTimes := range raceTimeMapV2 {
 		sort.Slice(rawRaceTimes, func(i, j int) bool {
 			return rawRaceTimes[i].RaceId < rawRaceTimes[j].RaceId
 		})
-		raceTimeInfo := raw_entity.RaceTimeInfo{
+		raceTimeInfo := raw_entity.RaceTimeInfoV2{
 			RaceTimes: rawRaceTimes,
 		}
-		err := r.raceTimeRepository.Write(ctx, fmt.Sprintf("%s/race_times/%s", config.CacheDir, fmt.Sprintf(raceTimeFileName, raceDate.Value())), &raceTimeInfo)
+		err := r.raceTimeRepository.WriteV2(ctx, fmt.Sprintf("%s/race_times/%s", config.CacheDir, fmt.Sprintf(raceTimeFileName, raceDate.Value())), &raceTimeInfo)
 		if err != nil {
 			return err
 		}
@@ -167,13 +181,13 @@ func (r *raceTimeService) CreateOrUpdate(
 }
 
 func (r *raceTimeService) createRaceTimeUrls(
-	raceTimes []*data_cache_entity.RaceTime,
+	raceTimes []*data_cache_entity.RaceTimeV2,
 	raceDateMap map[types.RaceDate][]types.RaceId,
 	excludeRaceIdMap map[types.RaceId]struct{},
 ) []string {
 	var raceTimeUrls []string
 
-	raceTimeMap := map[types.RaceId]*data_cache_entity.RaceTime{}
+	raceTimeMap := make(map[types.RaceId]*data_cache_entity.RaceTimeV2)
 	for _, raceTime := range raceTimes {
 		raceTimeMap[raceTime.RaceId()] = raceTime
 	}

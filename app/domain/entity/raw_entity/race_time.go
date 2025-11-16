@@ -5,6 +5,7 @@ type RaceTimeInfo struct {
 }
 
 type RaceTime struct {
+	RaceTimeId string   `json:"race_time_id"`
 	RaceId     string   `json:"race_id"`
 	RaceDate   int      `json:"race_date"`
 	Time       string   `json:"time"`
@@ -16,4 +17,18 @@ type RaceTime struct {
 	Last3f     string   `json:"last3f"`
 	Last4f     string   `json:"last4f"`
 	Rap5f      string   `json:"rap5f"`
+}
+
+type RaceTimeInfoV2 struct {
+	RaceTimes []*RaceTimeV2 `json:"race_times"`
+}
+
+type RaceTimeV2 struct {
+	RaceTimeId string   `json:"race_time_id"`
+	RaceId     string   `json:"race_id"`
+	RaceDate   int      `json:"race_date"`
+	Time       string   `json:"time"`
+	TimeIndex  int      `json:"time_index"`
+	TrackIndex int      `json:"track_index"`
+	RapTimes   []string `json:"rap_times"`
 }

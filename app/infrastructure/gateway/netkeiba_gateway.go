@@ -18,6 +18,8 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/config"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,6 +36,9 @@ type NetKeibaGateway interface {
 	FetchQuinellaOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchTrioOdds(ctx context.Context, url string) ([]*netkeiba_entity.Odds, error)
 	FetchRaceTime(ctx context.Context, url string) (*netkeiba_entity.RaceTime, error)
+	FetchJockeyResultCounts(ctx context.Context, url string) ([]*raw_entity.JockeyResultCount, error)
+	FetchJockeyResultUrls(ctx context.Context, url string) ([]string, error)
+	FetchJockeyResults(ctx context.Context, url string) ([]*netkeiba_entity.JockeyResult, error)
 }
 
 type netKeibaGateway struct {
@@ -1222,7 +1227,7 @@ func (n *netKeibaGateway) FetchHorse(
 				ownerId = segments[2]
 			}
 
-			if rowCount == 10 && i == 3 || rowCount == 11 && i == 4 { // 個人馬主 or 一口会員
+			if rowCount == 11 && i == 3 || rowCount == 12 && i == 4 { // 個人馬主 or 一口会員
 				path, _ := ce.DOM.Find("td:nth-child(2) a").Attr("href")
 				segments = strings.Split(path, "/")
 				breederId = segments[2]
@@ -1703,12 +1708,15 @@ func (n *netKeibaGateway) FetchRaceTime(
 	defer n.mu.Unlock()
 
 	var (
+		raceTimeId string
 		raceTime   string
 		timeIndex  int
 		trackIndex int
 		rapTimes   []time.Duration
 		raceDate   int
 	)
+
+	raceId := strings.Split(url, "/")[4]
 
 	err := n.collector.Login(ctx)
 	if err != nil {
@@ -1734,6 +1742,14 @@ func (n *netKeibaGateway) FetchRaceTime(
 		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
 			switch i {
 			case 1:
+				href, _ := ce.DOM.Find("td:nth-child(4) > a").Attr("href")
+				horseId := strings.Split(href, "/")[2]
+				typedRaceTimeId, err := types.NewRaceTime(raceId + horseId)
+				if err != nil {
+					n.logger.Errorf("FetchRaceTime error: %v", err)
+					return
+				}
+				raceTimeId = typedRaceTimeId.Value()
 				raceTime = ce.DOM.Find("td:nth-child(8)").Text()
 				timeIndex, _ = strconv.Atoi(strings.ReplaceAll(ce.DOM.Find("td:nth-child(10)").Text(), "\n", ""))
 			}
@@ -1751,8 +1767,7 @@ func (n *netKeibaGateway) FetchRaceTime(
 			return
 		}
 		raceRapText := e.DOM.Text()
-		parts := strings.Split(raceRapText, "-")
-		for _, part := range parts {
+		for part := range strings.SplitSeq(raceRapText, "-") {
 			seconds, err := strconv.ParseFloat(strings.TrimSpace(part), 64)
 			if err != nil {
 				n.logger.Errorf("FetchRaceTime error: %v", err)
@@ -1783,11 +1798,214 @@ func (n *netKeibaGateway) FetchRaceTime(
 	}
 
 	return netkeiba_entity.NewRaceTime(
-		strings.Split(url, "/")[4],
+		raceTimeId,
+		raceId,
 		raceDate,
 		raceTime,
 		timeIndex,
 		trackIndex,
 		rapTimes,
 	), nil
+}
+
+func (n *netKeibaGateway) FetchJockeyResultCounts(
+	ctx context.Context,
+	url string,
+) ([]*raw_entity.JockeyResultCount, error) {
+	// TODO
+	return nil, nil
+}
+
+func (n *netKeibaGateway) FetchJockeyResultUrls(
+	ctx context.Context,
+	url string,
+) ([]string, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	var urls []string
+
+	n.collector.Client().OnHTML("div.common_pager > ul:nth-child(2) > li:nth-child(5) > a", func(e *colly.HTMLElement) {
+		href, _ := e.DOM.Attr("href")
+		existingUrl, err := neturl.Parse(href)
+		if err != nil {
+			return
+		}
+		query := existingUrl.Query()
+
+		baseUrl := fmt.Sprintf("%s://%s", existingUrl.Scheme, existingUrl.Host)
+		parsedUrl, err := neturl.Parse(baseUrl)
+		if err != nil {
+			return
+		}
+
+		page, err := strconv.Atoi(query.Get("page"))
+		if err != nil {
+			return
+		}
+
+		for i := 1; i <= page; i++ {
+			query.Set("page", strconv.Itoa(i))
+			parsedUrl.RawQuery = query.Encode()
+			urls = append(urls, parsedUrl.String())
+		}
+	})
+
+	n.logger.Infof("fetching jockey result urls from %s", url)
+
+	err := n.collector.Client().Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return urls, nil
+}
+
+func (n *netKeibaGateway) FetchJockeyResults(
+	ctx context.Context,
+	url string,
+) ([]*netkeiba_entity.JockeyResult, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	parsedUrl, err := neturl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	queryParams, err := neturl.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate, err := types.NewRaceDate(config.JockeyResultStartDate)
+	if err != nil {
+		return nil, err
+	}
+
+	endDate, err := types.NewRaceDate(config.JockeyResultEndDate)
+	if err != nil {
+		return nil, err
+	}
+	jockeryResultOdds := decimal.NewFromInt(config.JockeyResultOdds)
+
+	rawJockeyId := queryParams.Get("id")
+
+	jockeyResults := make([]*netkeiba_entity.JockeyResult, 0)
+	n.collector.Client().OnHTML("div.mb30 > table:nth-child(2) > tbody", func(e *colly.HTMLElement) {
+		e.ForEach("tr", func(i int, ce *colly.HTMLElement) {
+			if i == 0 {
+				return
+			}
+			var (
+				rawRaceDate         int
+				rawRaceCourseId     string
+				rawRaceId           string
+				rawOdds             string
+				orderNo             int
+				rawHorseId          string
+				rawCourseCategoryId int
+				distance            int
+			)
+
+			tdElements := ce.DOM.Find("td")
+			for j := 0; j < tdElements.Length(); j++ {
+				tdElement := tdElements.Eq(j)
+				switch j {
+				case 0: // 日付
+					dateStr := strings.ReplaceAll(Trim(tdElement.Text()), "/", "")
+					raceDate, err := types.NewRaceDate(dateStr)
+					if err != nil {
+						n.logger.Errorf("failed to convert date string to int: %v, %v", err, url)
+						return
+					}
+					if raceDate.Value() < startDate.Value() || raceDate.Value() > endDate.Value() {
+						return
+					}
+					rawRaceDate = raceDate.Value()
+				case 1: // 開催場所
+					href, ok := tdElement.Find("a").Attr("href")
+					if !ok {
+						n.logger.Errorf("failed to get href: %v", url)
+						return
+					}
+					parts := strings.Split(href, "/")
+					if len(parts) >= 4 {
+						rawRaceCourseId = parts[len(parts)-3]
+					}
+				case 4: // raceId
+					href, ok := tdElement.Find("a").Attr("href")
+					if !ok {
+						n.logger.Errorf("failed to get href: %v", url)
+						return
+					}
+					parts := strings.Split(href, "/")
+					if len(parts) >= 4 {
+						rawRaceId = parts[len(parts)-2]
+					}
+				case 9: // 単勝オッズ
+					rawOdds = Trim(tdElement.Text())
+					if rawOdds == "" {
+						return
+					}
+					odds, err := decimal.NewFromString(rawOdds)
+					if err != nil {
+						n.logger.Errorf("failed to convert odds to decimal: %v, %v", err, url)
+						return
+					}
+					if odds.GreaterThanOrEqual(jockeryResultOdds) {
+						return
+					}
+				case 11: // 着順
+					orderNo, err = strconv.Atoi(Trim(tdElement.Text()))
+					if err != nil {
+						n.logger.Errorf("failed to convert order no to int: %v, %v", err, url)
+						return
+					}
+				case 12: // horseId
+					href, ok := tdElement.Find("a").Attr("href")
+					if !ok {
+						n.logger.Errorf("failed to get href: %v", url)
+						return
+					}
+					parts := strings.Split(href, "/")
+					if len(parts) >= 4 {
+						rawHorseId = parts[len(parts)-2]
+					}
+				case 15: // 距離
+					regex := regexp.MustCompile(`(ダ|芝|障)(\d+)`)
+					matches := regex.FindStringSubmatch(Trim(tdElement.Text()))
+					if len(matches) >= 3 {
+						courseCategory := types.NewCourseCategory(matches[1])
+						distance, err = strconv.Atoi(matches[2])
+						if err != nil {
+							n.logger.Errorf("failed to convert distance to int: %v, %v", err, url)
+							return
+						}
+						rawCourseCategoryId = courseCategory.Value()
+					}
+				}
+			}
+
+			jockeyResults = append(jockeyResults, netkeiba_entity.NewJockeyResult(
+				rawJockeyId,
+				rawRaceId,
+				rawRaceDate,
+				rawRaceCourseId,
+				rawOdds,
+				orderNo,
+				rawHorseId,
+				rawCourseCategoryId,
+				distance,
+			))
+		})
+	})
+
+	n.logger.Infof("fetching jockey results from %s", url)
+
+	err = n.collector.Client().Visit(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return jockeyResults, nil
 }

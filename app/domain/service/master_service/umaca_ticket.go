@@ -14,6 +14,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
 	"github.com/mapserver2007/ipat-aggregator/config"
 	"github.com/shopspring/decimal"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -30,15 +31,18 @@ type UmacaTicket interface {
 type umacaTicketService struct {
 	umacaTicketRepository repository.UmacaTicketRepository
 	ticketRepository      repository.TicketRepository
+	logger                *logrus.Logger
 }
 
 func NewUmacaTicket(
 	umacaTicketRepository repository.UmacaTicketRepository,
 	ticketRepository repository.TicketRepository,
+	logger *logrus.Logger,
 ) UmacaTicket {
 	return &umacaTicketService{
 		umacaTicketRepository: umacaTicketRepository,
 		ticketRepository:      ticketRepository,
+		logger:                logger,
 	}
 }
 
@@ -151,6 +155,7 @@ func (u *umacaTicketService) CreateOrUpdate(
 
 			race, ok := raceMap[master.RaceId()]
 			if !ok {
+				u.logger.Warn("probably RaceEndDate is not latest.")
 				return fmt.Errorf("race not found in umacaTicketService.CreateOrUpdate: %s", master.RaceId())
 			}
 

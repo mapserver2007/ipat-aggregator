@@ -7,6 +7,7 @@ import (
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/analysis_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/data_cache_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/list_entity"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/mcp_result_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/netkeiba_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/prediction_entity"
 	"github.com/mapserver2007/ipat-aggregator/app/domain/entity/raw_entity"
@@ -30,6 +31,7 @@ type RaceEntityConverter interface {
 		input2 *tospo_entity.TrainingComment,
 		input3 []*tospo_entity.Memo, input4 *tospo_entity.PaddockComment) *prediction_entity.RaceForecast
 	PredictionToAnalysis(input *prediction_entity.Race) *analysis_entity.Race
+	DataCacheToMCPResult(input *data_cache_entity.Race) *mcp_result_entity.Race
 }
 
 type raceEntityConverter struct{}
@@ -347,4 +349,43 @@ func (r *raceEntityConverter) PredictionToAnalysis(
 		input.RaceConditionFilters(),
 		input.RaceTimeConditionFilters(),
 	)
+}
+
+func (r *raceEntityConverter) DataCacheToMCPResult(
+	input *data_cache_entity.Race,
+) *mcp_result_entity.Race {
+	raceResults := make([]*mcp_result_entity.RaceResult, 0)
+	for _, raceResult := range input.RaceResults() {
+		raceResults = append(raceResults, &mcp_result_entity.RaceResult{
+			OrderNo:        raceResult.OrderNo(),
+			HorseId:        raceResult.HorseId().Value(),
+			HorseName:      raceResult.HorseName(),
+			BracketNumber:  raceResult.BracketNumber(),
+			HorseNumber:    raceResult.HorseNumber().Value(),
+			JockeyId:       raceResult.JockeyId().Value(),
+			Odds:           raceResult.Odds().String(),
+			PopularNumber:  raceResult.PopularNumber(),
+			JockeyWeight:   raceResult.JockeyWeight(),
+			HorseWeight:    raceResult.HorseWeight(),
+			HorseWeightAdd: raceResult.HorseWeightAdd(),
+		})
+	}
+
+	return &mcp_result_entity.Race{
+		RaceId:              input.RaceId().String(),
+		RaceDate:            input.RaceDate().Format("2006/01/02"),
+		RaceName:            input.RaceName(),
+		RaceNumber:          input.RaceNumber(),
+		RaceCourse:          input.RaceCourseId().Name(),
+		RaceUrl:             input.Url(),
+		Entries:             input.Entries(),
+		Distance:            input.Distance(),
+		Class:               input.Class().String(),
+		CourseCategory:      input.CourseCategory().String(),
+		TrackCondition:      input.TrackCondition().String(),
+		RaceSexCondition:    input.RaceSexCondition().String(),
+		RaceWeightCondition: input.RaceWeightCondition().String(),
+		RaceAgeCondition:    input.RaceAgeCondition().String(),
+		RaceResults:         raceResults,
+	}
 }

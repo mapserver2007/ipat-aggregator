@@ -17,12 +17,13 @@ type Analysis interface {
 	PlaceJockey(ctx context.Context, input *AnalysisInput) error
 	RaceTime(ctx context.Context, input *AnalysisInput) error
 	Beta(ctx context.Context, input *AnalysisInput) error
+	Usm(ctx context.Context, input *AnalysisInput) error
 }
 
 type AnalysisInput struct {
 	Markers   []*marker_csv_entity.AnalysisMarker
 	Races     []*data_cache_entity.Race
-	RaceTimes []*data_cache_entity.RaceTime
+	RaceTimes []*data_cache_entity.RaceTimeV2
 	Odds      *AnalysisOddsInput
 	Jockeys   []*data_cache_entity.Jockey
 }

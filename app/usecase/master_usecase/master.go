@@ -23,8 +23,9 @@ type MasterInput struct {
 type MasterOutput struct {
 	Tickets           []*ticket_csv_entity.RaceTicket
 	Races             []*data_cache_entity.Race
-	RaceTimes         []*data_cache_entity.RaceTime
+	RaceTimes         []*data_cache_entity.RaceTimeV2
 	Jockeys           []*data_cache_entity.Jockey
+	JockeyResults     []*data_cache_entity.JockeyResult
 	WinOdds           []*data_cache_entity.Odds
 	PlaceOdds         []*data_cache_entity.Odds
 	TrioOdds          []*data_cache_entity.Odds
@@ -40,6 +41,7 @@ type master struct {
 	raceTimeService         master_service.RaceTime
 	raceForecastService     master_service.RaceForecast
 	jockeyService           master_service.Jockey
+	jockeyResultService     master_service.JockeyResult
 	winOddsService          master_service.WinOdds
 	placeOddsService        master_service.PlaceOdds
 	quinellaOddsService     master_service.QuinellaOdds
@@ -56,6 +58,7 @@ func NewMaster(
 	raceTimeService master_service.RaceTime,
 	raceForecastService master_service.RaceForecast,
 	jockeyService master_service.Jockey,
+	jockeyResultService master_service.JockeyResult,
 	winOddsService master_service.WinOdds,
 	placeOddsService master_service.PlaceOdds,
 	quinellaOddsService master_service.QuinellaOdds,
@@ -71,6 +74,7 @@ func NewMaster(
 		raceTimeService:         raceTimeService,
 		raceForecastService:     raceForecastService,
 		jockeyService:           jockeyService,
+		jockeyResultService:     jockeyResultService,
 		winOddsService:          winOddsService,
 		placeOddsService:        placeOddsService,
 		quinellaOddsService:     quinellaOddsService,
@@ -92,12 +96,17 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		return nil, err
 	}
 
-	raceTimes, err := m.raceTimeService.Get(ctx)
+	raceTimes, err := m.raceTimeService.GetV2(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	jockeys, _, err := m.jockeyService.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	jockeyResults, err := m.jockeyResultService.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +146,7 @@ func (m *master) Get(ctx context.Context) (*MasterOutput, error) {
 		Races:             races,
 		RaceTimes:         raceTimes,
 		Jockeys:           jockeys,
+		JockeyResults:     jockeyResults,
 		WinOdds:           winOdds,
 		PlaceOdds:         placeOdds,
 		TrioOdds:          trioOdds,
@@ -162,22 +172,7 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
-	if err != nil {
-		return err
-	}
-
-	raceTimes, err := m.raceTimeService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	races, err = m.raceService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = m.raceTimeService.CreateOrUpdate(ctx, raceTimes, races, raceDateMap)
+	raceTimes, err := m.raceTimeService.GetV2(ctx)
 	if err != nil {
 		return err
 	}
@@ -186,27 +181,13 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	if err != nil {
 		return err
 	}
+
 	// umaca投票データに追加されたraceIdは未キャッシュなので更新する
 	latestEndDate := input.EndDate
 	for _, umacaMaster := range umacaMasters {
 		if latestEndDate.Value() < umacaMaster.RaceDate().Value() {
 			latestEndDate = umacaMaster.RaceDate()
 		}
-	}
-
-	err = m.raceIdService.CreateOrUpdate(ctx, input.StartDate, latestEndDate)
-	if err != nil {
-		return err
-	}
-
-	raceDateMap, _, err = m.raceIdService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
-	races, err = m.raceService.Get(ctx)
-	if err != nil {
-		return err
 	}
 
 	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
@@ -225,6 +206,16 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	}
 
 	umacaRaceTickets, err := m.umacaTicketService.Get(ctx, races)
+	if err != nil {
+		return err
+	}
+
+	err = m.raceTimeService.CreateOrUpdateV2(ctx, raceTimes, races, raceDateMap)
+	if err != nil {
+		return err
+	}
+
+	raceTimes, err = m.raceTimeService.GetV2(ctx)
 	if err != nil {
 		return err
 	}
@@ -265,11 +256,6 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 		return err
 	}
 
-	races, err = m.raceService.Get(ctx)
-	if err != nil {
-		return err
-	}
-
 	err = m.raceService.CreateOrUpdate(ctx, races, raceDateMap)
 	if err != nil {
 		return err
@@ -290,6 +276,16 @@ func (m *master) CreateOrUpdate(ctx context.Context, input *MasterInput) error {
 	if err != nil {
 		return err
 	}
+
+	// jockeyResults, err := m.jockeyResultService.Get(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = m.jockeyResultService.CreateOrUpdate(ctx, jockeyResults)
+	// if err != nil {
+	// 	return err
+	// }
 
 	winOdds, err := m.winOddsService.Get(ctx)
 	if err != nil {

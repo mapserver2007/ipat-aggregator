@@ -162,12 +162,12 @@ func (s *spreadSheetRepository) WriteAnalysisPlaceUnhit(
 	ctx context.Context,
 	analysisPlaceUnhits []*spreadsheet_entity.AnalysisPlaceUnhit,
 ) error {
-	// err := s.analysisPlaceUnhitGateway.Clear(ctx)
-	// if err != nil {
-	// 	return err
-	// }
+	err := s.analysisPlaceUnhitGateway.Clear(ctx)
+	if err != nil {
+		return err
+	}
 
-	err := s.analysisPlaceUnhitGateway.Write(ctx, analysisPlaceUnhits)
+	err = s.analysisPlaceUnhitGateway.Write(ctx, analysisPlaceUnhits)
 	if err != nil {
 		return err
 	}

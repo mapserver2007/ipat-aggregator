@@ -216,6 +216,8 @@ func (j *jockeyService) createJockeyUrls(
 	otherJockeyIds := []string{
 		"a02d7", // 西啓太
 		"a050d", // 宮内勇樹
+		"a03a8", // Ｒ．クアトロ
+		"a0224", // 本橋孝太
 	}
 	for _, jockeyId := range otherJockeyIds {
 		// 除外リストに含まれてたら何もしない

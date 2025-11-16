@@ -1,93 +1,64 @@
 package data_cache_entity
 
 import (
-	"time"
-
 	"github.com/mapserver2007/ipat-aggregator/app/domain/types"
+	"github.com/mapserver2007/ipat-aggregator/app/domain/vo/data_cache_vo"
 )
 
-type RaceTime struct {
-	raceId     types.RaceId
-	raceDate   types.RaceDate
-	time       string
-	timeIndex  int
-	trackIndex int
-	rapTimes   []time.Duration
-	first3f    time.Duration
-	first4f    time.Duration
-	last3f     time.Duration
-	last4f     time.Duration
-	rap5f      time.Duration
+type RaceTimeV2 struct {
+	raceTimeId  types.RaceTime
+	raceId      types.RaceId
+	raceDate    types.RaceDate
+	time        *data_cache_vo.RaceTime
+	timeIndex   int
+	trackIndex  int
+	raceTimeRap *data_cache_vo.RaceTimeRap
 }
 
-func NewRaceTime(
+func NewRaceTimeV2(
+	raceTimeId types.RaceTime,
 	raceId types.RaceId,
 	raceDate types.RaceDate,
-	time string,
+	time *data_cache_vo.RaceTime,
 	timeIndex int,
 	trackIndex int,
-	rapTimes []time.Duration,
-	first3f time.Duration,
-	first4f time.Duration,
-	last3f time.Duration,
-	last4f time.Duration,
-	rap5f time.Duration,
-) *RaceTime {
-	return &RaceTime{
-		raceId:     raceId,
-		raceDate:   raceDate,
-		time:       time,
-		timeIndex:  timeIndex,
-		trackIndex: trackIndex,
-		rapTimes:   rapTimes,
-		first3f:    first3f,
-		first4f:    first4f,
-		last3f:     last3f,
-		last4f:     last4f,
-		rap5f:      rap5f,
+	raceTimeRap *data_cache_vo.RaceTimeRap,
+) *RaceTimeV2 {
+	return &RaceTimeV2{
+		raceTimeId:  raceTimeId,
+		raceId:      raceId,
+		raceDate:    raceDate,
+		time:        time,
+		timeIndex:   timeIndex,
+		trackIndex:  trackIndex,
+		raceTimeRap: raceTimeRap,
 	}
 }
 
-func (r *RaceTime) RaceId() types.RaceId {
+func (r *RaceTimeV2) RaceTimeId() types.RaceTime {
+	return r.raceTimeId
+}
+
+func (r *RaceTimeV2) RaceId() types.RaceId {
 	return r.raceId
 }
 
-func (r *RaceTime) RaceDate() types.RaceDate {
+func (r *RaceTimeV2) RaceDate() types.RaceDate {
 	return r.raceDate
 }
 
-func (r *RaceTime) Time() string {
+func (r *RaceTimeV2) Time() *data_cache_vo.RaceTime {
 	return r.time
 }
 
-func (r *RaceTime) TimeIndex() int {
+func (r *RaceTimeV2) TimeIndex() int {
 	return r.timeIndex
 }
 
-func (r *RaceTime) TrackIndex() int {
+func (r *RaceTimeV2) TrackIndex() int {
 	return r.trackIndex
 }
 
-func (r *RaceTime) RapTimes() []time.Duration {
-	return r.rapTimes
-}
-
-func (r *RaceTime) First3f() time.Duration {
-	return r.first3f
-}
-
-func (r *RaceTime) First4f() time.Duration {
-	return r.first4f
-}
-
-func (r *RaceTime) Last3f() time.Duration {
-	return r.last3f
-}
-
-func (r *RaceTime) Last4f() time.Duration {
-	return r.last4f
-}
-
-func (r *RaceTime) Rap5f() time.Duration {
-	return r.rap5f
+func (r *RaceTimeV2) RaceTimeRap() *data_cache_vo.RaceTimeRap {
+	return r.raceTimeRap
 }

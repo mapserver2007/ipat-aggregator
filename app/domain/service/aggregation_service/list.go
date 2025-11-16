@@ -26,26 +26,26 @@ const (
 
 var ticketSortOrders = []types.TicketType{
 	types.Win,
-	types.Exacta,
-	types.ExactaWheelOfFirst,
-	types.Trifecta,
-	types.TrifectaWheelOfFirst,
-	types.TrifectaWheelOfSecond,
-	types.TrifectaFormation,
-	types.TrifectaWheelOfFirstMulti,
-	types.TrifectaWheelOfSecondMulti,
-	types.QuinellaWheel,
-	types.QuinellaPlaceWheel,
-	types.Quinella,
-	types.QuinellaPlace,
-	types.QuinellaPlaceFormation,
-	types.TrioWheelOfFirst,
-	types.TrioWheelOfSecond,
-	types.Trio,
-	types.TrioFormation,
-	types.TrioBox,
 	types.Place,
 	types.BracketQuinella,
+	types.Quinella,
+	types.QuinellaWheel,
+	types.Exacta,
+	types.ExactaWheelOfFirst,
+	types.QuinellaPlace,
+	types.QuinellaPlaceWheel,
+	types.QuinellaPlaceFormation,
+	types.Trio,
+	types.TrioFormation,
+	types.TrioWheelOfFirst,
+	types.TrioWheelOfSecond,
+	types.TrioBox,
+	types.Trifecta,
+	types.TrifectaFormation,
+	types.TrifectaWheelOfFirst,
+	types.TrifectaWheelOfSecond,
+	types.TrifectaWheelOfFirstMulti,
+	types.TrifectaWheelOfSecondMulti,
 }
 
 type List interface {
@@ -371,6 +371,10 @@ func (l *listService) getFavoritesAndRivals(
 	// 本命が決定していない場合(未決定または本命候補がいる場合)
 	if status.Matched(types.PredictUncompleted) || status.Included(types.FavoriteCandidate) {
 		favoriteBetNumbers = l.getMaxBetNumbers(refinedTickets, nil)
+		if len(favoriteBetNumbers) == 0 {
+			return includeBetNumbers, excludeBetNumbers, status
+		}
+
 		// 本命候補が1つの場合は本命を決定する
 		// そうでない場合は候補を保持したまま次の処理へ
 		if len(favoriteBetNumbers) == 1 {
@@ -416,6 +420,10 @@ func (l *listService) getFavoritesAndRivals(
 	// 対抗が決定していない場合(未決定または対抗候補がいる場合)
 	if status.Included(types.RivalCandidate | types.FavoriteCompleted) {
 		rivalBetNumbers = l.getMaxBetNumbers(refinedTickets, excludeBetNumbers)
+		if len(rivalBetNumbers) == 0 {
+			return includeBetNumbers, excludeBetNumbers, status
+		}
+
 		if len(rivalBetNumbers) == 1 {
 			// 本命が1つに定まってる場合
 			// favoriteBetNumbersの要素が1つの場合：
